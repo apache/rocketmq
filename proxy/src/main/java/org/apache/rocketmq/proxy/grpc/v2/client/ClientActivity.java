@@ -90,6 +90,16 @@ public class ClientActivity extends AbstractMessagingActivity {
         this.init();
     }
 
+    static String summarizeSettings(Settings settings) {
+        if (settings == null) {
+            return "null";
+        }
+        int publishingTopicCount = settings.hasPublishing() ? settings.getPublishing().getTopicsCount() : 0;
+        int subscriptionCount = settings.hasSubscription() ? settings.getSubscription().getSubscriptionsCount() : 0;
+        return String.format("clientType=%s, publishingTopicCount=%d, subscriptionCount=%d",
+            settings.getClientType(), publishingTopicCount, subscriptionCount);
+    }
+
     protected void init() {
         this.messagingProcessor.registerConsumerListener(new ConsumerIdsChangeListenerImpl());
         this.messagingProcessor.registerProducerListener(new ProducerChangeListenerImpl());
@@ -597,7 +607,8 @@ public class ClientActivity extends AbstractMessagingActivity {
                 if (ChannelHelper.isRemote(channel)) {
                     // save settings from channel sync from other proxy
                     Settings settings = GrpcClientChannel.parseChannelExtendAttribute(channel);
-                    log.debug("save client settings sync from other proxy. group:{}, channelInfo:{}, settings:{}", group, clientChannelInfo, settings);
+                    log.debug("save client settings sync from other proxy. group:{}, channelInfo:{}, settingsSummary:{}",
+                        group, clientChannelInfo, summarizeSettings(settings));
                     if (settings == null) {
                         return;
                     }

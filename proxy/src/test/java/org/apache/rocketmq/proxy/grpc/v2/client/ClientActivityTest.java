@@ -185,6 +185,42 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testSummarizeSettingsDoesNotExposeResourceNames() {
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName("sensitive-publish-topic").build())
+                .build())
+            .build();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("sensitive-group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression("sensitive-tag")
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName("sensitive-subscription-topic").build())
+                    .build())
+                .build())
+            .build();
+
+        String producerSummary = ClientActivity.summarizeSettings(producerSettings);
+        String consumerSummary = ClientActivity.summarizeSettings(consumerSettings);
+
+        assertThat(producerSummary).contains("clientType=PRODUCER");
+        assertThat(producerSummary).contains("publishingTopicCount=1");
+        assertThat(producerSummary).doesNotContain("sensitive-publish-topic");
+
+        assertThat(consumerSummary).contains("clientType=PUSH_CONSUMER");
+        assertThat(consumerSummary).contains("subscriptionCount=1");
+        assertThat(consumerSummary).doesNotContain("sensitive-subscription-topic");
+        assertThat(consumerSummary).doesNotContain("sensitive-group");
+        assertThat(consumerSummary).doesNotContain("sensitive-tag");
+    }
+
+    @Test
     public void testConsumerHeartbeat() throws Throwable {
         ProxyContext context = createContext();
         this.sendConsumerTelemetry(context);
