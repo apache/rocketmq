@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting;
 
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
@@ -220,7 +221,9 @@ public class TlsTest {
         try {
             RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
-        } catch (RemotingSendRequestException ignore) {
+        } catch (RemotingSendRequestException | RemotingConnectException ignore) {
+            // The handshake failure may surface as a send failure, or as a connect failure
+            // when the channel is closed before the request is flushed.
         }
     }
 
@@ -238,7 +241,9 @@ public class TlsTest {
         try {
             RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
-        } catch (RemotingSendRequestException ignore) {
+        } catch (RemotingSendRequestException | RemotingConnectException ignore) {
+            // The handshake failure may surface as a send failure, or as a connect failure
+            // when the channel is closed before the request is flushed.
         }
     }
 
@@ -257,7 +262,9 @@ public class TlsTest {
         try {
             RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 3);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
-        } catch (RemotingSendRequestException ignore) {
+        } catch (RemotingSendRequestException | RemotingConnectException ignore) {
+            // The handshake failure may surface as a send failure, or as a connect failure
+            // when the channel is closed before the request is flushed.
         }
     }
 
@@ -270,7 +277,9 @@ public class TlsTest {
         try {
             RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 3);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
-        } catch (RemotingSendRequestException ignore) {
+        } catch (RemotingSendRequestException | RemotingConnectException ignore) {
+            // The handshake failure may surface as a send failure, or as a connect failure
+            // when the channel is closed before the request is flushed.
         }
     }
 
