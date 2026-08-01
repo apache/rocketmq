@@ -44,6 +44,7 @@ import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.lite.LiteLifecycleManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -76,6 +77,8 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.CreateTopicListRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.DeleteSubscriptionGroupListRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.DeleteTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
@@ -470,9 +473,179 @@ public class AdminBrokerProcessorTest {
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
-        verify(topicConfigManager).deleteTopicConfig(topic);
-        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()));
+        verify(topicConfigManager).deleteTopicConfig(topic, true);
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()), true);
         verify(messageStore, times(2)).deleteTopics(anySet());
+    }
+
+    @Test
+    public void testDeleteTopicListInBroker() throws Exception {
+        // empty list should fail with INVALID_PARAMETER
+        RemotingCommand emptyRequest = buildDeleteTopicListRequest(new ArrayList<>());
+        RemotingCommand emptyResponse = adminBrokerProcessor.processRequest(handlerContext, emptyRequest);
+        assertThat(emptyResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+
+        // blank topic name should fail
+        RemotingCommand blankRequest = buildDeleteTopicListRequest(Arrays.asList("VALID_TOPIC", "", "ANOTHER"));
+        RemotingCommand blankResponse = adminBrokerProcessor.processRequest(handlerContext, blankRequest);
+        assertThat(blankResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(blankResponse.getRemark()).isEqualTo("The specified topic is blank.");
+
+        // system topic in batch should be rejected
+        for (String sysTopic : systemTopicSet) {
+            RemotingCommand request = buildDeleteTopicListRequest(Arrays.asList("TEST_DELETE_TOPIC_BATCH_OK", sysTopic));
+            RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+            assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+            assertThat(response.getRemark()).isEqualTo("The topic[" + sysTopic + "] is conflict with system topic.");
+        }
+
+        // happy path
+        List<String> topicList = Arrays.asList("TEST_DELETE_TOPIC_BATCH_1", "TEST_DELETE_TOPIC_BATCH_2");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteTopicListBatchPersist() throws Exception {
+        // Disable rate limiter for test
+        brokerController.getBrokerConfig().setBatchDeleteTopicMaxRate(0);
+
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(null);
+
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.whichGroupByTopic(anyString())).thenReturn(new HashSet<>());
+
+        List<String> topicList = Arrays.asList("TEST_DELETE_TOPIC_BATCH_A", "TEST_DELETE_TOPIC_BATCH_B", "TEST_DELETE_TOPIC_BATCH_A");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(topicConfigManager).deleteTopicConfig("TEST_DELETE_TOPIC_BATCH_A", false);
+        verify(topicConfigManager).deleteTopicConfig("TEST_DELETE_TOPIC_BATCH_B", false);
+        verify(topicConfigManager).persist();
+    }
+
+    @Test
+    public void testDeleteTopicListRateLimited() throws Exception {
+        // Enable rate limiter at 1000/s so the test exercises the throttled path without being slow
+        brokerController.getBrokerConfig().setBatchDeleteTopicMaxRate(1000.0);
+
+        List<String> topicList = Arrays.asList("RL_TOPIC_1", "RL_TOPIC_2", "RL_TOPIC_3");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupList() throws Exception {
+        // empty list should fail with INVALID_PARAMETER
+        RemotingCommand emptyRequest = buildDeleteSubscriptionGroupListRequest(new ArrayList<>(), false);
+        RemotingCommand emptyResponse = adminBrokerProcessor.processRequest(handlerContext, emptyRequest);
+        assertThat(emptyResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+
+        // blank group name should fail
+        RemotingCommand blankRequest = buildDeleteSubscriptionGroupListRequest(Arrays.asList("GID-OK", "", "GID-OK2"), true);
+        RemotingCommand blankResponse = adminBrokerProcessor.processRequest(handlerContext, blankRequest);
+        assertThat(blankResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+
+        // happy path
+        List<String> groupList = Arrays.asList("GID-Group-Name-1", "GID-Group-Name-2");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, true);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListDedup() throws Exception {
+        // Duplicate group names should be deduplicated, request should still succeed
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+
+        List<String> groupList = Arrays.asList("GID-DUP-1", "GID-DUP-2", "GID-DUP-1");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListBatchPersist() throws Exception {
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+        SubscriptionGroupManager subscriptionGroupManager = mock(SubscriptionGroupManager.class);
+        brokerController.setSubscriptionGroupManager(subscriptionGroupManager);
+
+        List<String> groupList = Arrays.asList("GID-BATCH-A", "GID-BATCH-B", "GID-BATCH-A");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(subscriptionGroupManager).deleteSubscriptionGroupConfig("GID-BATCH-A", false);
+        verify(subscriptionGroupManager).deleteSubscriptionGroupConfig("GID-BATCH-B", false);
+        verify(subscriptionGroupManager).persist();
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListRateLimited() throws Exception {
+        // Enable rate limiter at 1000/s so the test exercises the throttled path without being slow
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(1000.0);
+
+        List<String> groupList = Arrays.asList("GID-RL-1", "GID-RL-2", "GID-RL-3");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, true);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListCleanOffset() throws Exception {
+        // cleanOffset=true should invoke removeOffset for each group
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+
+        List<String> groupList = Arrays.asList("GID-CLEAN-1", "GID-CLEAN-2");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, true);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListNoCleanOffset() throws Exception {
+        // cleanOffset=false should still succeed (offset not cleaned unless isLiteGroupType)
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+
+        List<String> groupList = Arrays.asList("GID-NOCLEAN-1", "GID-NOCLEAN-2");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteTopicListWithPopRetryTopics() throws Exception {
+        // When clearRetryTopicWhenDeleteTopic=true, POP retry topics should be collected and deleted
+        brokerController.getBrokerConfig().setBatchDeleteTopicMaxRate(0);
+
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        String retryTopic = org.apache.rocketmq.common.KeyBuilder.buildPopRetryTopic("myTopic", "cid1",
+            brokerController.getBrokerConfig().isEnableRetryTopicV2());
+        when(topicConfigManager.selectTopicConfig(anyString())).thenAnswer(inv -> {
+            String t = inv.getArgument(0);
+            if ("myTopic".equals(t) || retryTopic.equals(t)) {
+                return new org.apache.rocketmq.common.TopicConfig();
+            }
+            return null;
+        });
+
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.whichGroupByTopic("myTopic")).thenReturn(com.google.common.collect.Sets.newHashSet("cid1"));
+
+        List<String> topicList = Arrays.asList("myTopic");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        // Verify both the original topic and the retry topic were deleted
+        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig("myTopic", false);
+        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig(retryTopic, false);
+        org.mockito.Mockito.verify(topicConfigManager).persist();
     }
 
     @Test
@@ -1688,6 +1861,20 @@ public class AdminBrokerProcessorTest {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_BROKER, requestHeader);
         request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private RemotingCommand buildDeleteTopicListRequest(List<String> topicList) {
+        DeleteTopicListRequestBody requestBody = new DeleteTopicListRequestBody(topicList);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_BROKER_LIST, null);
+        request.setBody(requestBody.encode());
+        return request;
+    }
+
+    private RemotingCommand buildDeleteSubscriptionGroupListRequest(List<String> groupNameList, boolean cleanOffset) {
+        DeleteSubscriptionGroupListRequestBody requestBody = new DeleteSubscriptionGroupListRequestBody(groupNameList, cleanOffset);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTION_GROUP_LIST, null);
+        request.setBody(requestBody.encode());
         return request;
     }
 

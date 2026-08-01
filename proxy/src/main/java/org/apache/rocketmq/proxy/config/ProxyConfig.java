@@ -325,7 +325,7 @@ public class ProxyConfig implements ConfigFile {
     @Override
     public void initData() {
         parseDelayLevel();
-        if (StringUtils.isEmpty(localServeAddr)) {
+        if (StringUtils.isBlank(localServeAddr)) {
             this.localServeAddr = NetworkUtil.getLocalAddress();
         }
         if (StringUtils.isBlank(localServeAddr)) {

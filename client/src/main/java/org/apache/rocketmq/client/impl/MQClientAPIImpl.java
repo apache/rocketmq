@@ -125,6 +125,8 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.CreateTopicListRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.DeleteSubscriptionGroupListRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.DeleteTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
@@ -2197,6 +2199,27 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    public void deleteTopicInBrokerList(final String addr, final List<String> topicList, final long timeoutMillis)
+        throws RemotingException, InterruptedException, MQClientException {
+        DeleteTopicListRequestBody requestBody = new DeleteTopicListRequestBody(topicList);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_BROKER_LIST, null);
+        request.setBody(requestBody.encode());
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        if (response == null) {
+            throw new MQClientException(ResponseCode.SYSTEM_ERROR, "response is null when deleting topic list in broker");
+        }
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
     public void deleteTopicInNameServer(final String addr, final String topic, final long timeoutMillis)
         throws RemotingException, InterruptedException, MQClientException {
         DeleteTopicFromNamesrvRequestHeader requestHeader = new DeleteTopicFromNamesrvRequestHeader();
@@ -2246,6 +2269,29 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void deleteSubscriptionGroupList(final String addr, final List<String> groupNameList, final boolean cleanOffset,
+        final long timeoutMillis)
+        throws RemotingException, InterruptedException, MQClientException {
+        DeleteSubscriptionGroupListRequestBody requestBody = new DeleteSubscriptionGroupListRequestBody(groupNameList, cleanOffset);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTION_GROUP_LIST, null);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request, timeoutMillis);
+        if (response == null) {
+            throw new MQClientException(ResponseCode.SYSTEM_ERROR, "response is null when deleting subscription group list");
+        }
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return;

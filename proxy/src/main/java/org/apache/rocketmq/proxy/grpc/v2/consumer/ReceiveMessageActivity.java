@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.consumer;
 
-import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -76,7 +75,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         try {
             // Settings were registered when client connected
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
-            final boolean isLite = ClientType.LITE_PUSH_CONSUMER.equals(settings.getClientType());
+            ctx.setClientType(settings.getClientType().name());
 
             Subscription subscription = settings.getSubscription();
             boolean fifo = subscription.getFifo();
@@ -138,9 +137,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 return;
             }
 
-            CompletableFuture<PopResult> popFuture;
-            if (isLite) {
-
+            if (ctx.isLiteConsumer()) {
                 GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
                 if (clientChannel == null) {
                     writer.writeAndComplete(ctx, Code.BAD_REQUEST,
@@ -155,41 +152,25 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                             ctx.getClientID(), unackedMessageCount));
                     return;
                 }
-
-                popFuture = this.messagingProcessor.popLiteMessage(
-                    ctx,
-                    new ReceiveMessageQueueSelector(
-                        request.getMessageQueue().getBroker().getName()
-                    ),
-                    group,
-                    topic,
-                    request.getBatchSize(),
-                    actualInvisibleTime,
-                    pollingTime,
-                    subscriptionData,
-                    new PopMessageResultFilterImpl(maxAttempts),
-                    request.hasAttemptId() ? request.getAttemptId() : null,
-                    timeRemaining
-                );
-            } else {
-                popFuture = this.messagingProcessor.popMessage(
-                    ctx,
-                    new ReceiveMessageQueueSelector(
-                        request.getMessageQueue().getBroker().getName()
-                    ),
-                    group,
-                    topic,
-                    request.getBatchSize(),
-                    actualInvisibleTime,
-                    pollingTime,
-                    ConsumeInitMode.MAX,
-                    subscriptionData,
-                    fifo,
-                    new PopMessageResultFilterImpl(maxAttempts),
-                    request.hasAttemptId() ? request.getAttemptId() : null,
-                    timeRemaining
-                );
             }
+
+            CompletableFuture<PopResult> popFuture = this.messagingProcessor.popMessage(
+                ctx,
+                new ReceiveMessageQueueSelector(
+                    request.getMessageQueue().getBroker().getName()
+                ),
+                group,
+                topic,
+                request.getBatchSize(),
+                actualInvisibleTime,
+                pollingTime,
+                ConsumeInitMode.MAX,
+                subscriptionData,
+                fifo,
+                new PopMessageResultFilterImpl(maxAttempts),
+                request.hasAttemptId() ? request.getAttemptId() : null,
+                timeRemaining
+            );
 
             final boolean autoRenew = proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew();
             popFuture.thenAccept(popResult -> {
@@ -248,14 +229,16 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         }
 
         return () -> {
+            boolean isLiteConsumer = ctx.isLiteConsumer();
             List<MessageExt> messageExtList = popResult.getMsgFoundList();
             for (MessageExt messageExt : messageExtList) {
                 String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
                 if (receiptHandle != null) {
-                    MessageReceiptHandle messageReceiptHandle =
-                        new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
-                            messageExt.getQueueOffset(), messageExt.getReconsumeTimes(),
-                            messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC));
+                    // lite topic can be consumed by normal consumer
+                    String liteTopic = isLiteConsumer ? messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC) : null;
+                    MessageReceiptHandle messageReceiptHandle = new MessageReceiptHandle(group, topic,
+                        messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(), messageExt.getQueueOffset(),
+                        messageExt.getReconsumeTimes(), liteTopic);
                     messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
                 }
             }

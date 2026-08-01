@@ -228,8 +228,12 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
     public void offlineClientLiteSubscription(ProxyContext ctx, String clientId, Settings settings) {
         if (settings == null) {
             settings = getRawClientSettings(clientId);
+            if (settings == null) {
+                return;
+            }
         }
-        if (settings == null || ClientType.LITE_PUSH_CONSUMER != settings.getClientType()) {
+        if (ClientType.LITE_PUSH_CONSUMER != settings.getClientType()
+            && ClientType.LITE_SIMPLE_CONSUMER != settings.getClientType()) {
             return;
         }
         try {
@@ -266,9 +270,10 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         for (String clientId : clientIdSet) {
             try {
                 CLIENT_SETTINGS_MAP.computeIfPresent(clientId, (clientIdKey, settings) -> {
-                    if (!settings.getClientType().equals(ClientType.PUSH_CONSUMER) &&
-                        !settings.getClientType().equals(ClientType.SIMPLE_CONSUMER) &&
-                        !settings.getClientType().equals(ClientType.LITE_PUSH_CONSUMER)) {
+                    if (ClientType.PUSH_CONSUMER != settings.getClientType() &&
+                        ClientType.SIMPLE_CONSUMER != settings.getClientType() &&
+                        ClientType.LITE_PUSH_CONSUMER != settings.getClientType() &&
+                        ClientType.LITE_SIMPLE_CONSUMER != settings.getClientType()) {
                         return settings;
                     }
                     String consumerGroup = settings.getSubscription().getGroup().getName();

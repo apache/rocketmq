@@ -14,19 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.remoting.protocol.body;
 
-package org.apache.rocketmq.proxy.common;
+import java.util.List;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class ContextVariable {
-    public static final String REMOTE_ADDRESS = "remote-address";
-    public static final String LOCAL_ADDRESS = "local-address";
-    public static final String CLIENT_ID = "client-id";
-    public static final String CHANNEL = "channel";
-    public static final String LANGUAGE = "language";
-    public static final String CLIENT_VERSION = "client-version";
-    public static final String REMAINING_MS = "remaining-ms";
-    public static final String ACTION = "action";
-    public static final String PROTOCOL_TYPE = "protocol-type";
-    public static final String NAMESPACE = "namespace";
-    public static final String CLIENT_TYPE = "client-type";
+public class DeleteTopicListRequestBody extends RemotingSerializable {
+    @CFNotNull
+    private List<String> topicList;
+
+    public DeleteTopicListRequestBody() {
+    }
+
+    public DeleteTopicListRequestBody(List<String> topicList) {
+        this.topicList = topicList;
+    }
+
+    public List<String> getTopicList() {
+        return topicList;
+    }
+
+    public void setTopicList(List<String> topicList) {
+        this.topicList = topicList;
+    }
 }

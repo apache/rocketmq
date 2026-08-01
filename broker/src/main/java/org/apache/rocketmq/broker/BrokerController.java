@@ -1611,6 +1611,7 @@ public class BrokerController {
 
         if (this.notificationProcessor != null) {
             this.notificationProcessor.getPopLongPollingService().shutdown();
+            this.notificationProcessor.getPopLiteLongPollingService().shutdown();
         }
 
         if (this.consumerIdsChangeListener != null) {
@@ -1907,6 +1908,7 @@ public class BrokerController {
 
         if (this.notificationProcessor != null) {
             this.notificationProcessor.getPopLongPollingService().start();
+            this.notificationProcessor.getPopLiteLongPollingService().start();
         }
 
         if (this.popConsumerService != null) {

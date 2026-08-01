@@ -93,6 +93,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CON
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_QUEUEING_LATENCY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_READY_MESSAGES;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_HALF_MESSAGES;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_LMQ_NUM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PROCESSOR_WATERMARK;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRODUCER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_FINISH_MSG_LATENCY;
@@ -138,6 +139,7 @@ public class BrokerMetricsManager {
     private ObservableLongGauge brokerPermission = new NopObservableLongGauge();
     private ObservableLongGauge topicNum = new NopObservableLongGauge();
     private ObservableLongGauge consumerGroupNum = new NopObservableLongGauge();
+    private ObservableLongGauge lmqNum = new NopObservableLongGauge();
 
     // request metrics
     private LongCounter messagesInTotal = new NopLongCounter();
@@ -602,6 +604,13 @@ public class BrokerMetricsManager {
             .setDescription("Active subscription group number")
             .ofLongs()
             .buildWithCallback(measurement -> measurement.record(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().size(), newAttributesBuilder().build()));
+
+        if (messageStore.getMessageStoreConfig().isEnableLmq()) {
+            lmqNum = brokerMeter.gaugeBuilder(GAUGE_LMQ_NUM)
+                .setDescription("Current LMQ number")
+                .ofLongs()
+                .buildWithCallback(measurement -> measurement.record(messageStore.getQueueStore().getLmqNum(), newAttributesBuilder().build()));
+        }
     }
 
     private void initRequestMetrics() {

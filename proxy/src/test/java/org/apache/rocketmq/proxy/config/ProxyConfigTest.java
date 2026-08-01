@@ -15,18 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.proxy.config;
 
-public class ContextVariable {
-    public static final String REMOTE_ADDRESS = "remote-address";
-    public static final String LOCAL_ADDRESS = "local-address";
-    public static final String CLIENT_ID = "client-id";
-    public static final String CHANNEL = "channel";
-    public static final String LANGUAGE = "language";
-    public static final String CLIENT_VERSION = "client-version";
-    public static final String REMAINING_MS = "remaining-ms";
-    public static final String ACTION = "action";
-    public static final String PROTOCOL_TYPE = "protocol-type";
-    public static final String NAMESPACE = "namespace";
-    public static final String CLIENT_TYPE = "client-type";
+import org.apache.commons.lang3.StringUtils;
+import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ProxyConfigTest {
+
+    @Test
+    public void initDataShouldResolveBlankLocalServeAddr() {
+        ProxyConfig proxyConfig = new ProxyConfig();
+        proxyConfig.setLocalServeAddr(" \t ");
+        proxyConfig.setRemotingAccessAddr(" ");
+
+        proxyConfig.initData();
+
+        assertThat(StringUtils.isBlank(proxyConfig.getLocalServeAddr())).isFalse();
+        assertThat(proxyConfig.getRemotingAccessAddr()).isEqualTo(proxyConfig.getLocalServeAddr());
+    }
 }

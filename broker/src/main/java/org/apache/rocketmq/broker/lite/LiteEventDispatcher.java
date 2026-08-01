@@ -24,7 +24,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -94,7 +93,6 @@ public class LiteEventDispatcher extends ServiceThread {
     private final BrokerController brokerController;
     private final LiteSubscriptionRegistry liteSubscriptionRegistry;
     private final AbstractLiteLifecycleManager liteLifecycleManager;
-    private final ConsumerOffsetManager consumerOffsetManager;
 
     protected final ConcurrentMap<String, ClientEventSet> clientEventMap = new ConcurrentHashMap<>();
     protected final ConcurrentSkipListSet<FullDispatchRequest> fullDispatchSet = new ConcurrentSkipListSet<>(COMPARATOR);
@@ -109,7 +107,6 @@ public class LiteEventDispatcher extends ServiceThread {
         this.brokerController = brokerController;
         this.liteSubscriptionRegistry = liteSubscriptionRegistry;
         this.liteLifecycleManager = liteLifecycleManager;
-        this.consumerOffsetManager = brokerController.getConsumerOffsetManager();
     }
 
     public void init() {
@@ -150,7 +147,7 @@ public class LiteEventDispatcher extends ServiceThread {
      * If there are multiple clients, randomly select one and consider fallback options
      * Try to avoid dispatching to the excluded one but fallback if no other choice.
      *
-     * @param clients all clients of one group
+     * @param clients         all clients of one group
      * @param excludeClientId the client ID to exclude from selection, probably consuming blocked.
      * @return true if dispatched to one client
      */
@@ -191,8 +188,7 @@ public class LiteEventDispatcher extends ServiceThread {
             }
         }
         if (selectedClient != null) {
-            this.brokerController.getPopLiteMessageProcessor().getPopLiteLongPollingService()
-                .notifyMessageArriving(selectedClient, true, 0, group);
+            notifyMessageArriving(selectedClient, group);
         } else if (isWildcardGroup) { // no one available in this group, so schedule a full dispatch once
             scheduleFullDispatchForWildcardGroup(group,
                 brokerController.getBrokerConfig().getLiteEventFullDispatchDelayTimeForWildcardGroup());
@@ -261,14 +257,13 @@ public class LiteEventDispatcher extends ServiceThread {
             if (maxOffset <= 0) {
                 continue;
             }
-            long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+            long consumerOffset = brokerController.getConsumerOffsetManager().queryOffset(group, lmqName, 0);
             if (consumerOffset >= maxOffset) {
                 continue;
             }
             if (eventSet.offer(lmqName)) {
                 if (count++ % 10 == 0) {
-                    brokerController.getPopLiteMessageProcessor().getPopLiteLongPollingService()
-                        .notifyMessageArriving(clientId, true, 0, group);
+                    notifyMessageArriving(clientId, group);
                 }
             } else {
                 LOGGER.warn("client event set full again, wait another period. {}, {}", clientId, isActiveConsuming);
@@ -277,9 +272,28 @@ public class LiteEventDispatcher extends ServiceThread {
                 break;
             }
         }
-        brokerController.getPopLiteMessageProcessor().getPopLiteLongPollingService()
-            .notifyMessageArriving(clientId, true, 0, group);
+        notifyMessageArriving(clientId, group);
         LOGGER.info("client full dispatch finish. {}, dispatch:{}", clientId, count);
+    }
+
+    private void notifyMessageArriving(String clientId, String group) {
+        brokerController.getPopLiteMessageProcessor()
+            .getPopLiteLongPollingService()
+            .notifyMessageArriving(clientId, true, 0, group);
+        brokerController.getNotificationProcessor()
+            .getPopLiteLongPollingService()
+            .notifyMessageArriving(clientId, true, 0, group);
+    }
+
+    /**
+     * Check whether a client has any events in the event queue.
+     *
+     * @param clientId the client ID to check
+     * @return true if the client has events, false otherwise
+     */
+    public boolean hasEvents(String clientId) {
+        ClientEventSet eventSet = clientEventMap.get(clientId);
+        return eventSet != null && eventSet.size() > 0;
     }
 
     /**
@@ -305,7 +319,7 @@ public class LiteEventDispatcher extends ServiceThread {
             if (maxOffset <= 0) {
                 return true;
             }
-            long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+            long consumerOffset = brokerController.getConsumerOffsetManager().queryOffset(group, lmqName, 0);
             if (consumerOffset >= maxOffset) {
                 return true;
             }

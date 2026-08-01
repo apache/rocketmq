@@ -27,6 +27,7 @@ import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.longpolling.PollingHeader;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
+import org.apache.rocketmq.broker.longpolling.PopLiteLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
@@ -59,11 +60,13 @@ public class NotificationProcessor implements NettyRequestProcessor {
     private final BrokerController brokerController;
     private final Random random = new Random(System.currentTimeMillis());
     private final PopLongPollingService popLongPollingService;
+    private final PopLiteLongPollingService popLiteLongPollingService;
     private static final String BORN_TIME = "bornTime";
 
     public NotificationProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.popLongPollingService = new PopLongPollingService(brokerController, this, true);
+        this.popLiteLongPollingService = new PopLiteLongPollingService(brokerController, this, false);
     }
 
     public void shutdown() throws Exception {
@@ -140,6 +143,8 @@ public class NotificationProcessor implements NettyRequestProcessor {
             response.setRemark("subscription group no permission, " + requestHeader.getConsumerGroup());
             return response;
         }
+
+        boolean isLiteConsumer = requestHeader.isLiteConsumer();
         int randomQ = random.nextInt(100);
         boolean hasMsg = false;
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
@@ -178,15 +183,18 @@ public class NotificationProcessor implements NettyRequestProcessor {
             }
         }
 
-        if (requestHeader.getQueueId() < 0) {
+        if (isLiteConsumer) {
+            hasMsg = hasMsgForLiteConsumer(requestHeader.getClientId());
+        } else if (requestHeader.getQueueId() < 0) {
             // read all queue
             hasMsg = hasMsgFromTopic(topicConfig, randomQ, requestHeader, subscriptionData, messageFilter);
         } else {
             int queueId = requestHeader.getQueueId();
             hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId, subscriptionData, messageFilter);
         }
-        // if it doesn't have message, fetch retry
-        if (!hasMsg) {
+
+        // if it doesn't have message, fetch retry. Lite topic has no retry
+        if (!isLiteConsumer && !hasMsg) {
             String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
             hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader, null, null);
             if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
@@ -196,7 +204,13 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
 
         if (!hasMsg) {
-            PollingResult pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader), subscriptionData, messageFilter);
+            PollingResult pollingResult;
+            if (isLiteConsumer) {
+                pollingResult = popLiteLongPollingService.polling(ctx, request, requestHeader.getBornTime(),
+                    requestHeader.getPollTime(), requestHeader.getClientId(), requestHeader.getConsumerGroup());
+            } else {
+                pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader), subscriptionData, messageFilter);
+            }
             if (pollingResult == PollingResult.POLLING_SUC) {
                 return null;
             } else if (pollingResult == PollingResult.POLLING_FULL) {
@@ -206,6 +220,10 @@ public class NotificationProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         responseHeader.setHasMsg(hasMsg);
         return response;
+    }
+
+    private boolean hasMsgForLiteConsumer(String clientId) {
+        return brokerController.getLiteEventDispatcher().hasEvents(clientId);
     }
 
     private boolean hasMsgFromTopic(String topicName, int randomQ, NotificationRequestHeader requestHeader, SubscriptionData subscriptionData, MessageFilter messageFilter)
@@ -294,5 +312,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
 
     public PopLongPollingService getPopLongPollingService() {
         return popLongPollingService;
+    }
+
+    public PopLiteLongPollingService getPopLiteLongPollingService() {
+        return popLiteLongPollingService;
     }
 }

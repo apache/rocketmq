@@ -148,7 +148,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      */
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
-        messageStore.setNotifyMessageArriveInBatch(true);
 
         String root = messageStoreConfig.getStorePathRootDir();
         File checkFile;
