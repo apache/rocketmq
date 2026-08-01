@@ -51,6 +51,7 @@ public class Http2ProxyBackendHandler extends ChannelInboundHandlerAdapter {
                     ctx.channel().read();
                 } else {
                     future.channel().close();
+                    ctx.channel().close();
                 }
             }
         });
@@ -65,5 +66,6 @@ public class Http2ProxyBackendHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.error("Http2ProxyBackendHandler#exceptionCaught", cause);
         Http2ProxyFrontendHandler.closeOnFlush(ctx.channel());
+        Http2ProxyFrontendHandler.closeOnFlush(inboundChannel);
     }
 }
