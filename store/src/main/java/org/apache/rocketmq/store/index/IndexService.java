@@ -92,11 +92,16 @@ public class IndexService implements CommitLogDispatchStore {
     }
 
     public long getTotalSize() {
-        if (indexFileList.isEmpty()) {
-            return 0;
-        }
+        this.readWriteLock.readLock().lock();
+        try {
+            if (indexFileList.isEmpty()) {
+                return 0;
+            }
 
-        return (long) indexFileList.get(0).getFileSize() * indexFileList.size();
+            return (long) indexFileList.get(0).getFileSize() * indexFileList.size();
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
     }
 
     public void deleteExpiredFile(long offset) {
