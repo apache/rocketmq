@@ -784,6 +784,9 @@ public class TimerMessageStore {
                     MessageExt msgExt = getMessageByCommitOffset(offsetPy, sizePy);
                     if (null == msgExt) {
                         perfCounterTicks.getCounter("enqueue_get_miss");
+                    } else if (!isValidTimerMessage(msgExt)) {
+                        LOGGER.warn("Skip invalid timer message during enqueue, offsetPy:{}, sizePy:{}, topic:{}",
+                            offsetPy, sizePy, msgExt.getTopic());
                     } else {
                         lastEnqueueButExpiredTime = System.currentTimeMillis();
                         lastEnqueueButExpiredStoreTime = msgExt.getStoreTimestamp();
@@ -1123,6 +1126,56 @@ public class TimerMessageStore {
         return 1;
     }
 
+    public void onCommitLogDispatchTruncate(long offsetToTruncate) {
+        discardTruncatedRequests(enqueuePutQueue, offsetToTruncate);
+        discardTruncatedRequests(dequeuePutQueue, offsetToTruncate);
+
+        List<List<TimerRequest>> retainedLists = new ArrayList<>();
+        List<TimerRequest> requests;
+        while ((requests = dequeueGetQueue.poll()) != null) {
+            List<TimerRequest> retained = new ArrayList<>(requests.size());
+            for (TimerRequest request : requests) {
+                if (request.getOffsetPy() >= offsetToTruncate) {
+                    request.idempotentRelease(false);
+                } else {
+                    retained.add(request);
+                }
+            }
+            if (!retained.isEmpty()) {
+                retainedLists.add(retained);
+            }
+        }
+        for (List<TimerRequest> retained : retainedLists) {
+            dequeueGetQueue.offer(retained);
+        }
+
+        ConsumeQueueInterface cq = messageStore.getConsumeQueue(TIMER_TOPIC, 0);
+        if (cq != null && currQueueOffset > cq.getMaxOffsetInQueue()) {
+            LOGGER.warn("Timer currQueueOffset:{} is larger than maxOffsetInQueue:{} after CommitLog truncation to {}",
+                currQueueOffset, cq.getMaxOffsetInQueue(), offsetToTruncate);
+            currQueueOffset = cq.getMaxOffsetInQueue();
+        }
+        if (commitQueueOffset > currQueueOffset) {
+            commitQueueOffset = currQueueOffset;
+        }
+        prepareTimerCheckPoint();
+    }
+
+    private void discardTruncatedRequests(BlockingQueue<TimerRequest> queue, long offsetToTruncate) {
+        List<TimerRequest> retained = new ArrayList<>();
+        TimerRequest request;
+        while ((request = queue.poll()) != null) {
+            if (request.getOffsetPy() >= offsetToTruncate) {
+                request.idempotentRelease(false);
+            } else {
+                retained.add(request);
+            }
+        }
+        for (TimerRequest requestToRetain : retained) {
+            queue.offer(requestToRetain);
+        }
+    }
+
     private List<List<TimerRequest>> splitIntoLists(List<TimerRequest> origin) {
         //this method assume that the origin is not null;
         List<List<TimerRequest>> lists = new LinkedList<>();
@@ -1157,6 +1210,13 @@ public class TimerMessageStore {
     }
 
     private MessageExt getMessageByCommitOffset(long offsetPy, int sizePy) {
+        long minPhyOffset = messageStore.getMinPhyOffset();
+        long maxPhyOffset = messageStore.getMaxPhyOffset();
+        if (sizePy <= 0 || offsetPy < minPhyOffset || offsetPy > maxPhyOffset - sizePy) {
+            LOGGER.warn("Skip timer message outside CommitLog range, offsetPy:{}, sizePy:{}, minPhyOffset:{}, maxPhyOffset:{}",
+                offsetPy, sizePy, minPhyOffset, maxPhyOffset);
+            return null;
+        }
         for (int i = 0; i < 3; i++) {
             MessageExt msgExt = StoreUtil.getMessage(offsetPy, sizePy, messageStore, bufferLocal.get());
             if (null == msgExt) {
@@ -1166,6 +1226,23 @@ public class TimerMessageStore {
             }
         }
         return null;
+    }
+
+    boolean isValidTimerMessage(MessageExt msgExt) {
+        if (msgExt == null || !TIMER_TOPIC.equals(msgExt.getTopic())) {
+            return false;
+        }
+        String realTopic = msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+        String realQueueId = msgExt.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
+        if (realTopic == null || realTopic.isEmpty() || realQueueId == null || realQueueId.isEmpty()) {
+            return false;
+        }
+        try {
+            Integer.parseInt(realQueueId);
+            return true;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     public MessageExtBrokerInner convert(MessageExt messageExt, long enqueueTime, boolean needRoll) {
@@ -1717,7 +1794,12 @@ public class TimerMessageStore {
                             long start = System.currentTimeMillis();
                             MessageExt msgExt = getMessageByCommitOffset(tr.getOffsetPy(), tr.getSizePy());
                             if (null != msgExt) {
-                                if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
+                                if (!isValidTimerMessage(msgExt)) {
+                                    LOGGER.warn("Skip invalid timer message during dequeue, offsetPy:{}, sizePy:{}, topic:{}",
+                                        tr.getOffsetPy(), tr.getSizePy(), msgExt.getTopic());
+                                    tr.idempotentRelease(false);
+                                    doRes = true;
+                                } else if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
                                     if (msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null && tr.getDeleteList() != null) {
                                         //Execute metric plus one for messages that fail to be deleted
                                         addMetric(msgExt, 1);
