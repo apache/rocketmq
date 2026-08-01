@@ -24,13 +24,18 @@ public class FutureUtils {
 
     public static <T> CompletableFuture<T> appendNextFuture(CompletableFuture<T> future,
         CompletableFuture<T> nextFuture, ExecutorService executor) {
-        future.whenCompleteAsync((t, throwable) -> {
+        CompletableFuture<T> completionFuture = future.whenCompleteAsync((t, throwable) -> {
             if (throwable != null) {
                 nextFuture.completeExceptionally(throwable);
             } else {
                 nextFuture.complete(t);
             }
         }, executor);
+        completionFuture.whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                nextFuture.completeExceptionally(throwable);
+            }
+        });
         return nextFuture;
     }
 
