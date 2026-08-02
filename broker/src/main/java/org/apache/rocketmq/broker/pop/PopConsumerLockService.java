@@ -16,16 +16,13 @@
  */
 package org.apache.rocketmq.broker.pop;
 
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +39,13 @@ public class PopConsumerLockService {
     }
 
     public boolean tryLock(String key) {
-        return Objects.requireNonNull(ConcurrentHashMapUtils.computeIfAbsent(lockTable,
-            key, s -> new TimedLock())).tryLock();
+        AtomicBoolean locked = new AtomicBoolean(false);
+        lockTable.compute(key, (k, currentLock) -> {
+            TimedLock lock = currentLock == null ? new TimedLock() : currentLock;
+            locked.set(lock.tryLock());
+            return lock;
+        });
+        return locked.get();
     }
 
     public boolean tryLock(String groupId, String topicId) {
@@ -69,13 +71,22 @@ public class PopConsumerLockService {
     }
 
     public void removeTimeout() {
-        Iterator<Map.Entry<String, TimedLock>> iterator = lockTable.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, TimedLock> entry = iterator.next();
-            if (System.currentTimeMillis() - entry.getValue().getLockTime() > timeout) {
+        for (Map.Entry<String, TimedLock> entry : lockTable.entrySet()) {
+            if (System.currentTimeMillis() - entry.getValue().getLockTime() <= timeout) {
+                continue;
+            }
+
+            TimedLock[] removedLock = new TimedLock[1];
+            lockTable.computeIfPresent(entry.getKey(), (key, currentLock) -> {
+                if (System.currentTimeMillis() - currentLock.getLockTime() > timeout) {
+                    removedLock[0] = currentLock;
+                    return null;
+                }
+                return currentLock;
+            });
+            if (removedLock[0] != null) {
                 log.info("PopConsumerLockService remove timeout lock, " +
-                    "key={}, locked={}", entry.getKey(), entry.getValue().lock.get());
-                iterator.remove();
+                    "key={}, locked={}", entry.getKey(), removedLock[0].lock.get());
             }
         }
     }
