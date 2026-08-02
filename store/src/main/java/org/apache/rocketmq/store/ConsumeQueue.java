@@ -727,7 +727,7 @@ public class ConsumeQueue implements ConsumeQueueInterface {
         boolean canWrite = this.messageStore.getRunningFlags().isCQWriteable();
         for (int i = 0; i < maxRetries && canWrite; i++) {
             long tagsCode = request.getTagsCode();
-            if (isExtWriteEnable()) {
+            if (isExtWriteEnable() && !isDispatchAlreadyApplied(request.getCommitLogOffset(), request.getMsgSize())) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                 cqExtUnit.setFilterBitMap(request.getBitMap());
                 cqExtUnit.setMsgStoreTime(request.getStoreTimestamp());
@@ -836,7 +836,7 @@ public class ConsumeQueue implements ConsumeQueueInterface {
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
         final long cqOffset) {
 
-        if (offset + size <= this.getMaxPhysicOffset()) {
+        if (isDispatchAlreadyApplied(offset, size)) {
             // During the recovery process after broker crashes, this logs will cause the scrolling of valid logs.
             if (messageStore.getStateMachine().getCurrentState().isAfter(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK) ||
                 messageStore.getMessageStoreConfig().isEnableLogConsumeQueueRepeatedlyBuildWhenRecover()) {
@@ -904,6 +904,10 @@ public class ConsumeQueue implements ConsumeQueueInterface {
             }
         }
         return false;
+    }
+
+    private boolean isDispatchAlreadyApplied(final long offset, final int size) {
+        return offset + size <= this.getMaxPhysicOffset();
     }
 
     private void fillPreBlank(final MappedFile mappedFile, final long untilWhere) {
