@@ -677,19 +677,31 @@ public abstract class NettyRemotingAbstract {
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback) {
         invokeImpl(channel, request, timeoutMillis)
-            .whenComplete((v, t) -> {
-                if (t == null) {
-                    invokeCallback.operationComplete(v);
+            .whenComplete((responseFuture, t) -> {
+                final ResponseFuture callbackFuture;
+                if (t != null) {
+                    callbackFuture = new ResponseFuture(channel, request.getOpaque(), request, timeoutMillis,
+                        null, null);
+                    callbackFuture.setCause(t);
                 } else {
-                    ResponseFuture responseFuture = new ResponseFuture(channel, request.getOpaque(), request, timeoutMillis, null, null);
-                    responseFuture.setCause(t);
-                    invokeCallback.operationComplete(responseFuture);
+                    callbackFuture = responseFuture;
                 }
-            })
-            .thenAccept(responseFuture -> invokeCallback.operationSucceed(responseFuture.getResponseCommand()))
-            .exceptionally(t -> {
-                invokeCallback.operationFail(ExceptionUtils.getRealException(t));
-                return null;
+
+                try {
+                    if (t == null) {
+                        invokeCallback.operationSucceed(responseFuture.getResponseCommand());
+                    } else {
+                        invokeCallback.operationFail(ExceptionUtils.getRealException(t));
+                    }
+                } catch (Throwable e) {
+                    log.warn("execute outcome callback in invokeAsyncImpl, and callback throw", e);
+                } finally {
+                    try {
+                        invokeCallback.operationComplete(callbackFuture);
+                    } catch (Throwable e) {
+                        log.warn("execute completion callback in invokeAsyncImpl, and callback throw", e);
+                    }
+                }
             });
     }
 

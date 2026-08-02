@@ -39,6 +39,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -50,7 +51,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -226,6 +230,9 @@ public class NettyRemotingClientTest {
         verify(callback, times(1)).operationSucceed(eq(response));
         verify(callback, times(1)).operationComplete(eq(responseFuture));
         verify(callback, never()).operationFail(any());
+        InOrder callbackOrder = inOrder(callback);
+        callbackOrder.verify(callback).operationSucceed(eq(response));
+        callbackOrder.verify(callback).operationComplete(eq(responseFuture));
 
         verify(rpcHookMock).doBeforeRequest(anyString(), eq(request));
         verify(rpcHookMock).doAfterResponse(anyString(), eq(request), eq(response));
@@ -238,7 +245,8 @@ public class NettyRemotingClientTest {
 
         Channel channel = new LocalChannel();
         CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
-        future.completeExceptionally(new RemotingException(null));
+        RemotingException failure = new RemotingException("invoke failure sentinel");
+        future.completeExceptionally(failure);
 
         doReturn(future).when(remotingClient).invoke0(any(Channel.class), any(RemotingCommand.class), anyLong());
 
@@ -246,10 +254,81 @@ public class NettyRemotingClientTest {
         remotingClient.invokeAsyncImpl(channel, request, 1000, callback);
         verify(callback, never()).operationSucceed(any());
         verify(callback, times(1)).operationComplete(any());
-        verify(callback, times(1)).operationFail(any());
+        verify(callback, times(1)).operationFail(same(failure));
+        InOrder callbackOrder = inOrder(callback);
+        callbackOrder.verify(callback).operationFail(same(failure));
+        callbackOrder.verify(callback).operationComplete(any());
 
         verify(rpcHookMock).doBeforeRequest(anyString(), eq(request));
         verify(rpcHookMock, never()).doAfterResponse(anyString(), eq(request), any());
+    }
+
+    @Test
+    public void testInvokeAsyncCompleteFailureDoesNotInvokeFailureCallback() {
+        remotingClient.registerRPCHook(rpcHookMock);
+        Channel channel = new LocalChannel();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        ResponseFuture responseFuture = new ResponseFuture(channel, request.getOpaque(), request, 1000,
+            responseFuture1 -> {
+            }, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
+        responseFuture.setResponseCommand(response);
+        CompletableFuture<ResponseFuture> future = CompletableFuture.completedFuture(responseFuture);
+        doReturn(future).when(remotingClient).invoke0(any(Channel.class), any(RemotingCommand.class), anyLong());
+
+        RuntimeException sentinel = new RuntimeException("operationComplete sentinel");
+        InvokeCallback callback = mock(InvokeCallback.class);
+        doThrow(sentinel).when(callback).operationComplete(responseFuture);
+
+        remotingClient.invokeAsyncImpl(channel, request, 1000, callback);
+
+        verify(callback).operationSucceed(response);
+        verify(callback).operationComplete(responseFuture);
+        verify(callback, never()).operationFail(any());
+    }
+
+    @Test
+    public void testInvokeAsyncSuccessCallbackFailureStillCompletes() {
+        Channel channel = new LocalChannel();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        ResponseFuture responseFuture = new ResponseFuture(channel, request.getOpaque(), request, 1000,
+            responseFuture1 -> {
+            }, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
+        responseFuture.setResponseCommand(response);
+        CompletableFuture<ResponseFuture> future = CompletableFuture.completedFuture(responseFuture);
+        doReturn(future).when(remotingClient).invoke0(any(Channel.class), any(RemotingCommand.class), anyLong());
+
+        InvokeCallback callback = mock(InvokeCallback.class);
+        doThrow(new RuntimeException("operationSucceed sentinel")).when(callback).operationSucceed(response);
+
+        remotingClient.invokeAsyncImpl(channel, request, 1000, callback);
+
+        InOrder callbackOrder = inOrder(callback);
+        callbackOrder.verify(callback).operationSucceed(response);
+        callbackOrder.verify(callback).operationComplete(responseFuture);
+        verify(callback, never()).operationFail(any());
+    }
+
+    @Test
+    public void testInvokeAsyncFailureCallbackFailureStillCompletes() {
+        Channel channel = new LocalChannel();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        RemotingException failure = new RemotingException("invoke failure sentinel");
+        CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
+        future.completeExceptionally(failure);
+        doReturn(future).when(remotingClient).invoke0(any(Channel.class), any(RemotingCommand.class), anyLong());
+
+        InvokeCallback callback = mock(InvokeCallback.class);
+        doThrow(new RuntimeException("operationFail callback sentinel")).when(callback).operationFail(failure);
+
+        remotingClient.invokeAsyncImpl(channel, request, 1000, callback);
+
+        InOrder callbackOrder = inOrder(callback);
+        callbackOrder.verify(callback).operationFail(failure);
+        callbackOrder.verify(callback).operationComplete(any(ResponseFuture.class));
+        verify(callback, never()).operationSucceed(any());
     }
 
     @Test
