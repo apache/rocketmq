@@ -254,6 +254,35 @@ public class HeartbeatSyncerTest extends InitConfigTest {
     }
 
     @Test
+    public void testSummarizeSystemMessageDataAvoidsDetailedHeartbeatPayload() throws Exception {
+        HeartbeatSyncerData data = new HeartbeatSyncerData(
+            HeartbeatType.REGISTER,
+            clientId,
+            LanguageCode.JAVA,
+            5,
+            "sensitiveGroup",
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            "localProxyId",
+            "sensitiveChannelData"
+        );
+        data.setSubscriptionDataSet(Sets.newHashSet(FilterAPI.buildSubscriptionData("sensitiveTopic", "sensitiveTag")));
+
+        String summary = AbstractSystemMessageSyncer.summarizeSystemMessageData(data);
+
+        assertTrue(summary.contains("HeartbeatSyncerData"));
+        assertTrue(summary.contains("heartbeatType=REGISTER"));
+        assertTrue(summary.contains("clientId=" + clientId));
+        assertTrue(summary.contains("group=sensitiveGroup"));
+        assertTrue(summary.contains("subscriptionCount=1"));
+        assertTrue(summary.contains("channelDataPresent=true"));
+        assertFalse(summary.contains("sensitiveTopic"));
+        assertFalse(summary.contains("sensitiveTag"));
+        assertFalse(summary.contains("sensitiveChannelData"));
+    }
+
+    @Test
     public void testSyncRemotingChannel() throws Exception {
         String consumerGroup = "consumerGroup";
         String consumerGroup2 = "consumerGroup2";
