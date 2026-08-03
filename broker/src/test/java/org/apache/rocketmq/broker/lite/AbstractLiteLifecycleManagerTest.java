@@ -47,6 +47,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager.MAX_INVALID_SCAN_COUNT;
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -165,7 +166,17 @@ public class AbstractLiteLifecycleManagerTest {
         Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, "whatever", 10L));
 
         // maxOffset invalid
-        Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 0L));
+        for (int i = 0; i < MAX_INVALID_SCAN_COUNT; i++) {
+            Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 0L));
+        }
+        Assert.assertTrue(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 0L));
+
+        // storeTime invalid
+        when(messageStore.getMessageStoreTimeStamp(anyString(), anyInt(), anyLong())).thenReturn(-1L);
+        for (int i = 0; i < MAX_INVALID_SCAN_COUNT; i++) {
+            Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 100L));
+        }
+        Assert.assertTrue(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 100L));
 
         // less than minLiteTTl
         long mockStoreTime = System.currentTimeMillis();

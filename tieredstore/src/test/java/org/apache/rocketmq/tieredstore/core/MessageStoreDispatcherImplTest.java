@@ -146,15 +146,18 @@ public class MessageStoreDispatcherImplTest {
             new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null));
         dispatcher.doScheduleDispatch(flatFile, true).join();
 
-        Awaitility.await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(30)).until(() -> {
-            List<IndexItem> resultList1 = indexService.queryAsync(
-                mq.getTopic(), "uk", 32, 0L, System.currentTimeMillis()).join();
-            List<IndexItem> resultList2 = indexService.queryAsync(
-                mq.getTopic(), "uk", 120, 0L, System.currentTimeMillis()).join();
-            Assert.assertEquals(32, resultList1.size());
-            Assert.assertEquals(100, resultList2.size());
-            return true;
-        });
+        // Index construction is submitted to the buffer commit executor asynchronously,
+        // so it may not be visible right after doScheduleDispatch returns. Use untilAsserted
+        // here, only it retries when the assertion inside fails.
+        Awaitility.await().pollDelay(Duration.ZERO).pollInterval(Duration.ofMillis(100))
+            .atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+                List<IndexItem> resultList1 = indexService.queryAsync(
+                    mq.getTopic(), "uk", 32, 0L, System.currentTimeMillis()).join();
+                List<IndexItem> resultList2 = indexService.queryAsync(
+                    mq.getTopic(), "uk", 120, 0L, System.currentTimeMillis()).join();
+                Assert.assertEquals(32, resultList1.size());
+                Assert.assertEquals(100, resultList2.size());
+            });
 
         Assert.assertEquals(100L, flatFile.getConsumeQueueMinOffset());
         Assert.assertEquals(200L, flatFile.getConsumeQueueMaxOffset());

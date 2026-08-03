@@ -200,6 +200,7 @@ public class LagCalculationIT extends BaseConf {
             });
             producer.send(msgMap);
         }
+        waitForFullyDispatched();
 
         // test lag estimation for tag consumer
         for (BrokerController controller : brokerControllerList) {
