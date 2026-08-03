@@ -174,6 +174,24 @@ public class RouteActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testQueryAssignmentWithMissingMasterBroker() throws Throwable {
+        when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
+            .thenReturn(createProxyTopicRouteDataWithoutMasterBroker());
+
+        QueryAssignmentResponse response = this.routeActivity.queryAssignment(
+            createContext(),
+            QueryAssignmentRequest.newBuilder()
+                .setEndpoints(grpcEndpoints)
+                .setTopic(GRPC_TOPIC)
+                .setGroup(GRPC_GROUP)
+                .build()
+        ).get();
+
+        assertEquals(Code.FORBIDDEN, response.getStatus().getCode());
+        assertEquals(0, response.getAssignmentsCount());
+    }
+
+    @Test
     public void testQueryAssignment() throws Throwable {
         when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
             .thenReturn(createProxyTopicRouteData(2, 2, 6));
@@ -221,6 +239,17 @@ public class RouteActivityTest extends BaseActivityTest {
         proxyBrokerData.setCluster(CLUSTER);
         proxyBrokerData.setBrokerName(BROKER_NAME);
         proxyBrokerData.getBrokerAddrs().put(0L, addressArrayList);
+        proxyBrokerData.getBrokerAddrs().put(1L, addressArrayList);
+        proxyTopicRouteData.getBrokerDatas().add(proxyBrokerData);
+        return proxyTopicRouteData;
+    }
+
+    private static ProxyTopicRouteData createProxyTopicRouteDataWithoutMasterBroker() {
+        ProxyTopicRouteData proxyTopicRouteData = new ProxyTopicRouteData();
+        proxyTopicRouteData.getQueueDatas().add(createQueueData(2, 2, PermName.PERM_READ | PermName.PERM_WRITE));
+        ProxyTopicRouteData.ProxyBrokerData proxyBrokerData = new ProxyTopicRouteData.ProxyBrokerData();
+        proxyBrokerData.setCluster(CLUSTER);
+        proxyBrokerData.setBrokerName(BROKER_NAME);
         proxyBrokerData.getBrokerAddrs().put(1L, addressArrayList);
         proxyTopicRouteData.getBrokerDatas().add(proxyBrokerData);
         return proxyTopicRouteData;

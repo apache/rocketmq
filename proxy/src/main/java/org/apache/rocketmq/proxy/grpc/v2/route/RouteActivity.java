@@ -125,6 +125,9 @@ public class RouteActivity extends AbstractMessagingActivity {
                     Map<Long, Broker> brokerIdMap = brokerMap.get(queueData.getBrokerName());
                     if (brokerIdMap != null) {
                         Broker broker = brokerIdMap.get(MixAll.MASTER_ID);
+                        if (broker == null) {
+                            continue;
+                        }
                         Permission permission = this.convertToPermission(queueData.getPerm());
                         if (isFifo && !isLite) {
                             for (int i = 0; i < queueData.getReadQueueNums(); i++) {
