@@ -23,4 +23,7 @@ public interface InvocationContextInterface {
     void handle(RemotingCommand remotingCommand);
 
     boolean expired(long expiredTimeSec);
+
+    default void expire(Throwable throwable) {
+    }
 }

@@ -17,15 +17,23 @@
 
 package org.apache.rocketmq.proxy.service.channel;
 
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.junit.Test;
-
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class InvocationChannelTest {
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        ConfigurationManager.initEnv();
+        ConfigurationManager.initConfig();
+    }
 
     @Test
     public void testWriteAndFlushShouldNotRemoveReRegisteredContext() {
@@ -63,5 +71,23 @@ public class InvocationChannelTest {
         channel.writeAndFlush(response);
         assertTrue(nextContextHandled.get());
         assertFalse(channel.isWritable());
+    }
+
+    @Test
+    public void testClearExpireContextShouldCompleteResponseFutureExceptionally() {
+        int originalExpiredInSeconds = ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds();
+        ConfigurationManager.getProxyConfig().setChannelExpiredInSeconds(0);
+        try {
+            InvocationChannel channel = new InvocationChannel("127.0.0.1:8080", "127.0.0.1:8081");
+            CompletableFuture<RemotingCommand> responseFuture = new CompletableFuture<>();
+            channel.registerInvocationContext(1, new InvocationContext(responseFuture));
+
+            channel.clearExpireContext();
+
+            assertFalse(channel.isWritable());
+            assertTrue(responseFuture.isCompletedExceptionally());
+        } finally {
+            ConfigurationManager.getProxyConfig().setChannelExpiredInSeconds(originalExpiredInSeconds);
+        }
     }
 }

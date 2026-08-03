@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class InvocationChannel extends SimpleChannel {
@@ -68,6 +69,7 @@ public class InvocationChannel extends SimpleChannel {
             Map.Entry<Integer, InvocationContextInterface> entry = iterator.next();
             if (entry.getValue().expired(ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds())) {
                 iterator.remove();
+                entry.getValue().expire(new RemotingTimeoutException("Invocation context expired. opaque=" + entry.getKey()));
                 count++;
                 log.debug("An expired request is found, request: {}", entry.getValue());
             }
