@@ -136,6 +136,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         Set<MessageQueue> mqSet = requestBody.getMqSet();
         if (mqSet.isEmpty()) {
             response.setBody(requestBody.encode());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("MessageQueue set is empty");
             return response;
         }
@@ -157,6 +158,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         Set<MessageQueue> mqSet = requestBody.getMqSet();
         if (mqSet.isEmpty()) {
             response.setBody(requestBody.encode());
+            response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("MessageQueue set is empty");
             return response;
         }
