@@ -72,9 +72,14 @@ public class HeaderInterceptor implements ServerInterceptor {
     private String parseSocketAddress(SocketAddress socketAddress) {
         if (socketAddress instanceof InetSocketAddress) {
             InetSocketAddress inetSocketAddress = (InetSocketAddress) socketAddress;
+            String host = inetSocketAddress.getAddress() == null
+                ? inetSocketAddress.getHostString()
+                : inetSocketAddress.getAddress().getHostAddress();
+            if (StringUtils.isBlank(host)) {
+                return "";
+            }
             return HostAndPort.fromParts(
-                inetSocketAddress.getAddress()
-                    .getHostAddress(),
+                host,
                 inetSocketAddress.getPort()
             ).toString();
         }
