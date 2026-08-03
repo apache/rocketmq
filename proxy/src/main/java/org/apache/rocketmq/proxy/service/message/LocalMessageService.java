@@ -273,6 +273,7 @@ public class LocalMessageService implements MessageService {
                     sortMap.get(key).add(messageExt.getQueueOffset());
                 }
                 Map<String, String> map = new HashMap<>(5);
+                List<MessageExt> validMessageExtList = new ArrayList<>(messageExtList.size());
                 for (MessageExt messageExt : messageExtList) {
                     if (startOffsetInfo == null) {
                         // we should set the check point info to extraInfo field , if the command is popMsg
@@ -286,15 +287,27 @@ public class LocalMessageService implements MessageService {
                     } else {
                         if (messageExt.getProperty(MessageConst.PROPERTY_POP_CK) == null) {
                             String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
-                            int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
-                            Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
+                            List<Long> sortQueueOffsets = sortMap.get(key);
+                            List<Long> msgQueueOffsets = msgOffsetInfo == null ? null : msgOffsetInfo.get(key);
+                            Long startOffset = startOffsetInfo.get(key);
+                            if (sortQueueOffsets == null || msgQueueOffsets == null || startOffset == null) {
+                                log.warn("Pop response offset metadata is missing, key:{}", key);
+                                continue;
+                            }
+                            int index = sortQueueOffsets.indexOf(messageExt.getQueueOffset());
+                            if (index < 0 || index >= msgQueueOffsets.size()) {
+                                log.warn("Pop response offset metadata index is invalid, key:{}, index:{}, msgOffsetCount:{}",
+                                    key, index, msgQueueOffsets.size());
+                                continue;
+                            }
+                            Long msgQueueOffset = msgQueueOffsets.get(index);
                             if (msgQueueOffset != messageExt.getQueueOffset()) {
                                 log.warn("Queue offset [{}] of msg is strange, not equal to the stored in msg, msgSummary:{}",
                                     msgQueueOffset, summarizeMessageExt(messageExt));
                             }
 
                             messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
-                                ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(key), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                                ExtraInfoUtil.buildExtraInfo(startOffset, responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
                                     responseHeader.getReviveQid(), messageExt.getTopic(), messageQueue.getBrokerName(), messageExt.getQueueId(), msgQueueOffset)
                             );
                             if (requestHeader.isOrder() && orderCountInfo != null) {
@@ -308,7 +321,9 @@ public class LocalMessageService implements MessageService {
                     messageExt.getProperties().computeIfAbsent(MessageConst.PROPERTY_FIRST_POP_TIME, k -> String.valueOf(responseHeader.getPopTime()));
                     messageExt.setBrokerName(messageQueue.getBrokerName());
                     messageExt.setTopic(messageQueue.getTopic());
+                    validMessageExtList.add(messageExt);
                 }
+                popResult.setMsgFoundList(validMessageExtList);
             }
             return popResult;
         });
