@@ -120,8 +120,11 @@ public interface MessageQueuePenalizer<Q extends MessageQueue> {
         int bestPenalty = Integer.MAX_VALUE;
         for (List<Q> queues : queuesWithPriority) {
             Pair<Q, Integer> queueAndPenalty = selectLeastPenalty(queues, penalizers, startIndex);
-            int penalty =  queueAndPenalty.getRight();
-            if (queueAndPenalty.getRight() <= 0) {
+            if (queueAndPenalty == null) {
+                continue;
+            }
+            int penalty = queueAndPenalty.getRight();
+            if (penalty <= 0) {
                 return queueAndPenalty;
             }
             if (penalty < bestPenalty) {
@@ -129,6 +132,9 @@ public interface MessageQueuePenalizer<Q extends MessageQueue> {
                 bestQueue = queueAndPenalty.getLeft();
             }
         }
-        return Pair.of(bestQueue,  bestPenalty);
+        if (bestQueue == null) {
+            return null;
+        }
+        return Pair.of(bestQueue, bestPenalty);
     }
 }
