@@ -188,7 +188,6 @@ public class ConsumerProcessor extends AbstractProcessor {
                     String handleString = createHandle(messageExt.getProperty(MessageConst.PROPERTY_POP_CK), messageExt.getCommitLogOffset());
                     if (handleString == null) {
                         log.error("[BUG] pop message from broker but handle is empty. requestHeader:{}, msg:{}", requestHeader, messageExt);
-                        messageExtList.add(messageExt);
                         continue;
                     }
                     MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_POP_CK, handleString);

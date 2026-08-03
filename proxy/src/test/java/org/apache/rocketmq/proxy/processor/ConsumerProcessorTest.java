@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -39,6 +40,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -156,6 +158,44 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
 
         assertEquals(messageExtList.get(0).getMsgId(), ackMessageIdArgumentCaptor.getValue());
         assertEquals(messageExtList.get(2).getMsgId(), toDLQMessageIdArgumentCaptor.getValue());
+    }
+
+    @Test
+    public void testPopMessageShouldDropMessageWithoutReceiptHandle() throws Throwable {
+        final long invisibleTime = Duration.ofSeconds(15).toMillis();
+        MessageExt messageExt = createMessageExt(TOPIC, "tag", 0, invisibleTime);
+        MessageAccessor.clearProperty(messageExt, MessageConst.PROPERTY_POP_CK);
+        PopResult innerPopResult = new PopResult(PopStatus.FOUND, Collections.singletonList(messageExt));
+        when(this.messageService.popMessage(any(), any(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerPopResult));
+        when(this.topicRouteService.getCurrentMessageQueueView(any(), anyString()))
+            .thenReturn(mock(MessageQueueView.class));
+
+        AtomicBoolean filterInvoked = new AtomicBoolean(false);
+        PopMessageResultFilter popMessageResultFilter = (ctx, consumerGroup, subscriptionData, message) -> {
+            filterInvoked.set(true);
+            return PopMessageResultFilter.FilterResult.MATCH;
+        };
+
+        PopResult popResult = this.consumerProcessor.popMessage(
+            createContext(),
+            (ctx, messageQueueView) -> mock(AddressableMessageQueue.class),
+            CONSUMER_GROUP,
+            TOPIC,
+            60,
+            invisibleTime,
+            Duration.ofSeconds(3).toMillis(),
+            ConsumeInitMode.MAX,
+            FilterAPI.build(TOPIC, "*", ExpressionType.TAG),
+            false,
+            popMessageResultFilter,
+            null,
+            Duration.ofSeconds(3).toMillis()
+        ).get();
+
+        assertEquals(PopStatus.FOUND, popResult.getPopStatus());
+        assertThat(popResult.getMsgFoundList()).isEmpty();
+        assertFalse(filterInvoked.get());
     }
 
     @Test
