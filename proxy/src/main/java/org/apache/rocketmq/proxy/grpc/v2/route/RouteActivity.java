@@ -78,7 +78,7 @@ public class RouteActivity extends AbstractMessagingActivity {
                 String brokerName = queueData.getBrokerName();
                 Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
                 if (brokerIdMap == null) {
-                    break;
+                    continue;
                 }
                 for (Broker broker : brokerIdMap.values()) {
                     messageQueueList.addAll(this.genMessageQueueFromQueueData(queueData, request.getTopic(), topicMessageType, broker));
