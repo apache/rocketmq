@@ -77,6 +77,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -215,6 +216,39 @@ public class HeartbeatSyncerTest extends InitConfigTest {
         heartbeatSyncer.localProxyId = RandomStringUtils.randomAlphabetic(10);
         heartbeatSyncer.consumeMessage(Lists.newArrayList(convertFromMessage(messageArgumentCaptor.getAllValues().get(1))), null);
         assertSame(channelInfoList.get(0).getChannel(), syncUnRegisterChannelInfoArgumentCaptor.getValue().getChannel());
+    }
+
+    @Test
+    public void testSummarizeHeartbeatDataDoesNotExposeSubscriptionExpressions() throws Exception {
+        String expression = "secretTagA || secretTagB";
+        HeartbeatSyncerData data = new HeartbeatSyncerData(
+            HeartbeatType.REGISTER,
+            clientId,
+            LanguageCode.JAVA,
+            5,
+            "consumerGroup",
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            "proxy-0",
+            "raw-channel-data"
+        );
+        data.setSubscriptionDataSet(Sets.newHashSet(
+            FilterAPI.buildSubscriptionData("topic-a", expression),
+            FilterAPI.buildSubscriptionData("topic-b", "*")
+        ));
+
+        String summary = HeartbeatSyncer.summarizeHeartbeatData(data);
+
+        assertTrue(summary.contains("heartbeatType=REGISTER"));
+        assertTrue(summary.contains("clientId=" + clientId));
+        assertTrue(summary.contains("group=consumerGroup"));
+        assertTrue(summary.contains("channelDataPresent=true"));
+        assertTrue(summary.contains("count=2"));
+        assertTrue(summary.contains("topic-a"));
+        assertTrue(summary.contains("topic-b"));
+        assertFalse(summary.contains(expression));
+        assertFalse(summary.contains("raw-channel-data"));
     }
 
     @Test
