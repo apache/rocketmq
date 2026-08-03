@@ -72,6 +72,9 @@ public class ProducerProcessor extends AbstractProcessor {
         long beginTimestampFirst = System.currentTimeMillis();
         AddressableMessageQueue messageQueue = null;
         try {
+            if (messageList == null || messageList.isEmpty()) {
+                throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "message list is empty");
+            }
             Message message = messageList.get(0);
             String topic = message.getTopic();
             if (isNeedCheckTopicMessageType(message)) {
