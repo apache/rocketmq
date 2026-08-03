@@ -78,6 +78,13 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
     protected RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
+        if (heartbeatData == null) {
+            return RemotingCommand.buildErrorResponse(ResponseCode.INVALID_PARAMETER, "heartbeat data is empty");
+        }
+        if (heartbeatData.getProducerDataSet() == null || heartbeatData.getConsumerDataSet() == null) {
+            return RemotingCommand.buildErrorResponse(ResponseCode.INVALID_PARAMETER,
+                "heartbeat producerDataSet and consumerDataSet are required");
+        }
         String clientId = heartbeatData.getClientID();
 
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
