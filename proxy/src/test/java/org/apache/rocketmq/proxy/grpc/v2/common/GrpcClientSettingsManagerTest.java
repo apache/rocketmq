@@ -31,6 +31,8 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.MetricCollectorMode;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.remoting.protocol.subscription.CustomizedRetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.ExponentialRetryPolicy;
@@ -74,6 +76,36 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         Settings settings = this.grpcClientSettingsManager.getClientSettings(context);
         assertNotEquals(settings.getBackoffPolicy(), settings.getBackoffPolicy().getDefaultInstanceForType());
         assertNotEquals(settings.getPublishing(), settings.getPublishing().getDefaultInstanceForType());
+    }
+
+    @Test
+    public void testMergeMetricWithValidCollectorAddress() {
+        ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.ON.getModeString());
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1:9090");
+        try {
+            Settings settings = this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance());
+
+            assertEquals(true, settings.getMetric().getOn());
+            assertEquals("127.0.0.1", settings.getMetric().getEndpoints().getAddresses(0).getHost());
+            assertEquals(9090, settings.getMetric().getEndpoints().getAddresses(0).getPort());
+        } finally {
+            ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.OFF.getModeString());
+            ConfigurationManager.getProxyConfig().setMetricCollectorAddress("");
+        }
+    }
+
+    @Test
+    public void testMergeMetricShouldDisableMetricForInvalidCollectorAddress() {
+        ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.ON.getModeString());
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress("localhost");
+        try {
+            Settings settings = this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance());
+
+            assertEquals(false, settings.getMetric().getOn());
+        } finally {
+            ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.OFF.getModeString());
+            ConfigurationManager.getProxyConfig().setMetricCollectorAddress("");
+        }
     }
 
     @Test
