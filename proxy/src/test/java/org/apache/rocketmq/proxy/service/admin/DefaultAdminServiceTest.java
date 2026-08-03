@@ -35,6 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -85,6 +86,22 @@ public class DefaultAdminServiceTest {
         assertEquals("createTopic", topicConfigArgumentCaptor.getValue().getTopicName());
         assertEquals(7, topicConfigArgumentCaptor.getValue().getWriteQueueNums());
         assertEquals(8, topicConfigArgumentCaptor.getValue().getReadQueueNums());
+    }
+
+    @Test
+    public void testTopicExistReturnsFalseForNotFound() throws Exception {
+        when(mqClientAPIExt.getTopicRouteInfoFromNameServer(eq("missingTopic"), anyLong()))
+            .thenThrow(new MQClientException(ResponseCode.TOPIC_NOT_EXIST, "topic not exist"));
+
+        assertFalse(defaultAdminService.topicExist("missingTopic"));
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testTopicExistThrowsForUnexpectedRouteLookupFailure() throws Exception {
+        when(mqClientAPIExt.getTopicRouteInfoFromNameServer(eq("brokenTopic"), anyLong()))
+            .thenThrow(new MQClientException(ResponseCode.SYSTEM_ERROR, "namesrv unavailable"));
+
+        defaultAdminService.topicExist("brokenTopic");
     }
 
     private TopicRouteData createTopicRouteData(int brokerNum) {

@@ -49,8 +49,12 @@ public class DefaultAdminService implements AdminService {
         try {
             topicRouteData = this.getTopicRouteDataDirectlyFromNameServer(topic);
             topicExist = topicRouteData != null;
-        } catch (Throwable e) {
-            topicExist = false;
+        } catch (Exception e) {
+            if (TopicRouteHelper.isTopicNotExistError(e)) {
+                topicExist = false;
+            } else {
+                throw new IllegalStateException("get topic route " + topic + " failed", e);
+            }
         }
 
         return topicExist;
