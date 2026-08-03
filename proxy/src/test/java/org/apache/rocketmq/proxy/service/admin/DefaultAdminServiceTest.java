@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.admin;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -85,6 +86,29 @@ public class DefaultAdminServiceTest {
         assertEquals("createTopic", topicConfigArgumentCaptor.getValue().getTopicName());
         assertEquals(7, topicConfigArgumentCaptor.getValue().getWriteQueueNums());
         assertEquals(8, topicConfigArgumentCaptor.getValue().getReadQueueNums());
+    }
+
+    @Test
+    public void testCreateTopicOnBrokerSkipsMalformedCurrentBrokerData() throws Exception {
+        BrokerData malformedBrokerData = new BrokerData();
+
+        ArgumentCaptor<String> addrArgumentCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<TopicConfig> topicConfigArgumentCaptor = ArgumentCaptor.forClass(TopicConfig.class);
+        doNothing().when(mqClientAPIExt)
+            .createTopic(addrArgumentCaptor.capture(), anyString(), topicConfigArgumentCaptor.capture(), anyLong());
+
+        assertTrue(defaultAdminService.createTopicOnBroker(
+            "createTopic",
+            7,
+            8,
+            Collections.singletonList(malformedBrokerData),
+            createTopicRouteData(1).getBrokerDatas(),
+            false,
+            0
+        ));
+
+        assertEquals("127.0.0.1:10911", addrArgumentCaptor.getValue());
+        assertEquals("createTopic", topicConfigArgumentCaptor.getValue().getTopicName());
     }
 
     private TopicRouteData createTopicRouteData(int brokerNum) {
