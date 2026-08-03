@@ -84,6 +84,11 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         RemotingCommand response = RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
         GetConsumerListByGroupRequestHeader header = (GetConsumerListByGroupRequestHeader) request.decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
         ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(context, header.getConsumerGroup());
+        if (consumerGroupInfo == null) {
+            response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
+            response.setRemark("the consumer group[" + header.getConsumerGroup() + "] not online");
+            return response;
+        }
         List<String> clientIds = consumerGroupInfo.getAllClientId();
         GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
         body.setConsumerIdList(clientIds);
