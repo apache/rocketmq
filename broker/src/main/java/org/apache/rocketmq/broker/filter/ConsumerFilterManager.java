@@ -168,13 +168,6 @@ public class ConsumerFilterManager extends ConfigManager {
         }
         ConsumerFilterData consumerFilterData = subscriptionFilterHandler.register(consumerGroup, expression, type, bloomFilterData, clientVersion, topic);
         if (null == consumerFilterData) {
-            FilterDataMapByTopic mapByTopic = this.filterDataByTopic.get(topic);
-            if (mapByTopic != null) {
-                mapByTopic.getGroupFilterData().remove(consumerGroup);
-                if (mapByTopic.getGroupFilterData().isEmpty()) {
-                    this.filterDataByTopic.remove(topic);
-                }
-            }
             return false;
         }
         this.filterDataByTopic.putIfAbsent(topic, new FilterDataMapByTopic(topic));
