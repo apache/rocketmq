@@ -24,7 +24,10 @@ import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.filter.FilterFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.channel.RemotingChannel;
 import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
@@ -35,11 +38,13 @@ import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 import java.util.Set;
 
@@ -158,8 +163,36 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
     protected RemotingCommand checkClientConfig(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        CheckClientRequestBody requestBody = CheckClientRequestBody.decode(request.getBody(),
+            CheckClientRequestBody.class);
+        if (requestBody != null && requestBody.getSubscriptionData() != null) {
+            SubscriptionData subscriptionData = requestBody.getSubscriptionData();
+            if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+                return response;
+            }
+
+            if (!ConfigurationManager.getProxyConfig().isEnablePropertyFilter()) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("The proxy does not support consumer to filter message by "
+                    + subscriptionData.getExpressionType());
+                return response;
+            }
+
+            try {
+                FilterFactory.INSTANCE.get(subscriptionData.getExpressionType()).compile(subscriptionData.getSubString());
+            } catch (Exception e) {
+                log.warn("Client {}@{} filter message, but failed to compile expression! sub={}, error={}",
+                    requestBody.getClientId(), requestBody.getGroup(), requestBody.getSubscriptionData(), e.getMessage());
+                response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+                response.setRemark(e.getMessage());
+                return response;
+            }
+        }
+
         response.setCode(ResponseCode.SUCCESS);
-        response.setRemark("");
+        response.setRemark(null);
         return response;
     }
 

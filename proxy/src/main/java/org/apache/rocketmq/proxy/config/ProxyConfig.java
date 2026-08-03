@@ -121,6 +121,10 @@ public class ProxyConfig implements ConfigFile {
      */
     private boolean enableMessageBodyEmptyCheck = true;
     /**
+     * if true, proxy allows SQL/property filter expressions in client config checks.
+     */
+    private boolean enablePropertyFilter = false;
+    /**
      * max user property size, 0 or negative number means no limit for proxy
      */
     private int maxUserPropertySize = 16 * 1024;
@@ -1577,6 +1581,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableMessageBodyEmptyCheck(boolean enableMessageBodyEmptyCheck) {
         this.enableMessageBodyEmptyCheck = enableMessageBodyEmptyCheck;
+    }
+
+    public boolean isEnablePropertyFilter() {
+        return enablePropertyFilter;
+    }
+
+    public void setEnablePropertyFilter(boolean enablePropertyFilter) {
+        this.enablePropertyFilter = enablePropertyFilter;
     }
 
     public int getMaxLiteTopicSize() {
