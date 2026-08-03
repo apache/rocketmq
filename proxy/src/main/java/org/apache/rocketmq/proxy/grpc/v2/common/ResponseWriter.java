@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.Message;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -52,16 +54,17 @@ public class ResponseWriter {
         if (null == response) {
             return false;
         }
-        log.debug("start to write response. response: {}", response);
+        String responseSummary = summarizeResponse(response);
+        log.debug("start to write response. response: {}", responseSummary);
         if (isCancelled(observer)) {
-            log.warn("client has cancelled the request. response to write: {}", response);
+            log.warn("client has cancelled the request. response to write: {}", responseSummary);
             return false;
         }
         try {
             observer.onNext(response);
         } catch (StatusRuntimeException statusRuntimeException) {
             if (Status.CANCELLED.equals(statusRuntimeException.getStatus())) {
-                log.warn("client has cancelled the request. response to write: {}", response);
+                log.warn("client has cancelled the request. response to write: {}", responseSummary);
                 return false;
             }
             throw statusRuntimeException;
@@ -76,5 +79,32 @@ public class ResponseWriter {
         }
         return false;
     }
-}
 
+    static String summarizeResponse(Object response) {
+        if (response == null) {
+            return "null";
+        }
+        StringBuilder summary = new StringBuilder(response.getClass().getSimpleName());
+        if (response instanceof Message) {
+            appendStatusCode(summary, (Message) response);
+        }
+        return summary.toString();
+    }
+
+    private static void appendStatusCode(StringBuilder summary, Message response) {
+        Descriptors.FieldDescriptor statusField = response.getDescriptorForType().findFieldByName("status");
+        if (statusField == null || !response.hasField(statusField)) {
+            return;
+        }
+        Object status = response.getField(statusField);
+        if (!(status instanceof Message)) {
+            summary.append("{status=").append(status).append('}');
+            return;
+        }
+        Message statusMessage = (Message) status;
+        Descriptors.FieldDescriptor codeField = statusMessage.getDescriptorForType().findFieldByName("code");
+        if (codeField != null) {
+            summary.append("{statusCode=").append(statusMessage.getField(codeField)).append('}');
+        }
+    }
+}
