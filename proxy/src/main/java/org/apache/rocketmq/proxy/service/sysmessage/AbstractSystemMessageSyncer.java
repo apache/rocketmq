@@ -93,6 +93,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
 
     protected void sendSystemMessage(Object data) {
         String targetTopic = this.getBroadcastTopicName();
+        String dataSummary = summarizeSystemMessageData(data);
         try {
             Message message = new Message(
                 targetTopic,
@@ -109,16 +110,37 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
                 Duration.ofSeconds(3).toMillis()
             ).whenCompleteAsync((result, throwable) -> {
                 if (throwable != null) {
-                    log.error("send system message failed. data: {}, topic: {}", data, getBroadcastTopicName(), throwable);
+                    log.error("send system message failed. dataSummary: {}, topic: {}",
+                        dataSummary, getBroadcastTopicName(), throwable);
                     return;
                 }
                 if (SendStatus.SEND_OK != result.getSendStatus()) {
-                    log.error("send system message failed. data: {}, topic: {}, sendResult:{}", data, getBroadcastTopicName(), result);
+                    log.error("send system message failed. dataSummary: {}, topic: {}, sendResult:{}",
+                        dataSummary, getBroadcastTopicName(), result);
                 }
             });
         } catch (Throwable t) {
-            log.error("send system message failed. data: {}, topic: {}", data, targetTopic, t);
+            log.error("send system message failed. dataSummary: {}, topic: {}", dataSummary, targetTopic, t);
         }
+    }
+
+    static String summarizeSystemMessageData(Object data) {
+        if (data == null) {
+            return "null";
+        }
+        if (data instanceof HeartbeatSyncerData) {
+            HeartbeatSyncerData heartbeatData = (HeartbeatSyncerData) data;
+            int subscriptionCount = heartbeatData.getSubscriptionDataSet() == null
+                ? 0 : heartbeatData.getSubscriptionDataSet().size();
+            return "HeartbeatSyncerData{"
+                + "heartbeatType=" + heartbeatData.getHeartbeatType()
+                + ", clientId=" + heartbeatData.getClientId()
+                + ", group=" + heartbeatData.getGroup()
+                + ", subscriptionCount=" + subscriptionCount
+                + ", channelDataPresent=" + (heartbeatData.getChannelData() != null)
+                + '}';
+        }
+        return data.getClass().getSimpleName();
     }
 
     protected SendMessageRequestHeader buildSendMessageRequestHeader(Message message,
