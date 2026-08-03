@@ -16,13 +16,15 @@
  */
 package org.apache.rocketmq.proxy.service.message;
 
+import java.util.Collections;
+import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
-import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
@@ -35,17 +37,20 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ClusterMessageServiceTest {
 
     private TopicRouteService topicRouteService;
+    private MQClientAPIFactory mqClientAPIFactory;
     private ClusterMessageService clusterMessageService;
 
     @Before
     public void before() {
         this.topicRouteService = mock(TopicRouteService.class);
-        MQClientAPIFactory mqClientAPIFactory = mock(MQClientAPIFactory.class);
+        this.mqClientAPIFactory = mock(MQClientAPIFactory.class);
         this.clusterMessageService = new ClusterMessageService(this.topicRouteService, mqClientAPIFactory);
     }
 
@@ -75,5 +80,33 @@ public class ClusterMessageServiceTest {
             ProxyException proxyException = (ProxyException) e;
             assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, proxyException.getCode());
         }
+    }
+
+    @Test
+    public void testBatchAckMessageByEmptyHandleList() throws Exception {
+        assertInvalidBatchAckHandleList(Collections.emptyList());
+    }
+
+    @Test
+    public void testBatchAckMessageByNullHandleList() throws Exception {
+        assertInvalidBatchAckHandleList(null);
+    }
+
+    private void assertInvalidBatchAckHandleList(java.util.List<ReceiptHandleMessage> handleList) throws Exception {
+        try {
+            this.clusterMessageService.batchAckMessage(
+                ProxyContext.create(),
+                handleList,
+                "consumerGroup",
+                "topic",
+                3000
+            ).get();
+            fail();
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof ProxyException);
+            ProxyException proxyException = (ProxyException) e.getCause();
+            assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, proxyException.getCode());
+        }
+        verify(this.mqClientAPIFactory, never()).getClient();
     }
 }
