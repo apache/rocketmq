@@ -17,15 +17,20 @@
 
 package org.apache.rocketmq.proxy.remoting.protocol.http2proxy;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.haproxy.HAProxyMessageEncoder;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -44,6 +49,8 @@ public class Http2ProtocolProxyHandlerTest {
 
     @Before
     public void setUp() throws Exception {
+        ConfigurationManager.initConfig();
+        ConfigurationManager.getProxyConfig().setEnableRemotingLocalProxyGrpc(true);
         http2ProtocolProxyHandler = new Http2ProtocolProxyHandler();
     }
 
@@ -54,5 +61,20 @@ public class Http2ProtocolProxyHandlerTest {
         when(outboundChannel.pipeline()).thenReturn(outboundPipeline);
         when(outboundPipeline.addFirst(any(HAProxyMessageEncoder.class))).thenReturn(outboundPipeline);
         http2ProtocolProxyHandler.configPipeline(inboundChannel, outboundChannel);
+    }
+
+    @Test
+    public void matchReturnsFalseForShortBuffers() {
+        assertFalse(http2ProtocolProxyHandler.match(Unpooled.EMPTY_BUFFER));
+
+        ByteBuf shortBuffer = Unpooled.wrappedBuffer(new byte[] {'P', 'R', 'I'});
+        assertFalse(http2ProtocolProxyHandler.match(shortBuffer));
+    }
+
+    @Test
+    public void matchReturnsTrueForHttp2PrefacePrefix() {
+        ByteBuf http2Prefix = Unpooled.wrappedBuffer(new byte[] {'P', 'R', 'I', ' '});
+
+        assertTrue(http2ProtocolProxyHandler.match(http2Prefix));
     }
 }
