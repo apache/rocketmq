@@ -110,7 +110,8 @@ public class RemoteChannel extends SimpleChannel implements ChannelExtendAttribu
             .add("channelId", id())
             .add("type", type)
             .add("remoteProxyIp", remoteProxyIp)
-            .add("extendAttribute", extendAttribute)
+            .add("extendAttributePresent", extendAttribute != null)
+            .add("extendAttributeLength", extendAttribute == null ? 0 : extendAttribute.length())
             .toString();
     }
 }
