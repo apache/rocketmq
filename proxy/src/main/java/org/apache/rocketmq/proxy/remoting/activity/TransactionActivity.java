@@ -63,7 +63,11 @@ public class TransactionActivity extends AbstractRemotingActivity {
             requestHeader.getProducerGroup(),
             transactionStatus,
             requestHeader.getFromTransactionCheck()
-        );
-        return response;
+        ).thenRun(() -> writeResponse(ctx, context, request, response))
+            .exceptionally(t -> {
+                writeErrResponse(ctx, context, request, t);
+                return null;
+            });
+        return null;
     }
 }
