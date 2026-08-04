@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -191,7 +192,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             popMessageResultFilter,
             null,
             Duration.ofSeconds(3).toMillis()
-        ).get();
+        ).get(5, TimeUnit.SECONDS);
 
         assertEquals(PopStatus.FOUND, popResult.getPopStatus());
         assertThat(popResult.getMsgFoundList()).isEmpty();
