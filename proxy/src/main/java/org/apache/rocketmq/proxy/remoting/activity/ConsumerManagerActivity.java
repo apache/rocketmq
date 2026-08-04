@@ -45,6 +45,8 @@ import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ConsumerManagerActivity extends AbstractRemotingActivity {
+    static final String EMPTY_QUEUE_REMARK = "MessageQueue set is empty";
+
     public ConsumerManagerActivity(RequestPipeline requestPipeline, MessagingProcessor messagingProcessor) {
         super(requestPipeline, messagingProcessor);
     }
@@ -136,8 +138,8 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         Set<MessageQueue> mqSet = requestBody.getMqSet();
         if (mqSet.isEmpty()) {
             response.setBody(requestBody.encode());
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("MessageQueue set is empty");
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark(EMPTY_QUEUE_REMARK);
             return response;
         }
 
@@ -158,8 +160,8 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         Set<MessageQueue> mqSet = requestBody.getMqSet();
         if (mqSet.isEmpty()) {
             response.setBody(requestBody.encode());
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("MessageQueue set is empty");
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark(EMPTY_QUEUE_REMARK);
             return response;
         }
 

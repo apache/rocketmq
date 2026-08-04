@@ -38,8 +38,6 @@ import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConsumerManagerActivityTest extends InitConfigTest {
-    private static final String EMPTY_QUEUE_REMARK = "MessageQueue set is empty";
-
     ConsumerManagerActivity consumerManagerActivity;
 
     @Mock
@@ -58,8 +56,9 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
 
         RemotingCommand response = consumerManagerActivity.lockBatchMQ(null, request, null);
 
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo(EMPTY_QUEUE_REMARK);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo(ConsumerManagerActivity.EMPTY_QUEUE_REMARK);
+        assertThat(response.getBody()).isEqualTo(requestBody.encode());
         verify(messagingProcessorMock, never()).request(any(), any(), any(), anyLong());
     }
 
@@ -71,8 +70,9 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
 
         RemotingCommand response = consumerManagerActivity.unlockBatchMQ(null, request, null);
 
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo(EMPTY_QUEUE_REMARK);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo(ConsumerManagerActivity.EMPTY_QUEUE_REMARK);
+        assertThat(response.getBody()).isEqualTo(requestBody.encode());
         verify(messagingProcessorMock, never()).request(any(), any(), any(), anyLong());
     }
 }
