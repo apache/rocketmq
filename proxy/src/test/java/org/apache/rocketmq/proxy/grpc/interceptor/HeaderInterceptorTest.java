@@ -86,7 +86,7 @@ public class HeaderInterceptorTest {
 
         @Override
         public MethodDescriptor<String, String> getMethodDescriptor() {
-            return null;
+            throw new UnsupportedOperationException("Method descriptor is not used by this test double");
         }
     }
 }
