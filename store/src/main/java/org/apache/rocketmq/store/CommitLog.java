@@ -1939,17 +1939,7 @@ public class CommitLog implements Swappable {
                 return null;
             }
 
-            try {
-                LmqDispatch.wrapLmqDispatch(defaultMessageStore, msgInner);
-            } catch (ConsumeQueueException e) {
-                if (e.getCause() instanceof RocksDBException) {
-                    log.error("Failed to wrap multi-dispatch", e);
-                    return new AppendMessageResult(AppendMessageStatus.ROCKSDB_ERROR);
-                }
-                log.error("Failed to wrap multi-dispatch", e);
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-            }
-
+            LmqDispatch.reinsertWaitStorePropertyForLegacySerialization(msgInner);
             msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
             final byte[] propertiesData =
@@ -2003,7 +1993,20 @@ public class CommitLog implements Swappable {
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
+            String[] lmqQueueNames = null;
             if (isMultiDispatchMsg) {
+                if (!msgInner.isEncodeCompleted()) {
+                    try {
+                        lmqQueueNames = LmqDispatch.prepareLmqDispatch(defaultMessageStore, msgInner);
+                    } catch (ConsumeQueueException e) {
+                        if (e.getCause() instanceof RocksDBException) {
+                            log.error("Failed to wrap multi-dispatch", e);
+                            return new AppendMessageResult(AppendMessageStatus.ROCKSDB_ERROR);
+                        }
+                        log.error("Failed to wrap multi-dispatch", e);
+                        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+                    }
+                }
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
                     return appendMessageResult;
@@ -2099,7 +2102,12 @@ public class CommitLog implements Swappable {
 
             if (isMultiDispatchMsg) {
                 try {
-                    LmqDispatch.updateLmqOffsets(defaultMessageStore, msgInner);
+                    if (lmqQueueNames == null) {
+                        // The encoded message may be retried after reaching the end of a mapped file.
+                        LmqDispatch.updateLmqOffsets(defaultMessageStore, msgInner);
+                    } else {
+                        LmqDispatch.updateLmqOffsets(defaultMessageStore, lmqQueueNames);
+                    }
                 } catch (ConsumeQueueException e) {
                     // Increase in-memory max offset of the queue should not fail.
                     return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
