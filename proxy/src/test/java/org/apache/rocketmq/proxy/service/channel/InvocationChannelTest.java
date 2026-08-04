@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.channel;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -25,6 +26,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class InvocationChannelTest {
@@ -86,6 +88,10 @@ public class InvocationChannelTest {
 
             assertFalse(channel.isWritable());
             assertTrue(responseFuture.isCompletedExceptionally());
+            CompletionException exception = assertThrows(CompletionException.class, responseFuture::join);
+            assertTrue(exception.getCause().getMessage().contains("after 0 seconds"));
+            assertTrue(exception.getCause().getMessage().contains("remoteAddress=127.0.0.1:8080"));
+            assertTrue(exception.getCause().getMessage().contains("localAddress=127.0.0.1:8081"));
         } finally {
             ConfigurationManager.getProxyConfig().setChannelExpiredInSeconds(originalExpiredInSeconds);
         }

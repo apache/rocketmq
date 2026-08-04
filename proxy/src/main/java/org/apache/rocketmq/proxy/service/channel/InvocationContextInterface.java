@@ -24,6 +24,11 @@ public interface InvocationContextInterface {
 
     boolean expired(long expiredTimeSec);
 
+    /**
+     * Notifies a waiting invocation that its channel context has expired.
+     * Implementations that retain an asynchronous response future must override this method.
+     */
     default void expire(Throwable throwable) {
+        // Stateless contexts have no waiting caller to notify.
     }
 }

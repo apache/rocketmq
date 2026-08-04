@@ -65,11 +65,14 @@ public class InvocationChannel extends SimpleChannel {
     public void clearExpireContext() {
         Iterator<Map.Entry<Integer, InvocationContextInterface>> iterator = inFlightRequestMap.entrySet().iterator();
         int count = 0;
+        long expirationSeconds = ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds();
         while (iterator.hasNext()) {
             Map.Entry<Integer, InvocationContextInterface> entry = iterator.next();
-            if (entry.getValue().expired(ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds())) {
+            if (entry.getValue().expired(expirationSeconds)) {
                 iterator.remove();
-                entry.getValue().expire(new RemotingTimeoutException("Invocation context expired. opaque=" + entry.getKey()));
+                entry.getValue().expire(new RemotingTimeoutException("Invocation context expired after "
+                    + expirationSeconds + " seconds. opaque=" + entry.getKey() + ", remoteAddress="
+                    + remoteAddress + ", localAddress=" + localAddress));
                 count++;
                 log.debug("An expired request is found, request: {}", entry.getValue());
             }
