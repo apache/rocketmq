@@ -93,7 +93,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
 
     protected void sendSystemMessage(Object data) {
         String targetTopic = this.getBroadcastTopicName();
-        String dataSummary = summarizeSystemMessageData(data);
+        String dataSummary = safelySummarizeSystemMessageData(data);
         try {
             Message message = new Message(
                 targetTopic,
@@ -111,12 +111,12 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
             ).whenCompleteAsync((result, throwable) -> {
                 if (throwable != null) {
                     log.error("send system message failed. dataSummary: {}, topic: {}",
-                        dataSummary, getBroadcastTopicName(), throwable);
+                        dataSummary, targetTopic, throwable);
                     return;
                 }
                 if (SendStatus.SEND_OK != result.getSendStatus()) {
                     log.error("send system message failed. dataSummary: {}, topic: {}, sendResult:{}",
-                        dataSummary, getBroadcastTopicName(), result);
+                        dataSummary, targetTopic, result);
                 }
             });
         } catch (Throwable t) {
@@ -134,13 +134,20 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
                 ? 0 : heartbeatData.getSubscriptionDataSet().size();
             return "HeartbeatSyncerData{"
                 + "heartbeatType=" + heartbeatData.getHeartbeatType()
-                + ", clientId=" + heartbeatData.getClientId()
-                + ", group=" + heartbeatData.getGroup()
                 + ", subscriptionCount=" + subscriptionCount
                 + ", channelDataPresent=" + (heartbeatData.getChannelData() != null)
                 + '}';
         }
-        return data.getClass().getSimpleName();
+        String simpleName = data.getClass().getSimpleName();
+        return StringUtils.isEmpty(simpleName) ? data.getClass().getName() : simpleName;
+    }
+
+    static String safelySummarizeSystemMessageData(Object data) {
+        try {
+            return summarizeSystemMessageData(data);
+        } catch (Throwable ignored) {
+            return "unavailable";
+        }
     }
 
     protected SendMessageRequestHeader buildSendMessageRequestHeader(Message message,
