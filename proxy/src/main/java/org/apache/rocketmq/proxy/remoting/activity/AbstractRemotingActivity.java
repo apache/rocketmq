@@ -49,6 +49,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
     private static final Map<ProxyExceptionCode, Integer> PROXY_EXCEPTION_RESPONSE_CODE_MAP = new HashMap<ProxyExceptionCode, Integer>() {
         {
             put(ProxyExceptionCode.FORBIDDEN, ResponseCode.NO_PERMISSION);
+            put(ProxyExceptionCode.INVALID_REQUEST, ResponseCode.MESSAGE_ILLEGAL);
             put(ProxyExceptionCode.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, ResponseCode.MESSAGE_ILLEGAL);
             put(ProxyExceptionCode.INTERNAL_SERVER_ERROR, ResponseCode.SYSTEM_ERROR);
             put(ProxyExceptionCode.TRANSACTION_DATA_NOT_FOUND, ResponseCode.SUCCESS);

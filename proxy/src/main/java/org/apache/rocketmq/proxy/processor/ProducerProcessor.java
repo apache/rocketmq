@@ -73,7 +73,7 @@ public class ProducerProcessor extends AbstractProcessor {
         AddressableMessageQueue messageQueue = null;
         try {
             if (messageList == null || messageList.isEmpty()) {
-                throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "message list is empty");
+                throw new ProxyException(ProxyExceptionCode.INVALID_REQUEST, "message list is empty");
             }
             Message message = messageList.get(0);
             String topic = message.getTopic();

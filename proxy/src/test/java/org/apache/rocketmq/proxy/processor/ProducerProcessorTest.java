@@ -91,7 +91,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
 
         assertTrue(exception.getCause() instanceof ProxyException);
         ProxyException cause = (ProxyException) exception.getCause();
-        assertEquals(ProxyExceptionCode.FORBIDDEN, cause.getCode());
+        assertEquals(ProxyExceptionCode.INVALID_REQUEST, cause.getCode());
         assertEquals("message list is empty", cause.getMessage());
     }
 
@@ -110,7 +110,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
 
         assertTrue(exception.getCause() instanceof ProxyException);
         ProxyException cause = (ProxyException) exception.getCause();
-        assertEquals(ProxyExceptionCode.FORBIDDEN, cause.getCode());
+        assertEquals(ProxyExceptionCode.INVALID_REQUEST, cause.getCode());
         assertEquals("message list is empty", cause.getMessage());
     }
 
