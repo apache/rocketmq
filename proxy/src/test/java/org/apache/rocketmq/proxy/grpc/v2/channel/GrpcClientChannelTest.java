@@ -101,7 +101,7 @@ public class GrpcClientChannelTest extends InitConfigTest {
     public void testGetConsumerRunningInfoShouldFailFastWhenObserverIsMissing() throws Exception {
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture = new CompletableFuture<>();
         when(grpcChannelManager.addResponseFuture(eq(responseFuture))).thenReturn("nonce-1");
-        when(grpcChannelManager.getAndRemoveResponseFuture(eq("nonce-1"))).thenReturn((CompletableFuture) responseFuture);
+        when(grpcChannelManager.<ConsumerRunningInfo>getAndRemoveResponseFuture(eq("nonce-1"))).thenReturn(responseFuture);
 
         GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
         header.setJstackEnable(true);
@@ -123,7 +123,7 @@ public class GrpcClientChannelTest extends InitConfigTest {
 
         CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture = new CompletableFuture<>();
         when(grpcChannelManager.addResponseFuture(eq(responseFuture))).thenReturn("nonce-2");
-        when(grpcChannelManager.getAndRemoveResponseFuture(eq("nonce-2"))).thenReturn((CompletableFuture) responseFuture);
+        when(grpcChannelManager.<ConsumeMessageDirectlyResult>getAndRemoveResponseFuture(eq("nonce-2"))).thenReturn(responseFuture);
 
         grpcClientChannel.processConsumeMessageDirectly(
             mock(RemotingCommand.class),

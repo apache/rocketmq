@@ -237,7 +237,7 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
             return CompletableFuture.completedFuture(null);
         }
         String nonce = this.grpcChannelManager.addResponseFuture(responseFuture);
-        boolean written = this.writeTelemetryCommand(TelemetryCommand.newBuilder()
+        boolean written = this.tryWriteTelemetryCommand(TelemetryCommand.newBuilder()
             .setPrintThreadStackTraceCommand(PrintThreadStackTraceCommand.newBuilder()
                 .setNonce(nonce)
                 .build())
@@ -253,7 +253,7 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         ConsumeMessageDirectlyResultRequestHeader header,
         MessageExt messageExt, CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture) {
         String nonce = this.grpcChannelManager.addResponseFuture(responseFuture);
-        boolean written = this.writeTelemetryCommand(TelemetryCommand.newBuilder()
+        boolean written = this.tryWriteTelemetryCommand(TelemetryCommand.newBuilder()
             .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
                 .setNonce(nonce)
                 .setMessage(GrpcConverter.getInstance().buildMessage(messageExt))
@@ -269,7 +269,11 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         return clientId;
     }
 
-    public boolean writeTelemetryCommand(TelemetryCommand command) {
+    public void writeTelemetryCommand(TelemetryCommand command) {
+        this.tryWriteTelemetryCommand(command);
+    }
+
+    private boolean tryWriteTelemetryCommand(TelemetryCommand command) {
         StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
         if (observer == null) {
             log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
