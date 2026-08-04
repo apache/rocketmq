@@ -21,6 +21,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
@@ -52,6 +53,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -64,7 +66,7 @@ public class TransactionActivityTest extends InitConfigTest {
     private ChannelHandlerContext ctx = new SimpleChannelHandlerContext(new SimpleChannel(null, "0.0.0.0:0", "1.1.1.1:1")) {
         @Override
         public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
-            return null;
+            return promise.setSuccess();
         }
     };
 
@@ -79,15 +81,20 @@ public class TransactionActivityTest extends InitConfigTest {
 
     @Test
     public void testEndTransactionWritesSuccessAfterFutureCompletes() throws Exception {
+        CompletableFuture<Void> endTransactionFuture = new CompletableFuture<>();
         when(messagingProcessor.endTransaction(any(), eq("topic"), eq("transactionId"), eq("msgId"),
             eq("producerGroup"), eq(TransactionStatus.COMMIT), eq(false)))
-            .thenReturn(CompletableFuture.completedFuture(null));
+            .thenReturn(endTransactionFuture);
         ArgumentCaptor<RemotingCommand> responseCaptor = ArgumentCaptor.forClass(RemotingCommand.class);
 
         RemotingCommand response = transactionActivity.processRequest0(ctx,
             createRequest(MessageSysFlag.TRANSACTION_COMMIT_TYPE), ProxyContext.create());
 
         assertThat(response).isNull();
+        verify(ctx, never()).writeAndFlush(any(RemotingCommand.class));
+
+        endTransactionFuture.complete(null);
+
         verify(ctx, times(1)).writeAndFlush(responseCaptor.capture());
         assertThat(responseCaptor.getValue().getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -95,7 +102,8 @@ public class TransactionActivityTest extends InitConfigTest {
     @Test
     public void testEndTransactionWritesFailureWhenFutureFails() throws Exception {
         CompletableFuture<Void> failedFuture = new CompletableFuture<>();
-        failedFuture.completeExceptionally(new MQBrokerException(ResponseCode.FLUSH_DISK_TIMEOUT, "flush timeout"));
+        failedFuture.completeExceptionally(new CompletionException(
+            new MQBrokerException(ResponseCode.FLUSH_DISK_TIMEOUT, "flush timeout")));
         when(messagingProcessor.endTransaction(any(), anyString(), anyString(), anyString(), anyString(),
             any(TransactionStatus.class), anyBoolean()))
             .thenReturn(failedFuture);
