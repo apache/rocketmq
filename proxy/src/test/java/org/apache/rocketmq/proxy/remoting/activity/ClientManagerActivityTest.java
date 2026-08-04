@@ -59,7 +59,7 @@ public class ClientManagerActivityTest extends InitConfigTest {
         RemotingCommand response = clientManagerActivity.heartBeat(null, request, ProxyContext.create());
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
-        assertThat(response.getRemark()).isEqualTo("heartbeat data is empty");
+        assertThat(response.getRemark()).isEqualTo(ClientManagerActivity.EMPTY_HEARTBEAT_DATA_REMARK);
         verifyNoClientRegistration();
     }
 
@@ -72,7 +72,20 @@ public class ClientManagerActivityTest extends InitConfigTest {
         RemotingCommand response = clientManagerActivity.heartBeat(null, request, ProxyContext.create());
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
-        assertThat(response.getRemark()).isEqualTo("heartbeat producerDataSet and consumerDataSet are required");
+        assertThat(response.getRemark()).isEqualTo(ClientManagerActivity.MISSING_HEARTBEAT_DATA_SET_REMARK);
+        verifyNoClientRegistration();
+    }
+
+    @Test
+    public void testHeartbeatShouldRejectNullConsumerDataSet() {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        request.setBody("{\"clientID\":\"client-a\",\"producerDataSet\":[],\"consumerDataSet\":null}"
+            .getBytes(StandardCharsets.UTF_8));
+
+        RemotingCommand response = clientManagerActivity.heartBeat(null, request, ProxyContext.create());
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo(ClientManagerActivity.MISSING_HEARTBEAT_DATA_SET_REMARK);
         verifyNoClientRegistration();
     }
 
