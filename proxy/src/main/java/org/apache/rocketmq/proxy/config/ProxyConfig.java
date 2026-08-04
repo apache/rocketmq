@@ -43,6 +43,8 @@ public class ProxyConfig implements ConfigFile {
     public final static String DEFAULT_CONFIG_FILE_NAME = "rmq-proxy.json";
     private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
     private static final String DEFAULT_CLUSTER_NAME = "DefaultCluster";
+    private static final String DEFAULT_MESSAGE_DELAY_LEVEL =
+        "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
 
     private static String localHostName;
 
@@ -229,7 +231,7 @@ public class ProxyConfig implements ConfigFile {
     private boolean enableAclRpcHookForClusterMode = false;
 
     private boolean useDelayLevel = false;
-    private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+    private String messageDelayLevel = DEFAULT_MESSAGE_DELAY_LEVEL;
     private transient ConcurrentSkipListMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentSkipListMap<>();
 
     private String metricCollectorMode = MetricCollectorMode.OFF.getModeString();
@@ -330,8 +332,12 @@ public class ProxyConfig implements ConfigFile {
         timeUnitTable.put("d", 1000L * 60 * 60 * 24);
 
         String levelString = this.getMessageDelayLevel();
+        if (StringUtils.isBlank(levelString)) {
+            log.warn("messageDelayLevel is blank, use default delay level config");
+            levelString = DEFAULT_MESSAGE_DELAY_LEVEL;
+        }
         try {
-            String[] levelArray = levelString.split(" ");
+            String[] levelArray = levelString.trim().split("\\s+");
             for (int i = 0; i < levelArray.length; i++) {
                 String value = levelArray[i];
                 String ch = value.substring(value.length() - 1);
