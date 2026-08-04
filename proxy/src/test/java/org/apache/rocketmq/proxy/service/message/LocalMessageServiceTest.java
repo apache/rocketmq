@@ -352,33 +352,68 @@ public class LocalMessageServiceTest extends InitConfigTest {
         byte[] body = MessageDecoder.encode(message, false);
         PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
         requestHeader.setInvisibleTime(invisibleTime);
-        Mockito.when(popMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.argThat(argument -> {
-            boolean first = argument.getCode() == RequestCode.POP_MESSAGE;
-            boolean second = argument.readCustomHeader() instanceof PopMessageRequestHeader;
-            return first && second;
-        }))).thenAnswer(invocation -> {
-            SimpleChannelHandlerContext simpleChannelHandlerContext = invocation.getArgument(0);
-            RemotingCommand request = invocation.getArgument(1);
-            RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
-            response.setOpaque(request.getOpaque());
-            response.setCode(ResponseCode.SUCCESS);
-            response.setBody(body);
-            PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
-            responseHeader.setStartOffsetInfo(startOffsetStringBuilder.toString());
-            responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
-            responseHeader.setPopTime(popTime);
-            responseHeader.setReviveQid(reviveQueueId);
-            simpleChannelHandlerContext.writeAndFlush(response);
-            return null;
-        });
+        mockPopMessageResponse(body, startOffsetStringBuilder.toString(), null, popTime,
+            requestHeader.getInvisibleTime(), reviveQueueId);
 
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, queueId);
         CompletableFuture<PopResult> future = localMessageService.popMessage(proxyContext,
             new AddressableMessageQueue(messageQueue, ""), requestHeader, 1000L);
         PopResult popResult = future.get();
 
-        assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.FOUND);
+        assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.NO_NEW_MSG);
         assertThat(popResult.getMsgFoundList()).isEmpty();
+    }
+
+    @Test
+    public void testPopMessageShouldSkipMessageWithMissingStartOffset() throws Exception {
+        int reviveQueueId = 1;
+        long popTime = System.currentTimeMillis();
+        long invisibleTime = 3000L;
+        long startOffset = 100L;
+        MessageExt message = buildMessageExt(topic, queueId, startOffset);
+        StringBuilder startOffsetInfo = new StringBuilder();
+        StringBuilder msgOffsetInfo = new StringBuilder();
+        ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, topic, queueId + 1, startOffset);
+        ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, topic, queueId, Collections.singletonList(startOffset));
+        PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+        requestHeader.setInvisibleTime(invisibleTime);
+        mockPopMessageResponse(MessageDecoder.encode(message, false), startOffsetInfo.toString(), msgOffsetInfo.toString(),
+            popTime, invisibleTime, reviveQueueId);
+
+        PopResult popResult = localMessageService.popMessage(proxyContext,
+            new AddressableMessageQueue(new MessageQueue(topic, brokerName, queueId), ""), requestHeader, 1000L).get();
+
+        assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.NO_NEW_MSG);
+        assertThat(popResult.getMsgFoundList()).isEmpty();
+    }
+
+    @Test
+    public void testPopMessageShouldSkipMessageWithInvalidOffsetIndex() throws Exception {
+        int reviveQueueId = 1;
+        long popTime = System.currentTimeMillis();
+        long invisibleTime = 3000L;
+        long startOffset = 100L;
+        MessageExt firstMessage = buildMessageExt(topic, queueId, startOffset);
+        MessageExt secondMessage = buildMessageExt(topic, queueId, startOffset + 1);
+        byte[] firstMessageBody = MessageDecoder.encode(firstMessage, false);
+        byte[] secondMessageBody = MessageDecoder.encode(secondMessage, false);
+        ByteBuffer body = ByteBuffer.allocate(firstMessageBody.length + secondMessageBody.length);
+        body.put(firstMessageBody).put(secondMessageBody);
+        StringBuilder startOffsetInfo = new StringBuilder();
+        StringBuilder msgOffsetInfo = new StringBuilder();
+        ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, topic, queueId, startOffset);
+        ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, topic, queueId, Collections.singletonList(startOffset));
+        PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+        requestHeader.setInvisibleTime(invisibleTime);
+        mockPopMessageResponse(body.array(), startOffsetInfo.toString(), msgOffsetInfo.toString(), popTime,
+            invisibleTime, reviveQueueId);
+
+        PopResult popResult = localMessageService.popMessage(proxyContext,
+            new AddressableMessageQueue(new MessageQueue(topic, brokerName, queueId), ""), requestHeader, 1000L).get();
+
+        assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.FOUND);
+        assertThat(popResult.getMsgFoundList()).hasSize(1);
+        assertThat(popResult.getMsgFoundList().get(0).getQueueOffset()).isEqualTo(startOffset);
     }
 
     @Test
@@ -516,6 +551,30 @@ public class LocalMessageServiceTest extends InitConfigTest {
         message1.setPreparedTransactionOffset(0L);
         message1.putUserProperty("K", "V");
         return message1;
+    }
+
+    private void mockPopMessageResponse(byte[] body, String startOffsetInfo, String msgOffsetInfo, long popTime,
+        long invisibleTime, int reviveQueueId) throws RemotingCommandException {
+        Mockito.when(popMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.argThat(argument -> {
+            boolean first = argument.getCode() == RequestCode.POP_MESSAGE;
+            boolean second = argument.readCustomHeader() instanceof PopMessageRequestHeader;
+            return first && second;
+        }))).thenAnswer(invocation -> {
+            SimpleChannelHandlerContext simpleChannelHandlerContext = invocation.getArgument(0);
+            RemotingCommand request = invocation.getArgument(1);
+            RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
+            response.setOpaque(request.getOpaque());
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(body);
+            PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
+            responseHeader.setStartOffsetInfo(startOffsetInfo);
+            responseHeader.setMsgOffsetInfo(msgOffsetInfo);
+            responseHeader.setInvisibleTime(invisibleTime);
+            responseHeader.setPopTime(popTime);
+            responseHeader.setReviveQid(reviveQueueId);
+            simpleChannelHandlerContext.writeAndFlush(response);
+            return null;
+        });
     }
 
     private void assertMessageExt(MessageExt messageExt1, MessageExt messageExt2) {

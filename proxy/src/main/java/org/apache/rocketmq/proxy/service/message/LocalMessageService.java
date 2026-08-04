@@ -273,6 +273,10 @@ public class LocalMessageService implements MessageService {
                 }
                 Map<String, String> map = new HashMap<>(5);
                 List<MessageExt> validMessageExtList = new ArrayList<>(messageExtList.size());
+                int missingOffsetMetadataCount = 0;
+                String firstMissingOffsetMetadataKey = null;
+                int invalidOffsetIndexCount = 0;
+                String firstInvalidOffsetIndexKey = null;
                 for (MessageExt messageExt : messageExtList) {
                     if (startOffsetInfo == null) {
                         // we should set the check point info to extraInfo field , if the command is popMsg
@@ -288,15 +292,20 @@ public class LocalMessageService implements MessageService {
                             String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
                             List<Long> sortQueueOffsets = sortMap.get(key);
                             List<Long> msgQueueOffsets = msgOffsetInfo == null ? null : msgOffsetInfo.get(key);
-                            Long startOffset = startOffsetInfo.get(key);
-                            if (sortQueueOffsets == null || msgQueueOffsets == null || startOffset == null) {
-                                log.warn("Pop response offset metadata is missing, key:{}", key);
+                            Long startOffsetForQueue = startOffsetInfo.get(key);
+                            if (sortQueueOffsets == null || msgQueueOffsets == null || startOffsetForQueue == null) {
+                                missingOffsetMetadataCount++;
+                                if (firstMissingOffsetMetadataKey == null) {
+                                    firstMissingOffsetMetadataKey = key;
+                                }
                                 continue;
                             }
                             int index = sortQueueOffsets.indexOf(messageExt.getQueueOffset());
                             if (index < 0 || index >= msgQueueOffsets.size()) {
-                                log.warn("Pop response offset metadata index is invalid, key:{}, index:{}, msgOffsetCount:{}",
-                                    key, index, msgQueueOffsets.size());
+                                invalidOffsetIndexCount++;
+                                if (firstInvalidOffsetIndexKey == null) {
+                                    firstInvalidOffsetIndexKey = key;
+                                }
                                 continue;
                             }
                             Long msgQueueOffset = msgQueueOffsets.get(index);
@@ -305,7 +314,7 @@ public class LocalMessageService implements MessageService {
                             }
 
                             messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
-                                ExtraInfoUtil.buildExtraInfo(startOffset, responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                                ExtraInfoUtil.buildExtraInfo(startOffsetForQueue, responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
                                     responseHeader.getReviveQid(), messageExt.getTopic(), messageQueue.getBrokerName(), messageExt.getQueueId(), msgQueueOffset)
                             );
                             if (requestHeader.isOrder() && orderCountInfo != null) {
@@ -321,7 +330,18 @@ public class LocalMessageService implements MessageService {
                     messageExt.setTopic(messageQueue.getTopic());
                     validMessageExtList.add(messageExt);
                 }
+                if (missingOffsetMetadataCount > 0) {
+                    log.warn("Skipped {} POP messages because offset metadata is missing, first key:{}",
+                        missingOffsetMetadataCount, firstMissingOffsetMetadataKey);
+                }
+                if (invalidOffsetIndexCount > 0) {
+                    log.warn("Skipped {} POP messages because offset metadata index is invalid, first key:{}",
+                        invalidOffsetIndexCount, firstInvalidOffsetIndexKey);
+                }
                 popResult.setMsgFoundList(validMessageExtList);
+                if (validMessageExtList.isEmpty() && !messageExtList.isEmpty()) {
+                    popResult.setPopStatus(PopStatus.NO_NEW_MSG);
+                }
             }
             return popResult;
         });
