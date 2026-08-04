@@ -109,16 +109,23 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
                 Duration.ofSeconds(3).toMillis()
             ).whenCompleteAsync((result, throwable) -> {
                 if (throwable != null) {
-                    log.error("send system message failed. data: {}, topic: {}", data, getBroadcastTopicName(), throwable);
+                    log.error("send system message failed. dataSummary: {}, topic: {}",
+                        summarizeSystemMessageData(data), getBroadcastTopicName(), throwable);
                     return;
                 }
                 if (SendStatus.SEND_OK != result.getSendStatus()) {
-                    log.error("send system message failed. data: {}, topic: {}, sendResult:{}", data, getBroadcastTopicName(), result);
+                    log.error("send system message failed. dataSummary: {}, topic: {}, sendResult:{}",
+                        summarizeSystemMessageData(data), getBroadcastTopicName(), result);
                 }
             });
         } catch (Throwable t) {
-            log.error("send system message failed. data: {}, topic: {}", data, targetTopic, t);
+            log.error("send system message failed. dataSummary: {}, topic: {}",
+                summarizeSystemMessageData(data), targetTopic, t);
         }
+    }
+
+    protected Object summarizeSystemMessageData(Object data) {
+        return data;
     }
 
     protected SendMessageRequestHeader buildSendMessageRequestHeader(Message message,

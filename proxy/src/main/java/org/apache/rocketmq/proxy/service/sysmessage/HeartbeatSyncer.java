@@ -292,4 +292,12 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
             .add("bodyBytes", body == null ? 0 : body.length)
             .toString();
     }
+
+    @Override
+    protected Object summarizeSystemMessageData(Object data) {
+        if (data instanceof HeartbeatSyncerData) {
+            return summarizeHeartbeatData((HeartbeatSyncerData) data);
+        }
+        return super.summarizeSystemMessageData(data);
+    }
 }
