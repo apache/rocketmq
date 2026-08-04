@@ -163,8 +163,16 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
     protected RemotingCommand checkClientConfig(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        CheckClientRequestBody requestBody = CheckClientRequestBody.decode(request.getBody(),
-            CheckClientRequestBody.class);
+        CheckClientRequestBody requestBody;
+        try {
+            if (request.getBody() == null) {
+                return invalidCheckClientConfigResponse(response, "Request body is required");
+            }
+            requestBody = CheckClientRequestBody.decode(request.getBody(), CheckClientRequestBody.class);
+        } catch (Exception e) {
+            log.warn("Failed to decode check client config request", e);
+            return invalidCheckClientConfigResponse(response, "Failed to decode request body");
+        }
         if (requestBody != null && requestBody.getSubscriptionData() != null) {
             SubscriptionData subscriptionData = requestBody.getSubscriptionData();
             if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
@@ -175,7 +183,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
 
             if (!ConfigurationManager.getProxyConfig().isEnablePropertyFilter()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("The proxy does not support consumer to filter message by "
+                response.setRemark("Property filter is disabled; enablePropertyFilter must be true to use "
                     + subscriptionData.getExpressionType());
                 return response;
             }
@@ -183,8 +191,8 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
             try {
                 FilterFactory.INSTANCE.get(subscriptionData.getExpressionType()).compile(subscriptionData.getSubString());
             } catch (Exception e) {
-                log.warn("Client {}@{} filter message, but failed to compile expression! sub={}, error={}",
-                    requestBody.getClientId(), requestBody.getGroup(), requestBody.getSubscriptionData(), e.getMessage());
+                log.warn("Client {}@{} failed to compile filter expression: {}",
+                    requestBody.getClientId(), requestBody.getGroup(), requestBody.getSubscriptionData(), e);
                 response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
                 response.setRemark(e.getMessage());
                 return response;
@@ -193,6 +201,12 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand invalidCheckClientConfigResponse(RemotingCommand response, String remark) {
+        response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+        response.setRemark(remark);
         return response;
     }
 

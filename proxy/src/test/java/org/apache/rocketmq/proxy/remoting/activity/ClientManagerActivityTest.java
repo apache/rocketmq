@@ -27,6 +27,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ClientManagerActivityTest extends InitConfigTest {
 
     private ClientManagerActivity clientManagerActivity;
+    private boolean originalEnablePropertyFilter;
     @Mock
     private MessagingProcessor messagingProcessor;
     @Mock
@@ -47,6 +49,12 @@ public class ClientManagerActivityTest extends InitConfigTest {
     @Before
     public void setUp() {
         this.clientManagerActivity = new ClientManagerActivity(null, messagingProcessor, remotingChannelManager);
+        this.originalEnablePropertyFilter = ConfigurationManager.getProxyConfig().isEnablePropertyFilter();
+    }
+
+    @After
+    public void tearDown() {
+        ConfigurationManager.getProxyConfig().setEnablePropertyFilter(originalEnablePropertyFilter);
     }
 
     @Test
@@ -63,7 +71,7 @@ public class ClientManagerActivityTest extends InitConfigTest {
             createRequest(ExpressionType.SQL92, "a is not null"), ProxyContext.create());
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).contains(ExpressionType.SQL92);
+        assertThat(response.getRemark()).contains("enablePropertyFilter", ExpressionType.SQL92);
     }
 
     @Test
@@ -74,6 +82,26 @@ public class ClientManagerActivityTest extends InitConfigTest {
             createRequest(ExpressionType.SQL92, "a = "), ProxyContext.create());
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+    }
+
+    @Test
+    public void testCheckClientConfigAcceptsValidPropertyFilterExpression() {
+        ConfigurationManager.getProxyConfig().setEnablePropertyFilter(true);
+
+        RemotingCommand response = clientManagerActivity.checkClientConfig(null,
+            createRequest(ExpressionType.SQL92, "a is not null"), ProxyContext.create());
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testCheckClientConfigRejectsRequestWithoutBody() {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_CLIENT_CONFIG, null);
+
+        RemotingCommand response = clientManagerActivity.checkClientConfig(null, request, ProxyContext.create());
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+        assertThat(response.getRemark()).contains("body");
     }
 
     private RemotingCommand createRequest(String expressionType, String expression) {
