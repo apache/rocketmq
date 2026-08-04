@@ -107,7 +107,8 @@ public class DefaultAdminServiceTest {
             0
         ));
 
-        assertEquals("127.0.0.1:10911", addrArgumentCaptor.getValue());
+        assertEquals(1, addrArgumentCaptor.getAllValues().size());
+        assertEquals("127.0.0.1:10911", addrArgumentCaptor.getAllValues().get(0));
         assertEquals("createTopic", topicConfigArgumentCaptor.getValue().getTopicName());
     }
 
