@@ -69,6 +69,10 @@ public class GrpcChannelManager implements StartAndShutdown {
         return clientIdChannelMap.get(clientId);
     }
 
+    public java.util.Collection<GrpcClientChannel> getClientChannels() {
+        return clientIdChannelMap.values();
+    }
+
     public GrpcClientChannel removeChannel(String clientId) {
         return this.clientIdChannelMap.remove(clientId);
     }
