@@ -273,13 +273,33 @@ public class HeartbeatSyncerTest extends InitConfigTest {
 
         assertTrue(summary.contains("HeartbeatSyncerData"));
         assertTrue(summary.contains("heartbeatType=REGISTER"));
-        assertTrue(summary.contains("clientId=" + clientId));
-        assertTrue(summary.contains("group=sensitiveGroup"));
         assertTrue(summary.contains("subscriptionCount=1"));
         assertTrue(summary.contains("channelDataPresent=true"));
+        assertFalse(summary.contains(clientId));
+        assertFalse(summary.contains("sensitiveGroup"));
         assertFalse(summary.contains("sensitiveTopic"));
         assertFalse(summary.contains("sensitiveTag"));
         assertFalse(summary.contains("sensitiveChannelData"));
+    }
+
+    @Test
+    public void testSummarizeSystemMessageDataUsesClassNameForAnonymousPayload() {
+        Object data = new Object() {
+        };
+
+        assertEquals(data.getClass().getName(), AbstractSystemMessageSyncer.summarizeSystemMessageData(data));
+    }
+
+    @Test
+    public void testSafelySummarizeSystemMessageDataDoesNotPropagateFailures() {
+        HeartbeatSyncerData data = new HeartbeatSyncerData() {
+            @Override
+            public Set<SubscriptionData> getSubscriptionDataSet() {
+                throw new IllegalStateException("summary failure");
+            }
+        };
+
+        assertEquals("unavailable", AbstractSystemMessageSyncer.safelySummarizeSystemMessageData(data));
     }
 
     @Test
