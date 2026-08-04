@@ -17,7 +17,10 @@
 package org.apache.rocketmq.store.queue;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -131,6 +134,56 @@ public class RocksDBConsumeQueueStoreTest extends QueueTestBase {
         await().atMost(5, SECONDS).untilAsserted(() ->
             assertEquals(msgNum, store.getMaxOffsetInQueue(topic, queueId))
         );
+    }
+
+    @Test
+    public void testRangeQueryReturnsContinuousOffsets() throws Exception {
+        RocksDBConsumeQueueStore store = (RocksDBConsumeQueueStore) messageStore.getQueueStore();
+        String topic = "test-topic-" + UUID.randomUUID();
+        int queueId = 0;
+        int msgNum = 20;
+        int msgSize = 100;
+        List<DispatchRequest> requests = new ArrayList<>(msgNum);
+        for (int i = 0; i < msgNum; i++) {
+            requests.add(new DispatchRequest(topic, queueId, i, (long) i * msgSize, msgSize, i));
+        }
+
+        store.putMessagePosition(requests);
+
+        List<ByteBuffer> buffers = store.rangeQuery(topic, queueId, 0, msgNum);
+        assertEquals(msgNum, buffers.size());
+        for (int i = 0; i < msgNum; i++) {
+            ByteBuffer buffer = buffers.get(i);
+            assertEquals((long) i * msgSize, buffer.getLong());
+            assertEquals(msgSize, buffer.getInt());
+            assertEquals(i, buffer.getLong());
+        }
+    }
+
+    @Test
+    public void testRangeQueryStopsAtMissingOffset() throws Exception {
+        RocksDBConsumeQueueStore store = (RocksDBConsumeQueueStore) messageStore.getQueueStore();
+        String topic = "test-topic-" + UUID.randomUUID();
+        int queueId = 0;
+        int msgSize = 100;
+        List<DispatchRequest> requests = new ArrayList<>(20);
+        for (int i = 0; i <= 20; i++) {
+            if (i == 2) {
+                continue;
+            }
+            requests.add(new DispatchRequest(topic, queueId, i, (long) i * msgSize, msgSize, i));
+        }
+
+        store.putMessagePosition(requests);
+
+        List<ByteBuffer> buffers = store.rangeQuery(topic, queueId, 0, 20);
+        assertEquals(2, buffers.size());
+        for (int i = 0; i < buffers.size(); i++) {
+            ByteBuffer buffer = buffers.get(i);
+            assertEquals((long) i * msgSize, buffer.getLong());
+            assertEquals(msgSize, buffer.getInt());
+            assertEquals(i, buffer.getLong());
+        }
     }
 
     @Test
