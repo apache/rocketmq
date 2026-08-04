@@ -28,6 +28,7 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -121,12 +122,17 @@ public class DefaultAdminServiceTest {
         assertFalse(defaultAdminService.topicExist("missingTopic"));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testTopicExistThrowsForUnexpectedRouteLookupFailure() throws Exception {
+        MQClientException cause = new MQClientException(ResponseCode.SYSTEM_ERROR, "namesrv unavailable");
         when(mqClientAPIExt.getTopicRouteInfoFromNameServer(eq("brokenTopic"), anyLong()))
-            .thenThrow(new MQClientException(ResponseCode.SYSTEM_ERROR, "namesrv unavailable"));
+            .thenThrow(cause);
 
-        defaultAdminService.topicExist("brokenTopic");
+        IllegalStateException exception = Assert.assertThrows(IllegalStateException.class,
+            () -> defaultAdminService.topicExist("brokenTopic"));
+
+        assertEquals("get topic route for topic='brokenTopic' failed", exception.getMessage());
+        assertEquals(cause, exception.getCause());
     }
 
     private TopicRouteData createTopicRouteData(int brokerNum) {
