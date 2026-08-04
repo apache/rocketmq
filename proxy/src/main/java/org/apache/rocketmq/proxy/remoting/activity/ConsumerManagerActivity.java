@@ -86,7 +86,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(context, header.getConsumerGroup());
         if (consumerGroupInfo == null) {
             response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
-            response.setRemark("the consumer group[" + header.getConsumerGroup() + "] not online");
+            response.setRemark(consumerNotOnlineRemark(header.getConsumerGroup()));
             return response;
         }
         List<String> clientIds = consumerGroupInfo.getAllClientId();
@@ -130,8 +130,12 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         }
 
         response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
-        response.setRemark("the consumer group[" + header.getConsumerGroup() + "] not online");
+        response.setRemark(consumerNotOnlineRemark(header.getConsumerGroup()));
         return response;
+    }
+
+    static String consumerNotOnlineRemark(String consumerGroup) {
+        return "the consumer group[" + consumerGroup + "] not online";
     }
 
     protected RemotingCommand lockBatchMQ(ChannelHandlerContext ctx, RemotingCommand request,

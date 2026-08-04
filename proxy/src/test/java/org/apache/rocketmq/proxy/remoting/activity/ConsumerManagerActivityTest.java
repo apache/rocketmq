@@ -62,6 +62,6 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
             null, request, ProxyContext.create());
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.CONSUMER_NOT_ONLINE);
-        assertThat(response.getRemark()).isEqualTo("the consumer group[offline-group] not online");
+        assertThat(response.getRemark()).isEqualTo(ConsumerManagerActivity.consumerNotOnlineRemark(CONSUMER_GROUP));
     }
 }
