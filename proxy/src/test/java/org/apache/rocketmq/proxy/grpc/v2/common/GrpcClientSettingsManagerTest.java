@@ -80,6 +80,8 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
     @Test
     public void testMergeMetricWithValidCollectorAddress() {
+        String originalMetricCollectorMode = ConfigurationManager.getProxyConfig().getMetricCollectorMode();
+        String originalMetricCollectorAddress = ConfigurationManager.getProxyConfig().getMetricCollectorAddress();
         ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.ON.getModeString());
         ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1:9090");
         try {
@@ -89,13 +91,15 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
             assertEquals("127.0.0.1", settings.getMetric().getEndpoints().getAddresses(0).getHost());
             assertEquals(9090, settings.getMetric().getEndpoints().getAddresses(0).getPort());
         } finally {
-            ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.OFF.getModeString());
-            ConfigurationManager.getProxyConfig().setMetricCollectorAddress("");
+            ConfigurationManager.getProxyConfig().setMetricCollectorMode(originalMetricCollectorMode);
+            ConfigurationManager.getProxyConfig().setMetricCollectorAddress(originalMetricCollectorAddress);
         }
     }
 
     @Test
     public void testMergeMetricShouldDisableMetricForInvalidCollectorAddress() {
+        String originalMetricCollectorMode = ConfigurationManager.getProxyConfig().getMetricCollectorMode();
+        String originalMetricCollectorAddress = ConfigurationManager.getProxyConfig().getMetricCollectorAddress();
         ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.ON.getModeString());
         ConfigurationManager.getProxyConfig().setMetricCollectorAddress("localhost");
         try {
@@ -103,8 +107,8 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
             assertEquals(false, settings.getMetric().getOn());
         } finally {
-            ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.OFF.getModeString());
-            ConfigurationManager.getProxyConfig().setMetricCollectorAddress("");
+            ConfigurationManager.getProxyConfig().setMetricCollectorMode(originalMetricCollectorMode);
+            ConfigurationManager.getProxyConfig().setMetricCollectorAddress(originalMetricCollectorAddress);
         }
     }
 
