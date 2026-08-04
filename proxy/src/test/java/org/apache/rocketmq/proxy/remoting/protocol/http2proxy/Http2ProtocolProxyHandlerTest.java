@@ -23,6 +23,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.haproxy.HAProxyMessageEncoder;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,9 +37,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class Http2ProtocolProxyHandlerTest {
+public class Http2ProtocolProxyHandlerTest extends InitConfigTest {
 
     private Http2ProtocolProxyHandler http2ProtocolProxyHandler;
+    private boolean originalEnableRemotingLocalProxyGrpc;
     @Mock
     private Channel inboundChannel;
     @Mock
@@ -49,9 +52,14 @@ public class Http2ProtocolProxyHandlerTest {
 
     @Before
     public void setUp() throws Exception {
-        ConfigurationManager.initConfig();
+        originalEnableRemotingLocalProxyGrpc = ConfigurationManager.getProxyConfig().isEnableRemotingLocalProxyGrpc();
         ConfigurationManager.getProxyConfig().setEnableRemotingLocalProxyGrpc(true);
         http2ProtocolProxyHandler = new Http2ProtocolProxyHandler();
+    }
+
+    @After
+    public void tearDown() {
+        ConfigurationManager.getProxyConfig().setEnableRemotingLocalProxyGrpc(originalEnableRemotingLocalProxyGrpc);
     }
 
     @Test
