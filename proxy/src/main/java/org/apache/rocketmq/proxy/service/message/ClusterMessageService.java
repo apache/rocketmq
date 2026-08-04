@@ -162,7 +162,7 @@ public class ClusterMessageService implements MessageService {
         if (handleList == null || handleList.isEmpty()) {
             return FutureUtils.completeExceptionally(new ProxyException(
                 ProxyExceptionCode.INVALID_RECEIPT_HANDLE,
-                "receipt handle list is empty"
+                "receipt handle list is null or empty"
             ));
         }
         List<String> extraInfoList = handleList.stream().map(message -> message.getReceiptHandle().getReceiptHandle()).collect(Collectors.toList());

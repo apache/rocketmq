@@ -106,6 +106,7 @@ public class ClusterMessageServiceTest {
             assertTrue(e.getCause() instanceof ProxyException);
             ProxyException proxyException = (ProxyException) e.getCause();
             assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, proxyException.getCode());
+            assertEquals("receipt handle list is null or empty", proxyException.getMessage());
         }
         verify(this.mqClientAPIFactory, never()).getClient();
     }
