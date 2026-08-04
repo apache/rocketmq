@@ -385,6 +385,10 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         return this.serviceManager.getMetadataService();
     }
 
+    public ServiceManager getServiceManager() {
+        return this.serviceManager;
+    }
+
     @Override
     public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
         MessageReceiptHandle messageReceiptHandle) {

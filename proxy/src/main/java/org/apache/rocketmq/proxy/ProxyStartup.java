@@ -39,6 +39,8 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
@@ -91,6 +93,26 @@ public class ProxyStartup {
                 .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
+
+            // RIP-2: dedicated admin gRPC server (control plane), isolated from the data plane.
+            Integer adminPort = ConfigurationManager.getProxyConfig().getAdminGrpcPort();
+            if (adminPort != null && adminPort > 0) {
+                GrpcMessagingApplication application = createServiceProcessor(messagingProcessor);
+                ProxyAdminGrpcService adminService = new ProxyAdminGrpcService(
+                    ((DefaultMessagingProcessor) messagingProcessor).getServiceManager(),
+                    messagingProcessor,
+                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcChannelManager(),
+                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcClientSettingsManager());
+                GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
+                    .addService(adminService)
+                    .addService(ChannelzService.newInstance(100))
+                    .addService(ProtoReflectionService.newInstance())
+                    .configInterceptor()
+                    .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
+                    .build();
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminGrpcServer);
+                log.info("RIP-2 admin gRPC server will start on port {}", adminPort);
+            }
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);

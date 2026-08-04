@@ -78,6 +78,10 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     private final GrpcMessagingActivity grpcMessagingActivity;
 
+    public GrpcMessagingActivity getGrpcMessagingActivity() {
+        return this.grpcMessagingActivity;
+    }
+
     protected final RequestPipeline requestPipeline;
 
     protected ThreadPoolExecutor routeThreadPoolExecutor;
