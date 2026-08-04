@@ -53,7 +53,7 @@ public class DefaultAdminService implements AdminService {
             if (TopicRouteHelper.isTopicNotExistError(e)) {
                 topicExist = false;
             } else {
-                throw new IllegalStateException("get topic route " + topic + " failed", e);
+                throw new IllegalStateException("get topic route for topic='" + topic + "' failed", e);
             }
         }
 
