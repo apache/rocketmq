@@ -793,17 +793,26 @@ public class DefaultMessageStore implements MessageStore {
             return;
         }
 
+        long markerOffset = Math.max(offsetToTruncate, this.getMinPhyOffset());
         this.reputMessageService.shutdown();
 
         long oldReputFromOffset = this.reputMessageService.getReputFromOffset();
 
-        // truncate consume queue
-        this.truncateDirtyLogicFiles(offsetToTruncate);
+        try {
+            this.commitLog.persistTruncateMarker(markerOffset);
 
-        // truncate commitLog
-        this.commitLog.truncateDirtyFiles(offsetToTruncate);
+            // truncate consume queue
+            this.truncateDirtyLogicFiles(offsetToTruncate);
 
-        this.recoverTopicQueueTable();
+            // truncate commitLog
+            this.commitLog.truncateDirtyFiles(offsetToTruncate);
+
+            this.recoverTopicQueueTable();
+        } catch (RocksDBException | RuntimeException e) {
+            LOGGER.error("Failed to truncate dirty files to {} after stopping ReputMessageService; "
+                + "keep the service stopped to avoid processing a partially truncated CommitLog", offsetToTruncate, e);
+            throw e;
+        }
 
         if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
             this.reputMessageService = new ReputMessageService();
