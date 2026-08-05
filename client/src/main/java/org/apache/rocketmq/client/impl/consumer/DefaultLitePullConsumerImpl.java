@@ -336,14 +336,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private void initMQClientFactory() throws MQClientException {
         this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultLitePullConsumer, this.rpcHook);
-        boolean registerOK = mQClientFactory.registerConsumer(this.defaultLitePullConsumer.getConsumerGroup(), this);
-        if (!registerOK) {
-            this.serviceState = ServiceState.CREATE_JUST;
-
-            throw new MQClientException("The consumer group[" + this.defaultLitePullConsumer.getConsumerGroup()
-                + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
-                null);
-        }
+        mQClientFactory.registerConsumer(this.defaultLitePullConsumer.getConsumerGroup(), this);
     }
 
     private void initRebalanceImpl() {

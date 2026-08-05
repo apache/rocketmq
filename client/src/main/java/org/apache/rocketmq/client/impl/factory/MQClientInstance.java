@@ -1088,18 +1088,19 @@ public class MQClientInstance {
         }
     }
 
-    public synchronized boolean registerConsumer(final String group, final MQConsumerInner consumer) {
+    public synchronized void registerConsumer(final String group, final MQConsumerInner consumer)
+        throws MQClientException {
         if (null == group || null == consumer) {
-            return false;
+            throw new MQClientException("consumerGroup or consumer is null", null);
         }
 
         MQConsumerInner prev = this.consumerTable.putIfAbsent(group, consumer);
         if (prev != null) {
-            log.warn("the consumer group[" + group + "] exist already.");
-            return false;
+            throw new MQClientException(
+                "The consumer group[" + group + "] has been created before, specify another name please."
+                    + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
+                null);
         }
-
-        return true;
     }
 
     public synchronized void unregisterConsumer(final String group) {
