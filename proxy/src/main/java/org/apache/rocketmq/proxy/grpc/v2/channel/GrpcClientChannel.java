@@ -69,6 +69,10 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     private final Object telemetryWriteLock = new Object();
     private final String clientId;
 
+    // RIP-2: capture the moment this client channel was created, surfaced in
+    // ProxyAdminService client listings (ClientInstance.connect_time).
+    private final long connectTimeMillis = System.currentTimeMillis();
+
     public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager, ProxyContext ctx, String clientId) {
         super(proxyRelayService, null, new GrpcChannelId(clientId),
@@ -258,6 +262,10 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
 
     public String getClientId() {
         return clientId;
+    }
+
+    public long getConnectTimeMillis() {
+        return connectTimeMillis;
     }
 
     public void writeTelemetryCommand(TelemetryCommand command) {

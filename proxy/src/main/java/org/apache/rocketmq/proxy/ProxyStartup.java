@@ -40,6 +40,7 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminServiceGrpcService;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
@@ -103,8 +104,14 @@ public class ProxyStartup {
                     messagingProcessor,
                     ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcChannelManager(),
                     ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcClientSettingsManager());
+                ProxyAdminServiceGrpcService proxyAdminService = new ProxyAdminServiceGrpcService(
+                    ((DefaultMessagingProcessor) messagingProcessor).getServiceManager(),
+                    messagingProcessor,
+                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcChannelManager(),
+                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcClientSettingsManager());
                 GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
                     .addService(adminService)
+                    .addService(proxyAdminService)
                     .addService(ChannelzService.newInstance(100))
                     .addService(ProtoReflectionService.newInstance())
                     .configInterceptor()
