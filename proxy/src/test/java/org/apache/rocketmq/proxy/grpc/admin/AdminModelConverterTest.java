@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.proxy.grpc.admin;
 
-import apache.rocketmq.v2.Broker;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.DescribeGroupAccumulationResponse;
 import apache.rocketmq.v2.DescribeTopicStatusResponse;

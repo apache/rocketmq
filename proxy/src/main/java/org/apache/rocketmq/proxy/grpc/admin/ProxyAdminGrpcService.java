@@ -18,7 +18,6 @@ package org.apache.rocketmq.proxy.grpc.admin;
 
 import apache.rocketmq.v2.AdminGrpc;
 import apache.rocketmq.v2.ClientInfo;
-import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.ConsumerRunningInfo;
 import apache.rocketmq.v2.DescribeGroupAccumulationRequest;
@@ -42,7 +41,6 @@ import apache.rocketmq.v2.ListMessageRequest;
 import apache.rocketmq.v2.ListMessageResponse;
 import apache.rocketmq.v2.ListSubscriptionRequest;
 import apache.rocketmq.v2.ListSubscriptionResponse;
-import apache.rocketmq.v2.MessageModel;
 import apache.rocketmq.v2.PrintThreadStackTraceRequest;
 import apache.rocketmq.v2.PrintThreadStackTraceResponse;
 import apache.rocketmq.v2.QueryTimeSpanRequest;
@@ -63,13 +61,11 @@ import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -80,7 +76,7 @@ import org.apache.rocketmq.proxy.service.admin.AdminService;
 /**
  * RIP-2 Proxy Admin gRPC service.
  *
- * <p>Every capability is served from the proxy process itself ("走 grpc 的 proxy"):
+ * <p>Every capability is served from the proxy process itself (via the gRPC proxy):
  * <ul>
  *   <li>Online clients / connections are read from the proxy's own
  *       {@link GrpcChannelManager} (the authority on gRPC clients connected to the proxy).</li>
@@ -147,6 +143,29 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase {
         }
         return brokerAddr;
     }
+
+    /**
+     * RIP-2 fix: resolve ALL distinct broker addresses hosting the topic, so multi-broker
+     * clusters get complete data for accumulation/reset/query/delete operations.
+     */
+    private List<String> resolveBrokerAddrs(String topic) throws Exception {
+        org.apache.rocketmq.proxy.service.route.MessageQueueView mqv =
+            serviceManager.getTopicRouteService().getAllMessageQueueView(ctx(), topic);
+        if (mqv == null || mqv.getReadSelector() == null || mqv.getReadSelector().getQueues().isEmpty()) {
+            throw new RuntimeException("topic route not found for " + topic);
+        }
+        java.util.LinkedHashSet<String> addrs = new java.util.LinkedHashSet<>();
+        for (org.apache.rocketmq.proxy.service.route.AddressableMessageQueue mq : mqv.getReadSelector().getQueues()) {
+            if (mq.getBrokerAddr() != null && !mq.getBrokerAddr().isEmpty()) {
+                addrs.add(mq.getBrokerAddr());
+            }
+        }
+        if (addrs.isEmpty()) {
+            throw new RuntimeException("broker address not found for topic " + topic);
+        }
+        return new ArrayList<>(addrs);
+    }
+
 
     private ClientInfo buildClientInfo(GrpcClientChannel channel) {
         String clientId = channel.getClientId();
@@ -385,8 +404,33 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase {
         try {
             String topic = request.getTopic().getName();
             String group = request.hasGroup() ? request.getGroup().getName() : "";
+            if (topic == null || topic.isEmpty() || group.isEmpty()) {
+                responseObserver.onNext(DeleteSubscriptionResponse.newBuilder()
+                    .setStatus(fail(Code.BAD_REQUEST, "topic and group are required")).build());
+                responseObserver.onCompleted();
+                return;
+            }
             log.info("deleteSubscription requested for group={}, topic={}", group, topic);
-            responseObserver.onNext(DeleteSubscriptionResponse.newBuilder().setStatus(ok()).build());
+            List<String> brokerAddrs = resolveBrokerAddrs(topic);
+            StringBuilder errors = new StringBuilder();
+            for (String brokerAddr : brokerAddrs) {
+                try {
+                    serviceManager.getAdminService().deleteSubscriptionGroup(brokerAddr, group, false,
+                        DEFAULT_TIMEOUT_MILLIS);
+                } catch (Throwable t) {
+                    log.warn("deleteSubscription failed on broker {}", brokerAddr, t);
+                    if (errors.length() > 0) {
+                        errors.append("; ");
+                    }
+                    errors.append(brokerAddr).append(": ").append(t.getMessage());
+                }
+            }
+            if (errors.length() > 0) {
+                responseObserver.onNext(DeleteSubscriptionResponse.newBuilder()
+                    .setStatus(fail(Code.INTERNAL_ERROR, errors.toString())).build());
+            } else {
+                responseObserver.onNext(DeleteSubscriptionResponse.newBuilder().setStatus(ok()).build());
+            }
         } catch (Throwable t) {
             log.warn("deleteSubscription failed", t);
             responseObserver.onNext(DeleteSubscriptionResponse.newBuilder()
@@ -418,10 +462,10 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase {
         try {
             String group = request.getGroup().getName();
             String topic = request.getTopicsCount() > 0 ? request.getTopics(0).getName() : null;
-            String brokerAddr = resolveBrokerAddr(topic == null ? group : topic);
+            List<String> brokerAddrs = resolveBrokerAddrs(topic == null ? group : topic);
             DescribeGroupAccumulationResponse.GroupAccumulation accumulation =
-                AdminModelConverter.toGroupAccumulation(serviceManager.getAdminService(), brokerAddr, group, topic,
-                    DEFAULT_TIMEOUT_MILLIS);
+                AdminModelConverter.toGroupAccumulationMultiBroker(serviceManager.getAdminService(), brokerAddrs,
+                    group, topic, DEFAULT_TIMEOUT_MILLIS);
             responseObserver.onNext(DescribeGroupAccumulationResponse.newBuilder()
                 .setStatus(ok())
                 .setAccumulation(accumulation)
@@ -440,10 +484,27 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase {
             String group = request.getGroup().getName();
             String topic = request.getTopic().getName();
             long resetTimestamp = request.getResetTimestamp().getSeconds() * 1000L;
-            String brokerAddr = resolveBrokerAddr(topic);
-            serviceManager.getAdminService().resetOffset(brokerAddr, topic, group, resetTimestamp, true,
-                DEFAULT_TIMEOUT_MILLIS);
-            responseObserver.onNext(ResetGroupOffsetResponse.newBuilder().setStatus(ok()).build());
+            // RIP-2 fix: reset on EVERY broker hosting the topic, not just the first one.
+            List<String> brokerAddrs = resolveBrokerAddrs(topic);
+            StringBuilder errors = new StringBuilder();
+            for (String brokerAddr : brokerAddrs) {
+                try {
+                    serviceManager.getAdminService().resetOffset(brokerAddr, topic, group, resetTimestamp, true,
+                        DEFAULT_TIMEOUT_MILLIS);
+                } catch (Throwable t) {
+                    log.warn("resetGroupOffset failed on broker {}", brokerAddr, t);
+                    if (errors.length() > 0) {
+                        errors.append("; ");
+                    }
+                    errors.append(brokerAddr).append(": ").append(t.getMessage());
+                }
+            }
+            if (errors.length() > 0) {
+                responseObserver.onNext(ResetGroupOffsetResponse.newBuilder()
+                    .setStatus(fail(Code.INTERNAL_ERROR, errors.toString())).build());
+            } else {
+                responseObserver.onNext(ResetGroupOffsetResponse.newBuilder().setStatus(ok()).build());
+            }
         } catch (Throwable t) {
             log.warn("resetGroupOffset failed", t);
             responseObserver.onNext(ResetGroupOffsetResponse.newBuilder()
@@ -463,17 +524,30 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase {
                 return;
             }
             String topic = request.getTopic().getName();
-            String brokerAddr = resolveBrokerAddr(topic);
             List<MessageExt> messageExtList = new ArrayList<>();
             if (request.hasMessageId()) {
+                String brokerAddr = resolveBrokerAddr(topic);
                 messageExtList.add(serviceManager.getAdminService().viewMessage(brokerAddr, topic,
                     decodeOffset(request.getMessageId()), DEFAULT_TIMEOUT_MILLIS));
             } else {
                 long begin = request.hasBeginTimestamp() ? request.getBeginTimestamp().getSeconds() * 1000L : 0L;
                 long end = request.hasEndTimestamp() ? request.getEndTimestamp().getSeconds() * 1000L :
                     System.currentTimeMillis();
-                messageExtList.addAll(serviceManager.getAdminService().queryMessage(brokerAddr, topic,
-                    request.getMessageKey(), request.getMaxMessageNums(), begin, end, DEFAULT_TIMEOUT_MILLIS));
+                int maxNums = request.getMaxMessageNums() > 0 ? request.getMaxMessageNums() : 32;
+                // RIP-2 fix: a message key may live on any broker hosting the topic; search
+                // all of them until the requested number of messages is collected.
+                for (String brokerAddr : resolveBrokerAddrs(topic)) {
+                    if (messageExtList.size() >= maxNums) {
+                        break;
+                    }
+                    try {
+                        messageExtList.addAll(serviceManager.getAdminService().queryMessage(brokerAddr, topic,
+                            request.getMessageKey(), maxNums, begin, end,
+                            DEFAULT_TIMEOUT_MILLIS));
+                    } catch (Throwable t) {
+                        log.warn("queryMessage failed on broker {}", brokerAddr, t);
+                    }
+                }
             }
             ListMessageResponse.Builder builder = ListMessageResponse.newBuilder().setStatus(ok());
             for (MessageExt ext : messageExtList) {

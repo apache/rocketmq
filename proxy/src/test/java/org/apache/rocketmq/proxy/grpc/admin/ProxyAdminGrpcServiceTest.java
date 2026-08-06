@@ -60,16 +60,13 @@ import apache.rocketmq.v2.UA;
 import apache.rocketmq.v2.VerifyMessageRequest;
 import apache.rocketmq.v2.VerifyMessageResponse;
 import io.grpc.stub.StreamObserver;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -275,10 +272,14 @@ public class ProxyAdminGrpcServiceTest {
     }
 
     @Test
-    public void deleteSubscriptionSucceeds() {
+    public void deleteSubscriptionSucceeds() throws Exception {
+        stubBrokerRoute();
         SimpleObserver<DeleteSubscriptionResponse> obs = new SimpleObserver<>();
         service.deleteSubscription(
-            DeleteSubscriptionRequest.newBuilder().setTopic(Resource.newBuilder().setName("t")).build(), obs);
+            DeleteSubscriptionRequest.newBuilder()
+                .setTopic(Resource.newBuilder().setName("t"))
+                .setGroup(Resource.newBuilder().setName("g"))
+                .build(), obs);
         assertNotNull(obs.value);
         assertEquals(Code.OK, obs.value.getStatus().getCode());
     }

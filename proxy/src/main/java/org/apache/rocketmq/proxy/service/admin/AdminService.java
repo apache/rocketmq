@@ -39,7 +39,7 @@ public interface AdminService {
     //
     // IMPORTANT: every implementation delegates to the proxy's OWN managed
     // broker client (rocketmq-proxy's MQClientAPIFactory). The proxy is the
-    // single entry point ("走 grpc 的 proxy"); these calls never open a direct
+    // single entry point (via the gRPC proxy); these calls never open a direct
     // link to the broker from the admin code itself.
     // =========================================================================
 
@@ -53,6 +53,13 @@ public interface AdminService {
 
     Map<MessageQueue, Long> resetOffset(String brokerAddr, String topic, String group, long timestamp,
         boolean isForce, long timeoutMillis) throws Exception;
+
+    /**
+     * RIP-2: delete a subscription group on the target broker (optionally cleaning its
+     * offsets), going through the proxy's own managed broker client.
+     */
+    void deleteSubscriptionGroup(String brokerAddr, String group, boolean removeOffset,
+        long timeoutMillis) throws Exception;
 
     List<MessageExt> queryMessage(String brokerAddr, String topic, String key, int maxNum,
         long beginTimestamp, long endTimestamp, long timeoutMillis) throws Exception;

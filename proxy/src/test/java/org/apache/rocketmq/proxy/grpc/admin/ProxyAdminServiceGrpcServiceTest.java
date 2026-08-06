@@ -41,7 +41,6 @@ import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.UA;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,7 +48,7 @@ import java.util.Map;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +60,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,7 +69,7 @@ public class ProxyAdminServiceGrpcServiceTest {
     @Mock
     private ServiceManager serviceManager;
     @Mock
-    private MessagingProcessor messagingProcessor;
+    private DefaultMessagingProcessor messagingProcessor;
     @Mock
     private GrpcChannelManager grpcChannelManager;
     @Mock
@@ -82,7 +80,7 @@ public class ProxyAdminServiceGrpcServiceTest {
     @Before
     public void setUp() {
         service = new ProxyAdminServiceGrpcService(serviceManager, messagingProcessor, grpcChannelManager,
-            grpcClientSettingsManager);
+            grpcClientSettingsManager, new ProxyAdminPeerClient(), new RouteChangeNotifier());
     }
 
     // ------------------------------------------------------------------ helpers
@@ -137,6 +135,8 @@ public class ProxyAdminServiceGrpcServiceTest {
         when(channel.getRemoteAddress()).thenReturn("1.2.3.4:8888");
         when(channel.getLocalAddress()).thenReturn("9.9.9.9:8081");
         when(channel.getConnectTimeMillis()).thenReturn(1000L);
+        when(channel.getLastActiveTimeMillis()).thenReturn(2000L);
+        when(channel.getRecentHeartbeats()).thenReturn(new ArrayList<>());
         return channel;
     }
 
@@ -314,5 +314,53 @@ public class ProxyAdminServiceGrpcServiceTest {
             .build(), second);
         assertEquals(1, second.value.getClientsCount());
         assertTrue(second.value.getNextToken().isEmpty());
+    }
+
+    @Test
+    public void listClientsCursorIsStableUnderMembershipChurn() {
+        // sorted order: c1 < c2 < c3
+        Map<String, Settings> clients = new LinkedHashMap<>();
+        clients.put("c1", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        clients.put("c2", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        clients.put("c3", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        stubClients(clients);
+
+        SimpleObserver<ListClientsResponse> first = new SimpleObserver<>();
+        service.listClients(ListClientsRequest.newBuilder().setPageSize(2).build(), first);
+        assertEquals(2, first.value.getClientsCount());
+        String token = first.value.getNextToken();
+        assertFalse(token.isEmpty());
+
+        // a new client connects between the two page fetches; it sorts before the cursor
+        // position, so the continuation page must neither duplicate nor shift entries.
+        Map<String, Settings> grown = new LinkedHashMap<>(clients);
+        grown.put("c10", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        stubClients(grown);
+
+        SimpleObserver<ListClientsResponse> second = new SimpleObserver<>();
+        service.listClients(ListClientsRequest.newBuilder()
+            .setPageSize(2)
+            .setNextToken(token)
+            .build(), second);
+        assertEquals(1, second.value.getClientsCount());
+        assertEquals("c3", second.value.getClientsList().get(0).getClientId());
+        assertTrue(second.value.getNextToken().isEmpty());
+    }
+
+    @Test
+    public void listClientsRejectsTamperedCursorGracefully() {
+        Map<String, Settings> clients = new LinkedHashMap<>();
+        clients.put("c1", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        clients.put("c2", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        stubClients(clients);
+
+        SimpleObserver<ListClientsResponse> obs = new SimpleObserver<>();
+        service.listClients(ListClientsRequest.newBuilder()
+            .setPageSize(10)
+            .setNextToken("c1:not-base64-!!!")
+            .build(), obs);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        // invalid cursor falls back to the first page
+        assertEquals(2, obs.value.getClientsCount());
     }
 }

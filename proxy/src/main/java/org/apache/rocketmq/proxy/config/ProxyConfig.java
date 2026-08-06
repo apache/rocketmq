@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.config;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -95,6 +96,32 @@ public class ProxyConfig implements ConfigFile {
      * traffic) in addition to the data-plane gRPC server.
      */
     private Integer adminGrpcPort = 8083;
+    /**
+     * RIP-2 D2 global kill switch for the Proxy Admin surface. When false the
+     * admin gRPC server is not started at all, regardless of {@link #adminGrpcPort}.
+     */
+    private boolean proxyAdminEnabled = true;
+    /**
+     * When true the admin server enforces credential checks even if the cluster-wide
+     * authentication switch is off; requests without verifiable credentials are rejected
+     * (fail-closed mode). When false the admin server follows the cluster-wide
+     * authenticationEnabled/authorizationEnabled switches (same behavior as the data plane).
+     */
+    private boolean proxyAdminRequireAuth = false;
+    /**
+     * Peer proxy admin endpoints (host:port of the peer's admin gRPC server) used for the
+     * PROXY_SCOPE_ALL_PROXIES cluster-wide aggregation (RIP-2 D3). Empty means the proxy only
+     * serves its local view.
+     */
+    private List<String> proxyAdminPeerEndpoints = new ArrayList<>();
+    /**
+     * Timeout in milliseconds for fan-out queries to peer proxy admin endpoints.
+     */
+    private long proxyAdminPeerTimeoutMillis = 3000L;
+    /**
+     * Number of recent heartbeat records kept per client channel for DescribeClient.
+     */
+    private int proxyAdminHeartbeatHistorySize = 16;
     private long grpcShutdownTimeSeconds = 30;
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
@@ -495,6 +522,46 @@ public class ProxyConfig implements ConfigFile {
 
     public void setAdminGrpcPort(Integer adminGrpcPort) {
         this.adminGrpcPort = adminGrpcPort;
+    }
+
+    public boolean isProxyAdminEnabled() {
+        return proxyAdminEnabled;
+    }
+
+    public void setProxyAdminEnabled(boolean proxyAdminEnabled) {
+        this.proxyAdminEnabled = proxyAdminEnabled;
+    }
+
+    public boolean isProxyAdminRequireAuth() {
+        return proxyAdminRequireAuth;
+    }
+
+    public void setProxyAdminRequireAuth(boolean proxyAdminRequireAuth) {
+        this.proxyAdminRequireAuth = proxyAdminRequireAuth;
+    }
+
+    public List<String> getProxyAdminPeerEndpoints() {
+        return proxyAdminPeerEndpoints;
+    }
+
+    public void setProxyAdminPeerEndpoints(List<String> proxyAdminPeerEndpoints) {
+        this.proxyAdminPeerEndpoints = proxyAdminPeerEndpoints;
+    }
+
+    public long getProxyAdminPeerTimeoutMillis() {
+        return proxyAdminPeerTimeoutMillis;
+    }
+
+    public void setProxyAdminPeerTimeoutMillis(long proxyAdminPeerTimeoutMillis) {
+        this.proxyAdminPeerTimeoutMillis = proxyAdminPeerTimeoutMillis;
+    }
+
+    public int getProxyAdminHeartbeatHistorySize() {
+        return proxyAdminHeartbeatHistorySize;
+    }
+
+    public void setProxyAdminHeartbeatHistorySize(int proxyAdminHeartbeatHistorySize) {
+        this.proxyAdminHeartbeatHistorySize = proxyAdminHeartbeatHistorySize;
     }
 
     public long getGrpcShutdownTimeSeconds() {
