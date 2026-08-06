@@ -189,6 +189,12 @@ public class DefaultAdminService implements AdminService {
     }
 
     @Override
+    public void deleteSubscriptionGroup(String brokerAddr, String group, boolean removeOffset,
+        long timeoutMillis) throws Exception {
+        this.getClient().deleteSubscriptionGroup(brokerAddr, group, removeOffset, timeoutMillis);
+    }
+
+    @Override
     public MessageExt viewMessage(String brokerAddr, String topic, long phyoffset, long timeoutMillis) throws Exception {
         return this.getClient().viewMessage(brokerAddr, topic, phyoffset, timeoutMillis);
     }

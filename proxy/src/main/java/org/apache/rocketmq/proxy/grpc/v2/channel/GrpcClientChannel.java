@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
+import apache.rocketmq.v2.HeartbeatRecord;
 import apache.rocketmq.v2.NotifyUnsubscribeLiteCommand;
 import apache.rocketmq.v2.PrintThreadStackTraceCommand;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
@@ -26,13 +27,18 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.TextFormat;
+import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.JsonFormat;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -72,6 +78,19 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     // RIP-2: capture the moment this client channel was created, surfaced in
     // ProxyAdminService client listings (ClientInstance.connect_time).
     private final long connectTimeMillis = System.currentTimeMillis();
+
+    // RIP-2: last activity observed on this channel (heartbeat / telemetry SETTINGS),
+    // surfaced in ClientInstance.last_active_time.
+    private final AtomicLong lastActiveTimeMillis = new AtomicLong(System.currentTimeMillis());
+
+    // RIP-2: bounded ring of recent heartbeat observations, surfaced in
+    // ClientDetail.recent_heartbeats.
+    private final ArrayDeque<HeartbeatRecord> heartbeatHistory = new ArrayDeque<>();
+
+    // RIP-2: last observed authentication state of this connection, captured from the
+    // data-plane authentication pipeline; surfaced in ClientDetail.auth_status.
+    private volatile String authUsername;
+    private volatile long lastAuthTimeMillis;
 
     public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager, ProxyContext ctx, String clientId) {
@@ -266,6 +285,68 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
 
     public long getConnectTimeMillis() {
         return connectTimeMillis;
+    }
+
+    /**
+     * RIP-2: mark activity on this channel (heartbeat / telemetry). Updates
+     * {@code last_active_time} exposed by the admin service.
+     */
+    public void touch() {
+        this.lastActiveTimeMillis.set(System.currentTimeMillis());
+    }
+
+    public long getLastActiveTimeMillis() {
+        return lastActiveTimeMillis.get();
+    }
+
+    /**
+     * RIP-2: record a heartbeat observation into the bounded history exposed via
+     * ClientDetail.recent_heartbeats.
+     */
+    public void recordHeartbeat(boolean success, String remark) {
+        long now = System.currentTimeMillis();
+        this.lastActiveTimeMillis.set(now);
+        HeartbeatRecord record = HeartbeatRecord.newBuilder()
+            .setTimestamp(Timestamp.newBuilder().setSeconds(now / 1000).setNanos((int) ((now % 1000) * 1_000_000)).build())
+            .setSuccess(success)
+            .setRemark(remark == null ? "" : remark)
+            .build();
+        int maxSize = ConfigurationManager.getProxyConfig().getProxyAdminHeartbeatHistorySize();
+        synchronized (heartbeatHistory) {
+            heartbeatHistory.addLast(record);
+            while (maxSize <= 0 || heartbeatHistory.size() > maxSize) {
+                heartbeatHistory.pollFirst();
+            }
+        }
+    }
+
+    /**
+     * RIP-2: snapshot of recent heartbeat records, oldest first.
+     */
+    public List<HeartbeatRecord> getRecentHeartbeats() {
+        synchronized (heartbeatHistory) {
+            return new ArrayList<>(heartbeatHistory);
+        }
+    }
+
+    /**
+     * RIP-2: record the authenticated username observed on this connection (captured after
+     * the data-plane authentication pipeline succeeded for one of its requests).
+     */
+    public void recordAuthUsername(String username) {
+        if (username == null || username.isEmpty()) {
+            return;
+        }
+        this.authUsername = username;
+        this.lastAuthTimeMillis = System.currentTimeMillis();
+    }
+
+    public String getAuthUsername() {
+        return authUsername;
+    }
+
+    public long getLastAuthTimeMillis() {
+        return lastAuthTimeMillis;
     }
 
     public void writeTelemetryCommand(TelemetryCommand command) {

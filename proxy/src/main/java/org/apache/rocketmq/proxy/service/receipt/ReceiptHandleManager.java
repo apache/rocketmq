@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.service.receipt;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
 
 public interface ReceiptHandleManager {
     void addReceiptHandle(ProxyContext context, Channel channel, String group, String msgID, MessageReceiptHandle messageReceiptHandle);
@@ -27,4 +28,19 @@ public interface ReceiptHandleManager {
     MessageReceiptHandle removeReceiptHandle(ProxyContext context, Channel channel, String group, String msgID, String receiptHandle);
 
     int getUnackedMessageCount(ProxyContext context, Channel channel, String group);
+
+    /**
+     * RIP-2 M3: read-only scan over all tracked receipt handles for diagnostics. The visitor
+     * receives the owning channel-group key and each handle; implementations must not block
+     * the renew pipeline while scanning.
+     */
+    default void scanReceiptHandles(ReceiptHandleScanVisitor visitor) {
+    }
+
+    /**
+     * Visitor for {@link #scanReceiptHandles(ReceiptHandleScanVisitor)}.
+     */
+    interface ReceiptHandleScanVisitor {
+        void onHandle(ReceiptHandleGroupKey groupKey, MessageReceiptHandle handle);
+    }
 }

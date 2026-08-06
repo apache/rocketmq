@@ -389,6 +389,13 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         return this.serviceManager;
     }
 
+    /**
+     * RIP-2 M3: access to the receipt handle processor for admin pop-handle diagnostics.
+     */
+    public ReceiptHandleProcessor getReceiptHandleProcessor() {
+        return this.receiptHandleProcessor;
+    }
+
     @Override
     public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
         MessageReceiptHandle messageReceiptHandle) {
