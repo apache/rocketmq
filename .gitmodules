@@ -1,4 +1,0 @@
-[submodule "rocketmq-apis"]
-	path = rocketmq-apis
-	url = git@github.com:zhaohai666/rocketmq-apis.git
-	branch = feature/rip-2-proxy-admin-grpc
