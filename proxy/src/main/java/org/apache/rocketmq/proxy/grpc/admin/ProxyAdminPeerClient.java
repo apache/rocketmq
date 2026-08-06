@@ -67,6 +67,15 @@ public class ProxyAdminPeerClient implements StartAndShutdown {
     private static final int MAX_PEER_PAGE_SIZE = 1000;
 
     private final ConcurrentMap<String, ManagedChannel> channels = new ConcurrentHashMap<>();
+    private final org.apache.rocketmq.auth.config.AuthConfig authConfig;
+
+    public ProxyAdminPeerClient() {
+        this(null);
+    }
+
+    public ProxyAdminPeerClient(org.apache.rocketmq.auth.config.AuthConfig authConfig) {
+        this.authConfig = authConfig;
+    }
 
     /**
      * Aggregate ListClients across all proxies.
@@ -197,8 +206,41 @@ public class ProxyAdminPeerClient implements StartAndShutdown {
             NettyChannelBuilder.forTarget(key)
                 .usePlaintext()
                 .build());
-        return ProxyAdminServiceGrpc.newFutureStub(channel)
-            .withDeadlineAfter(timeoutMillis, TimeUnit.MILLISECONDS);
+        ProxyAdminServiceGrpc.ProxyAdminServiceFutureStub stub =
+            ProxyAdminServiceGrpc.newFutureStub(channel)
+                .withDeadlineAfter(timeoutMillis, TimeUnit.MILLISECONDS);
+        ProxyAdminClientAuthInterceptor authInterceptor = buildAuthInterceptor();
+        if (authInterceptor != null) {
+            stub = stub.withInterceptors(authInterceptor);
+        }
+        return stub;
+    }
+
+    /**
+     * Fan-out requests authenticate as the proxy's inner client (SUPER user seeded via
+     * innerClientAuthenticationCredentials) when cluster authentication is enabled.
+     */
+    private ProxyAdminClientAuthInterceptor buildAuthInterceptor() {
+        if (authConfig == null || !authConfig.isAuthenticationEnabled()) {
+            return null;
+        }
+        String credentialsJson = authConfig.getInnerClientAuthenticationCredentials();
+        if (credentialsJson == null || credentialsJson.isEmpty()) {
+            return null;
+        }
+        try {
+            org.apache.rocketmq.acl.common.SessionCredentials credentials =
+                com.alibaba.fastjson.JSON.parseObject(credentialsJson,
+                    org.apache.rocketmq.acl.common.SessionCredentials.class);
+            if (credentials == null || credentials.getAccessKey() == null
+                || credentials.getSecretKey() == null) {
+                return null;
+            }
+            return new ProxyAdminClientAuthInterceptor(credentials.getAccessKey(), credentials.getSecretKey());
+        } catch (Throwable t) {
+            log.warn("RIP-2 peer auth credentials are invalid, fan-out will be unauthenticated", t);
+            return null;
+        }
     }
 
     @Override

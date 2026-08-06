@@ -122,7 +122,7 @@ public class ProxyStartup {
 
                 // D3 cluster aggregation (peer fan-out) and route observation, both participate
                 // in the proxy start/shutdown lifecycle.
-                ProxyAdminPeerClient peerClient = new ProxyAdminPeerClient();
+                ProxyAdminPeerClient peerClient = new ProxyAdminPeerClient(ConfigurationManager.getAuthConfig());
                 PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(peerClient);
                 RouteChangeNotifier routeChangeNotifier = new RouteChangeNotifier();
                 defaultProcessor.getServiceManager().getTopicRouteService().addRouteRefreshListener(routeChangeNotifier);
