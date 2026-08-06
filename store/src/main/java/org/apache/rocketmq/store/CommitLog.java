@@ -2092,7 +2092,7 @@ public class CommitLog implements Swappable {
 
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             CommitLog.this.getMessageStore().getPerfCounter().startTick("WRITE_MEMORY_TIME_MS");
-            // Copy the encoded message into the current CommitLog write buffer
+            // Append the encoded message to the current CommitLog buffer
             byteBuffer.put(preEncodeBuffer);
             CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
             msgInner.setEncodedBuff(null);
