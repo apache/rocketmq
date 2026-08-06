@@ -109,6 +109,9 @@ GenTestRules(
             "src/test/java/org/apache/rocketmq/broker/controller/ReplicasManagerRegisterTest",
             "src/test/java/org/apache/rocketmq/broker/BrokerOuterAPITest",
         ],
+    medium_tests = [
+        "src/test/java/org/apache/rocketmq/broker/BrokerShutdownTest",
+    ],
     deps = [
         ":tests",
     ],
