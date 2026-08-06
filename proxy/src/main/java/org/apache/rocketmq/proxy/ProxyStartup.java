@@ -43,6 +43,8 @@ import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminServiceGrpcService;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -84,10 +86,13 @@ public class ProxyStartup {
             TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
-            // create grpcServer
+            // create grpcServer (data plane). Capture the application reference so the
+            // RIP-2 admin server can reuse the SAME GrpcChannelManager / GrpcClientSettingsManager
+            // that the data plane uses to track online clients.
+            GrpcMessagingApplication dataPlaneApplication = createServiceProcessor(messagingProcessor);
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
                     ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
-                .addService(createServiceProcessor(messagingProcessor))
+                .addService(dataPlaneApplication)
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
@@ -95,20 +100,26 @@ public class ProxyStartup {
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
-            // RIP-2: dedicated admin gRPC server (control plane), isolated from the data plane.
+            // RIP-2: dedicated admin gRPC server (control plane). It MUST reuse the data plane's
+            // shared GrpcChannelManager, otherwise online clients connected to the data plane would
+            // never be visible to the admin queries (listClients / describeClient / ... would return
+            // an always-empty, isolated manager).
             Integer adminPort = ConfigurationManager.getProxyConfig().getAdminGrpcPort();
             if (adminPort != null && adminPort > 0) {
-                GrpcMessagingApplication application = createServiceProcessor(messagingProcessor);
+                DefaultGrpcMessagingActivity dataPlaneActivity =
+                    (DefaultGrpcMessagingActivity) dataPlaneApplication.getGrpcMessagingActivity();
+                GrpcChannelManager sharedChannelManager = dataPlaneActivity.getGrpcChannelManager();
+                GrpcClientSettingsManager sharedSettingsManager = dataPlaneActivity.getGrpcClientSettingsManager();
                 ProxyAdminGrpcService adminService = new ProxyAdminGrpcService(
                     ((DefaultMessagingProcessor) messagingProcessor).getServiceManager(),
                     messagingProcessor,
-                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcChannelManager(),
-                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcClientSettingsManager());
+                    sharedChannelManager,
+                    sharedSettingsManager);
                 ProxyAdminServiceGrpcService proxyAdminService = new ProxyAdminServiceGrpcService(
                     ((DefaultMessagingProcessor) messagingProcessor).getServiceManager(),
                     messagingProcessor,
-                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcChannelManager(),
-                    ((DefaultGrpcMessagingActivity) application.getGrpcMessagingActivity()).getGrpcClientSettingsManager());
+                    sharedChannelManager,
+                    sharedSettingsManager);
                 GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
                     .addService(adminService)
                     .addService(proxyAdminService)
