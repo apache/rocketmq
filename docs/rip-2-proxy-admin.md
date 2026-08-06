@@ -141,6 +141,16 @@ M2:
 Compatibility rules: additive-only field evolution, all new fields optional,
 `ProxyScope` defaults to local, no field number reuse.
 
+Building the proto artifact: `org.apache.rocketmq:rocketmq-proto:2.3.0` is
+generated from the `rocketmq-apis` repository (branch
+`feature/rip-2-proxy-admin-grpc`), which carries the `ProxyAdminService`
+contract and a self-contained Maven build (`mvn clean install` in the
+rocketmq-apis checkout; protoc and grpc-java plugins come from Maven Central).
+The apis repository is consumed as a local development dependency and is
+intentionally NOT vendored or submoduled into this repository; CI/developers
+install the artifact into their local repository once, then build this repo
+normally.
+
 ## 5. Observability
 
 The admin server exports (OpenTelemetry, honoring the proxy's metrics exporter
