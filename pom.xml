@@ -170,7 +170,7 @@
         <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
         <sonar-maven-plugin.version>3.0.2</sonar-maven-plugin.version>
-        <spotbugs-plugin.version>4.2.2</spotbugs-plugin.version>
+        <spotbugs-plugin.version>4.8.6.8</spotbugs-plugin.version>
         <maven-assembly-plugin.version>3.4.2</maven-assembly-plugin.version>
         <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
         <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
@@ -451,7 +451,6 @@
                 <configuration>
                     <failOnError>true</failOnError>
                     <fork>false</fork>
-                    <spotbugsXmlOutput>true</spotbugsXmlOutput>
                     <excludeFilterFile>${project.root}/style/spotbugs-suppressions.xml</excludeFilterFile>
                     <threshold>High</threshold>
                     <effort>Max</effort>
