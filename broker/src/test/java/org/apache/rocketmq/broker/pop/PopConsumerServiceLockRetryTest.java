@@ -56,6 +56,7 @@ public class PopConsumerServiceLockRetryTest {
     private PopConsumerLockService consumerLockService;
     private SubscriptionGroupManager subscriptionGroupManager;
     private ConsumerOffsetManager consumerOffsetManager;
+    private ConsumerOrderInfoManager consumerOrderInfoManager;
     private MessageStore messageStore;
     private PopConsumerService consumerService;
 
@@ -68,7 +69,7 @@ public class PopConsumerServiceLockRetryTest {
         TopicConfigManager topicConfigManager = Mockito.mock(TopicConfigManager.class);
         subscriptionGroupManager = Mockito.mock(SubscriptionGroupManager.class);
         consumerOffsetManager = Mockito.mock(ConsumerOffsetManager.class);
-        ConsumerOrderInfoManager consumerOrderInfoManager = Mockito.mock(ConsumerOrderInfoManager.class);
+        consumerOrderInfoManager = Mockito.mock(ConsumerOrderInfoManager.class);
         consumerLockService = Mockito.mock(PopConsumerLockService.class);
         messageStore = Mockito.mock(MessageStore.class);
 
@@ -110,6 +111,8 @@ public class PopConsumerServiceLockRetryTest {
         AtomicInteger attempts = new AtomicInteger();
         Mockito.when(consumerLockService.tryLock(Mockito.anyString(), Mockito.anyString()))
             .thenAnswer(invocation -> attempts.incrementAndGet() > 50);
+        Mockito.when(consumerOrderInfoManager.isAttemptIdMatched(ATTEMPT_ID, TOPIC_ID, GROUP_ID))
+            .thenReturn(true);
         Mockito.when(subscriptionGroupManager.findSubscriptionGroupConfig(Mockito.anyString()))
             .thenReturn(new SubscriptionGroupConfig());
         stubEmptyStore();
@@ -120,6 +123,23 @@ public class PopConsumerServiceLockRetryTest {
         assertNotNull(result);
         Mockito.verify(consumerLockService, Mockito.times(51)).tryLock(Mockito.anyString(), Mockito.anyString());
         Mockito.verify(subscriptionGroupManager).findSubscriptionGroupConfig(GROUP_ID);
+    }
+
+    @Test
+    public void popAsyncUnregisteredAttemptIdFailFastTest() {
+        // a fifo pop whose attemptId is not registered in OrderInfo is not an in-flight
+        // retry of a previous delivery, so it must keep the fail-fast behavior
+        Mockito.when(consumerLockService.tryLock(Mockito.anyString(), Mockito.anyString()))
+            .thenReturn(false);
+        Mockito.when(consumerOrderInfoManager.isAttemptIdMatched(ATTEMPT_ID, TOPIC_ID, GROUP_ID))
+            .thenReturn(false);
+
+        PopConsumerContext result = consumerService.popAsync("127.0.0.1", System.currentTimeMillis(),
+            INVISIBLE_TIME, GROUP_ID, TOPIC_ID, 0, 32, true, ATTEMPT_ID, ConsumeInitMode.MIN, null).join();
+
+        assertNotNull(result);
+        assertEquals(0, result.getMessageCount());
+        Mockito.verify(consumerLockService, Mockito.times(1)).tryLock(Mockito.anyString(), Mockito.anyString());
     }
 
     @Test

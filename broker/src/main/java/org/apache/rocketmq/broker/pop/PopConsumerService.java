@@ -471,16 +471,18 @@ public class PopConsumerService extends ServiceThread {
     }
 
     /**
-     * Fifo pops carrying an attemptId are in-flight retries of the same receive attempt,
-     * whose batch has already been registered in OrderInfo. Instead of failing fast on
-     * lock contention (which leaves the retry empty and burns the reentrant attemptId),
-     * retry the lock briefly; other requests keep the fail-fast behavior.
+     * Fifo pops carrying an attemptId already registered in OrderInfo are in-flight retries
+     * of the same receive attempt. Instead of failing fast on lock contention (which leaves
+     * the retry empty and burns the reentrant attemptId), keep retrying the lock; pops with
+     * a different attemptId would be blocked by checkBlock anyway, so they keep the
+     * fail-fast behavior.
      */
     private boolean tryLockForPop(String groupId, String topicId, boolean fifo, String attemptId) {
         if (consumerLockService.tryLock(groupId, topicId)) {
             return true;
         }
-        if (!fifo || attemptId == null || attemptId.isEmpty()) {
+        if (!fifo || attemptId == null || attemptId.isEmpty()
+            || !brokerController.getConsumerOrderInfoManager().isAttemptIdMatched(attemptId, topicId, groupId)) {
             return false;
         }
         // The lock holder always releases on pop completion, and stale locks are

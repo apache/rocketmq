@@ -69,6 +69,18 @@ public interface ConsumerOrderInfoManager {
     boolean checkBlock(String attemptId, String topic, String group, int queueId, long invisibleTime);
 
     /**
+     * Check whether the given attemptId has already been registered in the order info of
+     * the topic and group, i.e. the request is an in-flight retry of a previous delivery
+     * of the same receive attempt
+     *
+     * @param attemptId Attempt ID
+     * @param topic     Topic name
+     * @param group     Consumer group name
+     * @return true indicates the attemptId is registered in some queue's order info
+     */
+    boolean isAttemptIdMatched(String attemptId, String topic, String group);
+
+    /**
      * Remove the specified topic and group
      * Usually called during topic deletion
      *
