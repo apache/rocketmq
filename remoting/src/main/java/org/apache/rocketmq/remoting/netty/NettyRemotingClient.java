@@ -78,7 +78,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -86,6 +85,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -180,8 +180,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private static int initValueIndex() {
-        Random r = new Random();
-        return r.nextInt(999);
+        return ThreadLocalRandom.current().nextInt(999);
     }
 
     private void loadSocksProxyJson() {

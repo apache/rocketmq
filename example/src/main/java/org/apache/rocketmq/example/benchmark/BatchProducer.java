@@ -20,10 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -322,7 +322,7 @@ public class BatchProducer {
                 msg.getProperties().clear();
             }
 
-            int startValue = (new Random(System.currentTimeMillis())).nextInt(100);
+            int startValue = ThreadLocalRandom.current().nextInt(100);
             int size = 0;
             for (int i = 0; ; i++) {
                 String prop1 = "prop" + i, prop1V = "hello" + startValue;

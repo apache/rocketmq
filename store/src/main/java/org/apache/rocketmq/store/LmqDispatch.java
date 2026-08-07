@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -55,21 +54,44 @@ public class LmqDispatch {
      */
     public static void wrapLmqDispatch(MessageStore messageStore, final MessageExtBrokerInner msg)
         throws ConsumeQueueException {
-        String lmqNames = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
-        String[] queueNames = lmqNames.split(MixAll.LMQ_DISPATCH_SEPARATOR);
-        Long[] queueOffsets = new Long[queueNames.length];
+        populateLmqOffsets(messageStore, msg);
+        msg.removeWaitStorePropertyString();
+    }
 
-        if (messageStore.getMessageStoreConfig().isEnableLmq()) {
-            for (int i = 0; i < queueNames.length; i++) {
-                if (MixAll.isLmq(queueNames[i])) {
-                    queueOffsets[i] = messageStore.getQueueStore().getLmqQueueOffset(queueNames[i], MixAll.LMQ_QUEUE_ID);
-                }
+    static String[] prepareLmqDispatch(MessageStore messageStore, final MessageExtBrokerInner msg)
+        throws ConsumeQueueException {
+        return populateLmqOffsets(messageStore, msg);
+    }
+
+    static void reinsertWaitStorePropertyForLegacySerialization(final MessageExtBrokerInner msg) {
+        // Reproduce the legacy remove/reinsert mutation without the discarded serialization.
+        if (msg.getProperties().containsKey(MessageConst.PROPERTY_WAIT_STORE_MSG_OK)) {
+            String waitStoreMsgOKValue = msg.getProperties().remove(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
+            msg.getProperties().put(MessageConst.PROPERTY_WAIT_STORE_MSG_OK, waitStoreMsgOKValue);
+        }
+    }
+
+    private static String[] populateLmqOffsets(MessageStore messageStore, final MessageExtBrokerInner msg)
+        throws ConsumeQueueException {
+        String[] queueNames = parseLmqQueueNames(msg);
+        StringBuilder queueOffsets = new StringBuilder();
+        boolean enableLmq = messageStore.getMessageStoreConfig().isEnableLmq();
+        for (int i = 0; i < queueNames.length; i++) {
+            if (i > 0) {
+                queueOffsets.append(MixAll.LMQ_DISPATCH_SEPARATOR);
+            }
+            if (enableLmq && MixAll.isLmq(queueNames[i])) {
+                queueOffsets.append(messageStore.getQueueStore().getLmqQueueOffset(queueNames[i],
+                    MixAll.LMQ_QUEUE_ID));
             }
         }
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, queueOffsets.toString());
+        return queueNames;
+    }
 
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
-            StringUtils.join(queueOffsets, MixAll.LMQ_DISPATCH_SEPARATOR));
-        msg.removeWaitStorePropertyString();
+    private static String[] parseLmqQueueNames(final MessageExtBrokerInner msg) {
+        String lmqNames = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        return lmqNames.split(MixAll.LMQ_DISPATCH_SEPARATOR);
     }
 
     /**
@@ -80,8 +102,11 @@ public class LmqDispatch {
      */
     public static void updateLmqOffsets(MessageStore messageStore, final MessageExtBrokerInner msgInner)
         throws ConsumeQueueException {
-        String lmqNames = msgInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
-        String[] queueNames = lmqNames.split(MixAll.LMQ_DISPATCH_SEPARATOR);
+        updateLmqOffsets(messageStore, parseLmqQueueNames(msgInner));
+    }
+
+    static void updateLmqOffsets(MessageStore messageStore, String[] queueNames)
+        throws ConsumeQueueException {
         for (String queueName : queueNames) {
             // enableLmq and not system topic
             if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
