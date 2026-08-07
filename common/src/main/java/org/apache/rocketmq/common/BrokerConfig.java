@@ -27,10 +27,15 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 
 public class BrokerConfig extends BrokerIdentity {
 
+    // ==================== Network/Identity ====================
+
+    // Path to the broker configuration file.
     private String brokerConfigPath = null;
 
+    // Root directory for RocketMQ installation.
     private String rocketmqHome = MixAll.ROCKETMQ_HOME_DIR;
     @ImportantField
+    // Address of the NameServer(s), comma-separated.
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
     /**
@@ -40,45 +45,74 @@ public class BrokerConfig extends BrokerIdentity {
     private int listenPort = 6888;
 
     @ImportantField
+    // Primary IP address for the broker.
     private String brokerIP1 = NetworkUtil.getLocalAddress();
+    // Secondary IP address for the broker (used for HA/dual NIC).
     private String brokerIP2 = NetworkUtil.getLocalAddress();
 
     @ImportantField
+    // Whether to recover message store concurrently on startup.
     private boolean recoverConcurrently = false;
 
+    // ==================== Topic/Subscription ====================
+
+    // Permission for this broker (read/write flags).
     private int brokerPermission = PermName.PERM_READ | PermName.PERM_WRITE;
+    // Default number of queues for auto-created topics.
     private int defaultTopicQueueNums = 8;
     @ImportantField
+    // Whether to automatically create topics when sending to a non-existent topic.
     private boolean autoCreateTopicEnable = true;
 
+    // Whether to enable cluster-level topic registration.
     private boolean clusterTopicEnable = true;
 
+    // Whether to enable broker-level topic registration.
     private boolean brokerTopicEnable = true;
     @ImportantField
+    // Whether to automatically create subscription groups when consuming from a non-existent group.
     private boolean autoCreateSubscriptionGroup = true;
+    // Message store plugin class name for custom storage logic.
     private String messageStorePlugIn = "";
 
+    // Number of available processors (used for thread pool sizing).
     private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
     @ImportantField
+    // Topic name for message tracing.
     private String msgTraceTopicName = TopicValidator.RMQ_SYS_TRACE_TOPIC;
     @ImportantField
+    // Whether to enable message tracing topic.
     private boolean traceTopicEnable = false;
+    // ==================== Thread Pool Sizes ====================
+
     /**
      * thread numbers for send message thread pool.
      */
     private int sendMessageThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
+    // Thread pool size for put message future handling.
     private int putMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
+    // Thread pool size for pull message processing.
     private int pullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
+    // Thread pool size for lite pull message processing.
     private int litePullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
+    // Thread pool size for ack message processing.
     private int ackMessageThreadPoolNums = 16;
+    // Thread pool size for reply message processing.
     private int processReplyMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
+    // Thread pool size for query message processing.
     private int queryMessageThreadPoolNums = 8 + PROCESSOR_NUMBER;
 
+    // Thread pool size for admin broker operations.
     private int adminBrokerThreadPoolNums = 16;
+    // Thread pool size for client management.
     private int clientManageThreadPoolNums = 32;
+    // Thread pool size for consumer management.
     private int consumerManageThreadPoolNums = 32;
+    // Thread pool size for load balance processing.
     private int loadBalanceProcessorThreadPoolNums = 32;
+    // Thread pool size for heartbeat processing.
     private int heartbeatThreadPoolNums = Math.min(32, PROCESSOR_NUMBER);
+    // Thread pool size for store recovery.
     private int recoverThreadPoolNums = 32;
 
     /**
@@ -87,72 +121,128 @@ public class BrokerConfig extends BrokerIdentity {
     private int endTransactionThreadPoolNums = Math.max(8 + PROCESSOR_NUMBER * 2,
             sendMessageThreadPoolNums * 4);
 
+    // Interval (ms) to persist consumer offsets to disk (default 5s)
     private int flushConsumerOffsetInterval = 1000 * 5;
 
+    // Interval (ms) to record consumer offset persistence history (default 60s)
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
+    // Whether to reject transaction messages (disable transaction message feature)
     @ImportantField
     private boolean rejectTransactionMessage = false;
 
+    // Whether to resolve NameServer address via DNS lookup
     @ImportantField
     private boolean fetchNameSrvAddrByDnsLookup = false;
 
+    // Whether to fetch NameServer address from an address server (HTTP endpoint)
     @ImportantField
     private boolean fetchNamesrvAddrByAddressServer = false;
 
+    // ==================== Thread Pool Queue Capacities ====================
+
+    // Queue capacity for send message thread pool.
     private int sendThreadPoolQueueCapacity = 10000;
+    // Queue capacity for put message thread pool.
     private int putThreadPoolQueueCapacity = 10000;
+    // Queue capacity for pull message thread pool.
     private int pullThreadPoolQueueCapacity = 100000;
+    // Queue capacity for lite pull message thread pool.
     private int litePullThreadPoolQueueCapacity = 100000;
+    // Queue capacity for ack message thread pool.
     private int ackThreadPoolQueueCapacity = 100000;
+    // Queue capacity for reply message thread pool.
     private int replyThreadPoolQueueCapacity = 10000;
+    // Queue capacity for query message thread pool.
     private int queryThreadPoolQueueCapacity = 20000;
+    // Queue capacity for client manager thread pool.
     private int clientManagerThreadPoolQueueCapacity = 1000000;
+    // Queue capacity for consumer manager thread pool.
     private int consumerManagerThreadPoolQueueCapacity = 1000000;
+    // Queue capacity for heartbeat thread pool.
     private int heartbeatThreadPoolQueueCapacity = 50000;
+    // Queue capacity for end transaction thread pool.
     private int endTransactionPoolQueueCapacity = 100000;
+    // Queue capacity for admin broker thread pool.
     private int adminBrokerThreadPoolQueueCapacity = 10000;
+    // Queue capacity for load balance thread pool.
     private int loadBalanceThreadPoolQueueCapacity = 100000;
 
+    // ==================== Polling/Notification ====================
+
+    // Whether to enable long polling for message delivery.
     private boolean longPollingEnable = true;
 
+    // Maximum time in milliseconds for short polling.
     private long shortPollingTimeMills = 1000;
 
+    // Whether to notify when consumer IDs change.
     private boolean notifyConsumerIdsChangedEnable = true;
 
+    // ==================== Commercial/Stats ====================
+
+    // Whether to enable high-speed mode for commercial usage.
     private boolean highSpeedMode = false;
 
+    // Base count for commercial billing.
     private int commercialBaseCount = 1;
 
+    // Message size unit for commercial billing.
     private int commercialSizePerMsg = 4 * 1024;
 
+    // Whether to enable account statistics collection.
     private boolean accountStatsEnable = true;
+    // Whether to print zero values in account statistics.
     private boolean accountStatsPrintZeroValues = true;
 
+    // Maximum idle time in minutes before stats are considered stale (-1 for unlimited).
     private int maxStatsIdleTimeInMinutes = -1;
 
+    // ==================== Transfer/Region ====================
+
+    // Whether to transfer messages via heap memory.
     private boolean transferMsgByHeap = true;
 
+    // Region ID for this broker.
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
+    // Timeout in milliseconds for broker registration.
     private int registerBrokerTimeoutMills = 24000;
 
+    // Timeout in milliseconds for sending heartbeat.
     private int sendHeartbeatTimeoutMillis = 1000;
 
+    // ==================== Slave/SlowConsumer ====================
+
+    // Whether to allow slave brokers to read messages.
     private boolean slaveReadEnable = false;
 
+    // Whether to disable consumption if consumer is reading slowly.
     private boolean disableConsumeIfConsumerReadSlowly = false;
+    // Threshold in bytes for determining if a consumer is falling behind.
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
+    // ==================== FastFailure ====================
+
+    // Whether to enable fast failure for broker requests.
     private boolean brokerFastFailureEnable = true;
+    // Max wait time in send queue before fast failure.
     private long waitTimeMillsInSendQueue = 200;
+    // Max wait time in pull queue before fast failure.
     private long waitTimeMillsInPullQueue = 5 * 1000;
+    // Max wait time in lite pull queue before fast failure.
     private long waitTimeMillsInLitePullQueue = 5 * 1000;
+    // Max wait time in heartbeat queue before fast failure.
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
+    // Max wait time in transaction queue before fast failure.
     private long waitTimeMillsInTransactionQueue = 3 * 1000;
+    // Max wait time in ack queue before fast failure.
     private long waitTimeMillsInAckQueue = 3000;
+    // Max wait time in admin broker queue before fast failure.
     private long waitTimeMillsInAdminBrokerQueue = 5 * 1000;
+    // Timestamp when broker starts accepting send requests.
     private long startAcceptSendRequestTimeStamp = 0L;
 
+    // Whether to enable message tracing.
     private boolean traceOn = true;
 
     // Switch of filter bit map calculation.
@@ -175,10 +265,15 @@ public class BrokerConfig extends BrokerIdentity {
 
     // whether do filter when retry.
     private boolean filterSupportRetry = false;
+    // Whether to enable property-based message filtering.
     private boolean enablePropertyFilter = false;
 
+    // ==================== Register/NameServer ====================
+
+    // Whether to use compressed registration data.
     private boolean compressedRegister = false;
 
+    // Whether to force registration even if no changes detected.
     private boolean forceRegister = true;
 
     /**
@@ -203,67 +298,122 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private long brokerNotActiveTimeoutMillis = 10 * 1000;
 
+    // ==================== FlowControl/Broadcast ====================
+
+    // Whether to enable network flow control.
     private boolean enableNetWorkFlowControl = false;
 
+    // Whether to enable broadcast offset storage.
     private boolean enableBroadcastOffsetStore = true;
 
+    // Expiration time in seconds for broadcast offsets.
     private long broadcastOffsetExpireSecond = 2 * 60;
 
+    // Maximum expiration time in seconds for broadcast offsets.
     private long broadcastOffsetExpireMaxSecond = 5 * 60;
 
+    // ==================== Pop Core ====================
+
+    // Number of messages to poll in one pop request.
     private int popPollingSize = 1024;
+    // Size of the pop polling map.
     private int popPollingMapSize = 100000;
 
+    // Expiration time in seconds for pop polling map entries.
     private int popPollingMapExpireTimeSeconds = 60 * 10;
     // 20w cost 200M heap memory.
     private long maxPopPollingSize = 100000;
+    // Number of revive queues for pop consumption.
     private int reviveQueueNum = 8;
+    // Interval in milliseconds for revive scanning.
     private long reviveInterval = 1000;
+    // Maximum slow times before revive throttling.
     private long reviveMaxSlow = 3;
+    // Scan time in milliseconds for revive processing.
     private long reviveScanTime = 10000;
+    // Whether to skip long awaiting ack during revive.
     private boolean enableSkipLongAwaitingAck = false;
+    // Wait time in milliseconds for revive ack.
     private long reviveAckWaitMs = TimeUnit.MINUTES.toMillis(3);
+    // Whether to enable pop logging.
     private boolean enablePopLog = false;
+    // Whether to enable pop buffer merge.
     private boolean enablePopBufferMerge = false;
+    // Time in milliseconds for pop CK to stay in buffer.
     private int popCkStayBufferTime = 10 * 1000;
+    // Timeout in milliseconds for pop CK buffer stay.
     private int popCkStayBufferTimeOut = 3 * 1000;
+    // Max buffer size for pop CK.
     private int popCkMaxBufferSize = 200000;
+    // Max queue size for pop CK offset.
     private int popCkOffsetMaxQueueSize = 20000;
+    // Whether to enable batch ack for pop messages.
     private boolean enablePopBatchAck = false;
     // set the interval to the maxFilterMessageSize in MessageStoreConfig divided by the cq unit size
     private long popLongPollingForceNotifyInterval = 800;
+    // Whether to calculate lag before pop notification.
     private boolean enableNotifyBeforePopCalculateLag = true;
+    // Whether to notify after pop order lock release.
     private boolean enableNotifyAfterPopOrderLockRelease = true;
+    // Whether to init pop offset by checking msg in memory.
     private boolean initPopOffsetByCheckMsgInMem = true;
     // read message from pop retry topic v1, for the compatibility, will be removed in the future version
     private boolean retrieveMessageFromPopRetryTopicV1 = true;
+
+    // ==================== Pop Retry ====================
+
+    // Whether to enable retry topic v2 format.
     private boolean enableRetryTopicV2 = false;
+    // Probability percentage for popping from retry topic.
     private int popFromRetryProbability = 20;
     // pop retry probability for priority mode
     private int popFromRetryProbabilityForPriority = 0;
     // 0 as the lowest priority if true
     private boolean priorityOrderAsc = true;
+
+    // ==================== Pop Ack ====================
+
     /**
      * There are two types of ack mode:
      *  1. ack by file system service, which is the default mode.
      *  2. ack by key-value service, when popConsumerKVServiceEnable and popConsumerKVServiceInit are both true.
      */
     private boolean popConsumerFSServiceInit = true;
+    // Whether to enable logging for pop consumer KV service.
     private boolean popConsumerKVServiceLog = false;
+    // Whether to initialize pop consumer KV service.
     private boolean popConsumerKVServiceInit = false;
+    // Whether to enable pop consumer KV service.
     private boolean popConsumerKVServiceEnable = false;
+
+    // ==================== Pop Revive ====================
+
+    // Max return size per read for pop revive.
     private int popReviveMaxReturnSizePerRead = 16 * 1024;
+    // Concurrency level for pop revive processing.
     private int popReviveConcurrency = 32;
+    // Max attempt times for pop revive.
     private int popReviveMaxAttemptTimes = 16;
+    // Whether to skip revive if consumer group is absent.
     private boolean popReviveSkipIfGroupAbsent = true;
     // each message queue will have a corresponding retry queue
     private boolean useSeparateRetryQueue = false;
+    // Whether to notify consumer change in real time.
     private boolean realTimeNotifyConsumerChange = true;
 
+    // ==================== Notification/Filter ====================
+
+    // Whether to use message filter for notifications.
     private boolean useMessageFilterForNotification = true;
+    // Max number of message filters for notifications.
     private int maxMessageFilterNumForNotification = 64;
 
+    // ==================== LitePull ====================
+
+    // Whether to enable lite pull message mode.
     private boolean litePullMessageEnable = true;
+
+    // ==================== LoadBalance ====================
 
     // The period to sync broker member group from namesrv, default value is 1 second
     private int syncBrokerMemberGroupPeriod = 1000;
@@ -278,11 +428,16 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int cleanOfflineBrokerInterval = 1000 * 30;
 
+    // Whether to enable server-side load balancer.
     private boolean serverLoadBalancerEnable = true;
 
+    // Default message request mode (PULL or POP).
     private MessageRequestMode defaultMessageRequestMode = MessageRequestMode.PULL;
 
+    // Default number of shared queues for pop mode (-1 means use topic queue num).
     private int defaultPopShareQueueNum = -1;
+
+    // ==================== Transaction ====================
 
     /**
      * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
@@ -303,12 +458,16 @@ public class BrokerConfig extends BrokerIdentity {
     @ImportantField
     private long transactionCheckInterval = 30 * 1000;
 
+    // Flush interval for transaction metrics.
     private long transactionMetricFlushInterval = 10 * 1000;
 
+    // Core thread count for transaction check RocksDB.
     private int transactionCheckRocksdbCoreThreads = 2;
 
+    // Max thread count for transaction check RocksDB.
     private int transactionCheckRocksdbMaxThreads = 5;
 
+    // Queue capacity for transaction check RocksDB.
     private int transactionCheckRocksdbQueueCapacity = 2000;
 
     /**
@@ -316,7 +475,10 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int transactionOpMsgMaxSize = 4096;
 
+    // Batch interval for transaction op messages.
     private int transactionOpBatchInterval = 3000;
+
+    // ==================== ACL ====================
 
     /**
      * Acl feature switch
@@ -324,10 +486,15 @@ public class BrokerConfig extends BrokerIdentity {
     @ImportantField
     private boolean aclEnable = false;
 
+    // ==================== Reply/Stats ====================
+
+    // Whether to enable storing reply messages.
     private boolean storeReplyMessageEnable = true;
 
+    // Whether to enable detailed statistics.
     private boolean enableDetailStat = true;
 
+    // Whether to auto-delete unused stats.
     private boolean autoDeleteUnusedStats = true;
 
     /**
@@ -335,7 +502,10 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean isolateLogEnable = false;
 
+    // Timeout in milliseconds for message forwarding.
     private long forwardTimeout = 3 * 1000;
+
+    // ==================== Failover ====================
 
     /**
      * Slave will act master when failover. For example, if master down, timer or transaction message which is expire in slave will
@@ -344,17 +514,27 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableSlaveActingMaster = false;
 
+    // Whether to enable remote escape for failover.
     private boolean enableRemoteEscape = false;
 
+    // Whether to skip pre-online checks.
     private boolean skipPreOnline = false;
 
+    // ==================== Async/Offset ====================
+
+    // Whether to enable async send mode.
     private boolean asyncSendEnable = true;
 
+    // Whether to use server-side reset offset.
     private boolean useServerSideResetOffset = true;
 
+    // Step size for consumer offset update version.
     private long consumerOffsetUpdateVersionStep = 500;
 
+    // Step size for delay offset update version.
     private long delayOffsetUpdateVersionStep = 200;
+
+    // ==================== HA/Lock ====================
 
     /**
      * Whether to lock quorum replicas.
@@ -363,25 +543,37 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean lockInStrictMode = false;
 
+    // Whether to be compatible with old NameServer protocol.
     private boolean compatibleWithOldNameSrv = true;
+
+    // ==================== Controller ====================
 
     /**
      * Is startup controller mode, which support auto switch broker's role.
      */
     private boolean enableControllerMode = false;
 
+    // Address of the controller.
     private String controllerAddr = "";
 
+    // Whether to fetch controller address via DNS lookup.
     private boolean fetchControllerAddrByDnsLookup = false;
 
+    // Period in milliseconds for syncing broker metadata.
     private long syncBrokerMetadataPeriod = 5 * 1000;
 
+    // Period in milliseconds for checking sync state set.
     private long checkSyncStateSetPeriod = 5 * 1000;
 
+    // Period in milliseconds for syncing controller metadata.
     private long syncControllerMetadataPeriod = 10 * 1000;
 
+    // Timeout in milliseconds for controller heartbeat.
     private long controllerHeartBeatTimeoutMills = 10 * 1000;
 
+    // ==================== Topic/Group Mgmt ====================
+
+    // Whether to validate system topic when updating topic.
     private boolean validateSystemTopicWhenUpdateTopic = true;
 
     /**
@@ -403,18 +595,30 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int brokerElectionPriority = Integer.MAX_VALUE;
 
+    // Whether to use static subscription configuration.
     private boolean useStaticSubscription = false;
 
+    // ==================== Metrics ====================
+
+    // Type of metrics exporter (DISABLE, OTLP_GRPC, PROM, etc.).
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
+    // Cardinality limit for OpenTelemetry metrics.
     private int metricsOtelCardinalityLimit = 50 * 1000;
+    // Target URL for gRPC metrics exporter.
     private String metricsGrpcExporterTarget = "";
+    // Headers for gRPC metrics exporter.
     private String metricsGrpcExporterHeader = "";
+    // Timeout in milliseconds for gRPC metrics export.
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
+    // Interval in milliseconds for gRPC metrics export.
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
+    // Interval in milliseconds for logging metrics export.
     private long metricLoggingExporterIntervalInMills = 10 * 1000;
 
+    // Port for Prometheus metrics exporter.
     private int metricsPromExporterPort = 5557;
+    // Host for Prometheus metrics exporter.
     private String metricsPromExporterHost = "";
 
     // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
@@ -431,6 +635,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean metricsExportBatchSplitEnabled = true;
 
+    // Max data points per metrics export batch.
     private int metricsExportBatchMaxDataPoints = 1000;
 
     /**
@@ -457,18 +662,31 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private String metricsExportOtelMemoryMode = "IMMUTABLE_DATA";
 
+    // Whether to export metrics in delta mode.
     private boolean metricsInDelta = false;
 
+    // Whether to enable remoting metrics.
     private boolean enableRemotingMetrics = true;
+    // Whether to enable message store metrics.
     private boolean enableMessageStoreMetrics = true;
+    // Whether to enable pop metrics.
     private boolean enablePopMetrics = true;
+    // Whether to enable connection metrics.
     private boolean enableConnectionMetrics = true;
+    // Whether to enable transaction metrics.
     private boolean enableTransactionMetrics = true;
+    // Whether to enable stats metrics.
     private boolean enableStatsMetrics = true;
+    // Whether to enable request metrics.
     private boolean enableRequestMetrics = true;
+    // Whether to enable lag and DLQ metrics.
     private boolean enableLagAndDlqMetrics = true;
 
+    // ==================== Channel/Subscription ====================
+
+    // Timeout in milliseconds for channel expiration.
     private long channelExpiredTimeout = 1000 * 120;
+    // Timeout in milliseconds for subscription expiration.
     private long subscriptionExpiredTimeout = 1000 * 60 * 10;
 
     /**
@@ -476,10 +694,18 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean estimateAccumulation = true;
 
+    // ==================== ColdData ====================
+
+    // Whether to enable cold data control strategy.
     private boolean coldCtrStrategyEnable = false;
+    // Whether to use PID-based cold control strategy.
     private boolean usePIDColdCtrStrategy = true;
+    // Threshold in bytes for cold group read.
     private long cgColdReadThreshold = 3 * 1024 * 1024;
+    // Global threshold in bytes for cold read.
     private long globalColdReadThreshold = 100 * 1024 * 1024;
+
+    // ==================== Misc ====================
 
     /**
      * The interval to fetch namesrv addr, default value is 10 second
@@ -497,6 +723,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableSingleTopicRegister = false;
 
+    // Whether to enable mixed message type.
     private boolean enableMixedMessageType = false;
 
     /**
@@ -505,16 +732,24 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableSplitRegistration = false;
 
+    // Whether to enable split metadata for registration.
     private boolean enableSplitMetadata = true;
+    // Max size for split metadata batches.
     private int splitMetadataSize = 2000;
 
+    // Threshold for pop inflight messages.
     private long popInflightMessageThreshold = 10000;
+    // Whether to enable pop message threshold.
     private boolean enablePopMessageThreshold = false;
 
+    // Whether to enable fast channel event processing.
     private boolean enableFastChannelEventProcess = false;
+    // Whether to print channel groups for debugging.
     private boolean printChannelGroups = false;
+    // Minimum number of channel groups to print.
     private int printChannelGroupsMinNum = 5;
 
+    // Size for split registration batches.
     private int splitRegistrationSize = 800;
 
     /**
@@ -527,12 +762,16 @@ public class BrokerConfig extends BrokerIdentity {
     // if false, will still rewrite ck after max times 17
     private boolean skipWhenCKRePutReachMaxTimes = false;
 
+    // Whether to append ack asynchronously.
     private boolean appendAckAsync = false;
 
+    // Whether to append CK asynchronously.
     private boolean appendCkAsync = false;
 
+    // Whether to clear retry topic when deleting topic.
     private boolean clearRetryTopicWhenDeleteTopic = true;
 
+    // Whether to enable LMQ stats.
     private boolean enableLmqStats = false;
 
     /**
@@ -546,52 +785,74 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean useSingleRocksDBForAllConfigs = false;
 
+    // Whether to allow recall when broker is not writeable.
     private boolean allowRecallWhenBrokerNotWriteable = true;
 
+    // Whether to enable message recall.
     private boolean recallMessageEnable = false;
 
+    // Whether to enable producer registration.
     private boolean enableRegisterProducer = true;
 
+    // Whether to enable creation of system groups.
     private boolean enableCreateSysGroup = true;
 
+    // ==================== LiteTopic ====================
 
+    // Interval in milliseconds for lite event checking.
     private long liteEventCheckInterval = 10 * 1000;
 
+    // Interval in milliseconds for lite TTL checking.
     private long liteTtlCheckInterval = 120 * 1000;
 
+    // Minimum TTL in milliseconds for lite messages.
     private long minLiteTTl = 15 * 60 * 1000;
 
+    // Interval for lite subscription checking.
     private long liteSubscriptionCheckInterval = TimeUnit.MINUTES.toMillis(2);
 
+    // Timeout in milliseconds for lite subscription checking.
     private long liteSubscriptionCheckTimeoutMills = TimeUnit.MINUTES.toMillis(3);
 
     // make sense for rocksdb store
     private boolean persistConsumerOffsetIncrementally = false;
 
+    // Max count for lite subscriptions.
     private long maxLiteSubscriptionCount = 100000;
 
+    // Whether to enable lite pop logging.
     private boolean enableLitePopLog = false;
 
+    // Max client event count before throttling.
     private int maxClientEventCount = 100;
 
+    // TTL in milliseconds for lite event capacity cache.
     private long liteEventCapacityCacheTtlMs = 5000;
 
+    // Delay time in milliseconds for lite event full dispatch.
     private long liteEventFullDispatchDelayTime = 10 * 1000;
 
+    // Delay time in milliseconds for lite event full dispatch for wildcard groups.
     private long liteEventFullDispatchDelayTimeForWildcardGroup = 10 * 1000;
 
     // lite metrics
     // whether to collect storeTime in popLiteProcessor
     private boolean liteLagLatencyCollectEnable = false;
 
+    // Whether to enable lite lag latency metrics.
     private boolean liteLagLatencyMetricsEnable = false;
 
+    // Whether to enable lite lag count metrics.
     private boolean liteLagCountMetricsEnable = false;
 
+    // Top K value for lite lag latency metrics.
     private int liteLagLatencyTopK = 50;
+
+    // ==================== PopOrderLock ====================
 
     // HashedWheelTimer config for pop order lock manager
     private long popOrderLockTimerTickMs = 100;
+    // Number of ticks per wheel for pop order lock timer.
     private int popOrderLockTimerTicksPerWheel = 512;
 
     public String getConfigBlackList() {
