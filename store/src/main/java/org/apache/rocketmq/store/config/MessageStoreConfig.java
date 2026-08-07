@@ -36,6 +36,7 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathCommitLog = null;
 
+    // The directory in which the DLedger commitlog is kept (DLedger mode)
     @ImportantField
     private String storePathDLedgerCommitLog = null;
 
@@ -43,9 +44,11 @@ public class MessageStoreConfig {
     @ImportantField
     private String storePathEpochFile = null;
 
+    // The directory in which the broker identity file is kept (auto-switch HA mode)
     @ImportantField
     private String storePathBrokerIdentity = null;
 
+    // Additional read-only commitlog paths, separated by MULTI_PATH_SPLITTER
     private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
@@ -57,30 +60,45 @@ public class MessageStoreConfig {
     // CompactionLog consumeQueue file size, default is 10M
     private int compactionCqMappedFileSize = 10 * 1024 * 1024;
 
+    // Compaction schedule interval (ms)
     private int compactionScheduleInternal = 15 * 60 * 1000;
 
+    // Max size of offset map used during compaction (100MB)
     private int maxOffsetMapSize = 100 * 1024 * 1024;
 
+    // Number of threads used for compaction
     private int compactionThreadNum = 6;
 
+    // Whether to enable compaction for KV topics
     private boolean enableCompaction = true;
 
     // TimerLog file size, default is 100M
     private int mappedFileSizeTimerLog = 100 * 1024 * 1024;
 
+    // Timer precision in milliseconds (resolution of the timer wheel)
     private int timerPrecisionMs = 1000;
 
+    // Number of slots in the timer roll window (2 days worth at 1s precision)
     private int timerRollWindowSlot = 3600 * 24 * 2;
+    // Timer log flush interval (ms)
     private int timerFlushIntervalMs = 1000;
+    // Thread count for getting messages from timer
     private int timerGetMessageThreadNum = 3;
+    // Thread count for putting messages into timer
     private int timerPutMessageThreadNum = 3;
 
+    // Whether to use DisruptorBlockingQueue for timer message queues
     private boolean timerEnableDisruptor = false;
 
+    // Whether to enable timer metrics checking
     private boolean timerEnableCheckMetrics = true;
+    // Whether to intercept delay level messages and route them to timer wheel
     private boolean timerInterceptDelayLevel = false;
+    // Max delay seconds a timer message can be scheduled (3 days)
     private int timerMaxDelaySec = 3600 * 24 * 3;
+    // Whether to flush timer wheel snapshot
     private boolean timerWheelSnapshotFlush = false;
+    // Whether to enable the timer wheel (precise delayed message)
     private boolean timerWheelEnable = true;
 
     /**
@@ -92,46 +110,76 @@ public class MessageStoreConfig {
     @ImportantField
     private int disappearTimeAfterStart = -1;
 
+    // Whether to stop accepting new messages into the timer
     private boolean timerStopEnqueue = false;
 
+    // Hour of day (HH) when timer metrics check runs
     private String timerCheckMetricsWhen = "05";
 
+    // Whether to skip unknown errors during timer processing
     private boolean timerSkipUnknownError = false;
+    // Whether to warm up the timer wheel file on startup
     private boolean timerWarmEnable = false;
+    // Whether to stop delivering messages from the timer
     private boolean timerStopDequeue = false;
+    // Whether to retry timer message delivery until success
     private boolean timerEnableRetryUntilSuccess = false;
+    // Congestion threshold per timer wheel slot (max messages per slot)
     private int timerCongestNumEachSlot = Integer.MAX_VALUE;
 
+    // Threshold below which timer metrics are considered small
     private int timerMetricSmallThreshold = 1000000;
+    // Timer progress log interval (ms)
     private int timerProgressLogIntervalMs = 10 * 1000;
+    // Timer wheel snapshot interval (ms)
     private int timerWheelSnapshotIntervalMs = 10 * 1000;
 
+    // Max number of commitlog files scanned during recovery
     private int commitLogRecoverMaxNum = 10;
+    // Whether to store timer messages in RocksDB instead of timer wheel files
     private boolean timerRocksDBEnable = false;
+    // Whether to stop the RocksDB timer scan thread
     private boolean timerRocksDBStopScan = false;
+    // Timer precision for RocksDB timer storage (ms)
     private long timerRocksDBPrecisionMs = 1000L;
+    // Max TPS for RocksDB timer roll
     private double timerRocksDBRollMaxTps = 8000.0;
+    // Max TPS for RocksDB timer expired message delivery
     private double timerRocksDBTimeExpiredMaxTps = 200000.0;
+    // Roll interval in hours for RocksDB timer
     private int timerRocksDBRollIntervalHours = 1;
+    // Roll range in hours for RocksDB timer
     private int timerRocksDBRollRangeHours = 2;
+    // Whether recalled messages fall back to timer wheel
     private boolean timerRecallToTimeWheelEnable = true;
+    // Whether recalled messages fall back to timeline
     private boolean timerRecallToTimelineEnable = true;
+    // Core pool size of timer reput service
     private int timerReputServiceCorePoolSize = 6;
+    // Max pool size of timer reput service
     private int timerReputServiceMaxPoolSize = 6;
+    // Queue capacity of timer reput service
     private int timerReputServiceQueueCapacity = 10000;
 
+    // Whether to store transaction messages in RocksDB
     private boolean transRocksDBEnable = false;
+    // Whether to write the original transaction half message
     private boolean transWriteOriginTransHalfEnable = true;
 
+    // Whether to store message index in RocksDB
     private boolean indexRocksDBEnable = false;
+    // Max days for RocksDB index query
     private int maxRocksDBIndexQueryDays = 7;
+    // Whether to enable index file writing
     private boolean indexFileWriteEnable = true;
+    // Whether to enable index file reading
     private boolean indexFileReadEnable = true;
 
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
 
+    // Whether to use RocksDB iterator for ConsumeQueue reads
     private boolean iteratorWhenUseRocksdbConsumeQueue = true;
 
     // ConsumeQueue file size,default is 30W
@@ -140,6 +188,7 @@ public class MessageStoreConfig {
     private boolean enableConsumeQueueExt = false;
     // ConsumeQueue extend file size, 48M
     private int mappedFileSizeConsumeQueueExt = 48 * 1024 * 1024;
+    // Batch ConsumeQueue file size (number of entries * unit size)
     private int mapperFileSizeBatchConsumeQueue = 300000 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
     // Bit count of filter bit map.
     // this will be set by pipe of calculate filter bit map.
@@ -155,10 +204,13 @@ public class MessageStoreConfig {
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
+    // Max number of commitlog files to scan during abnormal recovery
     private int maxRecoveryCommitlogFiles = 30;
 
+    // Disk space usage ratio (%) that triggers a warning
     private int diskSpaceWarningLevelRatio = 90;
 
+    // Disk space usage ratio (%) that triggers forced cleaning
     private int diskSpaceCleanForciblyRatio = 85;
 
     /**
@@ -177,15 +229,19 @@ public class MessageStoreConfig {
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
     private int deleteConsumeQueueFilesInterval = 100;
+    // Force destroy mapped file interval (ms), for files stuck in deletion
     private int destroyMapedFileIntervalForcibly = 1000 * 120;
+    // Interval (ms) to re-delete mapped files that failed previous deletion
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
     @ImportantField
     private String deleteWhen = "04";
+    // Max disk usage ratio (%) before stopping message writes
     private int diskMaxUsedSpaceRatio = 75;
     // The number of hours to keep a log file before deleting it (in hours)
     @ImportantField
     private int fileReservedTime = 72;
+    // Max number of files deleted per batch
     @ImportantField
     private int deleteFileBatchMax = 10;
     // Flow control for ConsumeQueue
@@ -219,61 +275,95 @@ public class MessageStoreConfig {
     private int flushLeastPagesWhenWarmMapedFile = 1024 / 4 * 16;
     // How many pages are to be flushed when flush ConsumeQueue
     private int flushConsumeQueueLeastPages = 2;
+    // CommitLog thorough flush interval (ms)
     private int flushCommitLogThoroughInterval = 1000 * 10;
+    // CommitLog thorough commit interval (ms)
     private int commitCommitLogThoroughInterval = 200;
+    // ConsumeQueue thorough flush interval (ms)
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
+    // Max bytes transferred per pull from memory
     @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;
+    // Max message count transferred per pull from memory
     @ImportantField
     private int maxTransferCountOnMessageInMemory = 32;
+    // Max bytes transferred per pull from disk
     @ImportantField
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
+    // Max message count transferred per pull from disk
     @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
+    // Max ratio (%) of messages accessed from memory vs disk
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;
+    // Whether to enable message index (query by key)
     @ImportantField
     private boolean messageIndexEnable = true;
+    // Max hash slot count in index file
     private int maxHashSlotNum = 5000000;
+    // Max index entries in index file
     private int maxIndexNum = 5000000 * 4;
+    // Max message count in a batch
     private int maxMsgsNumBatch = 64;
+    // Whether index file requires safe flush (sync)
     @ImportantField
     private boolean messageIndexSafe = false;
+    // Port for HA master-slave replication listening
     private int haListenPort = 10912;
+    // Interval (ms) for HA heartbeat between master and slave
     private int haSendHeartbeatInterval = 1000 * 5;
+    // Interval (ms) for HA housekeeping (connection cleanup)
     private int haHousekeepingInterval = 1000 * 20;
     /**
      * Maximum size of data to transfer to slave.
      * NOTE: cannot be larger than HAClient.READ_MAX_BUFFER_SIZE
      */
     private int haTransferBatchSize = 1024 * 32;
+    // Master address for HA (null means auto-discover)
     @ImportantField
     private String haMasterAddress = null;
+    // Max gap (bytes) before a slave is considered out of sync
     private int haMaxGapNotInSync = 1024 * 1024 * 256;
+    // Broker role: ASYNC_MASTER / SYNC_MASTER / SLAVE
     @ImportantField
     private volatile BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+    // Flush strategy: SYNC_FLUSH or ASYNC_FLUSH
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     // Used by GroupTransferService to sync messages from master to slave
     private int syncFlushTimeout = 1000 * 5;
     // Used by PutMessage to wait messages be flushed to disk and synchronized in current broker member group.
     private int putMessageTimeout = 1000 * 8;
+    // Timeout (ms) for a slave to be considered unavailable
     private int slaveTimeout = 3000;
+    // Delay levels for scheduled messages (space-separated: "1s 5s 10s ... 2h")
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+    // Interval (ms) to flush delay offset
     private long flushDelayOffsetInterval = 1000 * 10;
+    // Whether to forcibly delete files when cleaning
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
+    // Whether to warm up mapped files (pre-fault pages) on creation
     private boolean warmMapedFileEnable = false;
+    // Whether to check consumer offset consistency on slave
     private boolean offsetCheckInSlave = false;
+    // Whether to enable lock debugging (print lock contention logs)
     private boolean debugLockEnable = false;
+    // Whether to enable message duplication (write to multiple stores)
     private boolean duplicationEnable = false;
+    // Whether to record disk full events
     private boolean diskFallRecorded = true;
+    // Timeout (ms) for OS page cache busy detection
     private long osPageCacheBusyTimeOutMills = 1000;
+    // Default max message count per query
     private int defaultQueryMaxNum = 32;
 
+    // Whether to enable transient store pool (write to heap buffer first, then commit to mmap)
     @ImportantField
     private boolean transientStorePoolEnable = false;
+    // Size of the transient store pool (number of byte buffers)
     private int transientStorePoolSize = 5;
+    // Whether to fail fast when no buffer is available in the store pool
     private boolean fastFailIfNoBufferInStorePool = false;
 
     /**
@@ -288,27 +378,43 @@ public class MessageStoreConfig {
 
     // DLedger message store config
     private boolean enableDLegerCommitLog = false;
+    // DLedger raft group name
     private String dLegerGroup;
+    // DLedger peers configuration (raft group members)
     private String dLegerPeers;
+    // DLedger self ID (raft node identity)
     private String dLegerSelfId;
+    // Preferred leader ID for DLedger
     private String preferredLeaderId;
+    // Whether to enable batch push in DLedger
     private boolean enableBatchPush = false;
 
+    // Whether to enable scheduled message stats
     private boolean enableScheduleMessageStats = true;
 
+    // Whether to enable LMQ (Light Message Queue)
     private boolean enableLmq = false;
+    // Whether to enable multi-queue dispatch for one message
     private boolean enableMultiDispatch = false;
+    // Max number of LMQ consume queues
     private int maxLmqConsumeQueueNum = 20000;
+    // Whether to enable LMQ quota control
     private boolean enableLmqQuota = false;
 
+    // Whether to enable async delivery for scheduled messages
     private boolean enableScheduleAsyncDeliver = false;
+    // Max pending limit for async scheduled message delivery
     private int scheduleAsyncDeliverMaxPendingLimit = 2000;
+    // Max resend attempts before a blocked async delivery is dropped
     private int scheduleAsyncDeliverMaxResendNum2Blocked = 3;
 
+    // Max number of files deleted in one batch
     private int maxBatchDeleteFilesNum = 50;
     //Polish dispatch
     private int dispatchCqThreads = 10;
+    // Cache size for dispatch requests (per thread)
     private int dispatchCqCacheNum = 1024 * 4;
+    // Whether to enable async reput (dispatch) processing
     private boolean enableAsyncReput = true;
     //For recheck the reput
     private boolean recheckReputOffsetFromCq = false;
@@ -336,7 +442,9 @@ public class MessageStoreConfig {
      * Modifications need to be restarted to take effect.
      */
     private boolean enabledAppendPropCRC = false;
+    // Whether to force verification of property CRC
     private boolean forceVerifyPropCRC = false;
+    // Number of consume queue files to scan when getting a message
     private int travelCqFileNumWhenGetMessage = 1;
     // Sleep interval between to corrections
     private int correctLogicMinOffsetSleepInterval = 1;
@@ -347,31 +455,46 @@ public class MessageStoreConfig {
 
     // swap
     private boolean mappedFileSwapEnable = true;
+    // CommitLog force swap-map interval (12h)
     private long commitLogForceSwapMapInterval = 12L * 60 * 60 * 1000;
+    // CommitLog swap-map interval (1h)
     private long commitLogSwapMapInterval = 1L * 60 * 60 * 1000;
+    // Number of recent CommitLog files to keep mapped (not swapped)
     private int commitLogSwapMapReserveFileNum = 100;
+    // Logic queue force swap-map interval (12h)
     private long logicQueueForceSwapMapInterval = 12L * 60 * 60 * 1000;
+    // Logic queue swap-map interval (1h)
     private long logicQueueSwapMapInterval = 1L * 60 * 60 * 1000;
+    // Interval (ms) to clean swapped map files
     private long cleanSwapedMapInterval = 5L * 60 * 1000;
+    // Number of recent logic queue files to keep mapped
     private int logicQueueSwapMapReserveFileNum = 20;
 
+    // Whether to search batch consume queue by cache first
     private boolean searchBcqByCacheEnable = true;
 
+    // Whether to dispatch (build CQ) in the sender thread instead of async reput thread
     @ImportantField
     private boolean dispatchFromSenderThread = false;
 
+    // Whether to wake up the commit thread when a message is put
     @ImportantField
     private boolean wakeCommitWhenPutMessage = true;
+    // Whether to wake up the flush thread when a message is put
     @ImportantField
     private boolean wakeFlushWhenPutMessage = false;
 
+    // Whether to enable cleaning of expired offsets
     @ImportantField
     private boolean enableCleanExpiredOffset = false;
 
+    // Max number of pending async put message requests
     private int maxAsyncPutMessageRequests = 5000;
 
+    // Max message count per pull batch
     private int pullBatchMaxMessageCount = 160;
 
+    // Total number of replicas (master + slaves) for a topic queue
     @ImportantField
     private int totalReplicas = 1;
 
@@ -430,10 +553,13 @@ public class MessageStoreConfig {
      */
     private long maxChecksumRange = 1024 * 1024 * 1024;
 
+    // Number of replicas per disk partition (for disk-level HA)
     private int replicasPerDiskPartition = 1;
 
+    // Threshold ratio of logical disk space for forced cleaning
     private double logicalDiskSpaceCleanForciblyThreshold = 0.8;
 
+    // Max bytes a slave can resend when out of sync
     private long maxSlaveResendLength = 256 * 1024 * 1024;
 
     /**
@@ -441,6 +567,7 @@ public class MessageStoreConfig {
      */
     private boolean syncFromLastFile = false;
 
+    // Whether to run as an async learner (read-only replica without replication slot)
     private boolean asyncLearner = false;
 
     /**
@@ -453,26 +580,39 @@ public class MessageStoreConfig {
      */
     private int sampleCountThreshold = 5000;
 
+    // Whether to enable cold data flow control
     private boolean coldDataFlowControlEnable = false;
+    // Whether to enable cold data scanning
     private boolean coldDataScanEnable = false;
+    // Whether to enable read-ahead for cold data
     private boolean dataReadAheadEnable = true;
+    // Interval (ms) for cold data check on timer
     private int timerColdDataCheckIntervalMs = 60 * 1000;
+    // Number of sampling steps for cold data detection
     private int sampleSteps = 32;
+    // Max ratio (%) of hot messages accessed from memory
     private int accessMessageInMemoryHotRatio = 26;
     /**
      * Build ConsumeQueue concurrently with multi-thread
      */
     private boolean enableBuildConsumeQueueConcurrently = false;
 
+    // Thread pool size for batch dispatch requests
     private int batchDispatchRequestThreadPoolNums = 16;
 
     // rocksdb mode
+    // Interval (min) to clean dirty RocksDB ConsumeQueue data
     private long cleanRocksDBDirtyCQIntervalMin = 60;
+    // Interval (sec) to collect RocksDB ConsumeQueue statistics
     private long statRocksDBCQIntervalSec = 10;
+    // MemTable flush interval (ms)
     private long memTableFlushIntervalMs = 60 * 60 * 1000L;
+    // Whether to persist RocksDB config in real time
     private boolean realTimePersistRocksDBConfig = true;
+    // Whether to enable RocksDB logging
     private boolean enableRocksDBLog = false;
 
+    // Number of locks for topic-queue level concurrency control
     private int topicQueueLockNum = 32;
 
     /**
@@ -481,8 +621,10 @@ public class MessageStoreConfig {
      */
     private boolean readUnCommitted = false;
 
+    // Whether to write ConsumeQueue data via FileChannel (true) instead of MappedByteBuffer
     private boolean putConsumeQueueDataByFileChannel = true;
 
+    // Whether to enable RocksDB ConsumeQueue double write (file + RocksDB simultaneously)
     private boolean rocksdbCQDoubleWriteEnable = false;
 
     // Secondary switch of rocksdbCQDoubleWriteEnable. In CombineConsumeQueueStore, only specific topics will double-write CQ.
@@ -501,10 +643,15 @@ public class MessageStoreConfig {
      * 4. Selective DW + RocksDB read → Check 4 (consistent read view broken)
      */
     private String combineCQLoadingCQTypes = StoreType.DEFAULT.getStoreType() + ";" + StoreType.DEFAULT_ROCKSDB.getStoreType();
+    // Preferred CQ type when reading in CombineConsumeQueueStore
     private String combineCQPreferCQType = StoreType.DEFAULT.getStoreType();
+    // CQ type used when assigning offsets in CombineConsumeQueueStore
     private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
+    // Whether to enable self-check on CombineConsumeQueueStore config
     private boolean combineCQEnableCheckSelf = false;
+    // Max number of extra commitlog files to search in CombineConsumeQueueStore
     private int combineCQMaxExtraSearchCommitLogFiles = 3;
+    // Whether to use RocksDB CQ for LMQ in CombineConsumeQueueStore
     private boolean combineCQUseRocksdbForLmq = false;
 
     /**
@@ -524,12 +671,16 @@ public class MessageStoreConfig {
      */
     private String bottomMostCompressionTypeForConsumeQueueStore = CompressionType.ZSTD_COMPRESSION.getLibraryName();
 
+    // RocksDB compression type for consume queue store
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
+    // Max size amplification percentage for RocksDB compaction
     private int rocksdbMaxSizeAmplificationPercent = 25;
 
+    // Block cache size for Pop RocksDB
     private long popRocksdbBlockCacheSize = 256 * SizeUnit.MB;
 
+    // Write buffer size for Pop RocksDB
     private long popRocksdbWriteBufferSize = 32 * SizeUnit.MB;
 
     /**
@@ -537,6 +688,7 @@ public class MessageStoreConfig {
      */
     private int rocksdbFlushWalFrequency = 1024;
 
+    // RocksDB WAL file rolling threshold (default 1GB)
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
     /**
@@ -548,6 +700,7 @@ public class MessageStoreConfig {
     // Shared byte buffer manager configuration
     private int sharedByteBufferNum = 16;
 
+    // Whether to use a separate store path for RocksDB ConsumeQueue
     private boolean useSeparateStorePathForRocksdbCQ = false;
 
     public String getRocksdbCompressionType() {
