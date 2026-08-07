@@ -360,7 +360,7 @@ public class PopConsumerService extends ServiceThread {
             new PopConsumerContext(clientHost, popTime, invisibleTime, groupId, fifo, initMode, attemptId);
 
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topicId);
-        if (topicConfig == null || !consumerLockService.tryLock(groupId, topicId)) {
+        if (topicConfig == null || !this.tryLockForPop(groupId, topicId, fifo, attemptId)) {
             return CompletableFuture.completedFuture(popConsumerContext);
         }
 
@@ -468,6 +468,32 @@ public class PopConsumerService extends ServiceThread {
         }
 
         return getMessageFuture;
+    }
+
+    /**
+     * Fifo pops carrying an attemptId already registered in OrderInfo are in-flight retries
+     * of the same receive attempt. Instead of failing fast on lock contention (which leaves
+     * the retry empty and burns the reentrant attemptId), keep retrying the lock; pops with
+     * a different attemptId would be blocked by checkBlock anyway, so they keep the
+     * fail-fast behavior.
+     */
+    private boolean tryLockForPop(String groupId, String topicId, boolean fifo, String attemptId) {
+        if (consumerLockService.tryLock(groupId, topicId)) {
+            return true;
+        }
+        if (!fifo || attemptId == null || attemptId.isEmpty()
+            || !brokerController.getConsumerOrderInfoManager().isAttemptIdMatched(attemptId, topicId, groupId)) {
+            return false;
+        }
+        // The lock holder always releases on pop completion, and stale locks are
+        // removed by PopConsumerLockService.removeTimeout(), so keep retrying until
+        // the lock is acquired to make sure the in-flight retry is not left empty.
+        // Same-attemptId contention is rare and the wait is normally milliseconds,
+        // so a plain spin is fine here.
+        while (!consumerLockService.tryLock(groupId, topicId)) {
+            Thread.yield();
+        }
+        return true;
     }
 
     // Notify polling request when receive orderly ack
