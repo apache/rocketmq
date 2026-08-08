@@ -20,6 +20,11 @@ import io.openmessaging.Future;
 import io.openmessaging.FutureListener;
 import io.openmessaging.Promise;
 import io.openmessaging.exception.OMSRuntimeException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,6 +55,52 @@ public class DefaultPromiseTest {
     public void testGet() throws Exception {
         promise.set("Done");
         assertThat(promise.get()).isEqualTo("Done");
+    }
+
+    @Test
+    public void testGetWaitsForCompletion() throws Exception {
+        CountDownLatch getStarted = new CountDownLatch(1);
+        FutureTask<String> getTask = new FutureTask<>(() -> {
+            getStarted.countDown();
+            return promise.get();
+        });
+        Thread getThread = new Thread(getTask, "DefaultPromiseTestGetThread");
+        getThread.setDaemon(true);
+        getThread.start();
+
+        assertThat(getStarted.await(5, TimeUnit.SECONDS)).isTrue();
+        try {
+            getTask.get(200, TimeUnit.MILLISECONDS);
+            failBecauseExceptionWasNotThrown(TimeoutException.class);
+        } catch (TimeoutException expected) {
+            assertThat(expected).isNotNull();
+        }
+
+        promise.set("Done");
+        assertThat(getTask.get(5, TimeUnit.SECONDS)).isEqualTo("Done");
+    }
+
+    @Test
+    public void testGetPropagatesFailure() {
+        IllegalStateException failure = new IllegalStateException("Test failure");
+        promise.setFailure(failure);
+
+        try {
+            promise.get();
+            failBecauseExceptionWasNotThrown(OMSRuntimeException.class);
+        } catch (OMSRuntimeException e) {
+            assertThat(e.getCause()).isEqualTo(failure);
+        }
+    }
+
+    @Test
+    public void testGetDoesNotNotifyListenerAgain() {
+        AtomicInteger notificationCount = new AtomicInteger();
+        promise.addListener(future -> notificationCount.incrementAndGet());
+
+        promise.set("Done");
+        assertThat(promise.get()).isEqualTo("Done");
+        assertThat(notificationCount).hasValue(1);
     }
 
     @Test
