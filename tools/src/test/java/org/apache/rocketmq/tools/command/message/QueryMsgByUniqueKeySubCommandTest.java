@@ -65,6 +65,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -78,6 +79,17 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
     private static MQClientAPIImpl mQClientAPIImpl;
     private static MQAdminImpl mQAdminImpl;
+
+    @Test
+    public void testStoreTimestampComparatorWithoutOverflow() {
+        MessageExt earliest = new MessageExt();
+        earliest.setStoreTimestamp(0);
+        MessageExt latest = new MessageExt();
+        latest.setStoreTimestamp(Long.MAX_VALUE);
+
+        assertTrue(QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR.compare(earliest, latest) < 0);
+        assertTrue(QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR.compare(latest, earliest) > 0);
+    }
 
     @Before
     public void before() throws NoSuchFieldException, IllegalAccessException, InterruptedException, RemotingException, MQClientException, MQBrokerException {
