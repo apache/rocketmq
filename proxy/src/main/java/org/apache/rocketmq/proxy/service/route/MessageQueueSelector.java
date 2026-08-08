@@ -109,14 +109,22 @@ public class MessageQueueSelector {
         if (StringUtils.isNotBlank(topicRoute.getOrderTopicConf())) {
             String[] brokers = topicRoute.getOrderTopicConf().split(";");
             for (String broker : brokers) {
-                String[] item = broker.split(":");
+                String[] item = broker.split(":", 2);
+                if (item.length != 2) {
+                    continue;
+                }
                 String brokerName = item[0];
                 String brokerAddr = topicRoute.getMasterAddr(brokerName);
                 if (brokerAddr == null) {
                     continue;
                 }
 
-                int nums = Integer.parseInt(item[1]);
+                int nums;
+                try {
+                    nums = Integer.parseInt(item[1]);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
                 for (int i = 0; i < nums; i++) {
                     AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), brokerName, i),

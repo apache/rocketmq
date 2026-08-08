@@ -81,4 +81,14 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
         messageQueueSelector.selectOne(false);
         assertEquals(queue, messageQueueSelector.selectOne(false));
     }
+
+    @Test
+    public void testWriteMessageQueueSkipsMalformedOrderTopicConf() {
+        topicRouteData.setOrderTopicConf("missing-count;" + BROKER_NAME + ":not-a-number;" + BROKER_NAME + ":2");
+
+        MessageQueueSelector messageQueueSelector =
+            new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertEquals(2, messageQueueSelector.getQueues().size());
+    }
 }
