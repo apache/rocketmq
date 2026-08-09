@@ -68,10 +68,22 @@ public class StatisticsBrief {
             return false;
         }
 
+        long previousRangeMax = 0;
+        long totalSlotNum = 0;
         for (long[] line : meta) {
             if (ArrayUtils.isEmpty(line) || line.length != 2) {
                 return false;
             }
+
+            long rangeMax = line[META_RANGE_INDEX];
+            long slotNum = line[META_SLOT_NUM_INDEX];
+            if (rangeMax <= previousRangeMax || slotNum <= 0
+                || slotNum > rangeMax - previousRangeMax
+                || slotNum > Integer.MAX_VALUE - 1 - totalSlotNum) {
+                return false;
+            }
+            previousRangeMax = rangeMax;
+            totalSlotNum += slotNum;
         }
 
         return true;
