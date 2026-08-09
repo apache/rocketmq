@@ -21,7 +21,9 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -30,6 +32,36 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class HookUtilsTest {
+
+    @Test
+    public void testHandleScheduleMessageRejectsOverflowingTimerDelaySeconds() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+
+        MessageExtBrokerInner message = new MessageExtBrokerInner();
+        message.setTopic("topic");
+        message.setDelayTimeSec(Long.MAX_VALUE);
+
+        PutMessageResult result = HookUtils.handleScheduleMessage(brokerController, message);
+
+        Assert.assertNotNull(result);
+        Assert.assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, result.getPutMessageStatus());
+    }
+
+    @Test
+    public void testHandleScheduleMessageRejectsOverflowingTimerDelayMillis() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+
+        MessageExtBrokerInner message = new MessageExtBrokerInner();
+        message.setTopic("topic");
+        message.setDelayTimeMs(Long.MAX_VALUE);
+
+        PutMessageResult result = HookUtils.handleScheduleMessage(brokerController, message);
+
+        Assert.assertNotNull(result);
+        Assert.assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, result.getPutMessageStatus());
+    }
 
     @Test
     public void testCheckBeforePutMessage() {
