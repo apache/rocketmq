@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.broker.pop;
 
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.metrics.LongCounter;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -34,6 +36,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
@@ -41,6 +44,7 @@ import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.PermName;
@@ -65,6 +69,10 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC_KEY;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -80,6 +88,10 @@ public class PopConsumerServiceTest {
     private final String filePath = PopConsumerRocksdbStoreTest.getRandomStorePath();
 
     private BrokerController brokerController;
+    private BrokerStatsManager brokerStatsManager;
+    private BrokerMetricsManager brokerMetricsManager;
+    private LongCounter messagesOutTotal;
+    private LongCounter throughputOutTotal;
     private PopConsumerService consumerService;
 
     @Before
@@ -100,6 +112,10 @@ public class PopConsumerServiceTest {
         PopMessageProcessor popMessageProcessor = Mockito.mock(PopMessageProcessor.class);
         PopLongPollingService popLongPollingService = Mockito.mock(PopLongPollingService.class);
         ConsumerOrderInfoManager consumerOrderInfoManager = Mockito.mock(ConsumerOrderInfoManager.class);
+        brokerStatsManager = Mockito.mock(BrokerStatsManager.class);
+        brokerMetricsManager = Mockito.mock(BrokerMetricsManager.class);
+        messagesOutTotal = Mockito.mock(LongCounter.class);
+        throughputOutTotal = Mockito.mock(LongCounter.class);
 
         brokerController = Mockito.mock(BrokerController.class);
         Mockito.when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
@@ -110,6 +126,11 @@ public class PopConsumerServiceTest {
         Mockito.when(brokerController.getPopMessageProcessor()).thenReturn(popMessageProcessor);
         Mockito.when(popMessageProcessor.getPopLongPollingService()).thenReturn(popLongPollingService);
         Mockito.when(brokerController.getConsumerOrderInfoManager()).thenReturn(consumerOrderInfoManager);
+        Mockito.when(brokerController.getBrokerStatsManager()).thenReturn(brokerStatsManager);
+        Mockito.when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+        Mockito.when(brokerMetricsManager.newAttributesBuilder()).thenAnswer(invocation -> Attributes.builder());
+        Mockito.when(brokerMetricsManager.getMessagesOutTotal()).thenReturn(messagesOutTotal);
+        Mockito.when(brokerMetricsManager.getThroughputOutTotal()).thenReturn(throughputOutTotal);
 
         consumerService = new PopConsumerService(brokerController);
     }
@@ -202,6 +223,100 @@ public class PopConsumerServiceTest {
         consumerService.handleGetMessageResult(
             context, result, topicId, queueId, PopConsumerRecord.RetryType.NORMAL_TOPIC, 100);
         Assert.assertEquals(1, context.getGetMessageResultList().size());
+    }
+
+    @Test
+    public void handleGetMessageResultShouldRecordMessageOutMetrics() {
+        PopConsumerContext context = new PopConsumerContext(clientHost, System.currentTimeMillis(), 20000, groupId,
+            false, ConsumeInitMode.MIN, attemptId);
+        GetMessageResult result = createFoundGetMessageResult(16, 2, 100L);
+        consumerService.handleGetMessageResult(context, result, topicId, queueId, PopConsumerRecord.RetryType.NORMAL_TOPIC, 100);
+
+        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topicId, groupId);
+        GetMessageResult retryResult = createFoundGetMessageResult(8, 1, 102L);
+        consumerService.handleGetMessageResult(context, retryResult, retryTopic, queueId, PopConsumerRecord.RetryType.RETRY_TOPIC_V2, 102);
+
+        Mockito.verify(brokerStatsManager).incBrokerGetNums(topicId, 2);
+        Mockito.verify(brokerStatsManager).incBrokerGetNums(topicId, 1);
+        Mockito.verify(brokerStatsManager).incGroupGetNums(groupId, topicId, 2);
+        Mockito.verify(brokerStatsManager).incGroupGetNums(groupId, retryTopic, 1);
+        Mockito.verify(brokerStatsManager).incGroupGetSize(groupId, topicId, 16);
+        Mockito.verify(brokerStatsManager).incGroupGetSize(groupId, retryTopic, 8);
+        Mockito.verify(throughputOutTotal).add(Mockito.eq(16L), any(Attributes.class));
+        Mockito.verify(throughputOutTotal).add(Mockito.eq(8L), any(Attributes.class));
+
+        ArgumentCaptor<Attributes> attributesCaptor = ArgumentCaptor.forClass(Attributes.class);
+        Mockito.verify(messagesOutTotal).add(Mockito.eq(2L), attributesCaptor.capture());
+        Mockito.verify(messagesOutTotal).add(Mockito.eq(1L), attributesCaptor.capture());
+        Assert.assertEquals(topicId, attributesCaptor.getAllValues().get(0).get(LABEL_TOPIC_KEY));
+        Assert.assertEquals(groupId, attributesCaptor.getAllValues().get(0).get(LABEL_CONSUMER_GROUP_KEY));
+        Assert.assertFalse(attributesCaptor.getAllValues().get(0).get(LABEL_IS_RETRY_KEY));
+        Assert.assertFalse(attributesCaptor.getAllValues().get(0).get(LABEL_IS_SYSTEM_KEY));
+
+        Attributes retryAttributes = attributesCaptor.getAllValues().get(1);
+        Assert.assertEquals(topicId, retryAttributes.get(LABEL_TOPIC_KEY));
+        Assert.assertEquals(groupId, retryAttributes.get(LABEL_CONSUMER_GROUP_KEY));
+        Assert.assertFalse(retryAttributes.get(LABEL_IS_SYSTEM_KEY));
+        Assert.assertTrue(retryAttributes.get(LABEL_IS_RETRY_KEY));
+    }
+
+    @Test
+    public void handleGetMessageResultShouldRecordRetryV1Topics() {
+        String retryTopic = KeyBuilder.buildPopRetryTopicV1(topicId, groupId);
+        PopConsumerContext retryContext = new PopConsumerContext(clientHost, System.currentTimeMillis(), 20000, groupId,
+            false, ConsumeInitMode.MIN, attemptId);
+        consumerService.handleGetMessageResult(retryContext, createFoundGetMessageResult(8, 1, 100L),
+            retryTopic, queueId, PopConsumerRecord.RetryType.RETRY_TOPIC_V1, 100);
+
+        Mockito.verify(brokerStatsManager).incBrokerGetNums(topicId, 1);
+        Mockito.verify(brokerStatsManager).incGroupGetNums(groupId, retryTopic, 1);
+        ArgumentCaptor<Attributes> attributesCaptor = ArgumentCaptor.forClass(Attributes.class);
+        Mockito.verify(messagesOutTotal).add(Mockito.eq(1L), attributesCaptor.capture());
+        Assert.assertEquals(topicId, attributesCaptor.getValue().get(LABEL_TOPIC_KEY));
+        Assert.assertTrue(attributesCaptor.getValue().get(LABEL_IS_RETRY_KEY));
+    }
+
+    @Test
+    public void handleGetMessageResultShouldNotParseNormalTopicWithRetryPrefix() {
+        String normalTopic = MixAll.RETRY_GROUP_TOPIC_PREFIX + "normalTopic";
+        PopConsumerContext normalContext = new PopConsumerContext(clientHost, System.currentTimeMillis(), 20000, groupId,
+            false, ConsumeInitMode.MIN, attemptId);
+        consumerService.handleGetMessageResult(normalContext, createFoundGetMessageResult(8, 1, 101L),
+            normalTopic, queueId, PopConsumerRecord.RetryType.NORMAL_TOPIC, 101);
+
+        Mockito.verify(brokerStatsManager).incBrokerGetNums(normalTopic, 1);
+        Mockito.verify(brokerStatsManager).incGroupGetNums(groupId, normalTopic, 1);
+        ArgumentCaptor<Attributes> attributesCaptor = ArgumentCaptor.forClass(Attributes.class);
+        Mockito.verify(messagesOutTotal).add(Mockito.eq(1L), attributesCaptor.capture());
+        Assert.assertEquals(normalTopic, attributesCaptor.getValue().get(LABEL_TOPIC_KEY));
+        Assert.assertFalse(attributesCaptor.getValue().get(LABEL_IS_RETRY_KEY));
+    }
+
+    @Test
+    public void handleGetMessageResultShouldNotRecordEmptyOrNotFoundResult() {
+        PopConsumerContext context = new PopConsumerContext(clientHost, System.currentTimeMillis(), 20000, groupId,
+            false, ConsumeInitMode.MIN, attemptId);
+        GetMessageResult notFoundResult = new GetMessageResult();
+        notFoundResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
+        consumerService.handleGetMessageResult(context, notFoundResult, topicId, queueId, PopConsumerRecord.RetryType.NORMAL_TOPIC, 100);
+
+        GetMessageResult emptyFoundResult = new GetMessageResult();
+        emptyFoundResult.setStatus(GetMessageStatus.FOUND);
+        consumerService.handleGetMessageResult(context, emptyFoundResult, topicId, queueId, PopConsumerRecord.RetryType.NORMAL_TOPIC, 100);
+
+        Mockito.verify(brokerStatsManager, Mockito.never()).incBrokerGetNums(anyString(), anyInt());
+        Mockito.verify(brokerStatsManager, Mockito.never()).incGroupGetNums(anyString(), anyString(), anyInt());
+        Mockito.verify(brokerStatsManager, Mockito.never()).incGroupGetSize(anyString(), anyString(), anyInt());
+        Mockito.verify(messagesOutTotal, Mockito.never()).add(anyLong(), any(Attributes.class));
+        Mockito.verify(throughputOutTotal, Mockito.never()).add(anyLong(), any(Attributes.class));
+    }
+
+    private GetMessageResult createFoundGetMessageResult(int size, int batchNum, long queueOffset) {
+        GetMessageResult result = new GetMessageResult();
+        result.setStatus(GetMessageStatus.FOUND);
+        ByteBuffer buffer = ByteBuffer.allocate(size);
+        result.addMessage(new SelectMappedBufferResult(0, buffer, buffer.remaining(), null), queueOffset, batchNum);
+        return result;
     }
 
     @Test
