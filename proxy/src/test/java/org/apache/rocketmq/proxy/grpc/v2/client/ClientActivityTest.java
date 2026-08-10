@@ -345,6 +345,25 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testBlankLanguageIsReportedAsInvalidArgument() throws Throwable {
+        ProxyContext context = createContext().setLanguage("");
+        try {
+            this.sendClientTelemetry(
+                context,
+                Settings.newBuilder()
+                    .setClientType(ClientType.PRODUCER)
+                    .setPublishing(Publishing.newBuilder()
+                        .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                        .build())
+                    .build()).get();
+            fail();
+        } catch (ExecutionException e) {
+            StatusRuntimeException exception = (StatusRuntimeException) e.getCause();
+            assertEquals(Status.Code.INVALID_ARGUMENT, exception.getStatus().getCode());
+        }
+    }
+
+    @Test
     public void testEmptySettings() throws Throwable {
         ProxyContext context = createContext();
         try {
