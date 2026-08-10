@@ -54,6 +54,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -223,6 +224,22 @@ public class DefaultMQProducerImplTest {
     }
 
     @Test
+    public void testPickTopicToleratesConcurrentCacheEviction() throws Exception {
+        ClearingConcurrentMap<String, TopicPublishInfo> topicPublishInfoTable = new ClearingConcurrentMap<>();
+        topicPublishInfoTable.put(defaultTopic, mock(TopicPublishInfo.class));
+        setField(defaultMQProducerImpl, "topicPublishInfoTable", topicPublishInfoTable);
+
+        Method method = DefaultMQProducerImpl.class.getDeclaredMethod("pickTopic");
+        method.setAccessible(true);
+
+        Optional<String> topic = (Optional<String>) method.invoke(defaultMQProducerImpl);
+
+        // ConcurrentHashMap iterators are weakly consistent, so a candidate observed before
+        // eviction is valid. The important contract is that selection never throws.
+        assertNotNull(topic);
+    }
+
+    @Test
     public void assertFetchPublishMessageQueues() throws MQClientException {
         List<MessageQueue> actual = defaultMQProducerImpl.fetchPublishMessageQueues(defaultTopic);
         assertNotNull(actual);
@@ -381,5 +398,19 @@ public class DefaultMQProducerImplTest {
         Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, newValue);
+    }
+
+    private static class ClearingConcurrentMap<K, V> extends ConcurrentHashMap<K, V> {
+        private boolean clearOnFirstIsEmpty = true;
+
+        @Override
+        public boolean isEmpty() {
+            boolean empty = super.isEmpty();
+            if (clearOnFirstIsEmpty) {
+                clearOnFirstIsEmpty = false;
+                super.clear();
+            }
+            return empty;
+        }
     }
 }
