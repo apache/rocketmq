@@ -197,8 +197,10 @@ public class ClientProcessor extends AbstractProcessor {
         if (CollectionUtils.isEmpty(subList)) {
             return;
         }
-        // check bindTopic for sub list
-        validateLiteBindTopic(ctx, group, subList.iterator().next().getTopic());
+        // check bindTopic for every subscription in the sub list
+        for (SubscriptionData subscriptionData : subList) {
+            validateLiteBindTopic(ctx, group, subscriptionData.getTopic());
+        }
     }
 
     protected void validateLiteBindTopic(ProxyContext ctx, String group, String bindTopic) {
