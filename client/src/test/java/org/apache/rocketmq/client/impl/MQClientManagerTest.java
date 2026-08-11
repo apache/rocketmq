@@ -134,6 +134,8 @@ public class MQClientManagerTest {
         ThreadGroup threadGroup = new ThreadGroup("constructor-failure-" + System.nanoTime());
         ExecutorService executor = newExecutor(threadGroup, 1);
         ClientConfig config = newConfig("constructor-failure");
+        // The heartbeat executor is currently created after ConsumerStatsManager registers its tasks. A zero-sized
+        // pool therefore injects a late constructor failure and verifies rollback of already-started resources.
         config.setEnableConcurrentHeartbeat(true);
         config.setConcurrentHeartbeatThreadPoolSize(0);
 
@@ -228,6 +230,8 @@ public class MQClientManagerTest {
             MQClientAPIImpl clientAPI = mock(MQClientAPIImpl.class);
             PullMessageService failingPullMessageService = mock(PullMessageService.class);
             doThrow(new IllegalStateException("injected start failure")).when(failingPullMessageService).start();
+            // Test-only fault injection deliberately replaces final collaborators by field name. This avoids adding
+            // production injection hooks, but these assignments must be updated if the fields are renamed.
             FieldUtils.writeDeclaredField(failedInstance, "mQClientAPIImpl", clientAPI, true);
             FieldUtils.writeDeclaredField(failedInstance, "pullMessageService", failingPullMessageService, true);
 
@@ -307,6 +311,9 @@ public class MQClientManagerTest {
     }
 
     private static String differentHashBinInstanceName(String firstClientId, String prefix) {
+        // ConcurrentHashMap currently spreads h as h ^ (h >>> 16) and starts with 16 bins. Selecting a different
+        // initial bin makes the constructor barrier prove that creation is not globally serialized. Update this
+        // helper if the JDK's ConcurrentHashMap hashing or initial table size changes.
         int firstBin = spread(firstClientId.hashCode()) & 15;
         for (int i = 0; ; i++) {
             String candidate = prefix + "-" + i;

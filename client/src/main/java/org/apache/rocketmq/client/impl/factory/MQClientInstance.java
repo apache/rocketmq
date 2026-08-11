@@ -251,6 +251,7 @@ public class MQClientInstance {
         try {
             cleanup.run();
         } catch (Throwable t) {
+            // Cleanup on Error paths is best effort; always preserve the original failure.
             if (t != cause) {
                 cause.addSuppressed(t);
             }
@@ -358,6 +359,9 @@ public class MQClientInstance {
                         log.info("the client factory [{}] start OK", this.clientId);
                         this.serviceState = ServiceState.RUNNING;
                     } catch (MQClientException | RuntimeException | Error e) {
+                        // Do not apply the normal shutdown registration guards here: a factory that never reached
+                        // RUNNING cannot serve any registered client, and its partially started resources must stop.
+                        // Existing holders still observe START_FAILED; a later manager lookup may create a replacement.
                         cleanupAfterStartFailure(e);
                         MQClientManager.getInstance().removeClientFactory(this.clientId, this);
                         throw e;

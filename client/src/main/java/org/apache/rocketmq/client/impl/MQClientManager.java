@@ -52,10 +52,12 @@ public class MQClientManager {
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
             ClientConfig clonedClientConfig = clientConfig.cloneClientConfig();
+            // MQClientInstance construction must not call back into factoryTable. ConcurrentHashMap rejects
+            // recursive updates from a mapping function with IllegalStateException.
             instance = this.factoryTable.computeIfAbsent(clientId, key -> {
                 MQClientInstance newInstance = new MQClientInstance(clonedClientConfig,
                     this.factoryIndexGenerator.getAndIncrement(), key, rpcHook);
-                log.info("Created new MQClientInstance for clientId:[{}]", clientId);
+                log.info("Created new MQClientInstance for clientId:[{}]", key);
                 return newInstance;
             });
         }
@@ -79,6 +81,10 @@ public class MQClientManager {
         return accumulator;
     }
 
+    /**
+     * Removes the mapped factory without checking its identity. Lifecycle cleanup should prefer
+     * {@link #removeClientFactory(String, MQClientInstance)} to avoid removing a replacement instance.
+     */
     public void removeClientFactory(final String clientId) {
         this.factoryTable.remove(clientId);
     }
