@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.client.producer.querymsg;
 
+import java.time.Duration;
 import java.util.List;
 
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -33,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class QueryMsgByKeyIT extends BaseConf {
     private static Logger logger = LoggerFactory.getLogger(QueryMsgByKeyIT.class);
@@ -154,9 +156,12 @@ public class QueryMsgByKeyIT extends BaseConf {
 
         long begin = System.currentTimeMillis() - 500000;
         long end = System.currentTimeMillis() + 500000;
-        List<MessageExt> list = producerA.getProducer().queryMessage(topicA, keyA, msgSize * 10, begin, end).getMessageList();
-
-        assertThat(list).isNotNull();
-        assertThat(list.size()).isEqualTo(1);
+        // Message indexes are built asynchronously, so querying immediately after send can temporarily return no message.
+        await().ignoreException(MQClientException.class).atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            List<MessageExt> list = producerA.getProducer()
+                .queryMessage(topicA, keyA, msgSize * 10, begin, end).getMessageList();
+            assertThat(list).isNotNull();
+            assertThat(list.size()).isEqualTo(1);
+        });
     }
 }
