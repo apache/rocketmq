@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import java.time.Duration;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -25,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.when;
@@ -138,6 +141,24 @@ public class NettyRemotingAbstractTest {
     }
 
     @Test
+    public void testNettyEventExecutorShutdownWithoutPollDelay() {
+        TestNettyEventExecutor executor = new TestNettyEventExecutor(remotingAbstract);
+        executor.start();
+        try {
+            await().atMost(Duration.ofSeconds(3))
+                .until(() -> executor.getThreadState() == Thread.State.TIMED_WAITING);
+
+            long beginTime = System.nanoTime();
+            executor.shutdown();
+            long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime);
+
+            assertThat(elapsedMillis).isLessThan(1000L);
+        } finally {
+            executor.shutdown(true);
+        }
+    }
+
+    @Test
     public void testProcessRequestCommand() throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
         RemotingCommand request = RemotingCommand.createRequestCommand(1, null);
@@ -167,5 +188,15 @@ public class NettyRemotingAbstractTest {
         // Acquire the release permit after call back
         semaphore.acquire(1);
         assertThat(semaphore.availablePermits()).isEqualTo(0);
+    }
+
+    private static class TestNettyEventExecutor extends NettyRemotingAbstract.NettyEventExecutor {
+        TestNettyEventExecutor(NettyRemotingAbstract remotingAbstract) {
+            remotingAbstract.super();
+        }
+
+        Thread.State getThreadState() {
+            return thread.getState();
+        }
     }
 }
