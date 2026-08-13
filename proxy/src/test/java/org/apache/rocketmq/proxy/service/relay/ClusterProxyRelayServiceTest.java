@@ -14,37 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.proxy.service.relay;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.junit.Test;
 
-/**
- * not implement yet
- */
-public class ClusterProxyRelayService extends AbstractProxyRelayService {
-    
-    public ClusterProxyRelayService(TransactionService transactionService) {
-        super(transactionService);
-    }
-    
-    @Override
-    public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
-        ProxyContext context, RemotingCommand command,
-        GetConsumerRunningInfoRequestHeader header) {
-        return new CompletableFuture<>();
-    }
-    
-    @Override
-    public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
-        ProxyContext context, RemotingCommand command,
-        ConsumeMessageDirectlyResultRequestHeader header) {
-        return null;
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ClusterProxyRelayServiceTest {
+    @Test
+    public void testProcessGetConsumerRunningInfoReturnsPendingFuture() {
+        ClusterProxyRelayService clusterProxyRelayService = new ClusterProxyRelayService(null);
+        GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, header);
+
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future =
+            clusterProxyRelayService.processGetConsumerRunningInfo(ProxyContext.create(), request, header);
+
+        assertThat(future).isNotNull();
+        assertThat(future).isNotDone();
     }
 }

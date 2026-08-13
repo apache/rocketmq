@@ -66,7 +66,7 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOutClient {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-
+    
     protected final MessagingProcessor messagingProcessor;
     protected final RemotingChannelManager remotingChannelManager;
     protected final ChannelEventListener clientHousekeepingService;
@@ -90,12 +90,12 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ScheduledExecutorService timerExecutor;
     protected final TlsCertificateManager tlsCertificateManager;
     protected final RemotingTlsReloadHandler tlsReloadHandler;
-
-
+    
+    
     public RemotingProtocolServer(MessagingProcessor messagingProcessor, TlsCertificateManager tlsCertificateManager) throws Exception {
         this.messagingProcessor = messagingProcessor;
         this.remotingChannelManager = new RemotingChannelManager(this, messagingProcessor.getProxyRelayService());
-
+    
         RequestPipeline pipeline = createRequestPipeline(messagingProcessor);
         this.getTopicRouteActivity = new GetTopicRouteActivity(pipeline, messagingProcessor);
         this.clientManagerActivity = new ClientManagerActivity(pipeline, messagingProcessor, remotingChannelManager);
@@ -197,7 +197,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
         this.registerRemotingServer(this.defaultRemotingServer);
     }
-
+    
     protected class RemotingTlsReloadHandler implements TlsCertificateManager.TlsContextReloadListener {
         @Override
         public void onTlsContextReload() {
@@ -207,7 +207,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
             }
         }
     }
-
+    
     protected void registerRemotingServer(RemotingServer remotingServer) {
         remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageActivity, this.sendMessageExecutor);
         remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageActivity, this.sendMessageExecutor);
@@ -230,6 +230,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         remotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, consumerManagerActivity, this.updateOffsetExecutor);
         remotingServer.registerProcessor(RequestCode.GET_CONSUMER_CONNECTION_LIST, consumerManagerActivity, this.updateOffsetExecutor);
 
+        remotingServer.registerProcessor(RequestCode.GET_CONSUMER_RUNNING_INFO, consumerManagerActivity, this.defaultExecutor);
         remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManagerActivity, this.defaultExecutor);
         remotingServer.registerProcessor(RequestCode.GET_MAX_OFFSET, consumerManagerActivity, this.defaultExecutor);
         remotingServer.registerProcessor(RequestCode.GET_MIN_OFFSET, consumerManagerActivity, this.defaultExecutor);
@@ -240,7 +241,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
         remotingServer.registerProcessor(RequestCode.GET_ROUTEINFO_BY_TOPIC, getTopicRouteActivity, this.topicRouteExecutor);
     }
-
+    
     @Override
     public void shutdown() throws Exception {
         // Unregister the TLS context reload handler
@@ -255,7 +256,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.topicRouteExecutor.shutdown();
         this.defaultExecutor.shutdown();
     }
-
+    
     @Override
     public void start() throws Exception {
         // Register the TLS context reload handler
@@ -264,7 +265,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.remotingChannelManager.start();
         this.defaultRemotingServer.start();
     }
-
+    
     @Override
     public CompletableFuture<RemotingCommand> invokeToClient(Channel channel, RemotingCommand request,
         long timeoutMillis) {
@@ -291,7 +292,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         }
         return future;
     }
-
+    
     protected RequestPipeline createRequestPipeline(MessagingProcessor messagingProcessor) {
         RequestPipeline pipeline = (ctx, request, context) -> {
         };
@@ -304,7 +305,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         }
         return pipeline.pipe(new ContextInitPipeline());
     }
-
+    
     protected class ThreadPoolHeadSlowTimeMillsMonitor implements ThreadPoolStatusMonitor {
 
         private final long maxWaitTimeMillsInQueue;
@@ -328,7 +329,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
             return value > maxWaitTimeMillsInQueue;
         }
     }
-
+    
     protected long headSlowTimeMills(BlockingQueue<Runnable> q) {
         try {
             long slowTimeMills = 0;
@@ -348,7 +349,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         }
         return -1;
     }
-
+    
     protected void cleanExpireRequest() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
 
@@ -359,7 +360,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         cleanExpiredRequestInQueue(this.topicRouteExecutor, config.getRemotingWaitTimeMillsInTopicRouteQueue());
         cleanExpiredRequestInQueue(this.defaultExecutor, config.getRemotingWaitTimeMillsInDefaultQueue());
     }
-
+    
     protected void cleanExpiredRequestInQueue(ThreadPoolExecutor threadPoolExecutor, long maxWaitTimeMillsInQueue) {
         while (true) {
             try {
@@ -391,7 +392,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
             }
         }
     }
-
+    
     private RequestTask castRunnable(final Runnable runnable) {
         try {
             if (runnable instanceof FutureTaskExt) {

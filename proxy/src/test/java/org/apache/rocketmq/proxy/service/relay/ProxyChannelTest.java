@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -43,7 +44,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -159,5 +162,58 @@ public class ProxyChannelTest {
         assertTrue(channel.writeAndFlush(checkTransactionRequest).isSuccess());
         assertTrue(channel.writeAndFlush(consumerRunningInfoRequest).isSuccess());
         assertTrue(channel.writeAndFlush(consumeMessageDirectlyResult).isSuccess());
+    }
+
+    @Test
+    public void testProcessGetConsumerRunningInfoWhenProcessFails() {
+        RuntimeException exception = new RuntimeException("failed");
+        MockProxyChannel channel = new MockProxyChannel(this.proxyRelayService, null, "127.0.0.2:8888", "127.0.0.1:10911") {
+            @Override
+            protected CompletableFuture<Void> processOtherMessage(Object msg) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            protected CompletableFuture<Void> processCheckTransaction(CheckTransactionStateRequestHeader header,
+                MessageExt messageExt, TransactionData transactionData,
+                CompletableFuture<ProxyRelayResult<Void>> responseFuture) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
+                GetConsumerRunningInfoRequestHeader header,
+                CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture) {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                future.completeExceptionally(exception);
+                return future;
+            }
+
+            @Override
+            protected CompletableFuture<Void> processConsumeMessageDirectly(RemotingCommand command,
+                ConsumeMessageDirectlyResultRequestHeader header, MessageExt messageExt,
+                CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            protected CompletableFuture<Void> processNotifyUnsubscribeLite(NotifyUnsubscribeLiteRequestHeader header) {
+                return CompletableFuture.completedFuture(null);
+            }
+        };
+
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future =
+            channel.processGetConsumerRunningInfo(mock(RemotingCommand.class), new GetConsumerRunningInfoRequestHeader());
+
+        assertTrue(future.isCompletedExceptionally());
+        try {
+            future.get();
+            fail("Expected the future to complete exceptionally");
+        } catch (ExecutionException e) {
+            assertSame(exception, e.getCause());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail("Interrupted while waiting for the future");
+        }
     }
 }
