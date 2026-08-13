@@ -70,6 +70,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -168,19 +169,36 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testRejectCompressedBatch() {
+        Message compressedMessage = createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 16);
+        compressedMessage = compressedMessage.toBuilder()
+            .setSystemProperties(compressedMessage.getSystemProperties().toBuilder()
+                .setBodyEncoding(Encoding.GZIP))
+            .build();
+        SendMessageRequest request = SendMessageRequest.newBuilder()
+            .addMessages(compressedMessage)
+            .addMessages(createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 16))
+            .build();
+
+        ExecutionException exception = assertThrows(ExecutionException.class,
+            () -> this.sendMessageActivity.sendMessage(createContext(), request).get());
+        GrpcProxyException cause = (GrpcProxyException) exception.getCause();
+        assertEquals(Code.MESSAGE_CORRUPTED, cause.getCode());
+        verify(this.messagingProcessor, never()).sendMessage(any(), any(), anyString(), anyInt(), any());
+    }
+
+    @Test
     public void testRejectBatchWhoseEncodedBodyExceedsLimit() {
         int previousMaxMessageSize = ConfigurationManager.getProxyConfig().getMaxMessageSize();
         ConfigurationManager.getProxyConfig().setMaxMessageSize(80);
         try {
-            List<Message> protoMessages = Lists.newArrayList(
-                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 30),
-                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 30));
             List<org.apache.rocketmq.common.message.Message> messages = Lists.newArrayList(
                 new org.apache.rocketmq.common.message.Message(TOPIC, new byte[30]),
                 new org.apache.rocketmq.common.message.Message(TOPIC, new byte[30]));
 
             GrpcProxyException exception = assertThrows(GrpcProxyException.class,
-                () -> this.sendMessageActivity.validateBatchMessages(protoMessages, messages));
+                () -> this.sendMessageActivity.validateBatchMessages(messages));
             assertEquals(Code.MESSAGE_BODY_TOO_LARGE, exception.getCode());
         } finally {
             ConfigurationManager.getProxyConfig().setMaxMessageSize(previousMaxMessageSize);
@@ -192,15 +210,12 @@ public class SendMessageActivityTest extends BaseActivityTest {
         int previousMaxMessageCount = ConfigurationManager.getProxyConfig().getBatchSendMaxMsgNum();
         ConfigurationManager.getProxyConfig().setBatchSendMaxMsgNum(1);
         try {
-            List<Message> protoMessages = Lists.newArrayList(
-                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 1),
-                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 1));
             List<org.apache.rocketmq.common.message.Message> messages = Lists.newArrayList(
                 new org.apache.rocketmq.common.message.Message(TOPIC, new byte[1]),
                 new org.apache.rocketmq.common.message.Message(TOPIC, new byte[1]));
 
             GrpcProxyException exception = assertThrows(GrpcProxyException.class,
-                () -> this.sendMessageActivity.validateBatchMessages(protoMessages, messages));
+                () -> this.sendMessageActivity.validateBatchMessages(messages));
             assertEquals(Code.MESSAGE_CORRUPTED, exception.getCode());
         } finally {
             ConfigurationManager.getProxyConfig().setBatchSendMaxMsgNum(previousMaxMessageCount);

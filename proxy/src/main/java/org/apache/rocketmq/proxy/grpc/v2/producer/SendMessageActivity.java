@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -77,8 +78,9 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             apache.rocketmq.v2.Message message = messageList.get(0);
             Resource topic = message.getTopic();
             validateTopic(topic);
+            validateBatchEncoding(messageList);
             List<Message> messages = buildMessage(ctx, messageList, topic);
-            validateBatchMessages(messageList, messages);
+            validateBatchMessages(messages);
 
             future = this.messagingProcessor.sendMessage(
                 ctx,
@@ -107,42 +109,48 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         return messageExtList;
     }
 
-    protected void validateBatchMessages(List<apache.rocketmq.v2.Message> protoMessageList,
-        List<Message> messageList) {
-        if (protoMessageList.size() <= 1) {
+    protected void validateBatchEncoding(List<apache.rocketmq.v2.Message> messageList) {
+        if (messageList.size() <= 1) {
+            return;
+        }
+        for (apache.rocketmq.v2.Message message : messageList) {
+            if (Encoding.GZIP.equals(message.getSystemProperties().getBodyEncoding())) {
+                throw new GrpcProxyException(Code.MESSAGE_CORRUPTED,
+                    "batch send does not support compressed messages");
+            }
+        }
+    }
+
+    protected void validateBatchMessages(List<Message> messageList) {
+        if (messageList.size() <= 1) {
             return;
         }
 
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        if (protoMessageList.size() > config.getBatchSendMaxMsgNum()) {
+        if (messageList.size() > config.getBatchSendMaxMsgNum()) {
             throw new GrpcProxyException(Code.MESSAGE_CORRUPTED,
                 "batch message count cannot exceed the max " + config.getBatchSendMaxMsgNum());
         }
 
-        apache.rocketmq.v2.Message firstMessage = protoMessageList.get(0);
-        MessageType messageType = firstMessage.getSystemProperties().getMessageType();
-        if (!MessageType.NORMAL.equals(messageType) && !MessageType.FIFO.equals(messageType)) {
+        Message firstMessage = messageList.get(0);
+        TopicMessageType messageType = TopicMessageType.parseFromMessageProperty(firstMessage.getProperties());
+        if (!TopicMessageType.NORMAL.equals(messageType) && !TopicMessageType.FIFO.equals(messageType)) {
             throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
                 "batch send only supports normal or FIFO messages");
         }
 
-        String messageGroup = firstMessage.getSystemProperties().getMessageGroup();
-        if (MessageType.FIFO.equals(messageType) && StringUtils.isBlank(messageGroup)) {
+        String messageGroup = firstMessage.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
+        if (TopicMessageType.FIFO.equals(messageType) && StringUtils.isBlank(messageGroup)) {
             throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP,
                 "message group cannot be empty for FIFO batch messages");
         }
-        Encoding bodyEncoding = firstMessage.getSystemProperties().getBodyEncoding();
-        for (apache.rocketmq.v2.Message message : protoMessageList) {
-            if (!messageType.equals(message.getSystemProperties().getMessageType())) {
+        for (Message message : messageList) {
+            if (!messageType.equals(TopicMessageType.parseFromMessageProperty(message.getProperties()))) {
                 throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
                     "all messages in a batch must have the same message type");
             }
-            if (!bodyEncoding.equals(message.getSystemProperties().getBodyEncoding())) {
-                throw new GrpcProxyException(Code.MESSAGE_CORRUPTED,
-                    "all messages in a batch must have the same body encoding");
-            }
-            if (MessageType.FIFO.equals(messageType)
-                && !Objects.equals(messageGroup, message.getSystemProperties().getMessageGroup())) {
+            if (TopicMessageType.FIFO.equals(messageType)
+                && !Objects.equals(messageGroup, message.getProperty(MessageConst.PROPERTY_SHARDING_KEY))) {
                 throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
                     "all FIFO messages in a batch must have the same message group");
             }
