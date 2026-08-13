@@ -30,6 +30,7 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -58,6 +59,7 @@ import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import static org.apache.rocketmq.proxy.service.route.TopicRouteService.buildPenalizerByMQFaultStrategy;
 import static org.junit.Assert.assertEquals;
@@ -68,6 +70,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class SendMessageActivityTest extends BaseActivityTest {
@@ -120,6 +124,101 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
         assertEquals(Code.OK, response.getStatus().getCode());
         assertEquals(msgId, response.getEntries(0).getMessageId());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSendFifoBatchInOneInvocation() throws Exception {
+        String firstMessageId = MessageClientIDSetter.createUniqID();
+        String secondMessageId = MessageClientIDSetter.createUniqID();
+        String messageGroup = "group";
+        SendResult sendResult = new SendResult(SendStatus.SEND_OK, null, null, null, 10);
+        when(this.messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
+
+        SendMessageRequest request = SendMessageRequest.newBuilder()
+            .addMessages(createMessage(firstMessageId, MessageType.FIFO, messageGroup, 16))
+            .addMessages(createMessage(secondMessageId, MessageType.FIFO, messageGroup, 16))
+            .build();
+        SendMessageResponse response = this.sendMessageActivity.sendMessage(createContext(), request).get();
+
+        ArgumentCaptor<List<org.apache.rocketmq.common.message.Message>> messageListCaptor =
+            ArgumentCaptor.forClass(List.class);
+        verify(this.messagingProcessor, times(1)).sendMessage(any(), any(), anyString(), anyInt(),
+            messageListCaptor.capture());
+        assertEquals(2, messageListCaptor.getValue().size());
+        assertEquals(2, response.getEntriesCount());
+        assertEquals(firstMessageId, response.getEntries(0).getMessageId());
+        assertEquals(secondMessageId, response.getEntries(1).getMessageId());
+        assertEquals(10, response.getEntries(0).getOffset());
+        assertEquals(11, response.getEntries(1).getOffset());
+    }
+
+    @Test
+    public void testRejectFifoBatchWithDifferentMessageGroups() {
+        SendMessageRequest request = SendMessageRequest.newBuilder()
+            .addMessages(createMessage(MessageClientIDSetter.createUniqID(), MessageType.FIFO, "group-a", 16))
+            .addMessages(createMessage(MessageClientIDSetter.createUniqID(), MessageType.FIFO, "group-b", 16))
+            .build();
+
+        ExecutionException exception = assertThrows(ExecutionException.class,
+            () -> this.sendMessageActivity.sendMessage(createContext(), request).get());
+        GrpcProxyException cause = (GrpcProxyException) exception.getCause();
+        assertEquals(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, cause.getCode());
+    }
+
+    @Test
+    public void testRejectBatchWhoseEncodedBodyExceedsLimit() {
+        int previousMaxMessageSize = ConfigurationManager.getProxyConfig().getMaxMessageSize();
+        ConfigurationManager.getProxyConfig().setMaxMessageSize(80);
+        try {
+            List<Message> protoMessages = Lists.newArrayList(
+                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 30),
+                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 30));
+            List<org.apache.rocketmq.common.message.Message> messages = Lists.newArrayList(
+                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[30]),
+                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[30]));
+
+            GrpcProxyException exception = assertThrows(GrpcProxyException.class,
+                () -> this.sendMessageActivity.validateBatchMessages(protoMessages, messages));
+            assertEquals(Code.MESSAGE_BODY_TOO_LARGE, exception.getCode());
+        } finally {
+            ConfigurationManager.getProxyConfig().setMaxMessageSize(previousMaxMessageSize);
+        }
+    }
+
+    @Test
+    public void testRejectBatchWhoseMessageCountExceedsLimit() {
+        int previousMaxMessageCount = ConfigurationManager.getProxyConfig().getBatchSendMaxMsgNum();
+        ConfigurationManager.getProxyConfig().setBatchSendMaxMsgNum(1);
+        try {
+            List<Message> protoMessages = Lists.newArrayList(
+                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 1),
+                createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 1));
+            List<org.apache.rocketmq.common.message.Message> messages = Lists.newArrayList(
+                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[1]),
+                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[1]));
+
+            GrpcProxyException exception = assertThrows(GrpcProxyException.class,
+                () -> this.sendMessageActivity.validateBatchMessages(protoMessages, messages));
+            assertEquals(Code.MESSAGE_CORRUPTED, exception.getCode());
+        } finally {
+            ConfigurationManager.getProxyConfig().setBatchSendMaxMsgNum(previousMaxMessageCount);
+        }
+    }
+
+    private Message createMessage(String messageId, MessageType messageType, String messageGroup, int bodySize) {
+        return Message.newBuilder()
+            .setTopic(Resource.newBuilder().setName(TOPIC).build())
+            .setSystemProperties(SystemProperties.newBuilder()
+                .setMessageId(messageId)
+                .setMessageType(messageType)
+                .setMessageGroup(messageGroup)
+                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                .build())
+            .setBody(ByteString.copyFrom(new byte[bodySize]))
+            .build();
     }
 
     @Test
@@ -362,6 +461,11 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
         SendMessageActivity.SendMessageQueueSelector selector2 = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
+                .addMessages(Message.newBuilder()
+                    .setSystemProperties(SystemProperties.newBuilder()
+                        .setMessageGroup(String.valueOf(1))
+                        .build())
+                    .build())
                 .addMessages(Message.newBuilder()
                     .setSystemProperties(SystemProperties.newBuilder()
                         .setMessageGroup(String.valueOf(1))

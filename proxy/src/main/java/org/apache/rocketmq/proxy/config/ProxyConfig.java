@@ -117,6 +117,10 @@ public class ProxyConfig implements ConfigFile {
      */
     private int maxMessageSize = 4 * 1024 * 1024;
     /**
+     * max message count in one batch send request
+     */
+    private int batchSendMaxMsgNum = 4096;
+    /**
      * if true, proxy will check message body size and reject msg if it's body is empty
      */
     private boolean enableMessageBodyEmptyCheck = true;
@@ -593,6 +597,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMaxMessageSize(int maxMessageSize) {
         this.maxMessageSize = maxMessageSize;
+    }
+
+    public int getBatchSendMaxMsgNum() {
+        return batchSendMaxMsgNum;
+    }
+
+    public void setBatchSendMaxMsgNum(int batchSendMaxMsgNum) {
+        this.batchSendMaxMsgNum = batchSendMaxMsgNum;
     }
 
     public int getMaxUserPropertySize() {
