@@ -31,7 +31,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-@RocketMQAction(value = RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, action = Action.GET)
+@RocketMQAction(value = RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, action = {Action.SUB, Action.GET})
 public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.TOPIC)
