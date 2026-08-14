@@ -133,6 +133,7 @@ public interface MessageQueuePenalizer<Q extends MessageQueue> {
             }
         }
         if (bestQueue == null) {
+            // All priority groups were empty or absent.
             return null;
         }
         return Pair.of(bestQueue, bestPenalty);
