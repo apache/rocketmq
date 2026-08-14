@@ -42,6 +42,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -144,6 +145,24 @@ public class ClientManageProcessorTest {
         assertThat(Boolean.parseBoolean(responseSimple.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
         consumerGroupInfoSimple = brokerController.getConsumerManager().getConsumerGroupInfo(group);
         assertThat(consumerGroupInfoSimple).isEqualTo(consumerGroupInfo);
+    }
+
+    @Test
+    public void processRequest_producerHeartbeat() throws RemotingCommandException {
+        ProducerData producerData = new ProducerData();
+        producerData.setGroupName(group);
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setClientID(clientId);
+        heartbeatData.getProducerDataSet().add(producerData);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        request.setLanguage(LanguageCode.JAVA);
+        request.setVersion(100);
+        request.setBody(heartbeatData.encode());
+
+        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(brokerController.getProducerManager().getGroupChannelTable().get(group)).containsKey(channel);
     }
 
     @Test
