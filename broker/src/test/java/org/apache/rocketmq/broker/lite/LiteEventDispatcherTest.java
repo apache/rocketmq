@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.lite;
 
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.processor.NotificationProcessor;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
+import java.util.function.Function;
 
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -58,10 +60,12 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -110,7 +114,7 @@ public class LiteEventDispatcherTest {
     @Test
     public void testDispatchWhenQueueIdNotZero() {
         liteEventDispatcher.dispatch("group", "lmqName", 1, 0L, 0L);
-        verify(liteSubscriptionRegistry, never()).getAllSubscriber(anyString(), anyString());
+        verify(liteSubscriptionRegistry, never()).getAllSubscribers(anyString(), anyString());
     }
 
     @Test
@@ -123,7 +127,7 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testDoDispatchWhenWrapperIsNull() {
-        when(liteSubscriptionRegistry.getAllSubscriber("group", "lmqName")).thenReturn(null);
+        when(liteSubscriptionRegistry.getAllSubscribers("group", "lmqName")).thenReturn(Collections.emptyMap());
 
         // Use reflection to access private method
         try {
@@ -135,7 +139,7 @@ public class LiteEventDispatcherTest {
             fail("Exception should not be thrown");
         }
 
-        verify(liteSubscriptionRegistry).getAllSubscriber("group", "lmqName");
+        verify(liteSubscriptionRegistry).getAllSubscribers("group", "lmqName");
     }
 
     @Test
@@ -144,11 +148,10 @@ public class LiteEventDispatcherTest {
         subscriptionGroupConfig.setWildcardLiteGroup(false);
         when(subscriptionGroupManager.findSubscriptionGroupConfig("group")).thenReturn(subscriptionGroupConfig);
 
-        SubscriberWrapper.ListWrapper listWrapper = mock(SubscriberWrapper.ListWrapper.class);
         List<ClientGroup> clients = Collections.singletonList(new ClientGroup("clientId", "group"));
-        when(listWrapper.asListWrapper()).thenReturn(listWrapper);
-        when(listWrapper.getClients()).thenReturn(clients);
-        when(liteSubscriptionRegistry.getAllSubscriber("group", "lmqName")).thenReturn(listWrapper);
+        Map<String, List<ClientGroup>> subscriberMap = new HashMap<>();
+        subscriberMap.put("group", clients);
+        when(liteSubscriptionRegistry.getAllSubscribers("group", "lmqName")).thenReturn(subscriberMap);
 
         LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
         spyDispatcher.doDispatch("group", "lmqName", null);
@@ -157,12 +160,9 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testDoDispatchWithMapWrapper() {
-        SubscriberWrapper.MapWrapper mapWrapper = mock(SubscriberWrapper.MapWrapper.class);
         Map<String, List<ClientGroup>> groupMap = new HashMap<>();
         groupMap.put("key", Collections.singletonList(new ClientGroup("clientId", "group")));
-        when(mapWrapper.getGroupMap()).thenReturn(groupMap);
-        when(mapWrapper.asMapWrapper()).thenReturn(mapWrapper);
-        when(liteSubscriptionRegistry.getAllSubscriber("group", "lmqName")).thenReturn(mapWrapper);
+        when(liteSubscriptionRegistry.getAllSubscribers("group", "lmqName")).thenReturn(groupMap);
 
         LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
 
@@ -270,7 +270,7 @@ public class LiteEventDispatcherTest {
         String group = "group";
 
         LiteSubscription subscription = mock(LiteSubscription.class);
-        when(subscription.getLiteTopicSet()).thenReturn(Collections.emptySet());
+        when(subscription.getLmqSet()).thenReturn(Collections.emptySet());
         when(liteSubscriptionRegistry.getLiteSubscription(clientId)).thenReturn(subscription);
 
         liteEventDispatcher.doFullDispatchForClient(clientId, group);
@@ -515,7 +515,7 @@ public class LiteEventDispatcherTest {
         LiteSubscription subscription = new LiteSubscription();
         Set<String> topics = new HashSet<>();
         topics.add(lmqName);
-        subscription.setLiteTopicSet(topics);
+        subscription.setLmqSet(topics);
 
         when(liteSubscriptionRegistry.getLiteSubscription(clientId)).thenReturn(subscription);
         when(liteLifecycleManager.getMaxOffsetInQueue(lmqName)).thenReturn(100L);
@@ -543,5 +543,55 @@ public class LiteEventDispatcherTest {
         liteEventDispatcher.fullDispatchSet.add(request);
         liteEventDispatcher.scan();
         assertTrue(liteEventDispatcher.fullDispatchSet.isEmpty());
+    }
+
+    @Test
+    public void testDoFullDispatchForWildcardGroup_dispatchesLmqs() {
+        String group = "wildcardGroup";
+        String parentTopic = "parentTopic";
+        String lmq1 = "%LMQ%$parentTopic$sub1";
+        String lmq2 = "%LMQ%$parentTopic$sub2";
+
+        // Make isWildcardGroup return true and getLiteBindTopic return parentTopic
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setWildcardLiteGroup(true);
+        groupConfig.setLiteBindTopic(parentTopic);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        List<ClientGroup> clients = Collections.singletonList(new ClientGroup("clientId", group));
+        when(liteSubscriptionRegistry.getWildcardGroupClients(group)).thenReturn(clients);
+
+        doAnswer(invocation -> {
+            Function<Triple<String, Long, Long>, Boolean> func = invocation.getArgument(1);
+            func.apply(Triple.of(lmq1, 100L, null));
+            func.apply(Triple.of(lmq2, 200L, null));
+            return null;
+        }).when(liteLifecycleManager).forEachLiteTopicByParent(eq(parentTopic), any());
+
+        when(consumerOffsetManager.queryOffset(group, lmq1, 0)).thenReturn(50L);
+        when(consumerOffsetManager.queryOffset(group, lmq2, 0)).thenReturn(50L);
+
+        LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
+        spyDispatcher.doFullDispatchForWildcardGroup(group);
+
+        verify(spyDispatcher, times(2)).selectAndDispatch(anyString(), eq(clients), eq(null));
+    }
+
+    @Test
+    public void testDoFullDispatchByGroup_nonWildcard_delegatesToClientDispatch() {
+        String group = "testGroup";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setWildcardLiteGroup(false);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        List<String> clientIds = Arrays.asList("client1", "client2");
+        when(liteSubscriptionRegistry.getAllClientIdByGroup(group)).thenReturn(clientIds);
+
+        LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
+        spyDispatcher.doFullDispatchByGroup(group);
+
+        verify(spyDispatcher).doFullDispatchForClient("client1", group);
+        verify(spyDispatcher).doFullDispatchForClient("client2", group);
     }
 }

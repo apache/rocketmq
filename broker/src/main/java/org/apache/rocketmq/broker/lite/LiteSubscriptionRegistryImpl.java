@@ -23,6 +23,7 @@ import com.google.common.cache.CacheBuilder;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,7 +53,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     protected final ConcurrentMap<String/*clientId*/, Channel> clientChannels = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String/*clientId*/, LiteSubscription> client2Subscription = new ConcurrentHashMap<>();
-    protected final ConcurrentMap<String/*lmqName*/, Set<ClientGroup>> liteTopic2Group = new ConcurrentHashMap<>();
+    protected final ConcurrentMap<String/*lmqName*/, Set<ClientGroup>> liteTopic2ClientGroup = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String/*topic*/, Set<String/*group*/>> wildcardGroupMap = new ConcurrentHashMap<>();
     private final Cache<String/*group*/, List<ClientGroup>> wildcardClientCache =
         CacheBuilder.newBuilder().maximumSize(2000).expireAfterWrite(30, TimeUnit.SECONDS).build();
@@ -90,14 +91,15 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             throw new IllegalStateException("subscribe lite operation is not supported for this group");
         }
 
-        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
+        // 1) Normalize input: keep active lmqs only
+        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic).touch();
         // Utilize existing string object
         final ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
+
         for (String lmqName : lmqNameSet) {
             if (!liteLifecycleManager.isSubscriptionActive(topic, lmqName)) {
                 continue;
             }
-            thisSub.addLiteTopic(lmqName);
             // First remove the old subscription
             if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
                 excludeClientByLmqName(clientId, group, lmqName);
@@ -107,63 +109,61 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 exclusiveEvictionTombstones.remove(clientId, lmqName);
             }
             resetOffset(lmqName, group, clientId, offsetOption);
-            addTopicGroup(clientGroup, lmqName);
+            addClientGroup(thisSub, clientGroup, lmqName);
         }
     }
 
     @Override
     public void removePartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet) {
-        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
+        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic).touch();
         ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
         boolean isResetOffsetOnUnsubscribe = LiteMetadataUtil.isResetOffsetOnUnsubscribe(group, brokerController);
         for (String lmqName : lmqNameSet) {
-            thisSub.removeLiteTopic(lmqName);
-            removeTopicGroup(clientGroup, lmqName, isResetOffsetOnUnsubscribe);
+            thisSub.removeLmq(lmqName);
+            removeClientGroup(clientGroup, lmqName, isResetOffsetOnUnsubscribe);
         }
     }
 
     @Override
     public void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll, long version) {
-        Set<String> lmqNameNew;
         if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
-            lmqNameNew = Collections.singleton(mockLmqNameForWildcardGroup(topic, group));
             markWildcardGroup(topic, group);
-        } else {
-            lmqNameNew = lmqNameAll.stream()
-                .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
-                .collect(Collectors.toSet());
+            String wildcardLmq = mockLmqNameForWildcardGroup(topic, group);
+            LiteSubscription wildcardSub = getOrCreateLiteSubscription(clientId, group, topic).touch();
+            addClientGroup(wildcardSub, new ClientGroup(clientId, group), wildcardLmq);
+            return;
         }
 
-        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
-        Set<String> lmqNamePrev = thisSub.getLiteTopicSet();
-        // Find topics to remove (in current set but not in new set)
-        Set<String> lmqNameRemove = lmqNamePrev.stream()
-            .filter(lmqName -> !lmqNameNew.contains(lmqName))
+        // 1) Normalize input: keep active lmqs only
+        Set<String> targetLmqs = lmqNameAll.stream()
+            .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
             .collect(Collectors.toSet());
 
+        // 2) Compute removal delta
+        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic).touch();
+        Set<String> lmqsToRemove = LiteSubscription.removals(thisSub.getLmqSet(), targetLmqs);
+
+        // 3) Apply removals, then idempotent adds over the full target set
         ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
-        lmqNameRemove.forEach(lmqName -> {
-            thisSub.removeLiteTopic(lmqName);
-            removeTopicGroup(clientGroup, lmqName, false);
+        lmqsToRemove.forEach(lmqName -> {
+            thisSub.removeLmq(lmqName);
+            removeClientGroup(clientGroup, lmqName, false);
         });
-        lmqNameNew.forEach(lmqName -> {
-            thisSub.addLiteTopic(lmqName);
-            addTopicGroup(clientGroup, lmqName);
-        });
+        targetLmqs.forEach(lmqName -> addClientGroup(thisSub, clientGroup, lmqName));
+
         // Tombstone operations only apply to exclusive groups.
         if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
-            // Boundary case: if any lmqName in the client's reported full subscription still has
-            // a tombstone, the previous notifyUnsubscribeLite was likely lost. Re-send the
-            // unsubscribe notification to drive the client's local state to converge.
-            lmqNameNew.stream()
+            // If any lmqName in the client's full subscription still has a tombstone,
+            // the previous notifyUnsubscribeLite was likely lost. Re-send to drive convergence.
+            targetLmqs.stream()
                 .filter(lmqName -> exclusiveEvictionTombstones.contains(clientId, lmqName))
                 .forEach(lmqName -> {
                     LOGGER.info("re-notify unsubscribe for tombstoned lmqName, clientId:{}, group:{}, lmqName:{}",
                         clientId, group, lmqName);
                     notifyUnsubscribeLite(clientId, group, lmqName);
                 });
-            // Clean exclusive-eviction tombstones for liteTopics no longer in the client's full subscription set
-            exclusiveEvictionTombstones.removeStale(clientId, lmqNameNew);
+            // Clean tombstones for lmqNames no longer in the client's full subscription set
+            exclusiveEvictionTombstones.removeStale(clientId, targetLmqs);
         }
     }
 
@@ -180,9 +180,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
         LOGGER.info("removeCompleteSubscription, topic:{}, group:{}, clientId:{}", thisSub.getTopic(), thisSub.getGroup(), clientId);
         ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
-        thisSub.getLiteTopicSet().forEach(lmqName -> {
-            removeTopicGroup(clientGroup, lmqName, false);
-        });
+        thisSub.getLmqSet().forEach(lmqName -> removeClientGroup(clientGroup, lmqName, false));
         for (LiteCtlListener listener : listeners) {
             listener.onRemoveAll(clientId, thisSub.getGroup());
         }
@@ -195,52 +193,75 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     /**
      * Get all subscribers for a specific LMQ, with optional group filtering.
-     * This method returns different types based on the subscription scenario:
-     * 1. When there's only one subscriber, return List<ClientGroup>
-     * 2. When group is specified, return List<ClientGroup> containing subscribers of that group
-     * 3. When group is null and multiple groups exist, return Map<String, List<ClientGroup>>
-     *    mapping each group to its subscribers
+     * This method merges results from two sources:
+     * 1. Exact subscriptions from liteTopic2ClientGroup
+     * 2. Wildcard subscriptions from wildcardGroupMap
+     * <p>
+     * When group is specified, returns a single-entry map for that group.
+     * When group is null, returns a map of all groups to their subscribers.
      */
     @Override
-    public SubscriberWrapper getAllSubscriber(String group, String lmqName) {
-        String topic = LiteUtil.getParentTopic(lmqName);
-
-        if (group != null) {
-            if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
-                return getWildcardSubscriber(group, topic);
-            }
-            SubscriberWrapper.ListWrapper wrapper = new SubscriberWrapper.ListWrapper();
-            Set<ClientGroup> subscribers = liteTopic2Group.get(lmqName);
-            if (subscribers != null) {
-                wrapper.getClients().addAll(subscribers.stream()
-                    .filter(clientGroup -> group.equals(clientGroup.group))
-                    .collect(Collectors.toSet()));
-            }
-            return wrapper;
+    public Map<String, List<ClientGroup>> getAllSubscribers(String group, String lmqName) {
+        Map<String, List<ClientGroup>> result = new HashMap<>();
+        if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+            collectWildcardSubscribers(result, group, lmqName);
         } else {
-            SubscriberWrapper.MapWrapper wrapper = new SubscriberWrapper.MapWrapper();
-            Set<ClientGroup> subscribers = liteTopic2Group.get(lmqName);
-            if (subscribers != null) {
-                for (ClientGroup clientGroup : subscribers) {
-                    wrapper.getGroupMap().computeIfAbsent(clientGroup.group, k -> new ArrayList<>()).add(clientGroup);
-                }
+            collectExactSubscribers(result, group, lmqName);
+            if (group == null) {
+                collectWildcardSubscribers(result, null, lmqName);
             }
-            Set<String> wildcardGroups = wildcardGroupMap.get(topic);
-            if (wildcardGroups != null) {
-                for (String wildcardGroup : wildcardGroups) {
-                    List<ClientGroup> wildcardClients = getWildcardGroupClients(topic, wildcardGroup);
-                    if (CollectionUtils.isNotEmpty(wildcardClients)) {
-                        wrapper.getGroupMap().putIfAbsent(wildcardGroup, wildcardClients);
-                    }
-                }
-            }
-            return wrapper;
         }
+        return result;
     }
 
     @Override
-    public SubscriberWrapper.ListWrapper getWildcardSubscriber(String group, String topic) {
-        return new SubscriberWrapper.ListWrapper(getWildcardGroupClients(topic, group));
+    public List<ClientGroup> getWildcardGroupClients(String group) {
+        List<ClientGroup> list = null;
+        try {
+            list = wildcardClientCache.get(group, () -> {
+                String topic = LiteMetadataUtil.getLiteBindTopic(group, brokerController);
+                if (topic == null) {
+                    return Collections.emptyList();
+                }
+                Set<ClientGroup> clientSet = liteTopic2ClientGroup.get(mockLmqNameForWildcardGroup(topic, group));
+                return clientSet != null ? new ArrayList<>(clientSet) : Collections.emptyList();
+            });
+        } catch (ExecutionException ignored) {
+        }
+        return list;
+    }
+
+    private void collectExactSubscribers(Map<String, List<ClientGroup>> result, String group, String lmqName) {
+        Set<ClientGroup> subscribers = liteTopic2ClientGroup.get(lmqName);
+        if (subscribers == null) {
+            return;
+        }
+        for (ClientGroup cg : subscribers) {
+            if (group == null || group.equals(cg.group)) {
+                result.computeIfAbsent(cg.group, k -> new ArrayList<>()).add(cg);
+            }
+        }
+    }
+
+    private void collectWildcardSubscribers(Map<String, List<ClientGroup>> result, String group, String lmqName) {
+        if (group == null) {
+            String topic = LiteUtil.getParentTopic(lmqName);
+            Set<String> wildcardGroups = wildcardGroupMap.get(topic);
+            if (wildcardGroups == null) {
+                return;
+            }
+            for (String wildcardGroup : wildcardGroups) {
+                List<ClientGroup> wildcardClients = getWildcardGroupClients(wildcardGroup);
+                if (CollectionUtils.isNotEmpty(wildcardClients)) {
+                    result.putIfAbsent(wildcardGroup, wildcardClients);
+                }
+            }
+        } else if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+            List<ClientGroup> wildcardClients = getWildcardGroupClients(group);
+            if (CollectionUtils.isNotEmpty(wildcardClients)) {
+                result.put(group, wildcardClients);
+            }
+        }
     }
 
     /**
@@ -251,7 +272,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
      */
     @Override
     public void cleanSubscription(String lmqName, boolean notifyClient) {
-        Set<ClientGroup> topicGroupSet = liteTopic2Group.remove(lmqName);
+        Set<ClientGroup> topicGroupSet = liteTopic2ClientGroup.remove(lmqName);
         if (CollectionUtils.isEmpty(topicGroupSet)) {
             return;
         }
@@ -260,7 +281,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             if (liteSubscription == null) {
                 continue;
             }
-            if (liteSubscription.removeLiteTopic(lmqName)) {
+            if (liteSubscription.removeLmq(lmqName)) {
                 if (notifyClient) {
                     notifyUnsubscribeLite(topicGroup.clientId, topicGroup.group, lmqName);
                 }
@@ -269,20 +290,20 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
-    protected void addTopicGroup(ClientGroup clientGroup, String lmqName) {
-        Set<ClientGroup> topicGroupSet = liteTopic2Group
-            .computeIfAbsent(lmqName, k -> ConcurrentHashMap.newKeySet());
-        if (topicGroupSet.add(clientGroup)) {
-            activeNum.incrementAndGet();
-            invalidateWildcardCacheIfNecessary(clientGroup.group);
-            for (LiteCtlListener listener : listeners) {
-                listener.onRegister(clientGroup.clientId, clientGroup.group, lmqName);
-            }
+    protected void addClientGroup(LiteSubscription subscription, ClientGroup clientGroup, String lmqName) {
+        if (!subscription.addLmq(lmqName)) {
+            return;
+        }
+        liteTopic2ClientGroup.computeIfAbsent(lmqName, k -> ConcurrentHashMap.newKeySet()).add(clientGroup);
+        activeNum.incrementAndGet();
+        invalidateWildcardCacheIfNecessary(clientGroup.group);
+        for (LiteCtlListener listener : listeners) {
+            listener.onRegister(clientGroup.clientId, clientGroup.group, lmqName);
         }
     }
 
-    protected void removeTopicGroup(ClientGroup clientGroup, String lmqName, boolean resetOffset) {
-        Set<ClientGroup> topicGroupSet = liteTopic2Group.get(lmqName);
+    protected void removeClientGroup(ClientGroup clientGroup, String lmqName, boolean resetOffset) {
+        Set<ClientGroup> topicGroupSet = liteTopic2ClientGroup.get(lmqName);
         if (topicGroupSet == null) {
             return;
         }
@@ -298,7 +319,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             }
         }
         if (topicGroupSet.isEmpty()) {
-            liteTopic2Group.remove(lmqName);
+            liteTopic2ClientGroup.remove(lmqName);
             unmarkWildcardGroupIfNecessary(lmqName);
         }
     }
@@ -307,7 +328,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
      * Remove clients that subscribe to the same liteTopic under the same group
      */
     protected void excludeClientByLmqName(String newClientId, String group, String lmqName) {
-        Set<ClientGroup> clientSet = liteTopic2Group.get(lmqName);
+        Set<ClientGroup> clientSet = liteTopic2ClientGroup.get(lmqName);
         if (CollectionUtils.isEmpty(clientSet)) {
             return;
         }
@@ -318,9 +339,9 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         toRemove.forEach(clientGroup -> {
             LiteSubscription liteSubscription = client2Subscription.get(clientGroup.clientId);
             if (liteSubscription != null) {
-                liteSubscription.removeLiteTopic(lmqName);
+                liteSubscription.removeLmq(lmqName);
                 // remove client if no more liteTopic
-                if (liteSubscription.getLiteTopicSet().isEmpty()) {
+                if (liteSubscription.getLmqSet().isEmpty()) {
                     client2Subscription.remove(clientGroup.clientId);
                 }
             }
@@ -329,7 +350,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             boolean resetOffset = LiteMetadataUtil.isResetOffsetInExclusiveMode(group, brokerController);
             LOGGER.info("excludeClientByLmqName group:{}, lmqName:{}, resetOffset:{}, clientId:{} -> {}",
                 group, lmqName, resetOffset, clientGroup.clientId, newClientId);
-            removeTopicGroup(clientGroup, lmqName, resetOffset);
+            removeClientGroup(clientGroup, lmqName, resetOffset);
         });
     }
 
@@ -439,18 +460,6 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     private String mockLmqNameForWildcardGroup(String topic, String group) {
         return topic + "@" + group;
-    }
-
-    private List<ClientGroup> getWildcardGroupClients(String topic, String group) {
-        List<ClientGroup> list = null;
-        try {
-            list = wildcardClientCache.get(group, () -> {
-                Set<ClientGroup> clientSet = liteTopic2Group.get(mockLmqNameForWildcardGroup(topic, group));
-                return clientSet != null ? new ArrayList<>(clientSet) : Collections.emptyList();
-            });
-        } catch (ExecutionException ignored) {
-        }
-        return list;
     }
 
     @Override

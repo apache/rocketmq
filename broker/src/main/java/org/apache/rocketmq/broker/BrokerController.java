@@ -1155,7 +1155,11 @@ public class BrokerController {
 
     private boolean initLiteService() {
         this.liteEventDispatcher.init();
-        return this.liteLifecycleManager.init();
+        if (!this.liteLifecycleManager.init()) {
+            return false;
+        }
+        this.liteLifecycleManager.bootstrapLmqPrefixIndex();
+        return true;
     }
 
     public void registerProcessor() {

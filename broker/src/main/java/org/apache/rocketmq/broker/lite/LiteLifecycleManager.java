@@ -17,20 +17,15 @@
 
 package org.apache.rocketmq.broker.lite;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -46,47 +41,6 @@ public class LiteLifecycleManager extends AbstractLiteLifecycleManager {
     public long getMaxOffsetInQueue(String lmqName) {
         ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(lmqName, 0);
         return consumeQueue != null ? consumeQueue.getMaxOffsetInQueue() : 0L;
-    }
-
-    @Override
-    public List<String> collectByParentTopic(String parentTopic) {
-        if (StringUtils.isEmpty(parentTopic)) {
-            return Collections.emptyList();
-        }
-        List<String> resultList = new ArrayList<>();
-        Iterator<Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> iterator =
-            messageStore.getQueueStore().getConsumeQueueTable().entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> entry = iterator.next();
-            if (LiteUtil.belongsTo(entry.getKey(), parentTopic)) {
-                resultList.add(entry.getKey());
-            }
-        }
-        return resultList;
-    }
-
-    @Override
-    public List<Pair<String, String>> collectExpiredLiteTopic() {
-        List<Pair<String, String>> lmqToDelete = new ArrayList<>();
-        Iterator<Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> iterator =
-            messageStore.getQueueStore().getConsumeQueueTable().entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> entry = iterator.next();
-            String lmqName =  entry.getKey();
-            String parentTopic = LiteUtil.getParentTopic(lmqName);
-            if (null == parentTopic) {
-                continue;
-            }
-            Map<Integer, ConsumeQueueInterface> map = entry.getValue();
-            if (map.size() != 1 || null == map.get(0)) {
-                LOGGER.warn("unexpected lmq count. {}", lmqName);
-                continue;
-            }
-            if (isLiteTopicExpired(parentTopic, entry.getKey(), map.get(0).getMaxOffsetInQueue())) {
-                lmqToDelete.add(new Pair<>(parentTopic, lmqName));
-            }
-        }
-        return lmqToDelete;
     }
 
     @Override
