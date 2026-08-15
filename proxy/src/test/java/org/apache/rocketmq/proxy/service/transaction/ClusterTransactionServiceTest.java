@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
@@ -44,6 +45,7 @@ import org.mockito.Mockito;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -106,6 +108,14 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         this.clusterTransactionService.unSubscribeAllTransactionTopic(ctx, GROUP);
 
         assertEquals(0, this.clusterTransactionService.getGroupClusterData().size());
+    }
+
+    @Test
+    public void testAddTransactionDataByBrokerAddrBeforeFirstHeartbeat() {
+        TransactionData transactionData = this.clusterTransactionService.addTransactionDataByBrokerAddr(
+            ctx, BROKER_ADDR, TOPIC, GROUP, 1, 2, "transaction-id", new Message());
+
+        assertNull(transactionData);
     }
 
     @Test
