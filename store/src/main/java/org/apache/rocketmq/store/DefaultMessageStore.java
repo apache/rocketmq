@@ -2741,16 +2741,19 @@ public class DefaultMessageStore implements MessageStore {
 
                         if (dispatchRequest.isSuccess()) {
                             if (size > 0) {
-                                currentReputTimestamp = dispatchRequest.getStoreTimestamp();
-                                DefaultMessageStore.this.doDispatch(dispatchRequest);
+                                if (dispatchRequest.getMsgSize() > 0) {
+                                    currentReputTimestamp = dispatchRequest.getStoreTimestamp();
+                                    DefaultMessageStore.this.doDispatch(dispatchRequest);
 
-                                if (isNotifyMessageArriveWhenReput()) {
-                                    notifyMessageArriveIfNecessary(dispatchRequest);
+                                    if (isNotifyMessageArriveWhenReput()) {
+                                        notifyMessageArriveIfNecessary(dispatchRequest);
+                                    }
                                 }
 
                                 this.reputFromOffset += size;
                                 readSize += size;
-                                if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
+                                if (dispatchRequest.getMsgSize() > 0
+                                    && !DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
                                     DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
                                     DefaultMessageStore.this.storeStatsService
                                         .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(dispatchRequest.getBatchSize());

@@ -81,6 +81,7 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
         "src/test/java/org/apache/rocketmq/store/HATest",
         "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
+        "src/test/java/org/apache/rocketmq/store/dledger/DLedgerLatestCommitLogTest",
         "src/test/java/org/apache/rocketmq/store/MappedFileQueueTest",
         "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",
         "src/test/java/org/apache/rocketmq/store/dledger/MixCommitlogTest",

@@ -22,6 +22,7 @@ import io.openmessaging.storage.dledger.common.AppendFuture;
 import io.openmessaging.storage.dledger.common.BatchAppendFuture;
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import io.openmessaging.storage.dledger.entry.DLedgerEntryCoder;
+import io.openmessaging.storage.dledger.entry.DLedgerEntryType;
 import io.openmessaging.storage.dledger.entry.DLedgerIndexEntry;
 import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
 import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
@@ -103,12 +104,16 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
         dLedgerConfig.setEnableBatchAppend(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
+        dLedgerConfig.setEnableFastAdvanceCommitIndex(true);
         dLedgerConfig.setDiskSpaceRatioToCheckExpired(defaultMessageStore.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100f);
 
         id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
         dLedgerServer = new DLedgerServer(dLedgerConfig);
         dLedgerFileStore = (DLedgerMmapFileStore) dLedgerServer.getdLedgerStore();
         DLedgerMmapFileStore.AppendHook appendHook = (entry, buffer, bodyOffset) -> {
+            if (entry.getMagic() != DLedgerEntryType.NORMAL.getMagic()) {
+                return;
+            }
             assert bodyOffset == DLedgerEntry.BODY_OFFSET;
             buffer.position(buffer.position() + bodyOffset + MessageDecoder.PHY_POS_POSITION);
             buffer.putLong(entry.getPos() + bodyOffset);
@@ -406,19 +411,24 @@ public class DLedgerCommitLog extends CommitLog {
             long mmapFileOffset = 0;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
-                int size = dispatchRequest.getMsgSize();
+                int messageSize = dispatchRequest.getMsgSize();
+                int entrySize = dispatchRequest.getBufferSize() == -1
+                    ? messageSize : dispatchRequest.getBufferSize();
 
                 if (dispatchRequest.isSuccess()) {
-                    if (size > 0) {
-                        mmapFileOffset += size;
-                        if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
-                            if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
+                    if (entrySize > 0) {
+                        mmapFileOffset += entrySize;
+                        if (messageSize > 0) {
+                            if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+                                if (dispatchRequest.getCommitLogOffset()
+                                    < this.defaultMessageStore.getConfirmOffset()) {
+                                    this.defaultMessageStore.doDispatch(dispatchRequest);
+                                }
+                            } else {
                                 this.defaultMessageStore.doDispatch(dispatchRequest);
                             }
-                        } else {
-                            this.defaultMessageStore.doDispatch(dispatchRequest);
                         }
-                    } else if (size == 0) {
+                    } else if (entrySize == 0) {
                         index++;
                         if (index >= mmapFiles.size()) {
                             log.info("dledger recover physics file over, last mapped file " + mmapFile.getFileName());
@@ -486,16 +496,53 @@ public class DLedgerCommitLog extends CommitLog {
         log.info("Will set the initial commitlog offset={} for dledger", dividedCommitlogOffset);
     }
 
-    private boolean isMmapFileMatchedRecover(final MmapFile mmapFile, boolean recoverNormally) throws RocksDBException {
-        ByteBuffer byteBuffer = mmapFile.sliceByteBuffer();
+    private ByteBuffer firstNormalEntryBody(ByteBuffer byteBuffer) {
+        int limit = byteBuffer.limit();
+        int position = byteBuffer.position();
+        while (limit - position >= Integer.BYTES * 2) {
+            int magic = byteBuffer.getInt(position);
+            int entrySize = byteBuffer.getInt(position + Integer.BYTES);
+            if (magic == MmapFileList.BLANK_MAGIC_CODE || entrySize < DLedgerEntry.BODY_OFFSET
+                || entrySize > limit - position) {
+                return null;
+            }
+            if (magic == DLedgerEntryType.NOOP.getMagic()) {
+                if (entrySize != DLedgerEntry.BODY_OFFSET) {
+                    return null;
+                }
+                position += entrySize;
+                continue;
+            }
+            if (magic != DLedgerEntryType.NORMAL.getMagic()) {
+                return null;
+            }
+            ByteBuffer body = byteBuffer.duplicate();
+            body.position(position + DLedgerEntry.BODY_OFFSET);
+            body.limit(position + entrySize);
+            return body.slice();
+        }
+        return null;
+    }
 
-        int magicCode = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
-        if (magicCode != MESSAGE_MAGIC_CODE) {
+    private boolean isMmapFileMatchedRecover(final MmapFile mmapFile, boolean recoverNormally)
+        throws RocksDBException {
+        ByteBuffer byteBuffer = firstNormalEntryBody(mmapFile.sliceByteBuffer());
+        if (byteBuffer == null
+            || byteBuffer.limit() < MessageDecoder.MESSAGE_MAGIC_CODE_POSITION + Integer.BYTES) {
             return false;
         }
 
+        int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
+        if (magicCode != MESSAGE_MAGIC_CODE
+            && magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
+            return false;
+        }
+
+        if (byteBuffer.limit() < MessageDecoder.SYSFLAG_POSITION + Integer.BYTES) {
+            return false;
+        }
         int storeTimestampPosition;
-        int sysFlag = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.SYSFLAG_POSITION);
+        int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
         if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
             storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION;
         } else {
@@ -503,11 +550,15 @@ public class DLedgerCommitLog extends CommitLog {
             storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 12;
         }
 
-        long storeTimestamp = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + storeTimestampPosition);
+        if (byteBuffer.limit() < storeTimestampPosition + Long.BYTES
+            || byteBuffer.limit() < MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION + Long.BYTES) {
+            return false;
+        }
+        long storeTimestamp = byteBuffer.getLong(storeTimestampPosition);
         if (storeTimestamp == 0) {
             return false;
         }
-        long phyOffset = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION);
+        long phyOffset = byteBuffer.getLong(MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION);
 
         if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
             && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
@@ -537,30 +588,54 @@ public class DLedgerCommitLog extends CommitLog {
         if (isInrecoveringOldCommitlog) {
             return super.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, readBody);
         }
+        int position = byteBuffer.position();
         try {
-            int bodyOffset = DLedgerEntry.BODY_OFFSET;
-            int pos = byteBuffer.position();
-            int magic = byteBuffer.getInt();
+            if (byteBuffer.remaining() < Integer.BYTES * 2) {
+                return new DispatchRequest(-1, false);
+            }
+            int magic = byteBuffer.getInt(position);
             //In dledger, this field is size, it must be gt 0, so it could prevent collision
-            int magicOld = byteBuffer.getInt();
-            if (magicOld == CommitLog.BLANK_MAGIC_CODE
-                || magicOld == MessageDecoder.MESSAGE_MAGIC_CODE
-                || magicOld == MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
-                byteBuffer.position(pos);
+            int entrySize = byteBuffer.getInt(position + Integer.BYTES);
+            if (entrySize == CommitLog.BLANK_MAGIC_CODE
+                || entrySize == MessageDecoder.MESSAGE_MAGIC_CODE
+                || entrySize == MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
                 return super.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, readBody);
             }
             if (magic == MmapFileList.BLANK_MAGIC_CODE) {
                 return new DispatchRequest(0, true);
             }
-            byteBuffer.position(pos + bodyOffset);
-            DispatchRequest dispatchRequest = super.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, readBody);
+            if (magic == DLedgerEntryType.NOOP.getMagic()) {
+                if (entrySize != DLedgerEntry.BODY_OFFSET || entrySize > byteBuffer.remaining()) {
+                    return new DispatchRequest(-1, false);
+                }
+                byteBuffer.position(position + entrySize);
+                DispatchRequest dispatchRequest = new DispatchRequest(0, true);
+                dispatchRequest.setBufferSize(entrySize);
+                return dispatchRequest;
+            }
+            if (magic != DLedgerEntryType.NORMAL.getMagic() || entrySize < DLedgerEntry.BODY_OFFSET
+                || entrySize > byteBuffer.remaining()) {
+                return new DispatchRequest(-1, false);
+            }
+            int entryEnd = position + entrySize;
+            ByteBuffer messageBuffer = byteBuffer.duplicate();
+            messageBuffer.position(position + DLedgerEntry.BODY_OFFSET);
+            messageBuffer.limit(entryEnd);
+            messageBuffer = messageBuffer.slice();
+            DispatchRequest dispatchRequest = super.checkMessageAndReturnSize(
+                messageBuffer, checkCRC, checkDupInfo, readBody);
             if (dispatchRequest.isSuccess()) {
-                dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
+                if (dispatchRequest.getMsgSize() + DLedgerEntry.BODY_OFFSET != entrySize) {
+                    return new DispatchRequest(-1, false);
+                }
+                byteBuffer.position(entryEnd);
+                dispatchRequest.setBufferSize(entrySize);
             } else if (dispatchRequest.getMsgSize() > 0) {
-                dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + bodyOffset);
+                dispatchRequest.setBufferSize(dispatchRequest.getMsgSize() + DLedgerEntry.BODY_OFFSET);
             }
             return dispatchRequest;
         } catch (Throwable ignored) {
+            byteBuffer.position(position);
         }
 
         return new DispatchRequest(-1, false /* success */);
