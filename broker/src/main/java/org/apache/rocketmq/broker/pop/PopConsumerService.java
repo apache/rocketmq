@@ -432,9 +432,10 @@ public class PopConsumerService extends ServiceThread {
                         this.popConsumerStore.writeRecords(result.getPopConsumerRecordList());
                     }
 
+                    int popConsumerRecordIndex = 0;
                     for (int i = 0; i < result.getGetMessageResultList().size(); i++) {
                         GetMessageResult getMessageResult = result.getGetMessageResultList().get(i);
-                        PopConsumerRecord popConsumerRecord = result.getPopConsumerRecordList().get(i);
+                        PopConsumerRecord popConsumerRecord = result.getPopConsumerRecordList().get(popConsumerRecordIndex);
 
                         // If the buffer belong retries message, the message needs to be re-encoded.
                         // The buffer should not be re-encoded when popResponseReturnActualRetryTopic
@@ -445,6 +446,7 @@ public class PopConsumerService extends ServiceThread {
                                 getMessageResult, popConsumerRecord.getTopicId(),
                                 popConsumerRecord.getQueueId(), result.getPopTime(), invisibleTime));
                         }
+                        popConsumerRecordIndex += getMessageResult.getMessageQueueOffset().size();
                     }
                 }
                 return CompletableFuture.completedFuture(result);

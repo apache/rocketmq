@@ -58,6 +58,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -312,6 +313,51 @@ public class PopConsumerServiceTest {
         // pop broker
         consumerServiceSpy.popAsync(clientHost, System.currentTimeMillis(),
             20000, groupId, topicId, -1, 10, false, attemptId, ConsumeInitMode.MIN, null).join();
+    }
+
+    @Test
+    public void popAsyncRecodeRetryMessagesAfterMultiMessageNormalResultTest() {
+        BrokerConfig brokerConfig = brokerController.getBrokerConfig();
+        brokerConfig.setPopResponseReturnActualRetryTopic(true);
+        brokerConfig.setPopFromRetryProbability(0);
+
+        TopicConfigManager topicConfigManager = brokerController.getTopicConfigManager();
+        SubscriptionGroupManager subscriptionGroupManager = brokerController.getSubscriptionGroupManager();
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        Mockito.when(subscriptionGroupManager.findSubscriptionGroupConfig(groupId)).thenReturn(subscriptionGroupConfig);
+
+        String retryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topicId, groupId);
+        Mockito.when(topicConfigManager.selectTopicConfig(topicId)).thenReturn(new TopicConfig(topicId, 1, 1,
+            PermName.PERM_READ | PermName.PERM_WRITE, 0));
+        Mockito.when(topicConfigManager.selectTopicConfig(retryTopicV1)).thenReturn(new TopicConfig(retryTopicV1, 1, 1,
+            PermName.PERM_READ | PermName.PERM_WRITE, 0));
+
+        GetMessageResult normalResult = getFoundResult(1L, 2L);
+        GetMessageResult retryResult = getFoundResult(3L);
+
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+        Mockito.doReturn(CompletableFuture.completedFuture(normalResult)).when(consumerServiceSpy)
+            .getMessageAsync(clientHost, groupId, topicId, 0, 0, 3, null);
+        Mockito.doReturn(CompletableFuture.completedFuture(retryResult)).when(consumerServiceSpy)
+            .getMessageAsync(clientHost, groupId, retryTopicV1, 0, 0, 1, null);
+
+        GetMessageResult recodedRetryResult = new GetMessageResult();
+        Mockito.doReturn(recodedRetryResult).when(consumerServiceSpy).recodeRetryMessage(
+            Mockito.eq(retryResult), Mockito.eq(retryTopicV1), Mockito.eq(0L), Mockito.anyLong(), Mockito.eq(20000L));
+
+        PopConsumerContext context = consumerServiceSpy.popAsync(clientHost, System.currentTimeMillis(),
+            20000, groupId, topicId, -1, 3, false, attemptId, ConsumeInitMode.MIN, null).join();
+
+        Assert.assertSame(recodedRetryResult, context.getGetMessageResultList().get(1));
+    }
+
+    private GetMessageResult getFoundResult(long... offsets) {
+        GetMessageResult result = new GetMessageResult();
+        result.setStatus(GetMessageStatus.FOUND);
+        for (long offset : offsets) {
+            result.addMessage(Mockito.mock(SelectMappedBufferResult.class), offset);
+        }
+        return result;
     }
 
     @Test
