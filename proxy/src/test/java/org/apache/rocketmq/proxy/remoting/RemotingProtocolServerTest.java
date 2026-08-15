@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.remoting;
 
-<<<<<<< HEAD
 import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
