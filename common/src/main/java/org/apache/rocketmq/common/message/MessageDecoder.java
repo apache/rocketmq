@@ -661,20 +661,29 @@ public class MessageDecoder {
     }
 
     public static byte[] encodeMessage(Message message) {
-        //only need flag, body, properties
         byte[] body = message.getBody();
-        int bodyLen = body.length;
         String properties = messageProperties2String(message.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
-        //note properties length must not more than Short.MAX
+        int storeSize = encodedMessageSize(body, propertiesBytes);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(storeSize);
+        encodeMessage(message, body, propertiesBytes, storeSize, byteBuffer);
+        return byteBuffer.array();
+    }
+
+    private static int encodedMessageSize(byte[] body, byte[] propertiesBytes) {
+        // Note properties length must not be greater than Short.MAX_VALUE.
         short propertiesLength = (short) propertiesBytes.length;
-        int storeSize = 4 // 1 TOTALSIZE
+        return 4 // 1 TOTALSIZE
             + 4 // 2 MAGICCOD
             + 4 // 3 BODYCRC
             + 4 // 4 FLAG
-            + 4 + bodyLen // 4 BODY
+            + 4 + body.length // 5 BODY
             + 2 + propertiesLength;
-        ByteBuffer byteBuffer = ByteBuffer.allocate(storeSize);
+    }
+
+    private static void encodeMessage(Message message, byte[] body, byte[] propertiesBytes, int storeSize,
+        ByteBuffer byteBuffer) {
+        short propertiesLength = (short) propertiesBytes.length;
         // 1 TOTALSIZE
         byteBuffer.putInt(storeSize);
 
@@ -689,14 +698,12 @@ public class MessageDecoder {
         byteBuffer.putInt(flag);
 
         // 5 BODY
-        byteBuffer.putInt(bodyLen);
+        byteBuffer.putInt(body.length);
         byteBuffer.put(body);
 
         // 6 properties
         byteBuffer.putShort(propertiesLength);
         byteBuffer.put(propertiesBytes);
-
-        return byteBuffer.array();
     }
 
     public static Message decodeMessage(ByteBuffer byteBuffer) throws Exception {
@@ -731,21 +738,26 @@ public class MessageDecoder {
     }
 
     public static byte[] encodeMessages(List<Message> messages) {
-        //TO DO refactor, accumulate in one buffer, avoid copies
-        List<byte[]> encodedMessages = new ArrayList<>(messages.size());
-        int allSize = 0;
+        byte[][] bodies = new byte[messages.size()][];
+        byte[][] propertiesBytes = new byte[messages.size()][];
+        int totalSize = 0;
+        int index = 0;
         for (Message message : messages) {
-            byte[] tmp = encodeMessage(message);
-            encodedMessages.add(tmp);
-            allSize += tmp.length;
+            byte[] body = message.getBody();
+            byte[] encodedProperties = messageProperties2String(message.getProperties()).getBytes(CHARSET_UTF8);
+            bodies[index] = body;
+            propertiesBytes[index++] = encodedProperties;
+            totalSize += encodedMessageSize(body, encodedProperties);
         }
-        byte[] allBytes = new byte[allSize];
-        int pos = 0;
-        for (byte[] bytes : encodedMessages) {
-            System.arraycopy(bytes, 0, allBytes, pos, bytes.length);
-            pos += bytes.length;
+
+        ByteBuffer byteBuffer = ByteBuffer.allocate(totalSize);
+        index = 0;
+        for (Message message : messages) {
+            byte[] body = bodies[index];
+            byte[] encodedProperties = propertiesBytes[index++];
+            encodeMessage(message, body, encodedProperties, encodedMessageSize(body, encodedProperties), byteBuffer);
         }
-        return allBytes;
+        return byteBuffer.array();
     }
 
     public static List<Message> decodeMessages(ByteBuffer byteBuffer) throws Exception {
