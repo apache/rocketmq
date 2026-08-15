@@ -266,7 +266,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
                     CompletableFuture<AckResult> future = new CompletableFuture<>();
                     eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
-                    return CompletableFuture.completedFuture(null);
+                    return future.thenApply(ackResult -> null);
                 }, 0);
             } catch (Exception e) {
                 log.error("error when clear handle for group. key:{}", key, e);
