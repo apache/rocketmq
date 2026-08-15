@@ -475,6 +475,18 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     }
 
     @Test
+    public void testClearGroupRetainsHandlesWhenCleanupSubmissionIsRejected() {
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        ReceiptHandleGroupKey key = new ReceiptHandleGroupKey(channel, GROUP);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.returnHandleGroupWorkerService.shutdownNow();
+
+        receiptHandleManager.clearGroup(key);
+
+        assertTrue(receiptHandleManager.receiptHandleGroupMap.containsKey(key));
+    }
+
+    @Test
     public void testClientOffline() {
         ArgumentCaptor<ConsumerIdsChangeListener> listenerArgumentCaptor = ArgumentCaptor.forClass(ConsumerIdsChangeListener.class);
         Mockito.verify(consumerManager, Mockito.times(1)).appendConsumerIdsChangeListener(listenerArgumentCaptor.capture());
