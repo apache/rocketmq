@@ -230,8 +230,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     );
                 }
             } catch (Throwable t) {
-                log.error("heartbeat consume message failed. msg:{}, dataSummary:{}",
-                    summarizeSystemMessage(msg), summarizeHeartbeatData(data), t);
+                log.error("heartbeat consume message failed. summary:{}", summarizeHeartbeatMessage(msg, data), t);
             }
         }
 
