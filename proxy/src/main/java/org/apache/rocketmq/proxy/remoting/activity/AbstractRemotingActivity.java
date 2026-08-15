@@ -65,13 +65,13 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
         ProxyContext context, long timeoutMillis) throws Exception {
         String brokerName;
         if (request.getCode() == RequestCode.SEND_MESSAGE_V2 || request.getCode() == RequestCode.SEND_BATCH_MESSAGE) {
-            if (request.getExtFields().get(BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2) == null) {
+            if (request.getExtFields() == null || request.getExtFields().get(BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2) == null) {
                 return RemotingCommand.buildErrorResponse(ResponseCode.VERSION_NOT_SUPPORTED,
                     "Request doesn't have field bname");
             }
             brokerName = request.getExtFields().get(BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2);
         } else {
-            if (request.getExtFields().get(BROKER_NAME_FIELD) == null) {
+            if (request.getExtFields() == null || request.getExtFields().get(BROKER_NAME_FIELD) == null) {
                 return RemotingCommand.buildErrorResponse(ResponseCode.VERSION_NOT_SUPPORTED,
                     "Request doesn't have field bname");
             }
