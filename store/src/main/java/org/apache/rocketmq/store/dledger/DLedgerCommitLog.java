@@ -16,11 +16,13 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import io.openmessaging.storage.dledger.AppendFuture;
-import io.openmessaging.storage.dledger.BatchAppendFuture;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
+import io.openmessaging.storage.dledger.common.AppendFuture;
+import io.openmessaging.storage.dledger.common.BatchAppendFuture;
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.entry.DLedgerEntryCoder;
+import io.openmessaging.storage.dledger.entry.DLedgerIndexEntry;
 import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
 import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
 import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
@@ -69,6 +71,8 @@ public class DLedgerCommitLog extends CommitLog {
     private final DLedgerConfig dLedgerConfig;
     private final DLedgerMmapFileStore dLedgerFileStore;
     private final MmapFileList dLedgerFileList;
+    private volatile long cachedCommittedIndex = Long.MIN_VALUE;
+    private volatile long cachedCommittedPos = -1;
 
     //The id identifies the broker role, 0 means master, others means slave
     private final int id;
@@ -98,7 +102,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
-        dLedgerConfig.setEnableBatchPush(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
+        dLedgerConfig.setEnableBatchAppend(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
         dLedgerConfig.setDiskSpaceRatioToCheckExpired(defaultMessageStore.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100f);
 
         id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
@@ -149,13 +153,48 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public long getMaxOffset() {
-        if (dLedgerFileStore.getCommittedPos() > 0) {
-            return dLedgerFileStore.getCommittedPos();
+        long committedPos = getCommittedPos();
+        if (committedPos > 0) {
+            return committedPos;
         }
-        if (dLedgerFileList.getMinOffset() > 0) {
+        if (committedPos == 0 && dLedgerFileList.getMinOffset() > 0) {
             return dLedgerFileList.getMinOffset();
         }
         return 0;
+    }
+
+    long getCommittedPos() {
+        long committedIndex = dLedgerServer.getMemberState().getCommittedIndex();
+        if (committedIndex < 0) {
+            return -1;
+        }
+        if (committedIndex == cachedCommittedIndex) {
+            return cachedCommittedPos;
+        }
+
+        SelectMmapBufferResult indexBuffer = null;
+        try {
+            indexBuffer = dLedgerFileStore.getIndexFileList().getData(
+                committedIndex * DLedgerMmapFileStore.INDEX_UNIT_SIZE,
+                DLedgerMmapFileStore.INDEX_UNIT_SIZE);
+            if (indexBuffer == null) {
+                return -1;
+            }
+            DLedgerIndexEntry indexEntry =
+                DLedgerEntryCoder.decodeIndex(indexBuffer.getByteBuffer());
+            if (indexEntry.getIndex() != committedIndex) {
+                return -1;
+            }
+            long committedPos = indexEntry.getPosition() + indexEntry.getSize();
+            cachedCommittedPos = committedPos;
+            cachedCommittedIndex = committedIndex;
+            return committedPos;
+        } catch (RuntimeException e) {
+            log.warn("Failed to resolve committed position for index={}", committedIndex, e);
+            return -1;
+        } finally {
+            SelectMmapBufferResult.release(indexBuffer);
+        }
     }
 
     @Override
@@ -232,11 +271,19 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     public SelectMmapBufferResult truncate(SelectMmapBufferResult sbr) {
-        long committedPos = dLedgerFileStore.getCommittedPos();
-        if (sbr == null || sbr.getStartOffset() == committedPos) {
+        long committedPos = getCommittedPos();
+        return truncate(sbr, committedPos);
+    }
+
+    private SelectMmapBufferResult truncate(SelectMmapBufferResult sbr, long committedPos) {
+        if (sbr == null) {
             return null;
         }
-        if (sbr.getStartOffset() + sbr.getSize() <= committedPos) {
+        if (committedPos < 0 || sbr.getStartOffset() >= committedPos) {
+            SelectMmapBufferResult.release(sbr);
+            return null;
+        }
+        if (sbr.getSize() <= committedPos - sbr.getStartOffset()) {
             return sbr;
         } else {
             sbr.setSize((int) (committedPos - sbr.getStartOffset()));
@@ -257,7 +304,8 @@ public class DLedgerCommitLog extends CommitLog {
         if (offset < dividedCommitlogOffset) {
             return super.getData(offset, returnFirstOnNotFound);
         }
-        if (offset >= dLedgerFileStore.getCommittedPos()) {
+        long committedPos = getCommittedPos();
+        if (committedPos < 0 || offset >= committedPos) {
             return null;
         }
         int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
@@ -265,7 +313,7 @@ public class DLedgerCommitLog extends CommitLog {
         if (mappedFile != null) {
             int pos = (int) (offset % mappedFileSize);
             SelectMmapBufferResult sbr = mappedFile.selectMappedBuffer(pos);
-            return convertSbr(truncate(sbr));
+            return convertSbr(truncate(sbr, committedPos));
         }
 
         return null;
@@ -276,14 +324,26 @@ public class DLedgerCommitLog extends CommitLog {
         if (offset < dividedCommitlogOffset) {
             return super.getData(offset, size, byteBuffer);
         }
-        if (offset >= dLedgerFileStore.getCommittedPos()) {
+        long committedPos = getCommittedPos();
+        if (committedPos < 0 || offset >= committedPos || size < 0 || byteBuffer.remaining() < size
+            || size > committedPos - offset) {
             return false;
         }
         int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
         MmapFile mappedFile = this.dLedgerFileList.findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
+            long selectedOffset = mappedFile.getFileFromOffset() + (offset % mappedFileSize);
+            if (selectedOffset >= committedPos || size > committedPos - selectedOffset) {
+                return false;
+            }
             int pos = (int) (offset % mappedFileSize);
-            return mappedFile.getData(pos, size, byteBuffer);
+            int originalLimit = byteBuffer.limit();
+            byteBuffer.limit(byteBuffer.position() + size);
+            try {
+                return mappedFile.getData(pos, size, byteBuffer);
+            } finally {
+                byteBuffer.limit(originalLimit);
+            }
         }
         return false;
     }
@@ -787,9 +847,17 @@ public class DLedgerCommitLog extends CommitLog {
         if (offset < dividedCommitlogOffset) {
             return super.getMessage(offset, size);
         }
+        long committedPos = getCommittedPos();
+        if (committedPos < 0 || offset >= committedPos || size < 0 || size > committedPos - offset) {
+            return null;
+        }
         int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
         MmapFile mappedFile = this.dLedgerFileList.findMappedFileByOffset(offset, offset == 0);
         if (mappedFile != null) {
+            long selectedOffset = mappedFile.getFileFromOffset() + (offset % mappedFileSize);
+            if (selectedOffset >= committedPos || size > committedPos - selectedOffset) {
+                return null;
+            }
             int pos = (int) (offset % mappedFileSize);
             return convertSbr(mappedFile.selectMappedBuffer(pos, size));
         }

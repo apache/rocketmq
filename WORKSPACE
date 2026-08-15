@@ -40,8 +40,7 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 maven_install(
     artifacts = [
         "junit:junit:4.13.2",
-        "com.alibaba:fastjson:1.2.83",
-        "com.alibaba.fastjson2:fastjson2:2.0.59",
+        "com.alibaba.fastjson2:fastjson2:2.0.64",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.130.Final",
         "org.assertj:assertj-core:3.22.0",
@@ -54,7 +53,7 @@ maven_install(
         "commons-validator:commons-validator:1.10.0",
         "org.apache.commons:commons-lang3:3.20.0",
         "org.hamcrest:hamcrest-core:1.3",
-        "io.openmessaging.storage:dledger:0.3.2",
+        "io.openmessaging.storage:dledger:0.3.3-pr336-f2-64-SNAPSHOT",
         "net.java.dev.jna:jna:4.2.2",
         "ch.qos.logback:logback-classic:1.2.10",
         "ch.qos.logback:logback-core:1.2.10",
@@ -117,6 +116,7 @@ maven_install(
         "org.slf4j:slf4j-api:2.0.3",
         "org.javassist:javassist:3.20.0-GA",
     ],
+    excluded_artifacts = ["org.apache.rocketmq:rocketmq-remoting"],
     fetch_sources = False,
     repositories = [
         "https://repo1.maven.org/maven2",

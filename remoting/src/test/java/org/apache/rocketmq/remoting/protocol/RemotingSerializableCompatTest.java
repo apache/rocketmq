@@ -17,17 +17,27 @@
 
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.annotation.JSONField;
-import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.remoting.protocol.body.BatchAck;
+import org.apache.rocketmq.remoting.protocol.body.Connection;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.junit.Test;
 import org.objenesis.ObjenesisStd;
 import org.reflections.Reflections;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,12 +48,31 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RemotingSerializableCompatTest {
+
+    private static final String FASTJSON1_BATCH_ACK =
+        "{\"b\":\"Kg==\",\"c\":\"fixture-consumer\",\"it\":60000,"
+            + "\"pt\":1700000000123,\"q\":7,\"r\":\"0\",\"rq\":3,"
+            + "\"so\":1234567890123,\"t\":\"FixtureTopic\"}";
+    private static final String FASTJSON1_SUBSCRIPTION_DATA =
+        "{\"classFilterMode\":true,\"codeSet\":[101,202],\"expressionType\":\"SQL92\","
+            + "\"subString\":\"TagA || TagB\",\"subVersion\":1700000000456,"
+            + "\"tagsSet\":[\"TagA\",\"TagB\"],\"topic\":\"FixtureTopic\"}";
+    private static final String FASTJSON1_CONSUMER_CONNECTION =
+        "{\"connectionSet\":[{\"clientAddr\":\"127.0.0.1:10911\","
+            + "\"clientId\":\"fixture-client@instance-1\",\"language\":\"GO\",\"version\":433}],"
+            + "\"consumeFromWhere\":\"CONSUME_FROM_TIMESTAMP\","
+            + "\"consumeType\":\"CONSUME_PASSIVELY\",\"messageModel\":\"CLUSTERING\","
+            + "\"subscriptionTable\":{\"FixtureTopic\":"
+            + FASTJSON1_SUBSCRIPTION_DATA + "}}";
     
     @Test
     public void testCompatibilityCheck() {
@@ -65,28 +94,106 @@ public class RemotingSerializableCompatTest {
                 fillDefaultFields(instance, clazz);
                 assertTrue(checkCompatible(instance, clazz));
             } catch (Exception e) {
-                System.err.printf("Class %s: incompatible, error: %s\n", clazz.getName(), e.getMessage());
+                throw new AssertionError("Class " + clazz.getName() + " could not be checked", e);
             }
         }
     }
 
     @Test
-    public void testCompatibilityCheckWithBitSet() {
+    public void testFastjson1BatchAckFixture() {
         BitSet bitSet = new BitSet();
         bitSet.set(1);
         bitSet.set(3);
         bitSet.set(5);
-        String fastjson1Str = "{\"b\":\"Kg==\",\"c\":\"DEFAULT_CONSUMER\",\"it\":5000,\"pt\":1760694281326,\"q\":1,\"r\":\"0\",\"rq\":2,\"so\":100,\"t\":\"myTopic\"}";
-        BatchAck batchAck = JSON.parseObject(fastjson1Str, BatchAck.class);
+        BatchAck batchAck = RemotingSerializable.fromJson(FASTJSON1_BATCH_ACK, BatchAck.class);
         assertEquals(bitSet, batchAck.getBitSet());
-        assertEquals("DEFAULT_CONSUMER", batchAck.getConsumerGroup());
-        assertEquals(5000, batchAck.getInvisibleTime());
-        assertEquals(1760694281326L, batchAck.getPopTime());
-        assertEquals(1, batchAck.getQueueId());
+        assertEquals("fixture-consumer", batchAck.getConsumerGroup());
+        assertEquals(60000, batchAck.getInvisibleTime());
+        assertEquals(1700000000123L, batchAck.getPopTime());
+        assertEquals(7, batchAck.getQueueId());
         assertEquals("0", batchAck.getRetry());
-        assertEquals(2, batchAck.getReviveQueueId());
-        assertEquals(100, batchAck.getStartOffset());
-        assertEquals("myTopic", batchAck.getTopic());
+        assertEquals(3, batchAck.getReviveQueueId());
+        assertEquals(1234567890123L, batchAck.getStartOffset());
+        assertEquals("FixtureTopic", batchAck.getTopic());
+    }
+
+    @Test
+    public void testFastjson1SubscriptionDataFixture() {
+        SubscriptionData subscriptionData = RemotingSerializable.fromJson(
+            FASTJSON1_SUBSCRIPTION_DATA, SubscriptionData.class);
+        assertSubscriptionData(subscriptionData);
+    }
+
+    @Test
+    public void testFastjson1ConsumerConnectionFixture() {
+        ConsumerConnection consumerConnection = RemotingSerializable.fromJson(
+            FASTJSON1_CONSUMER_CONNECTION, ConsumerConnection.class);
+        assertEquals(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP, consumerConnection.getConsumeFromWhere());
+        assertEquals(ConsumeType.CONSUME_PASSIVELY, consumerConnection.getConsumeType());
+        assertEquals(MessageModel.CLUSTERING, consumerConnection.getMessageModel());
+        assertEquals(1, consumerConnection.getConnectionSet().size());
+        Connection connection = consumerConnection.getConnectionSet().iterator().next();
+        assertEquals("127.0.0.1:10911", connection.getClientAddr());
+        assertEquals("fixture-client@instance-1", connection.getClientId());
+        assertEquals(LanguageCode.GO, connection.getLanguage());
+        assertEquals(433, connection.getVersion());
+        assertEquals(433, consumerConnection.computeMinVersion());
+        assertEquals(new HashSet<>(Arrays.asList("FixtureTopic")),
+            consumerConnection.getSubscriptionTable().keySet());
+        assertSubscriptionData(consumerConnection.getSubscriptionTable().get("FixtureTopic"));
+    }
+
+    @Test
+    public void testRemotingCodecColdStart() throws Exception {
+        String javaExecutable = System.getProperty("java.home")
+            + File.separator + "bin" + File.separator + "java";
+        String classPath = System.getProperty(
+            "surefire.test.class.path", System.getProperty("java.class.path"));
+
+        ProcessBuilder processBuilder = new ProcessBuilder(
+            javaExecutable, "-cp", classPath, ColdStartProbe.class.getName());
+        processBuilder.environment().remove("JAVA_TOOL_OPTIONS");
+        processBuilder.environment().remove("_JAVA_OPTIONS");
+        processBuilder.environment().remove("JDK_JAVA_OPTIONS");
+        Process process = processBuilder.redirectErrorStream(true).start();
+        boolean finished = process.waitFor(10, TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            fail("Cold-start probe did not finish");
+        }
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+            new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append(System.lineSeparator());
+            }
+        }
+        assertEquals(output.toString(), 0, process.exitValue());
+    }
+
+    public static final class ColdStartProbe {
+        private ColdStartProbe() {
+        }
+
+        public static void main(String[] args) {
+            try {
+                ConsumerConnection connection = new ConsumerConnection();
+                String json = RemotingSerializable.toJson(connection, false);
+                ConsumerConnection decoded = RemotingSerializable.fromJson(
+                    json, ConsumerConnection.class);
+                if (decoded == null || decoded.getConnectionSet() == null) {
+                    throw new AssertionError(
+                        "Remoting codec returned an incomplete ConsumerConnection: " + json);
+                }
+                Runtime.getRuntime().halt(0);
+            } catch (Throwable t) {
+                t.printStackTrace(System.err);
+                System.err.flush();
+                Runtime.getRuntime().halt(1);
+            }
+        }
     }
     
     private void fillDefaultFields(final Object obj, final Class<?> clazz) throws Exception {
@@ -94,7 +201,7 @@ public class RemotingSerializableCompatTest {
             return;
         }
         for (Field field : clazz.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers())) {
+            if (Modifier.isStatic(field.getModifiers()) || Modifier.isTransient(field.getModifiers())) {
                 continue;
             }
             field.setAccessible(true);
@@ -273,7 +380,7 @@ public class RemotingSerializableCompatTest {
         Class<?> clazz = original.getClass();
         boolean result = true;
         for (Field field : clazz.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers())) {
+            if (Modifier.isStatic(field.getModifiers()) || Modifier.isTransient(field.getModifiers())) {
                 continue;
             }
             JSONField jsonField = field.getAnnotation(JSONField.class);
@@ -408,15 +515,26 @@ public class RemotingSerializableCompatTest {
     }
     
     private boolean checkCompatible(final Object original, final Class<?> clazz) {
-        String json = com.alibaba.fastjson.JSON.toJSONString(original);
+        String json = RemotingSerializable.toJson(original, false);
         Object deserialized;
         try {
-            deserialized = com.alibaba.fastjson2.JSON.parseObject(json, clazz);
+            deserialized = RemotingSerializable.fromJson(json, clazz);
         } catch (Exception e) {
             System.err.printf("Deserialization failed for %s: %s\n", clazz.getName(), e.getMessage());
             return false;
         }
         return checkCompatible(original, deserialized, clazz.getSimpleName(), new HashMap<>());
+    }
+
+    private void assertSubscriptionData(final SubscriptionData subscriptionData) {
+        assertTrue(subscriptionData.isClassFilterMode());
+        assertEquals("FixtureTopic", subscriptionData.getTopic());
+        assertEquals("TagA || TagB", subscriptionData.getSubString());
+        assertEquals(new HashSet<>(Arrays.asList("TagA", "TagB")), subscriptionData.getTagsSet());
+        assertEquals(new HashSet<>(Arrays.asList(101, 202)), subscriptionData.getCodeSet());
+        assertEquals(1700000000456L, subscriptionData.getSubVersion());
+        assertEquals("SQL92", subscriptionData.getExpressionType());
+        assertNull(subscriptionData.getFilterClassSource());
     }
     
     private <T> T allocateInstance(final Class<T> clazz) {
