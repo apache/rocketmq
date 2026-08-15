@@ -309,6 +309,7 @@ public class PopReviveService extends ServiceThread {
         List<MessageExt> foundList = new ArrayList<>();
         try {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
+            List<Long> messageQueueOffsets = getMessageResult.getMessageQueueOffset();
             if (messageBufferList != null) {
                 for (int i = 0; i < messageBufferList.size(); i++) {
                     ByteBuffer bb = messageBufferList.get(i);
@@ -322,7 +323,9 @@ public class PopReviveService extends ServiceThread {
                         continue;
                     }
                     // use CQ offset, not offset in Message
-                    msgExt.setQueueOffset(getMessageResult.getMessageQueueOffset().get(i));
+                    if (messageQueueOffsets != null && i < messageQueueOffsets.size()) {
+                        msgExt.setQueueOffset(messageQueueOffsets.get(i));
+                    }
                     foundList.add(msgExt);
                 }
             }
