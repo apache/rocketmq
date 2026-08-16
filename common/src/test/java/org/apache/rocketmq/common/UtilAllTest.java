@@ -63,6 +63,29 @@ public class UtilAllTest {
     }
 
     @Test
+    public void testProperties2ObjectTrimsPrimitiveValues() {
+        DemoConfig demoConfig = new DemoConfig();
+        Properties properties = new Properties();
+        properties.setProperty("demoWidth", " 123 ");
+        properties.setProperty("demoLength", " 456 ");
+        properties.setProperty("demoOK", " true ");
+        properties.setProperty("demoLong", " 789 ");
+        properties.setProperty("demoDouble", " 1.5 ");
+        properties.setProperty("demoFloat", " 2.5 ");
+        properties.setProperty("demoName", " TestDemo ");
+
+        MixAll.properties2Object(properties, demoConfig);
+
+        assertThat(demoConfig.getDemoLength()).isEqualTo(456);
+        assertThat(demoConfig.getDemoWidth()).isEqualTo(123);
+        assertThat(demoConfig.isDemoOK()).isTrue();
+        assertThat(demoConfig.getDemoLong()).isEqualTo(789);
+        assertThat(demoConfig.getDemoDouble()).isEqualTo(1.5);
+        assertThat(demoConfig.getDemoFloat()).isEqualTo(2.5f);
+        assertThat(demoConfig.getDemoName()).isEqualTo("TestDemo");
+    }
+
+    @Test
     public void testProperties2String() {
         DemoSubConfig demoConfig = new DemoSubConfig();
         demoConfig.setDemoLength(123);
@@ -155,6 +178,9 @@ public class UtilAllTest {
         private int demoWidth = 0;
         private int demoLength = 0;
         private boolean demoOK = false;
+        private long demoLong = 0;
+        private double demoDouble = 0;
+        private float demoFloat = 0;
         private String demoName = "haha";
 
         int getDemoWidth() {
@@ -179,6 +205,30 @@ public class UtilAllTest {
 
         public void setDemoOK(boolean demoOK) {
             this.demoOK = demoOK;
+        }
+
+        public long getDemoLong() {
+            return demoLong;
+        }
+
+        public void setDemoLong(long demoLong) {
+            this.demoLong = demoLong;
+        }
+
+        public double getDemoDouble() {
+            return demoDouble;
+        }
+
+        public void setDemoDouble(double demoDouble) {
+            this.demoDouble = demoDouble;
+        }
+
+        public float getDemoFloat() {
+            return demoFloat;
+        }
+
+        public void setDemoFloat(float demoFloat) {
+            this.demoFloat = demoFloat;
         }
 
         public String getDemoName() {
