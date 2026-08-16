@@ -237,6 +237,11 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             && ClientType.LITE_SIMPLE_CONSUMER != settings.getClientType()) {
             return;
         }
+        if (!settings.hasSubscription() || settings.getSubscription().getSubscriptionsCount() == 0) {
+            log.warn("skip offline lite subscription cleanup because subscriptions are missing. clientId:{}, settings:{}",
+                clientId, summarizeLiteSettings(settings));
+            return;
+        }
         try {
             String topic = settings.getSubscription().getSubscriptions(0).getTopic().getName();
             String group = settings.getSubscription().getGroup().getName();
