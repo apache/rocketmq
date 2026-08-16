@@ -93,20 +93,27 @@ public class DLedgerLatestCommitLogTest extends MessageStoreTestBase {
             String topic = UUID.randomUUID().toString();
 
             PutMessageResult singleResult = putSingle(messageStore, topic, 0);
-            PutMessageResult batchResult = putBatch(messageStore, topic, 3, 1);
+            PutMessageResult singleMessageBatchResult = putBatch(messageStore, topic, 1, 1);
+            PutMessageResult batchResult = putBatch(messageStore, topic, 3, 2);
 
             Assert.assertTrue(singleResult.getAppendMessageResult().getWroteOffset() > 0);
-            Assert.assertTrue(batchResult.getAppendMessageResult().getWroteOffset()
+            Assert.assertTrue(singleMessageBatchResult.getAppendMessageResult().getWroteOffset()
                 > singleResult.getAppendMessageResult().getWroteOffset());
+            Assert.assertTrue(batchResult.getAppendMessageResult().getWroteOffset()
+                > singleMessageBatchResult.getAppendMessageResult().getWroteOffset());
+            Assert.assertEquals(1, singleMessageBatchResult.getAppendMessageResult().getMsgNum());
             Assert.assertEquals(3, batchResult.getAppendMessageResult().getMsgNum());
             Assert.assertNotNull(singleResult.getAppendMessageResult().getMsgId());
+            Assert.assertNotNull(singleMessageBatchResult.getAppendMessageResult().getMsgId());
             Assert.assertNotNull(batchResult.getAppendMessageResult().getMsgId());
+            Assert.assertEquals(1,
+                singleMessageBatchResult.getAppendMessageResult().getMsgId().split(",").length);
             Assert.assertEquals(3, batchResult.getAppendMessageResult().getMsgId().split(",").length);
-            awaitStoreReady(messageStore, topic, 4);
+            awaitStoreReady(messageStore, topic, 5);
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, QUEUE_ID));
             Assert.assertTrue(commitLog(messageStore).getCommittedPos()
                 > batchResult.getAppendMessageResult().getWroteOffset());
-            doGetMessages(messageStore, topic, QUEUE_ID, 4, 0);
+            doGetMessages(messageStore, topic, QUEUE_ID, 5, 0);
         } finally {
             shutdownAndDestroy(messageStore);
         }

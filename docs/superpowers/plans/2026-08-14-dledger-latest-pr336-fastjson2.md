@@ -992,16 +992,25 @@ Also call the fixed-size `getData` overload and assert `false`. This test is the
 
 - [ ] **Step 3: Test single and batch appends on the latest API**
 
-Start one electing node, wait for leadership, write one `MessageExtBrokerInner`, then a three-message `MessageExtBatch`. Assert both `PutMessageStatus.PUT_OK`, batch `AppendMessageResult.getMsgNum() == 3`, four logical messages in queue 0, strictly increasing physical offsets, non-null message IDs, and successful reads of queue offsets 0 through 3.
+Start one electing node, wait for leadership, write one `MessageExtBrokerInner`, then a one-message `MessageExtBatch`, followed by a three-message `MessageExtBatch`. Assert all three `PutMessageStatus.PUT_OK`, batch `AppendMessageResult.getMsgNum()` values of 1 and 3, five logical messages in queue 0, strictly increasing physical offsets, non-null message IDs, and successful reads of queue offsets 0 through 4.
 
 The exact batch setup is:
 
 ```java
+MessageExtBatch oneMessageBatch = buildBatchMessage(1);
+oneMessageBatch.setTopic(topic);
+oneMessageBatch.setQueueId(0);
+PutMessageResult oneMessageBatchResult = store.putMessages(oneMessageBatch);
+Assert.assertEquals(PutMessageStatus.PUT_OK, oneMessageBatchResult.getPutMessageStatus());
+Assert.assertEquals(1, oneMessageBatchResult.getAppendMessageResult().getLogicsOffset());
+Assert.assertEquals(1, oneMessageBatchResult.getAppendMessageResult().getMsgNum());
+
 MessageExtBatch batch = buildBatchMessage(3);
 batch.setTopic(topic);
 batch.setQueueId(0);
 PutMessageResult batchResult = store.putMessages(batch);
 Assert.assertEquals(PutMessageStatus.PUT_OK, batchResult.getPutMessageStatus());
+Assert.assertEquals(2, batchResult.getAppendMessageResult().getLogicsOffset());
 Assert.assertEquals(3, batchResult.getAppendMessageResult().getMsgNum());
 ```
 
@@ -1018,7 +1027,7 @@ Allocate three DLedger ports and construct one peers string. Start `n0`, `n1`, a
 
 Use `try/finally`; shut down every started store and let the inherited cleanup destroy only the test-created base directories.
 
-The complete final test file for Steps 1–4 and Task 7 is below. Its independently compiled Corretto 8 prototype passed all seven methods after the production fix; this version additionally asserts that malformed NOOP parsing leaves the buffer position unchanged. Use the file exactly, then follow the RED/GREEN ordering in the surrounding steps rather than running all seven methods prematurely:
+The complete final test file for Steps 1–4 and Task 7 is below. Its independently compiled Corretto 8 prototype passed all eight methods after the production fix; this version additionally asserts that malformed NOOP parsing leaves the buffer position unchanged. Use the file exactly, then follow the RED/GREEN ordering in the surrounding steps rather than running all eight methods prematurely:
 
 ```java
 /*
@@ -1112,18 +1121,27 @@ public class DLedgerLatestCommitLogTest extends MessageStoreTestBase {
             String topic = UUID.randomUUID().toString();
 
             PutMessageResult singleResult = putSingle(messageStore, topic, 0);
-            PutMessageResult batchResult = putBatch(messageStore, topic, 3, 1);
+            PutMessageResult singleMessageBatchResult = putBatch(messageStore, topic, 1, 1);
+            PutMessageResult batchResult = putBatch(messageStore, topic, 3, 2);
 
             Assert.assertTrue(singleResult.getAppendMessageResult().getWroteOffset() > 0);
-            Assert.assertTrue(batchResult.getAppendMessageResult().getWroteOffset()
+            Assert.assertTrue(singleMessageBatchResult.getAppendMessageResult().getWroteOffset()
                 > singleResult.getAppendMessageResult().getWroteOffset());
+            Assert.assertTrue(batchResult.getAppendMessageResult().getWroteOffset()
+                > singleMessageBatchResult.getAppendMessageResult().getWroteOffset());
+            Assert.assertEquals(1, singleMessageBatchResult.getAppendMessageResult().getMsgNum());
             Assert.assertEquals(3, batchResult.getAppendMessageResult().getMsgNum());
+            Assert.assertNotNull(singleResult.getAppendMessageResult().getMsgId());
+            Assert.assertNotNull(singleMessageBatchResult.getAppendMessageResult().getMsgId());
+            Assert.assertNotNull(batchResult.getAppendMessageResult().getMsgId());
+            Assert.assertEquals(1,
+                singleMessageBatchResult.getAppendMessageResult().getMsgId().split(",").length);
             Assert.assertEquals(3, batchResult.getAppendMessageResult().getMsgId().split(",").length);
-            awaitStoreReady(messageStore, topic, 4);
+            awaitStoreReady(messageStore, topic, 5);
             Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, QUEUE_ID));
             Assert.assertTrue(commitLog(messageStore).getCommittedPos()
                 > batchResult.getAppendMessageResult().getWroteOffset());
-            doGetMessages(messageStore, topic, QUEUE_ID, 4, 0);
+            doGetMessages(messageStore, topic, QUEUE_ID, 5, 0);
         } finally {
             shutdownAndDestroy(messageStore);
         }
@@ -1465,7 +1483,7 @@ cd '/Users/jinrongtong/.codex/worktrees/9e8c/RocketMQ 开源'
   '-Dtest=DLedgerLatestCommitLogTest#testSingleAndBatchAppendPositions' test
 ```
 
-Expected: the master artifact fails with an immediate-position symptom such as `OS_PAGE_CACHE_BUSY` or an unknown append result. Then run only the three pre-restart methods with the PR artifact; the four NOOP/restart methods are intentionally left for their RED gates in Task 7:
+Expected: the master artifact fails with an immediate-position symptom such as `OS_PAGE_CACHE_BUSY` or an unknown append result. Then run only the three pre-restart methods with the PR artifact; the five remaining restart, NOOP, recovery, and committed-boundary methods—for eight methods total—are intentionally left for their RED gates in Task 7:
 
 ```bash
 set -euo pipefail
@@ -2001,7 +2019,7 @@ MARKER="$LOGS/rocketmq-store-full-green.start"
 touch "$MARKER"
 $RUN "$LOGS/rocketmq-store-full-green.log" $JDK8 mvn "${MVN_ARGS[@]}" \
   -pl store -am -Dtest=DLedgerLatestCommitLogTest test
-$ASSERT "$STORE_REPORT" 7 "$MARKER"
+$ASSERT "$STORE_REPORT" 8 "$MARKER"
 MARKER="$LOGS/rocketmq-controller-restart-after-store-green.start"
 touch "$MARKER"
 $RUN "$LOGS/rocketmq-controller-restart-after-store-green.log" $JDK8 mvn "${MVN_ARGS[@]}" \
@@ -2015,7 +2033,7 @@ $RUN "$LOGS/rocketmq-controller-full-green.log" $JDK8 mvn "${MVN_ARGS[@]}" \
 $ASSERT "$CONTROLLER_REPORT" 6 "$MARKER"
 ```
 
-Expected: store leadership converges, committed index equals ledger end, NOOP advances the physical/reput boundary without changing CQ offsets, old messages are readable before a user write, all seven store methods pass including abnormal recovery and the second restart, controller metadata remains available before a new mutation, and all six controller methods pass after controller replay/leader change.
+Expected: store leadership converges, committed index equals ledger end, NOOP advances the physical/reput boundary without changing CQ offsets, old messages are readable before a user write, all eight store methods pass including abnormal recovery and the second restart, controller metadata remains available before a new mutation, and all six controller methods pass after controller replay/leader change.
 
 - [ ] **Step 8: Commit the restart/failover behavior**
 
@@ -2965,7 +2983,7 @@ $ASSERT remoting/target/surefire-reports/TEST-org.apache.rocketmq.remoting.proto
 MARKER="$LOGS/rocketmq-maven-store.start"
 touch "$MARKER"
 /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/run-logged /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/logs/rocketmq-maven-store.log /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/run-jdk8 mvn -B -ntp -nsu -Dmaven.repo.local=/private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/m2 -Djava.io.tmpdir=/private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/tmp -pl store -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=DLedgerLatestCommitLogTest test
-$ASSERT store/target/surefire-reports/TEST-org.apache.rocketmq.store.dledger.DLedgerLatestCommitLogTest.xml 7 "$MARKER"
+$ASSERT store/target/surefire-reports/TEST-org.apache.rocketmq.store.dledger.DLedgerLatestCommitLogTest.xml 8 "$MARKER"
 MARKER="$LOGS/rocketmq-maven-controller.start"
 touch "$MARKER"
 /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/run-logged /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/logs/rocketmq-maven-controller.log /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/run-jdk8 mvn -B -ntp -nsu -Dmaven.repo.local=/private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/m2 -Djava.io.tmpdir=/private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/tmp -pl controller -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=DLedgerControllerTest,ControllerManagerTest test
@@ -3177,7 +3195,7 @@ rg -F 'OK (5 tests)' /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-valida
 $RUN_LOGGED /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/logs/rocketmq-bazel-store.log $BAZEL --output_user_root="$ROOT" test --repository_cache="$CACHE" \
   --java_runtime_version=8 --nocache_test_results --test_output=all --local_test_jobs=1 \
   '//store:src/test/java/org/apache/rocketmq/store/dledger/DLedgerLatestCommitLogTest'
-rg -F 'OK (7 tests)' /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/logs/rocketmq-bazel-store.log
+rg -F 'OK (8 tests)' /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/logs/rocketmq-bazel-store.log
 
 $RUN_LOGGED /private/tmp/rocketmq-dledger-fastjson2/pr336-latest-validation/logs/rocketmq-bazel-controller.log $BAZEL --output_user_root="$ROOT" test --repository_cache="$CACHE" \
   --java_runtime_version=8 --nocache_test_results --test_output=all --local_test_jobs=1 \

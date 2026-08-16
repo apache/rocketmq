@@ -808,7 +808,7 @@ public class DLedgerCommitLog extends CommitLog {
 
         // Back to Results
         AppendMessageResult appendResult;
-        BatchAppendFuture<AppendEntryResponse> dledgerFuture;
+        AppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
 
         encodeResult = this.messageSerializer.serialize(messageExtBatch);
@@ -840,7 +840,23 @@ public class DLedgerCommitLog extends CommitLog {
                     log.warn("HandleAppend return false due to error code {}", appendFuture.get().getCode());
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGE_CACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
                 }
-                dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) appendFuture;
+                dledgerFuture = appendFuture;
+
+                long[] positions;
+                if (batchNum == 1) {
+                    positions = new long[] {appendFuture.getPos()};
+                } else {
+                    if (!(appendFuture instanceof BatchAppendFuture)) {
+                        throw new IllegalStateException("Unexpected append future type for " + batchNum
+                            + "-message batch: " + appendFuture.getClass().getName());
+                    }
+                    positions = ((BatchAppendFuture<AppendEntryResponse>) appendFuture).getPositions();
+                    if (positions == null || positions.length != batchNum
+                        || appendFuture.getPos() != positions[batchNum - 1]) {
+                        throw new IllegalStateException("Inconsistent DLedger batch positions: expected " + batchNum
+                            + " entries ending at " + appendFuture.getPos());
+                    }
+                }
 
                 long wroteOffset = 0;
 
@@ -849,7 +865,7 @@ public class DLedgerCommitLog extends CommitLog {
 
                 boolean isFirstOffset = true;
                 long firstWroteOffset = 0;
-                for (long pos : dledgerFuture.getPositions()) {
+                for (long pos : positions) {
                     wroteOffset = pos + DLedgerEntry.BODY_OFFSET;
                     if (isFirstOffset) {
                         firstWroteOffset = wroteOffset;
