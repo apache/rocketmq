@@ -310,11 +310,4 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
             .toString();
     }
 
-    @Override
-    protected Object summarizeSystemMessageData(Object data) {
-        if (data instanceof HeartbeatSyncerData) {
-            return summarizeHeartbeatData((HeartbeatSyncerData) data);
-        }
-        return super.summarizeSystemMessageData(data);
-    }
 }
