@@ -42,7 +42,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
-import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -191,9 +190,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
                 for (String item : kvPairs) {
                     String[] split = item.split(":");
                     if (split.length != 2) {
-                        log.warn("metricsGrpcExporterHeader is not valid: {}",
-                            ConfigLogUtils.getValueForLog(proxyConfig,
-                                "metricsGrpcExporterHeader", headers));
+                        log.warn("metricsGrpcExporterHeader is not valid: {}", headers);
                         continue;
                     }
                     headerMap.put(split[0], split[1]);

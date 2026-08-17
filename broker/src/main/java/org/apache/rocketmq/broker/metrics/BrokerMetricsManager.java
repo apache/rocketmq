@@ -57,7 +57,6 @@ import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
@@ -403,9 +402,7 @@ public class BrokerMetricsManager {
                 for (String item : kvPairs) {
                     String[] split = item.split(":");
                     if (split.length != 2) {
-                        LOGGER.warn("metricsGrpcExporterHeader is not valid: {}",
-                            ConfigLogUtils.getValueForLog(brokerConfig,
-                                "metricsGrpcExporterHeader", headers));
+                        LOGGER.warn("metricsGrpcExporterHeader is not valid: {}", headers);
                         continue;
                     }
                     headerMap.put(split[0], split[1]);

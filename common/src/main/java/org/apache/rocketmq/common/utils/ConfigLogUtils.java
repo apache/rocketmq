@@ -18,10 +18,8 @@
 package org.apache.rocketmq.common.utils;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -41,11 +39,7 @@ public final class ConfigLogUtils {
     }
 
     public static Object getValueForLog(Object configObject, String key, Object value) {
-        return getValueForLog(getSensitiveConfigProperties(configObject), key, value);
-    }
-
-    public static Object getValueForLog(Set<String> sensitiveConfigProperties, String key, Object value) {
-        return sensitiveConfigProperties != null && sensitiveConfigProperties.contains(key)
+        return getSensitiveConfigProperties(configObject).contains(key)
             ? maskSensitiveValue(value) : value;
     }
 
@@ -67,19 +61,7 @@ public final class ConfigLogUtils {
         return text.substring(0, 2) + REDACTED_VALUE + text.substring(text.length() - 2);
     }
 
-    public static Properties redactSensitiveProperties(Properties properties,
-        Set<String> sensitiveConfigProperties) {
-        if (properties == null) {
-            return null;
-        }
-
-        Properties redacted = new Properties();
-        properties.forEach((key, value) ->
-            redacted.put(key, getValueForLog(sensitiveConfigProperties, String.valueOf(key), value)));
-        return redacted;
-    }
-
-    public static Set<String> getSensitiveConfigProperties(Object configObject) {
+    private static Set<String> getSensitiveConfigProperties(Object configObject) {
         if (configObject == null) {
             return Collections.emptySet();
         }
@@ -96,28 +78,7 @@ public final class ConfigLogUtils {
                     properties.add(field.getName());
                 }
             }
-            for (Method method : current.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(SensitiveConfig.class)) {
-                    String propertyName = propertyName(method.getName());
-                    if (propertyName != null) {
-                        properties.add(propertyName);
-                    }
-                }
-            }
         }
         return Collections.unmodifiableSet(properties);
-    }
-
-    private static String propertyName(String methodName) {
-        String name = null;
-        if (methodName.startsWith("get") || methodName.startsWith("set")) {
-            name = methodName.substring(3);
-        } else if (methodName.startsWith("is")) {
-            name = methodName.substring(2);
-        }
-        if (name == null || name.isEmpty()) {
-            return null;
-        }
-        return Character.toLowerCase(name.charAt(0)) + name.substring(1);
     }
 }

@@ -264,9 +264,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 }
 
 
-                LOGGER.info("updateBrokerContainerConfig, new config: [{}] client: {} ",
-                    brokerContainer.getConfiguration().getPropertiesForLog(properties),
-                    ctx.channel().remoteAddress());
+                LOGGER.info("updateBrokerContainerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
                 this.brokerContainer.getConfiguration().update(properties);
 
             } catch (UnsupportedEncodingException e) {

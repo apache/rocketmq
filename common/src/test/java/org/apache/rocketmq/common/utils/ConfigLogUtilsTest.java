@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.utils;
 
-import java.util.Properties;
 import org.apache.rocketmq.common.annotation.SensitiveConfig;
 import org.junit.Test;
 
@@ -30,40 +29,11 @@ public class ConfigLogUtilsTest {
         private String opaqueValue = "top-secret";
     }
 
-    private static class GetterAnnotatedConfig {
-        @SensitiveConfig
-        public String getInheritedValue() {
-            return "top-secret";
-        }
-    }
-
-    @Test
-    public void testRedactSensitivePropertiesWithoutChangingSource() {
-        Properties source = new Properties();
-        source.setProperty("opaqueValue", "top-secret");
-        source.setProperty("databasePassword", "not-annotated");
-
-        Properties redacted = ConfigLogUtils.redactSensitiveProperties(source,
-            ConfigLogUtils.getSensitiveConfigProperties(new AnnotatedConfig()));
-
-        assertThat(redacted.getProperty("opaqueValue")).isEqualTo("to******et");
-        assertThat(redacted.getProperty("databasePassword")).isEqualTo("not-annotated");
-        assertThat(source.getProperty("opaqueValue")).isEqualTo("top-secret");
-    }
-
     @Test
     public void testSensitiveConfigAnnotationMasksUnremarkablePropertyName() {
         AnnotatedConfig config = new AnnotatedConfig();
 
         assertThat(ConfigLogUtils.getValueForLog(config, "opaqueValue", config.opaqueValue))
-            .isEqualTo("to******et");
-    }
-
-    @Test
-    public void testSensitiveConfigAnnotationOnGetterMasksProperty() {
-        GetterAnnotatedConfig config = new GetterAnnotatedConfig();
-
-        assertThat(ConfigLogUtils.getValueForLog(config, "inheritedValue", config.getInheritedValue()))
             .isEqualTo("to******et");
     }
 
