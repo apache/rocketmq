@@ -192,7 +192,8 @@ public class ProxyMetricsManager implements StartAndShutdown {
                     String[] split = item.split(":");
                     if (split.length != 2) {
                         log.warn("metricsGrpcExporterHeader is not valid: {}",
-                            ConfigLogUtils.maskSensitiveValue(headers));
+                            ConfigLogUtils.getValueForLog(proxyConfig,
+                                "metricsGrpcExporterHeader", headers));
                         continue;
                     }
                     headerMap.put(split[0], split[1]);

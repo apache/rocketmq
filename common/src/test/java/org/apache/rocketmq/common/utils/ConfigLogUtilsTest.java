@@ -30,37 +30,25 @@ public class ConfigLogUtilsTest {
         private String opaqueValue = "top-secret";
     }
 
-    @Test
-    public void testSensitiveConfigKeyDetection() {
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("tlsKeyPassword")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("innerClientAuthenticationCredentials")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("initAuthenticationUser")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("metricsGrpcExporterHeader")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("socksProxyConfig")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("clientSlsOtelAccessKey")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("ossSecretAccessKey")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("mqSuperAk")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("legacy.sk")).isTrue();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("sessionToken")).isTrue();
-
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("listenPort")).isFalse();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("tokenServerEndpoint")).isFalse();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("configMapKeyPath")).isFalse();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("keyCenterKeyName")).isFalse();
-        assertThat(ConfigLogUtils.isSensitiveConfigKey("createSubscriptionTask")).isFalse();
+    private static class GetterAnnotatedConfig {
+        @SensitiveConfig
+        public String getInheritedValue() {
+            return "top-secret";
+        }
     }
 
     @Test
     public void testRedactSensitivePropertiesWithoutChangingSource() {
         Properties source = new Properties();
-        source.setProperty("tlsKeyPassword", "top-secret");
-        source.setProperty("listenPort", "10911");
+        source.setProperty("opaqueValue", "top-secret");
+        source.setProperty("databasePassword", "not-annotated");
 
-        Properties redacted = ConfigLogUtils.redactSensitiveProperties(source);
+        Properties redacted = ConfigLogUtils.redactSensitiveProperties(source,
+            ConfigLogUtils.getSensitiveConfigProperties(new AnnotatedConfig()));
 
-        assertThat(redacted.getProperty("tlsKeyPassword")).isEqualTo("to******et");
-        assertThat(redacted.getProperty("listenPort")).isEqualTo("10911");
-        assertThat(source.getProperty("tlsKeyPassword")).isEqualTo("top-secret");
+        assertThat(redacted.getProperty("opaqueValue")).isEqualTo("to******et");
+        assertThat(redacted.getProperty("databasePassword")).isEqualTo("not-annotated");
+        assertThat(source.getProperty("opaqueValue")).isEqualTo("top-secret");
     }
 
     @Test
@@ -68,6 +56,14 @@ public class ConfigLogUtilsTest {
         AnnotatedConfig config = new AnnotatedConfig();
 
         assertThat(ConfigLogUtils.getValueForLog(config, "opaqueValue", config.opaqueValue))
+            .isEqualTo("to******et");
+    }
+
+    @Test
+    public void testSensitiveConfigAnnotationOnGetterMasksProperty() {
+        GetterAnnotatedConfig config = new GetterAnnotatedConfig();
+
+        assertThat(ConfigLogUtils.getValueForLog(config, "inheritedValue", config.getInheritedValue()))
             .isEqualTo("to******et");
     }
 

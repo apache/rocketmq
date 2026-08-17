@@ -342,7 +342,8 @@ public class ControllerMetricsManager {
                     String[] pair = header.split(":");
                     if (pair.length != 2) {
                         logger.warn("metricsGrpcExporterHeader is not valid: {}",
-                            ConfigLogUtils.maskSensitiveValue(headers));
+                            ConfigLogUtils.getValueForLog(config,
+                                "metricsGrpcExporterHeader", headers));
                         continue;
                     }
                     headerMap.put(pair[0], pair[1]);

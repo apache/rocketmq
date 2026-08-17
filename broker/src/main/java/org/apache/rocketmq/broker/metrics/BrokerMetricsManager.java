@@ -404,7 +404,8 @@ public class BrokerMetricsManager {
                     String[] split = item.split(":");
                     if (split.length != 2) {
                         LOGGER.warn("metricsGrpcExporterHeader is not valid: {}",
-                            ConfigLogUtils.maskSensitiveValue(headers));
+                            ConfigLogUtils.getValueForLog(brokerConfig,
+                                "metricsGrpcExporterHeader", headers));
                         continue;
                     }
                     headerMap.put(split[0], split[1]);

@@ -24,6 +24,7 @@ import java.lang.annotation.Target;
 
 /**
  * Marks a configuration property whose value must be masked before it is written to a log.
+ * Configuration properties without this annotation are not masked based on their names.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
