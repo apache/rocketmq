@@ -18,7 +18,7 @@
 package org.apache.rocketmq.remoting;
 
 import java.util.Properties;
-import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.common.annotation.Sensitive;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class ConfigurationTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     public static class AnnotatedConfig {
-        @SensitiveConfig
+        @Sensitive
         private String opaqueValue = "old-secret";
         private String databasePassword = "old-password";
         private String unchangedValue = "same-value";

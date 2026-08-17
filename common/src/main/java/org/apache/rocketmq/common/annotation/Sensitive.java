@@ -29,5 +29,5 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface SensitiveConfig {
+public @interface Sensitive {
 }

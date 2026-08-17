@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.common.annotation.Sensitive;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.utils.NetworkUtil;
@@ -82,7 +82,7 @@ public class ProxyConfig implements ConfigFile {
      */
     private boolean tlsTestModeEnable = true;
     private String tlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
-    @SensitiveConfig
+    @Sensitive
     private String tlsKeyPassword = "";
     private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int tlsCertWatchIntervalMs = 60 * 60 * 1000; // 1 hour
@@ -245,7 +245,7 @@ public class ProxyConfig implements ConfigFile {
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
     private String metricsGrpcExporterTarget = "";
-    @SensitiveConfig
+    @Sensitive
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;

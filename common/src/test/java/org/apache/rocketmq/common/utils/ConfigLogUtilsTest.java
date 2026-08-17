@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.common.utils;
 
-import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.common.annotation.Sensitive;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,12 +25,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ConfigLogUtilsTest {
 
     private static class AnnotatedConfig {
-        @SensitiveConfig
+        @Sensitive
         private String opaqueValue = "top-secret";
     }
 
     @Test
-    public void testSensitiveConfigAnnotationMasksUnremarkablePropertyName() {
+    public void testSensitiveAnnotationMasksUnremarkablePropertyName() {
         AnnotatedConfig config = new AnnotatedConfig();
 
         assertThat(ConfigLogUtils.getValueForLog(config, "opaqueValue", config.opaqueValue))

@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.common.annotation.Sensitive;
 import org.apache.rocketmq.remoting.common.TlsMode;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
@@ -48,7 +48,7 @@ public class NettyClientConfig {
     private boolean useTLS = Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
         String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING)));
 
-    @SensitiveConfig
+    @Sensitive
     private String socksProxyConfig = "{}";
 
     private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;

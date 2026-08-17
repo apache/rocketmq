@@ -23,7 +23,7 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.common.annotation.Sensitive;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.junit.Test;
 
@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verify;
 
 public class MixAllTest {
     private static class ConfigWithSecret {
-        @SensitiveConfig
+        @Sensitive
         private String opaqueValue = "top-secret";
         private int listenPort = 10911;
     }

@@ -21,11 +21,9 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.MixAll;
@@ -48,7 +46,6 @@ public class Configuration {
      * All properties include configs in object and extend properties.
      */
     private Properties allConfigs = new Properties();
-    private final Set<String> sensitiveConfigProperties = new HashSet<>();
 
     public Configuration(Logger log) {
         this.log = log;
@@ -85,7 +82,6 @@ public class Configuration {
 
                 Properties registerProps = MixAll.object2Properties(configObject);
 
-                sensitiveConfigProperties.addAll(ConfigLogUtils.getSensitiveConfigProperties(configObject));
                 merge(registerProps, this.allConfigs);
 
                 configObjectList.add(configObject);
@@ -327,11 +323,7 @@ public class Configuration {
         for (Entry<Object, Object> next : from.entrySet()) {
             Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", next.getKey(),
-                    ConfigLogUtils.getValueForLog(sensitiveConfigProperties,
-                        String.valueOf(next.getKey()), toObj),
-                    ConfigLogUtils.getValueForLog(sensitiveConfigProperties,
-                        String.valueOf(next.getKey()), fromObj));
+                logConfigChange(next.getKey(), toObj, fromObj);
             }
             to.put(next.getKey(), fromObj);
         }
@@ -345,14 +337,17 @@ public class Configuration {
 
             Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", next.getKey(),
-                    ConfigLogUtils.getValueForLog(sensitiveConfigProperties,
-                        String.valueOf(next.getKey()), toObj),
-                    ConfigLogUtils.getValueForLog(sensitiveConfigProperties,
-                        String.valueOf(next.getKey()), fromObj));
+                logConfigChange(next.getKey(), toObj, fromObj);
             }
             to.put(next.getKey(), fromObj);
         }
+    }
+
+    private void logConfigChange(Object key, Object oldValue, Object newValue) {
+        String propertyName = String.valueOf(key);
+        Object oldValueForLog = ConfigLogUtils.getValueForLog(configObjectList, propertyName, oldValue);
+        Object newValueForLog = ConfigLogUtils.getValueForLog(configObjectList, propertyName, newValue);
+        log.info("Replace, key: {}, value: {} -> {}", key, oldValueForLog, newValueForLog);
     }
 
 }

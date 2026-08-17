@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.auth.config;
 
-import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.common.annotation.Sensitive;
 
 public class AuthConfig implements Cloneable {
 
@@ -36,10 +36,10 @@ public class AuthConfig implements Cloneable {
 
     private String authenticationWhitelist;
 
-    @SensitiveConfig
+    @Sensitive
     private String initAuthenticationUser;
 
-    @SensitiveConfig
+    @Sensitive
     private String innerClientAuthenticationCredentials;
 
     private boolean authorizationEnabled = false;

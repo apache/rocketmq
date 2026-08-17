@@ -23,11 +23,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.common.annotation.Sensitive;
 
 /**
  * Builds logging-only configuration projections. Masking is controlled exclusively by
- * {@link SensitiveConfig}; property names are never used to infer sensitivity.
+ * {@link Sensitive}; property names are never used to infer sensitivity.
  */
 public final class ConfigLogUtils {
     public static final String REDACTED_VALUE = "******";
@@ -39,12 +39,19 @@ public final class ConfigLogUtils {
     }
 
     public static Object getValueForLog(Object configObject, String key, Object value) {
-        return getValueForLog(getSensitiveConfigProperties(configObject), key, value);
+        return getSensitiveProperties(configObject).contains(key)
+            ? maskSensitiveValue(value) : value;
     }
 
-    public static Object getValueForLog(Set<String> sensitiveConfigProperties, String key, Object value) {
-        return sensitiveConfigProperties != null && sensitiveConfigProperties.contains(key)
-            ? maskSensitiveValue(value) : value;
+    public static Object getValueForLog(Iterable<?> configObjects, String key, Object value) {
+        if (configObjects != null) {
+            for (Object configObject : configObjects) {
+                if (getSensitiveProperties(configObject).contains(key)) {
+                    return maskSensitiveValue(value);
+                }
+            }
+        }
+        return value;
     }
 
     public static Object maskSensitiveValue(Object value) {
@@ -65,7 +72,7 @@ public final class ConfigLogUtils {
         return text.substring(0, 2) + REDACTED_VALUE + text.substring(text.length() - 2);
     }
 
-    public static Set<String> getSensitiveConfigProperties(Object configObject) {
+    private static Set<String> getSensitiveProperties(Object configObject) {
         if (configObject == null) {
             return Collections.emptySet();
         }
@@ -78,7 +85,7 @@ public final class ConfigLogUtils {
         for (Class<?> current = configClass; current != null && current != Object.class;
             current = current.getSuperclass()) {
             for (Field field : current.getDeclaredFields()) {
-                if (field.isAnnotationPresent(SensitiveConfig.class)) {
+                if (field.isAnnotationPresent(Sensitive.class)) {
                     properties.add(field.getName());
                 }
             }
