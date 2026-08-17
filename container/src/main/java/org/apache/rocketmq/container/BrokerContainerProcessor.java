@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -264,7 +265,8 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 }
 
 
-                LOGGER.info("updateBrokerContainerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
+                LOGGER.info("updateBrokerContainerConfig, new config: [{}] client: {} ",
+                    ConfigLogUtils.redactSensitiveProperties(properties), ctx.channel().remoteAddress());
                 this.brokerContainer.getConfiguration().update(properties);
 
             } catch (UnsupportedEncodingException e) {

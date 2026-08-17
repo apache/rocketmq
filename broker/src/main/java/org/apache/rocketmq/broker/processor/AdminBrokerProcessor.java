@@ -103,6 +103,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsSnapshot;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -1138,7 +1139,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
-                    LOGGER.info("updateBrokerConfig, new config: [{}] client: {} ", properties, callerAddress);
+                    LOGGER.info("updateBrokerConfig, new config: [{}] client: {} ",
+                        ConfigLogUtils.redactSensitiveProperties(properties), callerAddress);
                     if (validateBlackListConfigExist(properties)) {
                         response.setCode(ResponseCode.NO_PERMISSION);
                         response.setRemark("Can not update config in black list.");

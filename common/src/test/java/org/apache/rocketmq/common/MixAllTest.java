@@ -23,11 +23,31 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.common.annotation.SensitiveConfig;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class MixAllTest {
+    private static class ConfigWithSecret {
+        @SensitiveConfig
+        private String opaqueValue = "top-secret";
+        private int listenPort = 10911;
+    }
+
+    @Test
+    public void testPrintObjectPropertiesRedactsSensitiveValue() {
+        Logger logger = mock(Logger.class);
+
+        MixAll.printObjectProperties(logger, new ConfigWithSecret());
+
+        verify(logger).info("opaqueValue=to******et");
+        verify(logger).info("listenPort=10911");
+    }
+
     @Test
     public void testGetLocalInetAddress() throws Exception {
         List<String> localInetAddress = MixAll.getLocalInetAddress();

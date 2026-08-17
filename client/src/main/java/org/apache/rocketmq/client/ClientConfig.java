@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.annotation.SensitiveConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.NameServerAddressUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
@@ -76,6 +77,7 @@ public class ClientConfig {
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
+    @SensitiveConfig
     private String socksProxyConfig = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
 
     private int mqClientApiTimeout = 3 * 1000;

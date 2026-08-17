@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.remoting.proxy;
 
+import org.apache.rocketmq.common.annotation.SensitiveConfig;
+
 public class SocksProxyConfig {
     private String addr;
     private String username;
+    @SensitiveConfig
     private String password;
 
     public SocksProxyConfig() {

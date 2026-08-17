@@ -54,4 +54,22 @@ public class ConfigurationManagerTest extends InitConfigTest {
         assertTrue(actual.contains(expected.getProxyMode()));
         assertTrue(actual.contains(expected.getProxyName()));
     }
-} 
+
+    @Test
+    public void testFormatProxyConfigForLogRedactsSensitiveValue() {
+        ProxyConfig expected = ConfigurationManager.getProxyConfig();
+        String originalTlsKeyPassword = expected.getTlsKeyPassword();
+        expected.setTlsKeyPassword("top-secret");
+        try {
+            assertThat(ConfigurationManager.formatProxyConfig()).contains("top-secret");
+            String actual = ConfigurationManager.formatProxyConfigForLog();
+            assertNotNull(actual);
+            assertTrue(actual.contains(expected.getProxyMode()));
+            assertTrue(actual.contains(expected.getProxyName()));
+            assertTrue(actual.contains("\"tlsKeyPassword\":\"to******et\""));
+            assertThat(actual).doesNotContain("top-secret");
+        } finally {
+            expected.setTlsKeyPassword(originalTlsKeyPassword);
+        }
+    }
+}

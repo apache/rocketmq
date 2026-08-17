@@ -50,6 +50,7 @@ import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopLongUpDownCounter;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
+import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -340,7 +341,8 @@ public class ControllerMetricsManager {
                 for (String header : headerList) {
                     String[] pair = header.split(":");
                     if (pair.length != 2) {
-                        logger.warn("metricsGrpcExporterHeader is not valid: {}", headers);
+                        logger.warn("metricsGrpcExporterHeader is not valid: {}",
+                            ConfigLogUtils.maskSensitiveValue(headers));
                         continue;
                     }
                     headerMap.put(pair[0], pair[1]);

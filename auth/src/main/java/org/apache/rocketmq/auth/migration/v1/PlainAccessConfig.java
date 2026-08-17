@@ -19,12 +19,15 @@ package org.apache.rocketmq.auth.migration.v1;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+import org.apache.rocketmq.common.annotation.SensitiveConfig;
 
 public class PlainAccessConfig  implements Serializable {
     private static final long serialVersionUID = -4517357000307227637L;
 
+    @SensitiveConfig
     private String accessKey;
 
+    @SensitiveConfig
     private String secretKey;
 
     private String whiteRemoteAddress;
