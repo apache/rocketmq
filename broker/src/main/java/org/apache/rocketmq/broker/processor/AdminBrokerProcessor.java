@@ -1138,7 +1138,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
-                    LOGGER.info("updateBrokerConfig, new config: [{}] client: {} ", properties, callerAddress);
                     if (validateBlackListConfigExist(properties)) {
                         response.setCode(ResponseCode.NO_PERMISSION);
                         response.setRemark("Can not update config in black list.");

@@ -39,7 +39,11 @@ public final class ConfigLogUtils {
     }
 
     public static Object getValueForLog(Object configObject, String key, Object value) {
-        return getSensitiveConfigProperties(configObject).contains(key)
+        return getValueForLog(getSensitiveConfigProperties(configObject), key, value);
+    }
+
+    public static Object getValueForLog(Set<String> sensitiveConfigProperties, String key, Object value) {
+        return sensitiveConfigProperties != null && sensitiveConfigProperties.contains(key)
             ? maskSensitiveValue(value) : value;
     }
 
@@ -61,7 +65,7 @@ public final class ConfigLogUtils {
         return text.substring(0, 2) + REDACTED_VALUE + text.substring(text.length() - 2);
     }
 
-    private static Set<String> getSensitiveConfigProperties(Object configObject) {
+    public static Set<String> getSensitiveConfigProperties(Object configObject) {
         if (configObject == null) {
             return Collections.emptySet();
         }
