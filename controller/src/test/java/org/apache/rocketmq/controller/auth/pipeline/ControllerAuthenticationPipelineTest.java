@@ -50,10 +50,11 @@ public class ControllerAuthenticationPipelineTest {
     private NettyRemotingClient signedClient;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+    private AuthConfig authConfig;
 
     @Before
     public void setUp() throws Exception {
-        AuthConfig authConfig = new AuthConfig();
+        authConfig = new AuthConfig();
         authConfig.setConfigName("controller-auth-pipeline-" + System.nanoTime());
         authConfig.setClusterName("controller-cluster");
         authConfig.setAuthConfigPath(temporaryFolder.newFolder("auth").getAbsolutePath());
@@ -122,5 +123,15 @@ public class ControllerAuthenticationPipelineTest {
         RemotingCommand response = signedClient.invokeSync("127.0.0.1:" + server.localListenPort(), request, 3000);
 
         Assert.assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void skipsAuthenticationAndAuthorizationWhenDisabled() throws Exception {
+        authConfig.setAuthenticationEnabled(false);
+        authConfig.setAuthorizationEnabled(false);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONTROLLER_CONFIG, null);
+
+        new AuthenticationPipeline(authConfig).execute(null, request);
+        new AuthorizationPipeline(authConfig).execute(null, request);
     }
 }
