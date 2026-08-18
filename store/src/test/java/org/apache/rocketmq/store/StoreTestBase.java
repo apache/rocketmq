@@ -24,8 +24,10 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.junit.After;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -47,8 +49,27 @@ public class StoreTestBase {
 
     private static AtomicInteger port = new AtomicInteger(30000);
 
+    private static final int MAX_PORT_PROBE_ATTEMPTS = 200;
+
     public static synchronized int nextPort() {
-        return port.addAndGet(5);
+        for (int i = 0; i < MAX_PORT_PROBE_ATTEMPTS; i++) {
+            int candidate = port.addAndGet(5);
+            if (isPortAvailable(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Failed to find an available port after "
+            + MAX_PORT_PROBE_ATTEMPTS + " attempts, last tried " + port.get());
+    }
+
+    private static boolean isPortAvailable(int candidate) {
+        try (ServerSocket serverSocket = new ServerSocket()) {
+            serverSocket.setReuseAddress(false);
+            serverSocket.bind(new InetSocketAddress(candidate));
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     protected MessageExtBatch buildBatchMessage(int size) {

@@ -162,7 +162,11 @@ public class DLedgerCommitLog extends CommitLog {
         if (committedPos > 0) {
             return committedPos;
         }
-        if (committedPos == 0 && dLedgerFileList.getMinOffset() > 0) {
+        // getCommittedPos() yields a non-positive value when no entry has been committed yet,
+        // which is the normal state right after a DLedger store is layered on top of legacy
+        // commitlog data. In that case the divided commitlog offset, i.e. the min offset of the
+        // DLedger file list, is the real max offset.
+        if (dLedgerFileList.getMinOffset() > 0) {
             return dLedgerFileList.getMinOffset();
         }
         return 0;
