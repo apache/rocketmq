@@ -121,6 +121,28 @@ public class RocksDBConsumeQueueTest extends QueueTestBase {
     }
 
     @Test
+    public void testIterateFrom_startIndexBelowMinOffset_returnsNull() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
+        DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
+        RocksDBConsumeQueueStore rocksDBConsumeQueueStore = mock(RocksDBConsumeQueueStore.class);
+        when(messageStore.getQueueStore()).thenReturn(rocksDBConsumeQueueStore);
+        when(rocksDBConsumeQueueStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(9000L);
+        when(rocksDBConsumeQueueStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(10000L);
+
+        RocksDBConsumeQueue consumeQueue = new RocksDBConsumeQueue(messageStore.getMessageStoreConfig(), rocksDBConsumeQueueStore, "topic", 0);
+
+        // startIndex has already been purged (below the queue's current min offset); must not
+        // return a non-null iterator that later yields a null CqUnit and NPEs its caller.
+        assertNull(consumeQueue.iterateFrom(8000));
+        assertNull(consumeQueue.iterateFrom(8000, 10));
+
+        // startIndex within [min, max) still works as before.
+        assertNotNull(consumeQueue.iterateFrom(9000));
+    }
+
+    @Test
     public void testLmqCounter_running() throws ConsumeQueueException {
         messageStore.getMessageStoreConfig().setEnableMultiDispatch(true);
         messageStore.getMessageStoreConfig().setEnableLmq(true);
