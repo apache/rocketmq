@@ -538,6 +538,9 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     break;
                 case RequestCode.GET_BROKER_CONFIG:
                 case RequestCode.GET_BROKER_RUNTIME_INFO:
+                case RequestCode.GET_CONTROLLER_CONFIG:
+                case RequestCode.CONTROLLER_GET_METADATA_INFO:
+                case RequestCode.CONTROLLER_GET_SYNC_STATE_DATA:
                 case RequestCode.GET_ALL_CONSUMER_OFFSET:
                 case RequestCode.GET_TIMER_CHECK_POINT:
                 case RequestCode.GET_ALL_DELAY_OFFSET:
@@ -565,6 +568,8 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                         Resource.of(ResourceType.GROUP, null, ResourcePattern.ANY), Action.LIST, sourceIp));
                     break;
                 case RequestCode.SET_COMMITLOG_READ_MODE:
+                case RequestCode.UPDATE_CONTROLLER_CONFIG:
+                case RequestCode.CLEAN_BROKER_DATA:
                 case RequestCode.CLEAN_EXPIRED_CONSUMEQUEUE:
                 case RequestCode.DELETE_EXPIRED_COMMITLOG:
                 case RequestCode.CLEAN_UNUSED_TOPIC:
