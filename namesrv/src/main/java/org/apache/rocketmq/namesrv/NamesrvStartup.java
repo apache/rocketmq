@@ -52,7 +52,7 @@ public class NamesrvStartup {
     private static NettyServerConfig nettyServerConfig = null;
     private static NettyClientConfig nettyClientConfig = null;
     private static ControllerConfig controllerConfig = null;
-    private static AuthConfig controllerAuthConfig = null;
+    private static AuthConfig controllerAuthConfig = new AuthConfig();
 
     public static void main(String[] args) {
         main0(args);
@@ -109,7 +109,6 @@ public class NamesrvStartup {
                 MixAll.properties2Object(properties, nettyClientConfig);
                 if (namesrvConfig.isEnableControllerInNamesrv()) {
                     controllerConfig = new ControllerConfig();
-                    controllerAuthConfig = new AuthConfig();
                     JraftConfig jraftConfig = new JraftConfig();
                     controllerConfig.setJraftConfig(jraftConfig);
                     MixAll.properties2Object(properties, controllerConfig);
