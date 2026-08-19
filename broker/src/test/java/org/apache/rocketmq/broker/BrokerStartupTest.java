@@ -21,8 +21,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Properties;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class BrokerStartupTest {
 
@@ -51,5 +54,26 @@ public class BrokerStartupTest {
         }
 
 
+    }
+
+    @Test
+    public void testWarnIfDLedgerCommitLogEnabled() {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setEnableDLegerCommitLog(true);
+        Logger logger = Mockito.mock(Logger.class);
+
+        BrokerStartup.warnIfDLedgerCommitLogEnabled(messageStoreConfig, logger);
+
+        Mockito.verify(logger).warn(BrokerStartup.DLEDGER_COMMIT_LOG_DEPRECATION_WARNING);
+    }
+
+    @Test
+    public void testDoesNotWarnIfDLedgerCommitLogDisabled() {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        Logger logger = Mockito.mock(Logger.class);
+
+        BrokerStartup.warnIfDLedgerCommitLogEnabled(messageStoreConfig, logger);
+
+        Mockito.verifyNoInteractions(logger);
     }
 }

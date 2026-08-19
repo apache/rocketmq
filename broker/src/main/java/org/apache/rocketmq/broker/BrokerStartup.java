@@ -44,6 +44,10 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerStartup {
 
+    static final String DLEDGER_COMMIT_LOG_DEPRECATION_WARNING =
+        "Broker DLedger mode is deprecated and may be removed in a future release. " +
+            "Use Controller mode for new deployments.";
+
     public static Logger log;
 
     public static void main(String[] args) {
@@ -228,6 +232,7 @@ public class BrokerStartup {
         }
 
         log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+        warnIfDLedgerCommitLogEnabled(messageStoreConfig, log);
         MixAll.printObjectProperties(log, brokerConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
         MixAll.printObjectProperties(log, nettyClientConfig);
@@ -246,6 +251,12 @@ public class BrokerStartup {
         controller.setConfigContext(configContext);
 
         return controller;
+    }
+
+    static void warnIfDLedgerCommitLogEnabled(MessageStoreConfig messageStoreConfig, Logger logger) {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            logger.warn(DLEDGER_COMMIT_LOG_DEPRECATION_WARNING);
+        }
     }
 
     public static Runnable buildShutdownHook(BrokerController brokerController) {
