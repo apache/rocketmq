@@ -40,6 +40,7 @@ import org.junit.Test;
 import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,8 +61,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class DLedgerControllerTest {
+    private static int port = 30000;
     private List<String> baseDirs;
     private List<DLedgerController> controllers;
+
+    private static synchronized int nextPort() {
+        port += 10;
+        return port;
+    }
 
     public DLedgerController launchController(final String group, final String peers, final String selfId,
         final boolean isEnableElectUncleanMaster) {
@@ -172,7 +179,9 @@ public class DLedgerControllerTest {
 
     public DLedgerController mockMetaData(boolean enableElectUncleanMaster) throws Exception {
         String group = UUID.randomUUID().toString();
-        String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
+        int basePort = nextPort();
+        String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d",
+            basePort, basePort + 1, basePort + 2);
         DLedgerController c0 = launchController(group, peers, "n0", enableElectUncleanMaster);
         DLedgerController c1 = launchController(group, peers, "n1", enableElectUncleanMaster);
         DLedgerController c2 = launchController(group, peers, "n2", enableElectUncleanMaster);
@@ -238,6 +247,36 @@ public class DLedgerControllerTest {
     }
 
     @Test
+    public void testRestartAllControllersRecoversStateBeforeNewEvent() throws Exception {
+        DLedgerController originalLeader = mockMetaData(false);
+        String group = originalLeader.getControllerConfig().getControllerDLegerGroup();
+        String peers = originalLeader.getControllerConfig().getControllerDLegerPeers();
+        List<String> selfIds = controllers.stream()
+            .map(controller -> controller.getControllerConfig().getControllerDLegerSelfId())
+            .collect(Collectors.toList());
+
+        List<DLedgerController> originalControllers = new ArrayList<>(controllers);
+        for (DLedgerController controller : originalControllers) {
+            controller.shutdown();
+        }
+        controllers.clear();
+        for (String selfId : selfIds) {
+            controllers.add(launchController(group, peers, selfId, false));
+        }
+        DLedgerController restartedLeader = waitLeader(controllers);
+
+        RemotingCommand response = restartedLeader
+            .getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        GetReplicaInfoResponseHeader replicaInfo =
+            (GetReplicaInfoResponseHeader) response.readCustomHeader();
+        SyncStateSet syncStateSet = RemotingSerializable.decode(response.getBody(), SyncStateSet.class);
+        assertEquals(1L, replicaInfo.getMasterBrokerId().longValue());
+        assertEquals(DEFAULT_IP[0], replicaInfo.getMasterAddress());
+        assertEquals(new HashSet<>(Arrays.asList(1L, 2L, 3L)), syncStateSet.getSyncStateSet());
+    }
+
+    @Test
     public void testBrokerLifecycleListener() throws Exception {
         final DLedgerController leader = mockMetaData(false);
 
@@ -250,6 +289,11 @@ public class DLedgerControllerTest {
             dLedgerController.shutdown();
             controllers.remove(dLedgerController);
         }
+        await().atMost(Duration.ofSeconds(10)).until(() ->
+            leader.getMemberState().getPeersLiveTable().size() == leader.getMemberState().peerSize() - 1
+                && leader.getMemberState().getPeersLiveTable().values().stream()
+                .noneMatch(Boolean.TRUE::equals));
+        await().atMost(Duration.ofSeconds(10)).until(() -> !leader.isLeaderState());
 
         final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger(DEFAULT_BROKER_NAME);
         setBrokerElectPolicy(leader, 1L);
