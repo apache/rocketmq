@@ -193,13 +193,15 @@ public class SendMessageActivityTest extends BaseActivityTest {
         int previousMaxMessageSize = ConfigurationManager.getProxyConfig().getMaxMessageSize();
         ConfigurationManager.getProxyConfig().setMaxMessageSize(80);
         try {
-            List<org.apache.rocketmq.common.message.Message> messages = Lists.newArrayList(
-                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[30]),
-                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[30]));
+            SendMessageRequest request = SendMessageRequest.newBuilder()
+                .addMessages(createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 30))
+                .addMessages(createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 30))
+                .build();
 
-            GrpcProxyException exception = assertThrows(GrpcProxyException.class,
-                () -> this.sendMessageActivity.validateBatchMessages(messages));
-            assertEquals(Code.MESSAGE_BODY_TOO_LARGE, exception.getCode());
+            ExecutionException exception = assertThrows(ExecutionException.class,
+                () -> this.sendMessageActivity.sendMessage(createContext(), request).get());
+            assertEquals(Code.MESSAGE_BODY_TOO_LARGE, ((GrpcProxyException) exception.getCause()).getCode());
+            verify(this.messagingProcessor, never()).sendMessage(any(), any(), anyString(), anyInt(), any());
         } finally {
             ConfigurationManager.getProxyConfig().setMaxMessageSize(previousMaxMessageSize);
         }
@@ -210,13 +212,15 @@ public class SendMessageActivityTest extends BaseActivityTest {
         int previousMaxMessageCount = ConfigurationManager.getProxyConfig().getBatchSendMaxMsgNum();
         ConfigurationManager.getProxyConfig().setBatchSendMaxMsgNum(1);
         try {
-            List<org.apache.rocketmq.common.message.Message> messages = Lists.newArrayList(
-                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[1]),
-                new org.apache.rocketmq.common.message.Message(TOPIC, new byte[1]));
+            SendMessageRequest request = SendMessageRequest.newBuilder()
+                .addMessages(createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 1))
+                .addMessages(createMessage(MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 1))
+                .build();
 
-            GrpcProxyException exception = assertThrows(GrpcProxyException.class,
-                () -> this.sendMessageActivity.validateBatchMessages(messages));
-            assertEquals(Code.MESSAGE_CORRUPTED, exception.getCode());
+            ExecutionException exception = assertThrows(ExecutionException.class,
+                () -> this.sendMessageActivity.sendMessage(createContext(), request).get());
+            assertEquals(Code.MESSAGE_CORRUPTED, ((GrpcProxyException) exception.getCause()).getCode());
+            verify(this.messagingProcessor, never()).sendMessage(any(), any(), anyString(), anyInt(), any());
         } finally {
             ConfigurationManager.getProxyConfig().setBatchSendMaxMsgNum(previousMaxMessageCount);
         }
@@ -292,8 +296,8 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test(expected = GrpcProxyException.class)
-    public void testBuildErrorMessage() {
-        this.sendMessageActivity.buildMessage(null,
+    public void testValidateMessagesWithDifferentTopics() {
+        this.sendMessageActivity.validateMessageList(
             Lists.newArrayList(
                 Message.newBuilder()
                     .setTopic(Resource.newBuilder()
@@ -321,8 +325,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
                         .build())
                     .setBody(ByteString.copyFromUtf8("123"))
                     .build()
-            ),
-            Resource.newBuilder().setName(TOPIC).build());
+            ));
     }
 
     @Test
