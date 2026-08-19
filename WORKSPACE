@@ -116,6 +116,7 @@ maven_install(
         "org.slf4j:slf4j-api:2.0.3",
         "org.javassist:javassist:3.20.0-GA",
     ],
+    excluded_artifacts = ["org.apache.rocketmq:rocketmq-remoting"],
     fetch_sources = False,
     repositories = [
         "https://repo1.maven.org/maven2",
