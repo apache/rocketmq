@@ -169,6 +169,75 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testRejectBatchWithDifferentLiteTopics() {
+        Message firstMessage = withLiteTopic(createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.LITE, "", 16), "lite-a");
+        Message secondMessage = withLiteTopic(createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.LITE, "", 16), "lite-b");
+
+        ExecutionException exception = assertThrows(ExecutionException.class,
+            () -> this.sendMessageActivity.sendMessage(createContext(), SendMessageRequest.newBuilder()
+                .addMessages(firstMessage)
+                .addMessages(secondMessage)
+                .build()).get());
+        assertEquals(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+            ((GrpcProxyException) exception.getCause()).getCode());
+        verify(this.messagingProcessor, never()).sendMessage(any(), any(), anyString(), anyInt(), any());
+    }
+
+    @Test
+    public void testRejectBatchWithMessageTypePropertyConflict() {
+        assertBatchMessageTypeConflict(createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "group", 16));
+
+        Message priorityMessage = createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 16);
+        priorityMessage = priorityMessage.toBuilder()
+            .setSystemProperties(priorityMessage.getSystemProperties().toBuilder().setPriority(1))
+            .build();
+        assertBatchMessageTypeConflict(priorityMessage);
+
+        assertBatchMessageTypeConflict(withLiteTopic(createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 16), "lite-topic"));
+
+        Message delayMessage = createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 16);
+        delayMessage = delayMessage.toBuilder()
+            .setSystemProperties(delayMessage.getSystemProperties().toBuilder()
+                .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis() + 1000)))
+            .build();
+        assertBatchMessageTypeConflict(delayMessage);
+
+        verify(this.messagingProcessor, never()).sendMessage(any(), any(), anyString(), anyInt(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSendBatchWithSameLiteTopic() throws Exception {
+        String liteTopic = "same-lite-topic";
+        Message firstMessage = withLiteTopic(createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.LITE, "", 16), liteTopic);
+        Message secondMessage = withLiteTopic(createMessage(
+            MessageClientIDSetter.createUniqID(), MessageType.LITE, "", 16), liteTopic);
+        SendResult sendResult = new SendResult(SendStatus.SEND_OK, null, null, null, 0);
+        when(this.messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
+
+        this.sendMessageActivity.sendMessage(createContext(), SendMessageRequest.newBuilder()
+            .addMessages(firstMessage)
+            .addMessages(secondMessage)
+            .build()).get();
+
+        ArgumentCaptor<List<org.apache.rocketmq.common.message.Message>> messageListCaptor =
+            ArgumentCaptor.forClass(List.class);
+        verify(this.messagingProcessor).sendMessage(any(), any(), anyString(), anyInt(), messageListCaptor.capture());
+        assertEquals(liteTopic,
+            messageListCaptor.getValue().get(0).getProperty(MessageConst.PROPERTY_LITE_TOPIC));
+        assertEquals(liteTopic,
+            messageListCaptor.getValue().get(1).getProperty(MessageConst.PROPERTY_LITE_TOPIC));
+    }
+
+    @Test
     public void testRejectCompressedBatch() {
         Message compressedMessage = createMessage(
             MessageClientIDSetter.createUniqID(), MessageType.NORMAL, "", 16);
@@ -238,6 +307,22 @@ public class SendMessageActivityTest extends BaseActivityTest {
                 .build())
             .setBody(ByteString.copyFrom(new byte[bodySize]))
             .build();
+    }
+
+    private Message withLiteTopic(Message message, String liteTopic) {
+        return message.toBuilder()
+            .setSystemProperties(message.getSystemProperties().toBuilder().setLiteTopic(liteTopic))
+            .build();
+    }
+
+    private void assertBatchMessageTypeConflict(Message message) {
+        ExecutionException exception = assertThrows(ExecutionException.class,
+            () -> this.sendMessageActivity.sendMessage(createContext(), SendMessageRequest.newBuilder()
+                .addMessages(message)
+                .addMessages(message)
+                .build()).get());
+        assertEquals(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+            ((GrpcProxyException) exception.getCause()).getCode());
     }
 
     @Test

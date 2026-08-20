@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.junit.Test;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class MessageEncodeDecodeTest {
@@ -71,5 +72,18 @@ public class MessageEncodeDecodeTest {
             assertTrue(Arrays.equals(newMessage.getBody(), message.getBody()));
 
         }
+    }
+
+    @Test
+    public void testDecodeListWithoutBody() throws Exception {
+        Message message = new Message("topic", "body".getBytes());
+        message.putUserProperty("key", "value");
+
+        List<Message> decodedMessages = MessageDecoder.decodeMessages(
+            ByteBuffer.wrap(MessageDecoder.encodeMessages(Arrays.asList(message))), false);
+
+        assertTrue(decodedMessages.size() == 1);
+        assertNull(decodedMessages.get(0).getBody());
+        assertTrue("value".equals(decodedMessages.get(0).getProperty("key")));
     }
 }

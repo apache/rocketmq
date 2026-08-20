@@ -74,9 +74,14 @@ public class LmqDispatch {
 
     static void updateLmqOffsets(MessageStore messageStore, String[] queueNames)
         throws ConsumeQueueException {
+        updateLmqOffsets(messageStore, queueNames, VALUE_OF_EACH_INCREMENT);
+    }
+
+    static void updateLmqOffsets(MessageStore messageStore, String[] queueNames, short increment)
+        throws ConsumeQueueException {
         for (String queueName : queueNames) {
             if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
-                messageStore.getQueueStore().increaseLmqOffset(queueName, MixAll.LMQ_QUEUE_ID, VALUE_OF_EACH_INCREMENT);
+                messageStore.getQueueStore().increaseLmqOffset(queueName, MixAll.LMQ_QUEUE_ID, increment);
             }
         }
     }

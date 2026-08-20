@@ -700,6 +700,10 @@ public class MessageDecoder {
     }
 
     public static Message decodeMessage(ByteBuffer byteBuffer) throws Exception {
+        return decodeMessage(byteBuffer, true);
+    }
+
+    public static Message decodeMessage(ByteBuffer byteBuffer, boolean readBody) throws Exception {
         Message message = new Message();
 
         // 1 TOTALSIZE
@@ -717,9 +721,13 @@ public class MessageDecoder {
 
         // 5 BODY
         int bodyLen = byteBuffer.getInt();
-        byte[] body = new byte[bodyLen];
-        byteBuffer.get(body);
-        message.setBody(body);
+        if (readBody) {
+            byte[] body = new byte[bodyLen];
+            byteBuffer.get(body);
+            message.setBody(body);
+        } else {
+            byteBuffer.position(byteBuffer.position() + bodyLen);
+        }
 
         // 6 properties
         short propertiesLen = byteBuffer.getShort();
@@ -749,10 +757,14 @@ public class MessageDecoder {
     }
 
     public static List<Message> decodeMessages(ByteBuffer byteBuffer) throws Exception {
+        return decodeMessages(byteBuffer, true);
+    }
+
+    public static List<Message> decodeMessages(ByteBuffer byteBuffer, boolean readBody) throws Exception {
         //TO DO add a callback for processing,  avoid creating lists
         List<Message> msgs = new ArrayList<>();
         while (byteBuffer.hasRemaining()) {
-            Message msg = decodeMessage(byteBuffer);
+            Message msg = decodeMessage(byteBuffer, readBody);
             msgs.add(msg);
         }
         return msgs;

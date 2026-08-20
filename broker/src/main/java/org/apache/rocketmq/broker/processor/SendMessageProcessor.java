@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.lite.LiteUtil;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -68,6 +69,7 @@ import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -606,6 +608,23 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         messageExtBatch.setFlag(requestHeader.getFlag());
         MessageAccessor.setProperties(messageExtBatch, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
         messageExtBatch.setBody(request.getBody());
+
+        final String liteTopic;
+        try {
+            liteTopic = validateBatchLiteTopic(messageExtBatch.getBody());
+        } catch (Exception e) {
+            response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            response.setRemark(e.getMessage());
+            return response;
+        }
+        MessageAccessor.clearProperty(messageExtBatch, MessageConst.PROPERTY_LITE_TOPIC);
+        MessageAccessor.clearProperty(messageExtBatch, MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        if (StringUtils.isNotEmpty(liteTopic)) {
+            MessageAccessor.setLiteTopic(messageExtBatch, liteTopic);
+            MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_MULTI_DISPATCH,
+                LiteUtil.toLmqName(requestHeader.getTopic(), liteTopic));
+        }
+
         messageExtBatch.setBornTimestamp(requestHeader.getBornTimestamp());
         messageExtBatch.setBornHost(ctx.channel().remoteAddress());
         messageExtBatch.setStoreHost(this.getStoreHost());
@@ -665,6 +684,21 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             sendMessageCallback.onComplete(sendMessageContext, response);
             return response;
         }
+    }
+
+    private String validateBatchLiteTopic(byte[] batchBody) throws Exception {
+        List<Message> messages = MessageDecoder.decodeMessages(ByteBuffer.wrap(batchBody), false);
+        if (messages.isEmpty()) {
+            throw new IllegalArgumentException("batch message cannot be empty");
+        }
+
+        String liteTopic = messages.get(0).getProperty(MessageConst.PROPERTY_LITE_TOPIC);
+        for (Message message : messages) {
+            if (!Objects.equals(liteTopic, message.getProperty(MessageConst.PROPERTY_LITE_TOPIC))) {
+                throw new IllegalArgumentException("all messages in a batch must have the same lite topic");
+            }
+        }
+        return liteTopic;
     }
 
     public void attachRecallHandle(RemotingCommand request, MessageExt msg, SendMessageResponseHeader responseHeader) {

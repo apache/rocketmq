@@ -107,12 +107,14 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         }
 
         MessageType messageType = firstMessage.getSystemProperties().getMessageType();
-        if (!MessageType.NORMAL.equals(messageType) && !MessageType.FIFO.equals(messageType)) {
+        if (!MessageType.NORMAL.equals(messageType) && !MessageType.FIFO.equals(messageType)
+            && !MessageType.LITE.equals(messageType)) {
             throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
-                "batch send only supports normal or FIFO messages");
+                "batch send only supports normal, FIFO or lite messages");
         }
 
         String messageGroup = firstMessage.getSystemProperties().getMessageGroup();
+        String liteTopic = firstMessage.getSystemProperties().getLiteTopic();
         if (MessageType.FIFO.equals(messageType) && StringUtils.isBlank(messageGroup)) {
             throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP,
                 "message group cannot be empty for FIFO batch messages");
@@ -129,6 +131,11 @@ public class SendMessageActivity extends AbstractMessagingActivity {
                 throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
                     "all messages in a batch must have the same message type");
             }
+            validateBatchMessageType(message);
+            if (!Objects.equals(liteTopic, message.getSystemProperties().getLiteTopic())) {
+                throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+                    "all messages in a batch must have the same lite topic");
+            }
             if (MessageType.FIFO.equals(messageType)
                 && !Objects.equals(messageGroup, message.getSystemProperties().getMessageGroup())) {
                 throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
@@ -136,6 +143,24 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             }
         }
         return firstMessage;
+    }
+
+    private void validateBatchMessageType(apache.rocketmq.v2.Message message) {
+        MessageType messageType = message.getSystemProperties().getMessageType();
+        MessageType effectiveMessageType = MessageType.NORMAL;
+        if (message.getSystemProperties().hasDeliveryTimestamp()) {
+            effectiveMessageType = MessageType.DELAY;
+        } else if (StringUtils.isNotEmpty(message.getSystemProperties().getMessageGroup())) {
+            effectiveMessageType = MessageType.FIFO;
+        } else if (message.getSystemProperties().hasPriority()) {
+            effectiveMessageType = MessageType.PRIORITY;
+        } else if (StringUtils.isNotEmpty(message.getSystemProperties().getLiteTopic())) {
+            effectiveMessageType = MessageType.LITE;
+        }
+        if (!messageType.equals(effectiveMessageType)) {
+            throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+                "message type conflicts with its properties");
+        }
     }
 
     protected List<Message> buildMessage(ProxyContext context,

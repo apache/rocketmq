@@ -17,10 +17,13 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -38,11 +41,14 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.lite.LiteUtil;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
@@ -55,6 +61,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
@@ -66,6 +73,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -75,6 +83,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
@@ -86,6 +95,8 @@ public class SendMessageProcessorTest {
     private ChannelHandlerContext handlerContext;
     @Mock
     private Channel channel;
+    @Mock
+    private ChannelFuture channelFuture;
     @Spy
     private BrokerConfig brokerConfig;
     @Spy
@@ -196,6 +207,40 @@ public class SendMessageProcessorTest {
         when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
             thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
         assertPutResult(ResponseCode.MESSAGE_ILLEGAL);
+    }
+
+    @Test
+    public void testBatchLiteTopicDispatchUsesValidatedMessageProperties() throws Exception {
+        brokerConfig.setAsyncSendEnable(false);
+        when(messageStore.putMessages(any(MessageExtBatch.class))).thenReturn(
+            new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        when(channel.writeAndFlush(any(Object.class))).thenReturn(channelFuture);
+
+        String liteTopic = "lite-topic";
+        RemotingCommand request = createBatchSendMsgCommand(liteTopic, liteTopic, "untrusted-header-lite-topic");
+        RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        ArgumentCaptor<MessageExtBatch> batchCaptor = ArgumentCaptor.forClass(MessageExtBatch.class);
+        verify(messageStore).putMessages(batchCaptor.capture());
+        MessageExtBatch batch = batchCaptor.getValue();
+        assertThat(batch.getProperty(MessageConst.PROPERTY_LITE_TOPIC)).isEqualTo(liteTopic);
+        assertThat(batch.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))
+            .isEqualTo(LiteUtil.toLmqName(topic, liteTopic));
+    }
+
+    @Test
+    public void testRejectBatchWithDifferentLiteTopics() throws Exception {
+        brokerConfig.setAsyncSendEnable(false);
+
+        RemotingCommand request = createBatchSendMsgCommand("lite-a", "lite-b", "lite-a");
+        RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.MESSAGE_ILLEGAL);
+        assertThat(response.getRemark()).isEqualTo("all messages in a batch must have the same lite topic");
+        verify(messageStore, never()).putMessages(any(MessageExtBatch.class));
     }
 
     @Test
@@ -400,6 +445,25 @@ public class SendMessageProcessorTest {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
         request.setBody(new byte[] {'a'});
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private RemotingCommand createBatchSendMsgCommand(String firstLiteTopic, String secondLiteTopic,
+        String headerLiteTopic) {
+        SendMessageRequestHeader requestHeader = createSendMsgRequestHeader();
+        requestHeader.setBatch(true);
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(
+            Collections.singletonMap(MessageConst.PROPERTY_LITE_TOPIC, headerLiteTopic)));
+
+        Message firstMessage = new Message(topic, "first".getBytes());
+        MessageAccessor.setLiteTopic(firstMessage, firstLiteTopic);
+        Message secondMessage = new Message(topic, "second".getBytes());
+        MessageAccessor.setLiteTopic(secondMessage, secondLiteTopic);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE,
+            SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader));
+        request.setBody(MessageDecoder.encodeMessages(Arrays.asList(firstMessage, secondMessage)));
         request.makeCustomHeaderToNet();
         return request;
     }

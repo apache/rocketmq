@@ -33,8 +33,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -74,6 +78,8 @@ public class BatchPutMessageTest {
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setEnableLmq(true);
+        messageStoreConfig.setEnableMultiDispatch(true);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
         messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "putmessagesteststore");
         messageStoreConfig.setStorePathCommitLog(System.getProperty("java.io.tmpdir") + File.separator
@@ -142,6 +148,50 @@ public class BatchPutMessageTest {
             assertTrue(exist);
         }
 
+    }
+
+    @Test
+    public void testPutLiteMessages() {
+        String topic = "batch-lite-parent-topic";
+        String liteTopic = "batch-lite-topic";
+        String lmqName = LiteUtil.toLmqName(topic, liteTopic);
+        List<Message> messages = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            Message message = new Message(topic, ("body" + i).getBytes(CHARSET_UTF8));
+            MessageAccessor.setLiteTopic(message, liteTopic);
+            messages.add(message);
+        }
+
+        MessageExtBatch messageExtBatch = new MessageExtBatch();
+        messageExtBatch.setTopic(topic);
+        messageExtBatch.setQueueId(0);
+        messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
+        messageExtBatch.setBornTimestamp(System.currentTimeMillis());
+        messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
+        messageExtBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
+        MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqName);
+
+        PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
+
+        assertThat(putMessageResult.isOk()).isTrue();
+        await().atMost(3, SECONDS).untilAsserted(() ->
+            assertThat(messageStore.getMaxOffsetInQueue(lmqName, MixAll.LMQ_QUEUE_ID)).isEqualTo(2));
+
+        GetMessageResult getMessageResult = messageStore.getMessage(
+            "batch_lite_group", lmqName, MixAll.LMQ_QUEUE_ID, 0, 1024 * 1024, null);
+        assertThat(getMessageResult).isNotNull();
+        try {
+            assertThat(getMessageResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
+            assertThat(getMessageResult.getMessageBufferList()).hasSize(2);
+            for (int i = 0; i < 2; i++) {
+                MessageExt messageExt = MessageDecoder.decode(getMessageResult.getMessageBufferList().get(i));
+                assertThat(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)).isEqualTo(lmqName);
+                assertThat(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET))
+                    .isEqualTo(String.valueOf(i));
+            }
+        } finally {
+            getMessageResult.release();
+        }
     }
 
     @Test
