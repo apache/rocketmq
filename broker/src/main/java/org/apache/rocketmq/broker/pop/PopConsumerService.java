@@ -484,12 +484,12 @@ public class PopConsumerService extends ServiceThread {
         }
 
         String groupId = context.getGroupId();
+        ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
 
         for (PopConsumerContext.PendingCommit pendingCommit : pendingCommitList) {
             String topicId = pendingCommit.getTopicId();
             int queueId = pendingCommit.getQueueId();
 
-            ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
             if (consumerOffsetManager.hasOffsetReset(topicId, groupId, queueId)) {
                 continue;
             }
