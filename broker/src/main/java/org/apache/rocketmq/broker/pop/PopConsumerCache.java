@@ -84,6 +84,13 @@ public class PopConsumerCache extends ServiceThread {
         return consumerRecords != null ? consumerRecords.getMinOffsetInBuffer() : OFFSET_NOT_EXIST;
     }
 
+    public void setPendingCommitOffset(String groupId, String topicId, int queueId, long offset) {
+        ConsumerRecords consumerRecords = consumerRecordTable.get(this.getKey(groupId, topicId, queueId));
+        if (consumerRecords != null) {
+            consumerRecords.setPendingCommitOffset(offset);
+        }
+    }
+
     public long getPopInFlightMessageCount(String groupId, String topicId, int queueId) {
         ConsumerRecords consumerRecords = consumerRecordTable.get(this.getKey(groupId, topicId, queueId));
         return consumerRecords != null ? consumerRecords.getInFlightRecordCount() : 0L;
@@ -133,6 +140,7 @@ public class PopConsumerCache extends ServiceThread {
                     consumerRecordStore.writeRecords(writeConsumerRecords);
                 }
                 records.clearStagedRecords();
+                this.commitPendingOffset(records);
                 log.info("PopConsumerOffline, so clean expire records, groupId={}, topic={}, queueId={}, records={}",
                     records.getGroupId(), records.getTopicId(), records.getQueueId(), records.getInFlightRecordCount());
                 iterator.remove();
@@ -159,11 +167,40 @@ public class PopConsumerCache extends ServiceThread {
             if (offset > OFFSET_NOT_EXIST) {
                 this.commitOffset("PopConsumerCache",
                     records.getGroupId(), records.getTopicId(), records.getQueueId(), offset);
+            } else {
+                this.commitPendingOffset(records);
             }
 
             remain += records.getInFlightRecordCount();
         }
         return remain;
+    }
+
+    /**
+     * Commit the offset left over by pop once no record of the queue remains in the cache.
+     */
+    private void commitPendingOffset(ConsumerRecords records) {
+        // Read the pending offset before checking the in-flight records, never the other way
+        // around. A concurrent pop writes its records into the cache before it updates the pending
+        // offset, so this order guarantees that either the check below sees those records, or the
+        // pending offset read here is the older one.
+        long pendingCommitOffset = records.getPendingCommitOffset();
+        if (pendingCommitOffset == OFFSET_NOT_EXIST || records.getInFlightRecordCount() != 0) {
+            return;
+        }
+
+        String groupId = records.getGroupId();
+        String topicId = records.getTopicId();
+        int queueId = records.getQueueId();
+
+        ConsumerOffsetManager consumerOffsetManager = brokerController.getConsumerOffsetManager();
+        if (consumerOffsetManager.hasOffsetReset(topicId, groupId, queueId)) {
+            return;
+        }
+
+        if (pendingCommitOffset > consumerOffsetManager.queryOffset(groupId, topicId, queueId)) {
+            this.commitOffset("PopConsumerCache", groupId, topicId, queueId, pendingCommitOffset);
+        }
     }
 
     public void commitOffset(String clientHost, String groupId, String topicId, int queueId, long offset) {
@@ -214,6 +251,9 @@ public class PopConsumerCache extends ServiceThread {
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> removeTreeMap;
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> recordTreeMap;
 
+        // The consumer offset to commit once no record of this queue is in cache
+        private volatile long pendingCommitOffset = OFFSET_NOT_EXIST;
+
         public ConsumerRecords(BrokerConfig brokerConfig, String groupId, String topicId, int queueId) {
             this.groupId = groupId;
             this.topicId = topicId;
@@ -242,6 +282,14 @@ public class PopConsumerCache extends ServiceThread {
 
         public int getInFlightRecordCount() {
             return removeTreeMap.size() + recordTreeMap.size();
+        }
+
+        public void setPendingCommitOffset(long pendingCommitOffset) {
+            this.pendingCommitOffset = pendingCommitOffset;
+        }
+
+        public long getPendingCommitOffset() {
+            return pendingCommitOffset;
         }
 
         public void stageExpiredRecords(long currentTime) {
