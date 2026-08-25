@@ -145,6 +145,22 @@ public class PopConsumerCacheTest {
         consumerRecordList.clear();
         consumerCache.cleanupRecords(consumerRecordList::add);
         Assert.assertEquals(0, consumerRecordList.size());
+
+        // timeout cleanup is skipped when tryLock fails: concurrent pop holds the lock
+        record = new PopConsumerRecord(System.currentTimeMillis(),
+            groupId, topicId, queueId, 0, 20000, 105, attemptId);
+        consumerCache.writeRecords(Collections.singletonList(record));
+        Mockito.when(consumerLockService.tryLock(eq(groupId), eq(topicId))).thenReturn(false);
+        int remain = consumerCache.cleanupRecords(consumerRecordList::add);
+        Assert.assertEquals(1, remain);
+        Assert.assertEquals(1, consumerCache.getCacheKeySize());
+        Assert.assertEquals(1, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+
+        // timeout cleanup proceeds and persists records to KV store when the lock is acquired
+        Mockito.when(consumerLockService.tryLock(eq(groupId), eq(topicId))).thenReturn(true);
+        consumerCache.cleanupRecords(consumerRecordList::add);
+        Assert.assertEquals(0, consumerCache.getCacheKeySize());
+        Mockito.verify(consumerKVStore).writeRecords(Collections.singletonList(record));
     }
 
     @Test

@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
@@ -133,17 +134,28 @@ public class PopConsumerCache extends ServiceThread {
                 records.getGroupId(), records.getTopicId());
 
             if (timeout) {
-                records.stageExpiredRecords(Long.MAX_VALUE);
-                List<PopConsumerRecord> writeConsumerRecords =
-                    new ArrayList<>(records.getRemoveTreeMap().values());
-                if (!writeConsumerRecords.isEmpty()) {
-                    consumerRecordStore.writeRecords(writeConsumerRecords);
+                // hold the same lock as PopConsumerService#popAsync to prevent evicting records that a
+                // concurrent pop is still writing.
+                String lockTopicId = KeyBuilder.parseNormalTopic(records.getTopicId(), records.getGroupId());
+                if (!consumerLockService.tryLock(records.getGroupId(), lockTopicId)) {
+                    remain += records.getInFlightRecordCount();
+                    continue;
                 }
-                records.clearStagedRecords();
-                this.commitPendingOffset(records);
-                log.info("PopConsumerOffline, so clean expire records, groupId={}, topic={}, queueId={}, records={}",
-                    records.getGroupId(), records.getTopicId(), records.getQueueId(), records.getInFlightRecordCount());
-                iterator.remove();
+                try {
+                    records.stageExpiredRecords(Long.MAX_VALUE);
+                    List<PopConsumerRecord> writeConsumerRecords =
+                        new ArrayList<>(records.getRemoveTreeMap().values());
+                    if (!writeConsumerRecords.isEmpty()) {
+                        consumerRecordStore.writeRecords(writeConsumerRecords);
+                    }
+                    records.clearStagedRecords();
+                    log.info("PopConsumerOffline, so clean expire records, groupId={}, topic={}, queueId={}, records={}",
+                        records.getGroupId(), records.getTopicId(), records.getQueueId(), records.getInFlightRecordCount());
+                    iterator.remove();
+                } finally {
+                    consumerLockService.unlock(records.getGroupId(), lockTopicId);
+                }
+                commitPendingOffset(records);
                 continue;
             }
 
