@@ -150,7 +150,7 @@ public class PopConsumerCache extends ServiceThread {
                     }
                     records.clearStagedRecords();
                     log.info("PopConsumerOffline, so clean expire records, groupId={}, topic={}, queueId={}, records={}",
-                        records.getGroupId(), records.getTopicId(), records.getQueueId(), records.getInFlightRecordCount());
+                        records.getGroupId(), records.getTopicId(), records.getQueueId(), writeConsumerRecords.size());
                     iterator.remove();
                 } finally {
                     consumerLockService.unlock(records.getGroupId(), lockTopicId);
