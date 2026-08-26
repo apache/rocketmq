@@ -129,7 +129,7 @@
         <rocketmq-proto.version>2.1.2</rocketmq-proto.version>
         <grpc.version>1.53.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
-        <disruptor.version>1.2.10</disruptor.version>
+        <disruptor.version>3.4.1</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
