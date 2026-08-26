@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -35,6 +36,7 @@ import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
@@ -68,6 +70,7 @@ import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
@@ -200,7 +203,76 @@ public class LocalMessageService implements MessageService {
     @Override
     public CompletableFuture<PopResult> popLiteMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         PopLiteMessageRequestHeader requestHeader, long timeoutMillis) {
-        throw new NotImplementedException();
+        RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.POP_LITE_MESSAGE, requestHeader, ctx.getLanguage());
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        SimpleChannel channel = channelManager.createInvocationChannel(ctx);
+        InvocationContext invocationContext = new InvocationContext(future);
+        channel.registerInvocationContext(request.getOpaque(), invocationContext);
+        ChannelHandlerContext simpleChannelHandlerContext = channel.getChannelHandlerContext();
+        try {
+            RemotingCommand response = brokerController.getPopLiteMessageProcessor().processRequest(simpleChannelHandlerContext, request);
+            if (response != null) {
+                invocationContext.handle(response);
+                channel.eraseInvocationContext(request.getOpaque());
+            }
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+            channel.eraseInvocationContext(request.getOpaque());
+            log.error("Failed to process popMessage command", e);
+        }
+        return future.thenApply(r -> {
+            // @see org.apache.rocketmq.client.impl.MQClientAPIImpl#processPopLiteResponse
+            PopStatus popStatus;
+            List<MessageExt> messageExtList = new ArrayList<>();
+            switch (r.getCode()) {
+                case ResponseCode.SUCCESS:
+                    popStatus = PopStatus.FOUND;
+                    ByteBuffer byteBuffer = ByteBuffer.wrap(r.getBody());
+                    messageExtList = MessageDecoder.decodesBatch(
+                            byteBuffer,
+                            true,
+                            false,
+                            true
+                    );
+                    break;
+                case ResponseCode.POLLING_FULL:
+                    popStatus = PopStatus.POLLING_FULL;
+                    break;
+                case ResponseCode.POLLING_TIMEOUT:
+                case ResponseCode.PULL_NOT_FOUND:
+                    popStatus = PopStatus.POLLING_NOT_FOUND;
+                    break;
+                default:
+                    throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, r.getRemark());
+            }
+            PopResult popResult = new PopResult(popStatus, messageExtList);
+            if (popStatus != PopStatus.FOUND) {
+                return popResult;
+            }
+
+            PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) r.readCustomHeader();
+            List<Integer> orderCountList = ExtraInfoUtil.parseLiteOrderCountInfo(responseHeader.getOrderCountInfo(), messageExtList.size());
+            for (int i = 0; i < messageExtList.size(); i++) {
+                MessageExt messageExt = messageExtList.get(i);
+                String[] queues = StringUtils.split(
+                        messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH), MixAll.LMQ_DISPATCH_SEPARATOR);
+                String[] queueOffsets = StringUtils.split(
+                        messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), MixAll.LMQ_DISPATCH_SEPARATOR);
+
+                if (null == queues || null == queueOffsets || queues.length != 1 || queues.length != queueOffsets.length) {
+                    continue;
+                }
+                messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
+                        ExtraInfoUtil.buildExtraInfo(0, responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                                responseHeader.getReviveQid(), messageQueue.getTopic(), messageQueue.getBrokerName(), 0, Long.parseLong(queueOffsets[0])));
+                messageExt.getProperties().computeIfAbsent(
+                        MessageConst.PROPERTY_FIRST_POP_TIME, k -> String.valueOf(responseHeader.getPopTime()));
+                messageExt.setBrokerName(messageQueue.getBrokerName());
+                messageExt.setReconsumeTimes(orderCountList != null ? orderCountList.get(i) : 0);
+                messageExt.setQueueOffset(Long.parseLong(queueOffsets[0]));
+            }
+            return popResult;
+        });
     }
 
     @Override
