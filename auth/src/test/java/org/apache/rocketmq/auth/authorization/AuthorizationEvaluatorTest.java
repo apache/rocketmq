@@ -16,7 +16,17 @@
  */
 package org.apache.rocketmq.auth.authorization;
 
+import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.HeartbeatRequest;
+import apache.rocketmq.v2.NotifyClientTerminationRequest;
+import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.ThreadStackTrace;
+import apache.rocketmq.v2.VerifyMessageResult;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
@@ -33,14 +43,30 @@ import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Resource;
+import org.apache.rocketmq.auth.authorization.strategy.AuthorizationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.resource.ResourcePattern;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ViewMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class AuthorizationEvaluatorTest {
 
@@ -382,6 +408,255 @@ public class AuthorizationEvaluatorTest {
             context.setRpcCode("10");
             this.evaluator.evaluate(Collections.singletonList(context));
         });
+    }
+
+    @Test
+    public void evaluateTypedAnyListResources() {
+        Assume.assumeFalse(MixAll.isMac());
+        User listUser = User.of("list-user", "test");
+        User getUser = User.of("get-user", "test");
+        User literalUser = User.of("literal-user", "test");
+        User topicUser = User.of("topic-user", "test");
+        this.authenticationMetadataManager.createUser(listUser).join();
+        this.authenticationMetadataManager.createUser(getUser).join();
+        this.authenticationMetadataManager.createUser(literalUser).join();
+        this.authenticationMetadataManager.createUser(topicUser).join();
+
+        this.authorizationMetadataManager.createAcl(AuthTestHelper.buildAcl(
+            "User:list-user", "Topic:*,Group:*", "List", null, Decision.ALLOW)).join();
+        this.authorizationMetadataManager.createAcl(AuthTestHelper.buildAcl(
+            "User:get-user", "Topic:*,Group:*", "Get", null, Decision.ALLOW)).join();
+        this.authorizationMetadataManager.createAcl(AuthTestHelper.buildAcl(
+            "User:literal-user", "Topic:orders,Group:consumers", "List", null, Decision.ALLOW)).join();
+        this.authorizationMetadataManager.createAcl(AuthTestHelper.buildAcl(
+            "User:topic-user", "Topic:*", "List", null, Decision.ALLOW)).join();
+
+        this.evaluator.evaluate(Arrays.asList(
+            typedAnyListContext("list-user", ResourceType.TOPIC),
+            typedAnyListContext("list-user", ResourceType.GROUP)));
+
+        Assert.assertThrows(AuthorizationException.class, () -> this.evaluator.evaluate(
+            Collections.singletonList(typedAnyListContext("get-user", ResourceType.TOPIC))));
+        Assert.assertThrows(AuthorizationException.class, () -> this.evaluator.evaluate(
+            Collections.singletonList(typedAnyListContext("literal-user", ResourceType.TOPIC))));
+
+        this.evaluator.evaluate(
+            Collections.singletonList(typedAnyListContext("topic-user", ResourceType.TOPIC)));
+        Assert.assertThrows(AuthorizationException.class, () -> this.evaluator.evaluate(
+            Collections.singletonList(typedAnyListContext("topic-user", ResourceType.GROUP))));
+    }
+
+    @Test
+    public void rejectsEmptyContextWithoutRequest() {
+        AuthorizationEvaluator requestEvaluator = new AuthorizationEvaluator(mock(AuthorizationStrategy.class));
+
+        Assert.assertThrows(AuthorizationException.class, () -> requestEvaluator.evaluate(null));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(Collections.emptyList()));
+    }
+
+    @Test
+    public void evaluatesNonEmptyContextBeforeCompatibilityMatching() {
+        AuthorizationStrategy strategy = mock(AuthorizationStrategy.class);
+        AuthorizationEvaluator requestEvaluator = new AuthorizationEvaluator(strategy);
+        DefaultAuthorizationContext context = DefaultAuthorizationContext.of(
+            Subject.of("User:test"), Resource.ofTopic("topic"), Action.PUB, "127.0.0.1");
+
+        requestEvaluator.evaluate(RemotingCommand.createRequestCommand(-1, null),
+            Collections.singletonList(context));
+
+        verify(strategy).evaluate(context);
+    }
+
+    @Test
+    public void acceptsOnlyResourceLessRemotingCompatibilityShapes() {
+        AuthorizationEvaluator requestEvaluator = new AuthorizationEvaluator(mock(AuthorizationStrategy.class));
+
+        requestEvaluator.evaluate(producerHeartbeat("producerGroup"), Collections.emptyList());
+        requestEvaluator.evaluate(producerHeartbeat(" "), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(producerHeartbeat(null), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(remotingRequest(
+                RequestCode.HEART_BEAT, new HeartbeatData().encode()), Collections.emptyList()));
+        HeartbeatData invalidHeartbeat = new HeartbeatData();
+        invalidHeartbeat.setProducerDataSet(Collections.singleton(null));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(remotingRequest(
+                RequestCode.HEART_BEAT, invalidHeartbeat.encode()), Collections.emptyList()));
+
+        HeartbeatData mixedHeartbeat = new HeartbeatData();
+        ProducerData producerData = new ProducerData();
+        producerData.setGroupName("producerGroup");
+        mixedHeartbeat.setProducerDataSet(Collections.singleton(producerData));
+        ConsumerData consumerData = new ConsumerData();
+        consumerData.setGroupName("consumerGroup");
+        mixedHeartbeat.setConsumerDataSet(Collections.singleton(consumerData));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(remotingRequest(RequestCode.HEART_BEAT, mixedHeartbeat.encode()),
+                Collections.emptyList()));
+
+        requestEvaluator.evaluate(unregister("producerGroup", null), Collections.emptyList());
+        requestEvaluator.evaluate(unregister(null, "producerGroup", null), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(unregister(null, null), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(unregister("producerGroup", "consumerGroup"),
+                Collections.emptyList()));
+
+        requestEvaluator.evaluate(endTransaction(true), Collections.emptyList());
+        requestEvaluator.evaluate(endTransaction(false), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(
+                RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, null),
+                Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(endTransaction(
+                "topic", 1L, 2L, MessageSysFlag.TRANSACTION_COMMIT_TYPE, "messageId"),
+                Collections.emptyList()));
+        requestEvaluator.evaluate(endTransaction(
+            null, -1L, 2L, MessageSysFlag.TRANSACTION_COMMIT_TYPE, "messageId"), Collections.emptyList());
+        requestEvaluator.evaluate(endTransaction(
+            null, 1L, -1L, MessageSysFlag.TRANSACTION_COMMIT_TYPE, "messageId"), Collections.emptyList());
+        requestEvaluator.evaluate(endTransaction(
+            null, 1L, 2L, 99, "messageId"), Collections.emptyList());
+        requestEvaluator.evaluate(endTransaction(
+            null, 1L, 2L, null, "messageId"), Collections.emptyList());
+
+        requestEvaluator.evaluate(viewMessage(0L), Collections.emptyList());
+        requestEvaluator.evaluate(viewMessage(-1L), Collections.emptyList());
+        requestEvaluator.evaluate(viewMessage(null), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(
+                RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, null),
+                Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(viewMessage("topic", 0L), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(RemotingCommand.createRequestCommand(-1, null),
+                Collections.emptyList()));
+    }
+
+    @Test
+    public void acceptsOnlyResourceLessGrpcCompatibilityShapes() {
+        AuthorizationEvaluator requestEvaluator = new AuthorizationEvaluator(mock(AuthorizationStrategy.class));
+
+        requestEvaluator.evaluate(HeartbeatRequest.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .build(), Collections.emptyList());
+        requestEvaluator.evaluate(HeartbeatRequest.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build(), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(HeartbeatRequest.newBuilder()
+                .setClientType(ClientType.PRODUCER)
+                .setGroup(apache.rocketmq.v2.Resource.newBuilder().setName("consumerGroup"))
+                .build(), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(HeartbeatRequest.newBuilder()
+                .setClientType(ClientType.PUSH_CONSUMER)
+                .build(), Collections.emptyList()));
+
+        requestEvaluator.evaluate(NotifyClientTerminationRequest.getDefaultInstance(), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(NotifyClientTerminationRequest.newBuilder()
+                .setGroup(apache.rocketmq.v2.Resource.newBuilder().setName("consumerGroup"))
+                .build(), Collections.emptyList()));
+
+        requestEvaluator.evaluate(TelemetryCommand.newBuilder()
+            .setThreadStackTrace(ThreadStackTrace.newBuilder().setNonce("nonce"))
+            .build(), Collections.emptyList());
+        requestEvaluator.evaluate(TelemetryCommand.newBuilder()
+            .setVerifyMessageResult(VerifyMessageResult.newBuilder().setNonce("nonce"))
+            .build(), Collections.emptyList());
+        requestEvaluator.evaluate(TelemetryCommand.newBuilder()
+            .setThreadStackTrace(ThreadStackTrace.getDefaultInstance())
+            .build(), Collections.emptyList());
+        requestEvaluator.evaluate(TelemetryCommand.newBuilder()
+            .setVerifyMessageResult(VerifyMessageResult.getDefaultInstance())
+            .build(), Collections.emptyList());
+        requestEvaluator.evaluate(TelemetryCommand.newBuilder()
+            .setSettings(Settings.newBuilder().setPublishing(Publishing.getDefaultInstance()))
+            .build(), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(TelemetryCommand.newBuilder()
+                .setSettings(Settings.newBuilder().setPublishing(Publishing.newBuilder()
+                    .addTopics(apache.rocketmq.v2.Resource.newBuilder().setName("topic"))))
+                .build(), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(TelemetryCommand.getDefaultInstance(), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(QueryRouteRequest.getDefaultInstance(), Collections.emptyList()));
+    }
+
+    private RemotingCommand producerHeartbeat(String producerGroup) {
+        HeartbeatData heartbeatData = new HeartbeatData();
+        ProducerData producerData = new ProducerData();
+        producerData.setGroupName(producerGroup);
+        heartbeatData.setProducerDataSet(Collections.singleton(producerData));
+        return remotingRequest(RequestCode.HEART_BEAT, heartbeatData.encode());
+    }
+
+    private RemotingCommand unregister(String producerGroup, String consumerGroup) {
+        return unregister("clientId", producerGroup, consumerGroup);
+    }
+
+    private RemotingCommand unregister(String clientId, String producerGroup, String consumerGroup) {
+        UnregisterClientRequestHeader header = new UnregisterClientRequestHeader();
+        header.setClientID(clientId);
+        header.setProducerGroup(producerGroup);
+        header.setConsumerGroup(consumerGroup);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNREGISTER_CLIENT, header);
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private RemotingCommand endTransaction(boolean complete) {
+        return endTransaction(null, 1L, 2L, MessageSysFlag.TRANSACTION_COMMIT_TYPE,
+            complete ? "messageId" : null);
+    }
+
+    private RemotingCommand endTransaction(String topic, Long transactionOffset,
+        Long commitLogOffset, Integer state, String messageId) {
+        EndTransactionRequestHeader header = new EndTransactionRequestHeader();
+        header.setTopic(topic);
+        header.setProducerGroup("producerGroup");
+        header.setTranStateTableOffset(transactionOffset);
+        header.setCommitLogOffset(commitLogOffset);
+        header.setCommitOrRollback(state);
+        header.setMsgId(messageId);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, header);
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private RemotingCommand viewMessage(Long offset) {
+        return viewMessage(null, offset);
+    }
+
+    private RemotingCommand viewMessage(String topic, Long offset) {
+        ViewMessageRequestHeader header = new ViewMessageRequestHeader();
+        header.setTopic(topic);
+        header.setOffset(offset);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, header);
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private RemotingCommand remotingRequest(int requestCode, byte[] body) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, null);
+        request.setBody(body);
+        return request;
+    }
+
+    private DefaultAuthorizationContext typedAnyListContext(String username, ResourceType resourceType) {
+        DefaultAuthorizationContext context = DefaultAuthorizationContext.of(
+            Subject.of("User:" + username),
+            Resource.of(resourceType, null, ResourcePattern.ANY),
+            Action.LIST,
+            "192.168.0.1");
+        context.setRpcCode(String.valueOf(RequestCode.GET_ALL_TOPIC_CONFIG));
+        return context;
     }
 
     private void clearAllUsers() {

@@ -154,6 +154,24 @@ public class EndTransactionProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.ILLEGAL_OPERATION);
     }
 
+    @Test
+    public void testProcessRequestAllowsMissingTopicForCompatibility() throws RemotingCommandException {
+        when(transactionMsgService.commitMessage(any(EndTransactionRequestHeader.class)))
+            .thenReturn(createResponse(ResponseCode.SUCCESS));
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class)))
+            .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK,
+                createAppendMessageResult(AppendMessageStatus.PUT_OK)));
+        EndTransactionRequestHeader header = createEndTransactionRequestHeader(
+            MessageSysFlag.TRANSACTION_COMMIT_TYPE, false);
+        header.setTopic(null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, header);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
     private MessageExt createDefaultMessageExt() {
         MessageExt messageExt = new MessageExt();
         messageExt.setMsgId("12345678");
@@ -169,7 +187,7 @@ public class EndTransactionProcessorTest {
 
     private EndTransactionRequestHeader createEndTransactionRequestHeader(int status, boolean isCheckMsg) {
         EndTransactionRequestHeader header = new EndTransactionRequestHeader();
-        header.setTopic("topic");
+        header.setTopic(TOPIC);
         header.setCommitLogOffset(123456789L);
         header.setFromTransactionCheck(isCheckMsg);
         header.setCommitOrRollback(status);
