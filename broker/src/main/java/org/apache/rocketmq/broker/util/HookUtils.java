@@ -206,19 +206,22 @@ public class HookUtils {
         //do transform
         int delayLevel = msg.getDelayTimeLevel();
         long deliverMs;
+        long now = System.currentTimeMillis();
         try {
             if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
-                deliverMs = System.currentTimeMillis() + Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) * 1000;
+                long delaySec = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC));
+                deliverMs = Math.addExact(now, Math.multiplyExact(delaySec, 1000L));
             } else if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
-                deliverMs = System.currentTimeMillis() + Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
+                long delayMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
+                deliverMs = Math.addExact(now, delayMs);
             } else {
                 deliverMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
             }
         } catch (Exception e) {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
-        if (deliverMs > System.currentTimeMillis()) {
-            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
+        if (deliverMs > now) {
+            if (delayLevel <= 0 && deliverMs - now > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
             }
 
