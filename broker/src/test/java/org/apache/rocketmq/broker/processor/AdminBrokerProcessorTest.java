@@ -331,6 +331,16 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testProcessRequestBodyNull() throws Throwable {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        ResumeCheckHalfMessageRequestHeader header = createResumeCheckHalfMessageRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, header);
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
     public void testProcessRequest_fail() throws RemotingCommandException, UnknownHostException {
         RemotingCommand request = createResumeCheckHalfMessageCommand();
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());

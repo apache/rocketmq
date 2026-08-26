@@ -636,6 +636,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         long startTime = System.currentTimeMillis();
 
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (request.getBody() == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("requestBody must not be null");
+            return response;
+        }
         final CreateTopicListRequestBody requestBody = CreateTopicListRequestBody.decode(request.getBody(), CreateTopicListRequestBody.class);
         List<TopicConfig> topicConfigList = requestBody.getTopicConfigList();
 
@@ -645,8 +652,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         String topicNames = builder.toString();
         LOGGER.info("AdminBrokerProcessor#updateAndCreateTopicList: topicNames: {}, called by {}", topicNames, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         long executionTime;
 
