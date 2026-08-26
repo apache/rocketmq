@@ -20,6 +20,8 @@ package org.apache.rocketmq.proxy.grpc.v2.channel;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.TelemetryCommand;
+import io.grpc.stub.StreamObserver;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
@@ -35,7 +37,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -78,5 +82,48 @@ public class GrpcClientChannelTest extends InitConfigTest {
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(remoteChannel));
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(this.grpcClientChannel));
         assertNull(GrpcClientChannel.parseChannelExtendAttribute(mock(RemotingChannel.class)));
+    }
+
+    @Test
+    public void testSetAndClearClientObserver() {
+        StreamObserver<TelemetryCommand> observer = mock(StreamObserver.class);
+        assertFalse(this.grpcClientChannel.isActive());
+        assertFalse(this.grpcClientChannel.isOpen());
+        assertFalse(this.grpcClientChannel.isWritable());
+
+        this.grpcClientChannel.setClientObserver(observer);
+        assertTrue(this.grpcClientChannel.isActive());
+        assertTrue(this.grpcClientChannel.isOpen());
+        assertTrue(this.grpcClientChannel.isWritable());
+
+        this.grpcClientChannel.clearClientObserver(observer);
+        assertFalse(this.grpcClientChannel.isActive());
+        assertFalse(this.grpcClientChannel.isOpen());
+        assertFalse(this.grpcClientChannel.isWritable());
+    }
+
+    @Test
+    public void testClearClientObserverDoesNotClearNewerObserver() {
+        StreamObserver<TelemetryCommand> oldObserver = mock(StreamObserver.class);
+        StreamObserver<TelemetryCommand> newObserver = mock(StreamObserver.class);
+
+        this.grpcClientChannel.setClientObserver(oldObserver);
+        assertTrue(this.grpcClientChannel.isActive());
+
+        // the client reconnects and a newer stream observer replaces the stale one
+        this.grpcClientChannel.setClientObserver(newObserver);
+        assertTrue(this.grpcClientChannel.isActive());
+
+        // a delayed completion of the old stream must not clear the newer observer
+        this.grpcClientChannel.clearClientObserver(oldObserver);
+        assertTrue(this.grpcClientChannel.isActive());
+        assertTrue(this.grpcClientChannel.isOpen());
+        assertTrue(this.grpcClientChannel.isWritable());
+
+        // only the matching (newer) observer clears the channel state
+        this.grpcClientChannel.clearClientObserver(newObserver);
+        assertFalse(this.grpcClientChannel.isActive());
+        assertFalse(this.grpcClientChannel.isOpen());
+        assertFalse(this.grpcClientChannel.isWritable());
     }
 }

@@ -161,7 +161,7 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         this.telemetryCommandRef.set(future);
     }
 
-    protected void clearClientObserver(StreamObserver<TelemetryCommand> future) {
+    public void clearClientObserver(StreamObserver<TelemetryCommand> future) {
         this.telemetryCommandRef.compareAndSet(future, null);
     }
 

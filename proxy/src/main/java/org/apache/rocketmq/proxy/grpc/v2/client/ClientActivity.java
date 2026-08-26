@@ -279,13 +279,14 @@ public class ClientActivity extends AbstractMessagingActivity {
     public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
         return new ContextStreamObserver<TelemetryCommand>() {
             private ProxyContext proxyCtx = null;
+            private GrpcClientChannel grpcClientChannel = null;
             @Override
             public void onNext(ProxyContext ctx, TelemetryCommand request) {
                 this.proxyCtx = ctx;
                 try {
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
-                            processAndWriteClientSettings(ctx, request, responseObserver);
+                            this.grpcClientChannel = processAndWriteClientSettings(ctx, request, responseObserver);
                             break;
                         }
                         case THREAD_STACK_TRACE: {
@@ -306,13 +307,22 @@ public class ClientActivity extends AbstractMessagingActivity {
             public void onError(Throwable t) {
                 log.error("telemetry on error", t);
                 handleGrpcCancel(proxyCtx, t);
+                clearClientObserver(grpcClientChannel, responseObserver);
             }
 
             @Override
             public void onCompleted() {
                 responseObserver.onCompleted();
+                clearClientObserver(grpcClientChannel, responseObserver);
             }
         };
+    }
+
+    private void clearClientObserver(GrpcClientChannel grpcClientChannel, StreamObserver<TelemetryCommand> responseObserver) {
+        if (grpcClientChannel == null) {
+            return;
+        }
+        grpcClientChannel.clearClientObserver(responseObserver);
     }
 
     private static LiteSubscriptionAction toLiteAction(apache.rocketmq.v2.LiteSubscriptionAction gRpcAction) {
@@ -367,7 +377,7 @@ public class ClientActivity extends AbstractMessagingActivity {
         responseObserver.onError(exception);
     }
 
-    protected void processAndWriteClientSettings(ProxyContext ctx, TelemetryCommand request,
+    protected GrpcClientChannel processAndWriteClientSettings(ProxyContext ctx, TelemetryCommand request,
         StreamObserver<TelemetryCommand> responseObserver) {
         GrpcClientChannel grpcClientChannel = null;
         Settings settings = request.getSettings();
@@ -393,7 +403,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
                 .withDescription("there is no publishing or subscription data in settings")
                 .asRuntimeException());
-            return;
+            return null;
         }
         TelemetryCommand command = processClientSettings(ctx, request);
         if (grpcClientChannel != null) {
@@ -401,6 +411,7 @@ public class ClientActivity extends AbstractMessagingActivity {
         } else {
             responseObserver.onNext(command);
         }
+        return grpcClientChannel;
     }
 
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request) {
