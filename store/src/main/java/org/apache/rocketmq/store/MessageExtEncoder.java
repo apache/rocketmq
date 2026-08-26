@@ -20,8 +20,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import java.nio.ByteBuffer;
+import java.util.Map;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -283,6 +285,10 @@ public class MessageExtEncoder {
         this.byteBuf.clear();
 
         ByteBuffer messagesByteBuff = messageExtBatch.wrap();
+        boolean dispatchLmq = messageStoreConfig.isEnableLmq() && messageExtBatch.needDispatchLMQ();
+        long lmqQueueOffset = dispatchLmq
+            ? Long.parseLong(messageExtBatch.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)) : -1;
+        String lmqQueueName = messageExtBatch.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
 
         int totalLength = messagesByteBuff.limit();
         if (totalLength > this.maxMessageBodySize) {
@@ -315,10 +321,22 @@ public class MessageExtEncoder {
             final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
 
             final int topicLength = topicData.length;
+            byte[] propertiesData = null;
             int totalPropLen = propertiesLen;
+            if (dispatchLmq) {
+                Map<String, String> properties = MessageDecoder.string2messageProperties(
+                    new String(messagesByteBuff.array(), propertiesPos, propertiesLen, MessageDecoder.CHARSET_UTF8));
+                properties.put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqQueueName);
+                properties.put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, String.valueOf(lmqQueueOffset++));
+                propertiesData = MessageDecoder.messageProperties2String(properties).getBytes(MessageDecoder.CHARSET_UTF8);
+                totalPropLen = propertiesData.length;
+            }
 
             // properties need to add crc32
             totalPropLen += crc32ReservedLength;
+            if (totalPropLen > Short.MAX_VALUE) {
+                throw new RuntimeException("message properties size exceeded");
+            }
             final int msgLen = calMsgLength(
                 messageExtBatch.getVersion(), messageExtBatch.getSysFlag(), bodyLen, topicLength, totalPropLen);
 
@@ -371,7 +389,9 @@ public class MessageExtEncoder {
 
             // 17 PROPERTIES
             this.byteBuf.writeShort((short) totalPropLen);
-            if (propertiesLen > 0) {
+            if (propertiesData != null) {
+                this.byteBuf.writeBytes(propertiesData);
+            } else if (propertiesLen > 0) {
                 this.byteBuf.writeBytes(messagesByteBuff.array(), propertiesPos, propertiesLen);
             }
             this.byteBuf.writerIndex(this.byteBuf.writerIndex() + crc32ReservedLength);

@@ -170,6 +170,7 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
 
         await().atMost(Duration.ofSeconds(1)).until(getCalled::get);
         assertNull(getHandleRef.get());
+        await().atMost(Duration.ofSeconds(1)).until(receiptHandleGroup::isEmpty);
         assertTrue(receiptHandleGroup.isEmpty());
     }
 

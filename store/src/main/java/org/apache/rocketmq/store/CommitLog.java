@@ -1241,7 +1241,11 @@ public class CommitLog implements Swappable {
         String topicQueueKey = generateKey(pmThreadLocal.getKeyBuilder(), messageExtBatch);
 
         PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
+        boolean isMultiDispatchMsg = this.defaultMessageStore.getMessageStoreConfig().isEnableLmq()
+            && messageExtBatch.needDispatchLMQ();
+        if (!isMultiDispatchMsg) {
+            messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
+        }
 
         topicQueueLock.lock(topicQueueKey);
         try {
@@ -1249,6 +1253,20 @@ public class CommitLog implements Swappable {
 
             putMessageLock.lock();
             try {
+                String[] lmqQueueNames = null;
+                if (isMultiDispatchMsg) {
+                    try {
+                        lmqQueueNames = LmqDispatch.prepareLmqDispatch(defaultMessageStore, messageExtBatch);
+                    } catch (ConsumeQueueException e) {
+                        log.error("Failed to prepare LMQ dispatch for batch message", e);
+                        AppendMessageStatus status = e.getCause() instanceof RocksDBException
+                            ? AppendMessageStatus.ROCKSDB_ERROR : AppendMessageStatus.UNKNOWN_ERROR;
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR,
+                            new AppendMessageResult(status)));
+                    }
+                    messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
+                }
+
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
                 this.beginTimeInLock = beginLockTimestamp;
 
@@ -1291,6 +1309,17 @@ public class CommitLog implements Swappable {
                     case UNKNOWN_ERROR:
                     default:
                         return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                }
+
+                if (isMultiDispatchMsg && AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+                    try {
+                        LmqDispatch.updateLmqOffsets(defaultMessageStore, lmqQueueNames,
+                            (short) putMessageContext.getBatchSize());
+                    } catch (ConsumeQueueException e) {
+                        log.error("Failed to update LMQ offset for batch message", e);
+                        return CompletableFuture.completedFuture(
+                            new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                    }
                 }
 
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;

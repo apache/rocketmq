@@ -79,6 +79,10 @@ public class LmqDispatchTest {
         LmqDispatch.updateLmqOffsets(messageStore, queueNames);
         verify(queueStore).increaseLmqOffset(firstLmq, MixAll.LMQ_QUEUE_ID, (short) 1);
         verify(queueStore).increaseLmqOffset(secondLmq, MixAll.LMQ_QUEUE_ID, (short) 1);
+
+        LmqDispatch.updateLmqOffsets(messageStore, queueNames, (short) 3);
+        verify(queueStore).increaseLmqOffset(firstLmq, MixAll.LMQ_QUEUE_ID, (short) 3);
+        verify(queueStore).increaseLmqOffset(secondLmq, MixAll.LMQ_QUEUE_ID, (short) 3);
     }
 
     @Test

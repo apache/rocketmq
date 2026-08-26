@@ -54,6 +54,7 @@ import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
@@ -77,6 +78,7 @@ import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -91,6 +93,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientAPIExtTest {
@@ -172,6 +176,12 @@ public class MQClientAPIExtTest {
         assertNotNull(sendResult);
         assertEquals(sb.toString(), sendResult.getMsgId());
         assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
+
+        ArgumentCaptor<RemotingCommand> requestCaptor = ArgumentCaptor.forClass(RemotingCommand.class);
+        verify(remotingClient, times(1)).invoke(anyString(), requestCaptor.capture(), anyLong());
+        RemotingCommand request = requestCaptor.getValue();
+        assertEquals(RequestCode.SEND_BATCH_MESSAGE, request.getCode());
+        assertEquals(messageExtList.size(), MessageDecoder.decodeMessages(ByteBuffer.wrap(request.getBody())).size());
     }
 
     @Test

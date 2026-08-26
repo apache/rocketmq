@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +42,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -67,21 +69,17 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
 
         try {
-            if (request.getMessagesCount() <= 0) {
-                throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "no message to send");
-            }
-
             List<apache.rocketmq.v2.Message> messageList = request.getMessagesList();
-            apache.rocketmq.v2.Message message = messageList.get(0);
+            apache.rocketmq.v2.Message message = validateMessageList(messageList);
             Resource topic = message.getTopic();
-            validateTopic(topic);
+            List<Message> messages = buildMessage(ctx, messageList, topic);
 
             future = this.messagingProcessor.sendMessage(
                 ctx,
                 new SendMessageQueueSelector(request),
                 topic.getName(),
                 buildSysFlag(message),
-                buildMessage(ctx, request.getMessagesList(), topic)
+                messages
             ).thenApply(result -> convertToSendMessageResponse(ctx, request, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);
@@ -89,16 +87,97 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         return future;
     }
 
-    protected List<Message> buildMessage(ProxyContext context, List<apache.rocketmq.v2.Message> protoMessageList,
-        Resource topic) {
-        String topicName = topic.getName();
-        List<Message> messageExtList = new ArrayList<>();
-        for (apache.rocketmq.v2.Message protoMessage : protoMessageList) {
-            if (!protoMessage.getTopic().equals(topic)) {
+    protected apache.rocketmq.v2.Message validateMessageList(
+        List<apache.rocketmq.v2.Message> messageList) {
+        if (messageList.isEmpty()) {
+            throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "no message to send");
+        }
+
+        apache.rocketmq.v2.Message firstMessage = messageList.get(0);
+        Resource topic = firstMessage.getTopic();
+        validateTopic(topic);
+        if (messageList.size() <= 1) {
+            return firstMessage;
+        }
+
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        if (messageList.size() > config.getBatchSendMaxMsgNum()) {
+            throw new GrpcProxyException(Code.MESSAGE_CORRUPTED,
+                "batch message count cannot exceed the max " + config.getBatchSendMaxMsgNum());
+        }
+
+        MessageType messageType = firstMessage.getSystemProperties().getMessageType();
+        if (!MessageType.NORMAL.equals(messageType) && !MessageType.FIFO.equals(messageType)
+            && !MessageType.LITE.equals(messageType)) {
+            throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+                "batch send only supports normal, FIFO or lite messages");
+        }
+
+        String messageGroup = firstMessage.getSystemProperties().getMessageGroup();
+        String liteTopic = firstMessage.getSystemProperties().getLiteTopic();
+        if (MessageType.FIFO.equals(messageType) && StringUtils.isBlank(messageGroup)) {
+            throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP,
+                "message group cannot be empty for FIFO batch messages");
+        }
+        for (apache.rocketmq.v2.Message message : messageList) {
+            if (!topic.equals(message.getTopic())) {
                 throw new GrpcProxyException(Code.MESSAGE_CORRUPTED, "topic in message is not same");
             }
-            // here use topicName as producerGroup for transactional checker.
-            messageExtList.add(buildMessage(context, protoMessage, topicName));
+            if (Encoding.GZIP.equals(message.getSystemProperties().getBodyEncoding())) {
+                throw new GrpcProxyException(Code.MESSAGE_CORRUPTED,
+                    "batch send does not support compressed messages");
+            }
+            if (!messageType.equals(message.getSystemProperties().getMessageType())) {
+                throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+                    "all messages in a batch must have the same message type");
+            }
+            validateBatchMessageType(message);
+            if (!Objects.equals(liteTopic, message.getSystemProperties().getLiteTopic())) {
+                throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+                    "all messages in a batch must have the same lite topic");
+            }
+            if (MessageType.FIFO.equals(messageType)
+                && !Objects.equals(messageGroup, message.getSystemProperties().getMessageGroup())) {
+                throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+                    "all FIFO messages in a batch must have the same message group");
+            }
+        }
+        return firstMessage;
+    }
+
+    private void validateBatchMessageType(apache.rocketmq.v2.Message message) {
+        MessageType messageType = message.getSystemProperties().getMessageType();
+        MessageType effectiveMessageType = MessageType.NORMAL;
+        if (message.getSystemProperties().hasDeliveryTimestamp()) {
+            effectiveMessageType = MessageType.DELAY;
+        } else if (StringUtils.isNotEmpty(message.getSystemProperties().getMessageGroup())) {
+            effectiveMessageType = MessageType.FIFO;
+        } else if (message.getSystemProperties().hasPriority()) {
+            effectiveMessageType = MessageType.PRIORITY;
+        } else if (StringUtils.isNotEmpty(message.getSystemProperties().getLiteTopic())) {
+            effectiveMessageType = MessageType.LITE;
+        }
+        if (!messageType.equals(effectiveMessageType)) {
+            throw new GrpcProxyException(Code.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
+                "message type conflicts with its properties");
+        }
+    }
+
+    protected List<Message> buildMessage(ProxyContext context,
+        List<apache.rocketmq.v2.Message> protoMessageList, Resource topic) {
+        List<Message> messageExtList = new ArrayList<>(protoMessageList.size());
+        String producerGroup = topic.getName();
+        for (apache.rocketmq.v2.Message protoMessage : protoMessageList) {
+            // Here use topic name as producerGroup for transactional checker.
+            messageExtList.add(buildMessage(context, protoMessage, producerGroup));
+        }
+
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        int maxMessageSize = config.getMaxMessageSize();
+        if (messageExtList.size() > 1 && maxMessageSize > 0
+            && MessageDecoder.encodeMessages(messageExtList).length > maxMessageSize) {
+            throw new GrpcProxyException(Code.MESSAGE_BODY_TOO_LARGE,
+                "batch message body cannot exceed the max " + maxMessageSize);
         }
         return messageExtList;
     }
@@ -333,41 +412,21 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         SendMessageResponse.Builder builder = SendMessageResponse.newBuilder();
 
         Set<Code> responseCodes = new HashSet<>();
-        for (SendResult result : resultList) {
-            SendResultEntry resultEntry;
-            switch (result.getSendStatus()) {
-                case FLUSH_DISK_TIMEOUT:
-                    resultEntry = SendResultEntry.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.MASTER_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
-                        .build();
-                    break;
-                case FLUSH_SLAVE_TIMEOUT:
-                    resultEntry = SendResultEntry.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.SLAVE_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
-                        .build();
-                    break;
-                case SLAVE_NOT_AVAILABLE:
-                    resultEntry = SendResultEntry.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.HA_NOT_AVAILABLE, "send message failed, sendStatus=" + result.getSendStatus()))
-                        .build();
-                    break;
-                case SEND_OK:
-                    resultEntry = SendResultEntry.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                        .setOffset(result.getQueueOffset())
-                        .setMessageId(StringUtils.defaultString(result.getMsgId()))
-                        .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
-                        .setRecallHandle(StringUtils.defaultString(result.getRecallHandle()))
-                        .build();
-                    break;
-                default:
-                    resultEntry = SendResultEntry.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
-                        .build();
-                    break;
+        if (request.getMessagesCount() > 1 && resultList.size() == 1) {
+            SendResult batchResult = resultList.get(0);
+            for (int i = 0; i < request.getMessagesCount(); i++) {
+                SendResultEntry resultEntry = convertToSendResultEntry(batchResult,
+                    request.getMessages(i).getSystemProperties().getMessageId(), batchResult.getQueueOffset() + i);
+                builder.addEntries(resultEntry);
+                responseCodes.add(resultEntry.getStatus().getCode());
             }
-            builder.addEntries(resultEntry);
-            responseCodes.add(resultEntry.getStatus().getCode());
+        } else {
+            for (SendResult result : resultList) {
+                SendResultEntry resultEntry = convertToSendResultEntry(result,
+                    StringUtils.defaultString(result.getMsgId()), result.getQueueOffset());
+                builder.addEntries(resultEntry);
+                responseCodes.add(resultEntry.getStatus().getCode());
+            }
         }
         if (responseCodes.size() > 1) {
             builder.setStatus(ResponseBuilder.getInstance().buildStatus(Code.MULTIPLE_RESULTS, Code.MULTIPLE_RESULTS.name()));
@@ -378,6 +437,42 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             builder.setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "send status is empty"));
         }
         return builder.build();
+    }
+
+    protected SendResultEntry convertToSendResultEntry(SendResult result, String messageId, long queueOffset) {
+        SendResultEntry resultEntry;
+        switch (result.getSendStatus()) {
+            case FLUSH_DISK_TIMEOUT:
+                resultEntry = SendResultEntry.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.MASTER_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
+                break;
+            case FLUSH_SLAVE_TIMEOUT:
+                resultEntry = SendResultEntry.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.SLAVE_PERSISTENCE_TIMEOUT, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
+                break;
+            case SLAVE_NOT_AVAILABLE:
+                resultEntry = SendResultEntry.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.HA_NOT_AVAILABLE, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
+                break;
+            case SEND_OK:
+                resultEntry = SendResultEntry.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+                    .setOffset(queueOffset)
+                    .setMessageId(StringUtils.defaultString(messageId))
+                    .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
+                    .setRecallHandle(StringUtils.defaultString(result.getRecallHandle()))
+                    .build();
+                break;
+            default:
+                resultEntry = SendResultEntry.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "send message failed, sendStatus=" + result.getSendStatus()))
+                    .build();
+                break;
+        }
+        return resultEntry;
     }
 
     protected static class SendMessageQueueSelector implements QueueSelector {
@@ -392,13 +487,10 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         public AddressableMessageQueue select(ProxyContext ctx, MessageQueueView messageQueueView) {
             try {
                 apache.rocketmq.v2.Message message = request.getMessages(0);
-                String shardingKey = null;
-                if (request.getMessagesCount() == 1) {
-                    shardingKey = message.getSystemProperties().getMessageGroup();
-                    // lite topic
-                    if (StringUtils.isBlank(shardingKey)) {
-                        shardingKey = message.getSystemProperties().getLiteTopic();
-                    }
+                String shardingKey = message.getSystemProperties().getMessageGroup();
+                // lite topic
+                if (StringUtils.isBlank(shardingKey)) {
+                    shardingKey = message.getSystemProperties().getLiteTopic();
                 }
                 AddressableMessageQueue targetMessageQueue;
                 if (StringUtils.isNotEmpty(shardingKey)) {
