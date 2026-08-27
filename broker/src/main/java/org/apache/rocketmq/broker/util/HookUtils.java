@@ -208,9 +208,12 @@ public class HookUtils {
         long deliverMs;
         try {
             if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
-                deliverMs = System.currentTimeMillis() + Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) * 1000;
+                long delayMs = Math.multiplyExact(
+                    Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)), 1000L);
+                deliverMs = Math.addExact(System.currentTimeMillis(), delayMs);
             } else if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
-                deliverMs = System.currentTimeMillis() + Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
+                deliverMs = Math.addExact(System.currentTimeMillis(),
+                    Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS)));
             } else {
                 deliverMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
             }
