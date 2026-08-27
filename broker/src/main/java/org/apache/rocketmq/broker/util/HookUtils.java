@@ -210,7 +210,8 @@ public class HookUtils {
         try {
             if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
                 long delaySec = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC));
-                deliverMs = Math.addExact(now, Math.multiplyExact(delaySec, 1000L));
+                deliverMs = Math.multiplyExact(delaySec, 1000L);
+                deliverMs = Math.addExact(now, deliverMs);
             } else if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
                 long delayMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
                 deliverMs = Math.addExact(now, delayMs);

@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -61,6 +62,33 @@ public class HookUtilsTimerOverflowTest {
             newTimerMessage(MessageConst.PROPERTY_TIMER_DELAY_MS, String.valueOf(Long.MAX_VALUE)));
         Assert.assertNotNull(result);
         Assert.assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, result.getPutMessageStatus());
+    }
+
+    // Long.MAX_VALUE / 1000 keeps multiplyExact within range but overflows the
+    // subsequent addExact against the current time, exercising its throw path.
+    @Test
+    public void testTimerDelaySecAddExactOverflowRejected() {
+        PutMessageResult result = HookUtils.handleScheduleMessage(newTimerEnabledController(),
+            newTimerMessage(MessageConst.PROPERTY_TIMER_DELAY_SEC, String.valueOf(Long.MAX_VALUE / 1000)));
+        Assert.assertNotNull(result);
+        Assert.assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, result.getPutMessageStatus());
+    }
+
+    // Exercises the successful timer transformation for a millisecond delay:
+    // the message is rewritten to the wheel-timer topic with the normalized
+    // delivery time stored in PROPERTY_TIMER_OUT_MS.
+    @Test
+    public void testTimerDelayMsSuccessPath() {
+        BrokerController brokerController = newTimerEnabledController();
+        TimerMessageStore timerMessageStore = Mockito.mock(TimerMessageStore.class);
+        Mockito.when(brokerController.getTimerMessageStore()).thenReturn(timerMessageStore);
+        Mockito.when(timerMessageStore.isReject(Mockito.anyLong())).thenReturn(false);
+
+        MessageExtBrokerInner msg = newTimerMessage(MessageConst.PROPERTY_TIMER_DELAY_MS, "1000");
+        PutMessageResult result = HookUtils.handleScheduleMessage(brokerController, msg);
+        Assert.assertNull(result);
+        Assert.assertNotNull(msg.getProperty(MessageConst.PROPERTY_TIMER_OUT_MS));
+        Assert.assertEquals(TimerMessageStore.TIMER_TOPIC, msg.getTopic());
     }
 
     // Covers the future-delivery validation branch with a delay that does not
