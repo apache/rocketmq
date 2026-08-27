@@ -266,6 +266,48 @@ public class TimerMessageStoreTest {
     }
 
     @Test
+    public void testInvalidTimerMessageIsRejected() throws Exception {
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+
+        MessageExt invalidMessage = new MessageExt();
+        invalidMessage.setTopic("ordinary-topic");
+        assertFalse(timerMessageStore.isValidTimerMessage(invalidMessage));
+
+        MessageExt missingQueueId = new MessageExt();
+        missingQueueId.setTopic(TimerMessageStore.TIMER_TOPIC);
+        MessageAccessor.putProperty(missingQueueId, MessageConst.PROPERTY_REAL_TOPIC, "ordinary-topic");
+        assertFalse(timerMessageStore.isValidTimerMessage(missingQueueId));
+
+        MessageExt validMessage = new MessageExt();
+        validMessage.setTopic(TimerMessageStore.TIMER_TOPIC);
+        MessageAccessor.putProperty(validMessage, MessageConst.PROPERTY_REAL_TOPIC, "ordinary-topic");
+        MessageAccessor.putProperty(validMessage, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        assertTrue(timerMessageStore.isValidTimerMessage(validMessage));
+    }
+
+    @Test
+    public void testOnCommitLogDispatchTruncateClearsStaleRequests() throws Exception {
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null, false);
+        timerMessageStore.load();
+
+        TimerRequest staleEnqueueRequest = new TimerRequest(100, 20, 0, 0, 0);
+        TimerRequest retainedEnqueueRequest = new TimerRequest(50, 20, 0, 0, 0);
+        timerMessageStore.enqueuePutQueue.offer(staleEnqueueRequest);
+        timerMessageStore.enqueuePutQueue.offer(retainedEnqueueRequest);
+
+        TimerRequest staleDequeueRequest = new TimerRequest(120, 20, 0, 0, 0);
+        timerMessageStore.dequeuePutQueue.offer(staleDequeueRequest);
+
+        timerMessageStore.onCommitLogDispatchTruncate(100);
+
+        assertFalse(staleEnqueueRequest.isSucc());
+        assertFalse(staleDequeueRequest.isSucc());
+        assertEquals(retainedEnqueueRequest, timerMessageStore.enqueuePutQueue.poll());
+        assertTrue(timerMessageStore.enqueuePutQueue.isEmpty());
+        assertTrue(timerMessageStore.dequeuePutQueue.isEmpty());
+    }
+
+    @Test
     public void testTimerFlowControl() throws Exception {
         String topic = "TimerTest_testTimerFlowControl";
 
