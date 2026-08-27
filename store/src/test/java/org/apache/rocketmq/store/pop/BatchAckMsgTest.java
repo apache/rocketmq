@@ -18,11 +18,13 @@
 package org.apache.rocketmq.store.pop;
 
 import com.alibaba.fastjson2.JSON;
-import org.junit.Assert;
-import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class BatchAckMsgTest {
 
@@ -53,5 +55,26 @@ public class BatchAckMsgTest {
         Assert.assertEquals(batchAckMsg1.getQueueId(), batchAckMsg2.getQueueId());
         Assert.assertEquals(batchAckMsg1.getStartOffset(), batchAckMsg2.getStartOffset());
         Assert.assertEquals(batchAckMsg1.getPopTime(), batchAckMsg2.getPopTime());
+    }
+
+    @Test
+    public void testToJsonBytesMatchesJsonStringBytes() {
+        BatchAckMsg batchAckMsg = new BatchAckMsg();
+        List<Long> aol = new ArrayList<>(2);
+        aol.add(100L);
+        aol.add(101L);
+        batchAckMsg.setAckOffsetList(aol);
+        batchAckMsg.setStartOffset(200L);
+        batchAckMsg.setConsumerGroup("group");
+        batchAckMsg.setTopic("topic-\u4e2d\u6587");
+        batchAckMsg.setQueueId(3);
+        batchAckMsg.setPopTime(1679454922000L);
+
+        byte[] direct = JSON.toJSONBytes(batchAckMsg);
+        Assert.assertArrayEquals(JSON.toJSONString(batchAckMsg).getBytes(StandardCharsets.UTF_8), direct);
+
+        BatchAckMsg decoded = JSON.parseObject(direct, BatchAckMsg.class);
+        Assert.assertEquals(batchAckMsg.getAckOffsetList(), decoded.getAckOffsetList());
+        Assert.assertEquals(batchAckMsg.getTopic(), decoded.getTopic());
     }
 }
