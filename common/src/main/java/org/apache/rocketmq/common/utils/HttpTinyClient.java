@@ -18,6 +18,7 @@
 package org.apache.rocketmq.common.utils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -49,7 +50,8 @@ public class HttpTinyClient {
             if (HttpURLConnection.HTTP_OK == respCode) {
                 resp = IOTinyUtils.toString(conn.getInputStream(), encoding);
             } else {
-                resp = IOTinyUtils.toString(conn.getErrorStream(), encoding);
+                InputStream errorStream = conn.getErrorStream();
+                resp = errorStream == null ? null : IOTinyUtils.toString(errorStream, encoding);
             }
             return new HttpResult(respCode, resp);
         } finally {
@@ -114,7 +116,8 @@ public class HttpTinyClient {
             if (HttpURLConnection.HTTP_OK == respCode) {
                 resp = IOTinyUtils.toString(conn.getInputStream(), encoding);
             } else {
-                resp = IOTinyUtils.toString(conn.getErrorStream(), encoding);
+                InputStream errorStream = conn.getErrorStream();
+                resp = errorStream == null ? null : IOTinyUtils.toString(errorStream, encoding);
             }
             return new HttpResult(respCode, resp);
         } finally {

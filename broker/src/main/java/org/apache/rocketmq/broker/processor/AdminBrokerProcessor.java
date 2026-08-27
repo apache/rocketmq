@@ -2560,8 +2560,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         if (compareOffset != null && !compareOffset.isEmpty()) {
             for (Map.Entry<Integer, Long> entry : compareOffset.entrySet()) {
                 Integer queueId = entry.getKey();
-                correctionOffset.put(queueId,
-                    correctionOffset.get(queueId) > entry.getValue() ? Long.MAX_VALUE : correctionOffset.get(queueId));
+                Long minOffset = correctionOffset.get(queueId);
+                // correctionOffset only contains queueIds present in the topic's offset table;
+                // skip queueIds the compare group has but no other group consumed.
+                if (minOffset != null) {
+                    correctionOffset.put(queueId, minOffset > entry.getValue() ? Long.MAX_VALUE : minOffset);
+                }
             }
         }
 
