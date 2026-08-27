@@ -28,6 +28,7 @@ import apache.rocketmq.v2.SystemProperties;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -87,6 +88,23 @@ public class SendMessageActivityTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         this.sendMessageActivity = new SendMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+    }
+
+    @Test
+    public void testUtf8Length() {
+        String[] samples = {
+            "",
+            "abc123",
+            "\u4e2d\u6587\u5c5e\u6027\u503c",
+            "mixed\u4e2d\u6587and😀emoji",
+            "\uD83D\uDE00",
+            "\uD800",
+            "abc\uDC00def",
+            "߿ࠀ"
+        };
+        for (String sample : samples) {
+            assertEquals(sample, sample.getBytes(StandardCharsets.UTF_8).length, SendMessageActivity.utf8Length(sample));
+        }
     }
 
     @Test
