@@ -61,7 +61,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -102,15 +101,15 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
 
         final long beginTimeMills = brokerController.getMessageStore().now();
         Channel channel = ctx.channel();
-        request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        if (Objects.equals(request.getExtFields().get(BORN_TIME), "0")) {
-            request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        }
         RemotingCommand response = RemotingCommand.createResponseCommand(PopLiteMessageResponseHeader.class);
         response.setOpaque(request.getOpaque());
 
         final PopLiteMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(PopLiteMessageRequestHeader.class, true);
+        if (requestHeader.getBornTime() == 0) {
+            request.addExtField(BORN_TIME, String.valueOf(beginTimeMills));
+            requestHeader.setBornTime(beginTimeMills);
+        }
         final PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) response.readCustomHeader();
         RemotingCommand preCheckResponse = preCheck(ctx, requestHeader, response);
         if (preCheckResponse != null) {
