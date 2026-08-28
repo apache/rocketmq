@@ -146,6 +146,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         this.defaultMQPushConsumer = new DefaultMQPushConsumer(this.getSystemMessageConsumerId(), rpcHook);
 
         this.defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        this.defaultMQPushConsumer.setInstanceName("proxy_heartbeat_" + ConfigurationManager.getProxyConfig().getRemotingListenPort());
         this.defaultMQPushConsumer.setMessageModel(MessageModel.BROADCASTING);
         try {
             this.defaultMQPushConsumer.subscribe(this.getBroadcastTopicName(), this.getSubTag());
