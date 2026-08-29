@@ -113,34 +113,53 @@ public class ReceiptHandleGroup {
 
         public Long lock(long timeoutMs) {
             try {
+                long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
+
+                // Fast path: if the lock is already expired, force-acquire immediately
+                // instead of blocking on tryAcquire. This improves throughput when the
+                // queue has accumulated expired items.
+                Long forceResult = tryForceAcquire(expiredTimeMs);
+                if (forceResult != null) {
+                    return forceResult;
+                }
+
                 boolean result = this.semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS);
                 long currentTimeMs = System.currentTimeMillis();
                 if (result) {
                     this.lastLockTimeMs.set(currentTimeMs);
                     return currentTimeMs;
-                } else {
-                    // if the lock is expired, can be acquired again
-                    long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
-                    if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
-                        synchronized (this) {
-                            if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
-                                log.warn("HandleData lock expired, acquire lock success and reset lock time. " +
-                                    "MessageReceiptHandle={}, lockTime={}", messageReceiptHandle, currentTimeMs);
-                                this.lastLockTimeMs.set(currentTimeMs);
-                                return currentTimeMs;
-                            }
-                        }
-                    }
                 }
-                return null;
+
+                // Slow path: tryAcquire timed out, the lock may have expired during the wait
+                return tryForceAcquire(expiredTimeMs);
             } catch (InterruptedException e) {
                 return null;
             }
         }
 
+        private Long tryForceAcquire(long expiredTimeMs) {
+            long lastLock = this.lastLockTimeMs.get();
+            if (lastLock < 0) {
+                return null;
+            }
+            long currentTimeMs = System.currentTimeMillis();
+            if (currentTimeMs - lastLock > expiredTimeMs) {
+                synchronized (this) {
+                    currentTimeMs = System.currentTimeMillis();
+                    if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
+                        log.warn("HandleData lock expired, acquire lock success and reset lock time. "
+                            + "MessageReceiptHandle={}, lockTime={}", messageReceiptHandle, currentTimeMs);
+                        this.lastLockTimeMs.set(currentTimeMs);
+                        return currentTimeMs;
+                    }
+                }
+            }
+            return null;
+        }
+
         public void unlock(long lockTimeMs) {
             // if the lock is expired, we don't need to unlock it
-            if (System.currentTimeMillis() - lockTimeMs > ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 2) {
+            if (System.currentTimeMillis() - lockTimeMs > ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3) {
                 log.warn("HandleData lock expired, unlock fail. MessageReceiptHandle={}, lockTime={}, now={}",
                     messageReceiptHandle, lockTimeMs, System.currentTimeMillis());
                 return;

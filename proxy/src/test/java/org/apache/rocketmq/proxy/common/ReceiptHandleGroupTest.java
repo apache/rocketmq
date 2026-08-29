@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -307,6 +309,60 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertEquals(1, count.get()));
         assertEquals(handle1, removeHandleRef.get().getReceiptHandleStr());
         assertTrue(receiptHandleGroup.isEmpty());
+    }
+
+    @Test
+    public void testUnlockReleasesWithinAlignedThreshold() throws Exception {
+        // T=200ms → 2T=400ms, 3T=600ms, deadlock window=[400,600) is 200ms wide
+        ConfigurationManager.getProxyConfig().setLockTimeoutMsInHandleGroup(200);
+
+        String handle = createHandle();
+        ReceiptHandleGroup.HandleData handleData =
+            new ReceiptHandleGroup.HandleData(createMessageReceiptHandle(handle, msgID));
+
+        // Thread A acquires the lock
+        Long lockTime = handleData.lock(200);
+        assertNotNull(lockTime);
+
+        // Wait until elapsed is in [2T, 3T) — the old deadlock window.
+        // Before the fix, unlock() used *2 so it would skip release here,
+        // leaking the semaphore permit.
+        Thread.sleep(450);
+
+        handleData.unlock(lockTime);
+
+        // Use a short tryAcquire timeout (10ms) so that even after the wait,
+        // total elapsed stays well below 3T (600ms). This ensures we're testing
+        // the unlock release path, not accidentally relying on force-acquire.
+        Long lockTime2 = handleData.lock(10);
+        assertNotNull("Lock should succeed after aligned unlock", lockTime2);
+        handleData.unlock(lockTime2);
+    }
+
+    @Test
+    public void testLockForceAcquiresBeforeTryAcquire() throws Exception {
+        ConfigurationManager.getProxyConfig().setLockTimeoutMsInHandleGroup(100);
+
+        String handle = createHandle();
+        ReceiptHandleGroup.HandleData handleData =
+            new ReceiptHandleGroup.HandleData(createMessageReceiptHandle(handle, msgID));
+
+        // Acquire the lock and never release (simulate a stuck holder)
+        Long lockTime = handleData.lock(100);
+        assertNotNull(lockTime);
+
+        // Wait until the lock is fully expired (> 3T = 300ms)
+        Thread.sleep(350);
+
+        // With the pre-check, lock() should detect the expiry before calling
+        // tryAcquire and force-acquire immediately — no blocking wait
+        long start = System.currentTimeMillis();
+        Long lockTime2 = handleData.lock(100);
+        long elapsed = System.currentTimeMillis() - start;
+
+        assertNotNull("Expired lock should be force-acquired", lockTime2);
+        assertTrue("Expected fast force-acquire but took " + elapsed + "ms", elapsed < 50);
+        handleData.unlock(lockTime2);
     }
 
     private MessageReceiptHandle createMessageReceiptHandle(String handle, String msgID) {
