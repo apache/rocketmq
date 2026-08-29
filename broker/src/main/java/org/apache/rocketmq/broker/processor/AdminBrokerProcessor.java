@@ -160,6 +160,7 @@ import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
@@ -316,6 +317,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getAllSubscriptionGroup(ctx, request);
             case RequestCode.DELETE_SUBSCRIPTIONGROUP:
                 return this.deleteSubscriptionGroup(ctx, request);
+            case RequestCode.DELETE_CONSUMER_OFFSET:
+                return this.deleteConsumerOffset(ctx, request);
             case RequestCode.DELETE_SUBSCRIPTION_GROUP_LIST:
                 return this.deleteSubscriptionGroupList(ctx, request);
             case RequestCode.GET_TOPIC_STATS_INFO:
@@ -1786,6 +1789,30 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         boolean cleanOffset = requestHeader.isCleanOffset()
             || LiteMetadataUtil.isLiteGroupType(requestHeader.getGroupName(), this.brokerController);
         deleteSubscriptionGroupInBroker(requestHeader.getGroupName(), cleanOffset);
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    private RemotingCommand deleteConsumerOffset(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        DeleteConsumerOffsetRequestHeader requestHeader =
+            request.decodeCommandCustomHeader(DeleteConsumerOffsetRequestHeader.class);
+
+        if (UtilAll.isBlank(requestHeader.getConsumerGroup()) || UtilAll.isBlank(requestHeader.getTopic())) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("The specified consumer group or topic is blank.");
+            return response;
+        }
+
+        LOGGER.info("AdminBrokerProcessor#deleteConsumerOffset, caller={}, group={}, topic={}",
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()), requestHeader.getConsumerGroup(),
+            requestHeader.getTopic());
+
+        this.brokerController.getConsumerOffsetManager().removeOffset(requestHeader.getConsumerGroup(),
+            requestHeader.getTopic());
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

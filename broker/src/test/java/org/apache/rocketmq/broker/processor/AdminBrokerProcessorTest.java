@@ -1064,6 +1064,36 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testDeleteConsumerOffset() throws RemotingCommandException {
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_CONSUMER_OFFSET, null);
+        request.addExtField("consumerGroup", "GID-Group-Name");
+        request.addExtField("topic", "TopicName");
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(consumerOffsetManager).removeOffset("GID-Group-Name", "TopicName");
+    }
+
+    @Test
+    public void testDeleteConsumerOffsetRejectsBlankResource() throws RemotingCommandException {
+        RemotingCommand blankGroupRequest = RemotingCommand.createRequestCommand(
+            RequestCode.DELETE_CONSUMER_OFFSET, null);
+        blankGroupRequest.addExtField("consumerGroup", " ");
+        blankGroupRequest.addExtField("topic", "TopicName");
+        RemotingCommand blankGroupResponse = adminBrokerProcessor.processRequest(handlerContext, blankGroupRequest);
+        assertThat(blankGroupResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+
+        RemotingCommand blankTopicRequest = RemotingCommand.createRequestCommand(
+            RequestCode.DELETE_CONSUMER_OFFSET, null);
+        blankTopicRequest.addExtField("consumerGroup", "GID-Group-Name");
+        blankTopicRequest.addExtField("topic", " ");
+        RemotingCommand blankTopicResponse = adminBrokerProcessor.processRequest(handlerContext, blankTopicRequest);
+        assertThat(blankTopicResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+    }
+
+    @Test
     public void testGetTopicStatsInfo() throws RemotingCommandException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_STATS_INFO, null);
         request.addExtField("topic", "topicTest");
