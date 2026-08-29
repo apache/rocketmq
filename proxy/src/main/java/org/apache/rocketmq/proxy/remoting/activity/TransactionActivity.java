@@ -61,6 +61,8 @@ public class TransactionActivity extends AbstractRemotingActivity {
             requestHeader.getTransactionId(),
             requestHeader.getMsgId(),
             requestHeader.getProducerGroup(),
+            requestHeader.getTranStateTableOffset(),
+            requestHeader.getCommitLogOffset(),
             transactionStatus,
             requestHeader.getFromTransactionCheck()
         );

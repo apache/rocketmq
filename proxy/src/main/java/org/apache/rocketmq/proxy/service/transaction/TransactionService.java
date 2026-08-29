@@ -36,7 +36,7 @@ public interface TransactionService {
     TransactionData addTransactionDataByBrokerName(ProxyContext ctx, String brokerName, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message);
 
-    EndTransactionRequestData genEndTransactionRequestHeader(ProxyContext ctx, String topic, String producerGroup, Integer commitOrRollback,
+    EndTransactionRequestData genEndTransactionRequestHeader(ProxyContext ctx, String topic, String producerGroup, Integer commitOrRollback, Long tranStateTableOffset, Long commitLogOffset,
         boolean fromTransactionCheck, String msgId, String transactionId);
 
     void onSendCheckTransactionStateFailed(ProxyContext context, String producerGroup, TransactionData transactionData);
