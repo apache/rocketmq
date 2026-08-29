@@ -22,6 +22,8 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.local.LocalChannel;
 
 import java.lang.reflect.Field;
+import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -305,5 +307,28 @@ public class NettyRemotingClientTest {
         verify(bootstrap).connect(eq("0.0.0.0"), eq(8080));
         assertThat(remotingClient.isAddressReachable("[fe80::]:8080")).isFalse();
         verify(bootstrap).connect(eq("[fe80::]"), eq(8080));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGetActiveChannelAddressesReturnsSnapshotOfHealthyChannels() throws Exception {
+        Field field = NettyRemotingClient.class.getDeclaredField("channelTables");
+        field.setAccessible(true);
+        ConcurrentMap<String, NettyRemotingClient.ChannelWrapper> channelTables =
+            (ConcurrentMap<String, NettyRemotingClient.ChannelWrapper>) field.get(remotingClient);
+
+        NettyRemotingClient.ChannelWrapper activeChannel = mock(NettyRemotingClient.ChannelWrapper.class);
+        NettyRemotingClient.ChannelWrapper inactiveChannel = mock(NettyRemotingClient.ChannelWrapper.class);
+        doReturn(true).when(activeChannel).isOK();
+        doReturn(false).when(inactiveChannel).isOK();
+        channelTables.put("127.0.0.1:10911", activeChannel);
+        channelTables.put("127.0.0.1:10912", inactiveChannel);
+
+        List<String> activeAddresses = remotingClient.getActiveChannelAddresses();
+
+        assertThat(activeAddresses).containsExactly("127.0.0.1:10911");
+        channelTables.clear();
+        assertThat(activeAddresses).containsExactly("127.0.0.1:10911");
+        assertThat(remotingClient.getActiveChannelAddresses()).isEmpty();
     }
 }
