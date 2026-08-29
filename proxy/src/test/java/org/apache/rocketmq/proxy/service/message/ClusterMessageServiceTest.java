@@ -16,14 +16,17 @@
  */
 package org.apache.rocketmq.proxy.service.message;
 
+import java.util.concurrent.ExecutionException;
+
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.junit.Before;
@@ -74,6 +77,38 @@ public class ClusterMessageServiceTest {
             assertTrue(e instanceof ProxyException);
             ProxyException proxyException = (ProxyException) e;
             assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, proxyException.getCode());
+        }
+    }
+
+    @Test
+    public void testRequestCompletesExceptionallyWhenBrokerNameIsInvalid() throws Exception {
+        when(topicRouteService.getBrokerAddr(any(), anyString()))
+            .thenThrow(new ProxyException(ProxyExceptionCode.INVALID_BROKER_NAME, "cannot find broker"));
+
+        try {
+            this.clusterMessageService.request(
+                ProxyContext.create(), "notExistBroker", RemotingCommand.createRequestCommand(0, null), 3000).get();
+            fail();
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof ProxyException);
+            ProxyException proxyException = (ProxyException) e.getCause();
+            assertEquals(ProxyExceptionCode.INVALID_BROKER_NAME, proxyException.getCode());
+        }
+    }
+
+    @Test
+    public void testRequestOnewayCompletesExceptionallyWhenBrokerNameIsInvalid() throws Exception {
+        when(topicRouteService.getBrokerAddr(any(), anyString()))
+            .thenThrow(new ProxyException(ProxyExceptionCode.INVALID_BROKER_NAME, "cannot find broker"));
+
+        try {
+            this.clusterMessageService.requestOneway(
+                ProxyContext.create(), "notExistBroker", RemotingCommand.createRequestCommand(0, null), 3000).get();
+            fail();
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof ProxyException);
+            ProxyException proxyException = (ProxyException) e.getCause();
+            assertEquals(ProxyExceptionCode.INVALID_BROKER_NAME, proxyException.getCode());
         }
     }
 }
