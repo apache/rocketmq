@@ -66,7 +66,7 @@ public class AttributeParser {
     }
 
     public static String parseToString(Map<String, String> attributes) {
-        if (attributes == null || attributes.size() == 0) {
+        if (attributes == null || attributes.isEmpty()) {
             return "";
         }
 

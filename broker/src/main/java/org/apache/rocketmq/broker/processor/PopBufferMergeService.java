@@ -109,7 +109,7 @@ public class PopBufferMergeService extends ServiceThread {
 
                 this.waitForRunning(interval);
 
-                if (!this.serving && this.buffer.size() == 0 && getOffsetTotalSize() == 0) {
+                if (!this.serving && this.buffer.isEmpty() && getOffsetTotalSize() == 0) {
                     this.serving = true;
                 }
             } catch (Throwable e) {
