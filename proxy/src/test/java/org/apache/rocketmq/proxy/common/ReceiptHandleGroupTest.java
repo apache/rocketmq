@@ -21,12 +21,14 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -311,5 +313,26 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
 
     private MessageReceiptHandle createMessageReceiptHandle(String handle, String msgID) {
         return new MessageReceiptHandle(GROUP, TOPIC, 0, handle, msgID, 0, 0);
+    }
+
+    @Test
+    public void testAcquireExpiredLock() throws InterruptedException {
+        final long lockTimeoutMs = 100L;
+        ConfigurationManager.getProxyConfig().setLockTimeoutMsInHandleGroup(lockTimeoutMs);
+
+        String handle = createHandle();
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle, msgID));
+
+        // Simulate a slow task via a never-completing future
+        CompletableFuture<MessageReceiptHandle> slowFuture = new CompletableFuture<>();
+        receiptHandleGroup.computeIfPresent(msgID, handle, h -> slowFuture);
+        // Then make the lock expired
+        TimeUnit.MILLISECONDS.sleep(3 * lockTimeoutMs);
+
+        // Another caller can acquire this expired lock without blocking
+        long startTime = System.currentTimeMillis();
+        receiptHandleGroup.remove(msgID, handle);
+        long elapsed = System.currentTimeMillis() - startTime;
+        assertTrue(elapsed < lockTimeoutMs);
     }
 }
