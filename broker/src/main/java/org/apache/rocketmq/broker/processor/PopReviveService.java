@@ -134,7 +134,7 @@ public class PopReviveService extends ServiceThread {
         msgInner.getProperties().put(MessageConst.PROPERTY_ORIGIN_GROUP, popCheckPoint.getCId());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         addRetryTopicIfNotExist(msgInner.getTopic(), popCheckPoint.getCId());
-        msgInner.setQueueId(getRetryQueueId(msgInner.getTopic(), messageExt));
+        msgInner.setQueueId(getRetryQueueId(msgInner.getTopic(), popCheckPoint.getCId(), messageExt));
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
         brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveRetryMessageCount(popCheckPoint, putMessageResult.getPutMessageStatus());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
@@ -166,12 +166,13 @@ public class PopReviveService extends ServiceThread {
     public void addRetryTopicIfNotExist(String retryTopic, String consumerGroup) {
         if (brokerController != null) {
             TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(retryTopic);
-            if (topicConfig != null && !brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+            boolean useSeparate = checkUseSeparateRetryQueue(retryTopic, consumerGroup);
+            if (topicConfig != null && !useSeparate) {
                 return;
             }
 
             int retryQueueNum = PopAckConstants.retryQueueNum;
-            if (brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+            if (useSeparate) {
                 String normalTopic = KeyBuilder.parseNormalTopic(retryTopic, consumerGroup);
                 TopicConfig normalConfig = brokerController.getTopicConfigManager().selectTopicConfig(normalTopic); // always exists
                 retryQueueNum = normalConfig.getWriteQueueNums();
@@ -193,8 +194,8 @@ public class PopReviveService extends ServiceThread {
         }
     }
 
-    private int getRetryQueueId(String retryTopic, MessageExt messageExt) {
-        if (!brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+    private int getRetryQueueId(String retryTopic, String consumerGroup, MessageExt messageExt) {
+        if (!checkUseSeparateRetryQueue(retryTopic, consumerGroup)) {
             return 0;
         }
         int oriQueueId = messageExt.getQueueId(); // original qid of normal or retry topic
@@ -728,5 +729,20 @@ public class PopReviveService extends ServiceThread {
             sortList.sort((o1, o2) -> (int) (o1.getReviveOffset() - o2.getReviveOffset()));
             return sortList;
         }
+    }
+
+    private boolean checkUseSeparateRetryQueue(String retryTopic, String consumerGroup) {
+        if (brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+            return true;
+        }
+        if (brokerController.getBrokerConfig().isUseSeparateRetryQueueForPriorityTopic()) {
+            String normalTopic = KeyBuilder.parseNormalTopic(retryTopic, consumerGroup);
+            TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(normalTopic);
+            if (topicConfig != null && topicConfig.getAttributes() != null) {
+                String priorityStr = topicConfig.getAttributes().get("priority");
+                return Boolean.parseBoolean(priorityStr);
+            }
+        }
+        return false;
     }
 }
