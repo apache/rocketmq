@@ -364,13 +364,25 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             executorThis = this.publicExecutor;
         }
 
+        rejectCallerRunsPolicy(executorThis);
         Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
     }
 
     @Override
     public void registerDefaultProcessor(NettyRequestProcessor processor, ExecutorService executor) {
+        rejectCallerRunsPolicy(executor);
         this.defaultRequestProcessorPair = new Pair<>(processor, executor);
+    }
+
+    private static void rejectCallerRunsPolicy(ExecutorService executor) {
+        if (executor instanceof ThreadPoolExecutor) {
+            if (((ThreadPoolExecutor) executor).getRejectedExecutionHandler()
+                instanceof ThreadPoolExecutor.CallerRunsPolicy) {
+                throw new IllegalArgumentException(
+                    "CallerRunsPolicy is not allowed in NettyRemotingServer as it may block Netty IO threads");
+            }
+        }
     }
 
     @Override
@@ -685,12 +697,14 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 executorThis = NettyRemotingServer.this.publicExecutor;
             }
 
+            rejectCallerRunsPolicy(executorThis);
             Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<>(processor, executorThis);
             this.processorTable.put(requestCode, pair);
         }
 
         @Override
         public void registerDefaultProcessor(final NettyRequestProcessor processor, final ExecutorService executor) {
+            rejectCallerRunsPolicy(executor);
             this.defaultRequestProcessorPair = new Pair<>(processor, executor);
         }
 
