@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -75,8 +76,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.apache.rocketmq.proxy.common.InternalContextHolder.clear;
+import static org.apache.rocketmq.proxy.common.InternalContextHolder.isInternalScope;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -432,5 +436,277 @@ public class HeartbeatSyncerTest extends InitConfigTest {
         public int compareTo(@NotNull ChannelId o) {
             return this.channelId.compareTo(o.asLongText());
         }
+    }
+
+    @Test
+    public void testAsyncThreadContextPropagationAndCleanup() {
+        String consumerGroup = "consumerGroup";
+        Channel channel = createMockChannel();
+        RemotingProxyOutClient remotingProxyOutClient = mock(RemotingProxyOutClient.class);
+        RemotingChannel remotingChannel = new RemotingChannel(remotingProxyOutClient, proxyRelayService, channel, clientId, Collections.emptySet());
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(remotingChannel, clientId, LanguageCode.JAVA, 4);
+
+        AtomicBoolean contextValidatedDuringExecution = new AtomicBoolean(false);
+
+        clear();
+        assertFalse("Test must start with clean context", isInternalScope());
+
+        when(this.mqClientAPIExt.sendMessageAsync(anyString(), anyString(), any(Message.class), any(), anyLong()))
+            .thenAnswer(invocation -> {
+                boolean isInternal = isInternalScope();
+                contextValidatedDuringExecution.set(isInternal);
+
+                SendResult result = new SendResult();
+                result.setSendStatus(SendStatus.SEND_OK);
+                return CompletableFuture.completedFuture(result);
+            });
+
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, consumerManager, mqClientAPIFactory, null);
+
+        heartbeatSyncer.onConsumerRegister(
+            consumerGroup,
+            clientChannelInfo,
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            Collections.emptySet()
+        );
+
+        await().atMost(Duration.ofSeconds(3)).until(contextValidatedDuringExecution::get);
+        assertTrue("Context must explicitly exist during the execution phase", contextValidatedDuringExecution.get());
+
+        assertFalse("CRITICAL: Context MUST be cleared after execution to prevent ThreadLocal privilege leakage in thread pools", isInternalScope());
+    }
+
+    @Test
+    public void testOnConsumerRegisterWithNullRemoteChannel() {
+        String consumerGroup = "consumerGroup";
+
+        Channel channel = mock(Channel.class);
+
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+            channel,
+            clientId,
+            LanguageCode.JAVA,
+            4
+        );
+
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(
+            topicRouteService,
+            adminService,
+            consumerManager,
+            mqClientAPIFactory,
+            null
+        );
+
+        heartbeatSyncer.onConsumerRegister(
+            consumerGroup,
+            clientChannelInfo,
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            Collections.emptySet()
+        );
+
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() ->
+            verify(mqClientAPIExt, never()).sendMessageAsync(
+            anyString(),
+            anyString(),
+            any(Message.class),
+            any(),
+            anyLong()
+        ));
+    }
+
+    @Test
+    public void testRegisterBroadcastFailureHandled() {
+        String consumerGroup = "consumerGroup";
+
+        Channel channel = createMockChannel();
+        RemotingProxyOutClient remotingProxyOutClient = mock(RemotingProxyOutClient.class);
+
+        RemotingChannel remotingChannel = new RemotingChannel(
+            remotingProxyOutClient,
+            proxyRelayService,
+            channel,
+            clientId,
+            Collections.emptySet()
+        );
+
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+            remotingChannel,
+            clientId,
+            LanguageCode.JAVA,
+            4
+        );
+
+        when(this.mqClientAPIExt.sendMessageAsync(
+            anyString(),
+            anyString(),
+            any(Message.class),
+            any(),
+            anyLong()
+        )).thenThrow(new RuntimeException("mock failure"));
+
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(
+            topicRouteService,
+            adminService,
+            consumerManager,
+            mqClientAPIFactory,
+            null
+        );
+
+        heartbeatSyncer.onConsumerRegister(
+            consumerGroup,
+            clientChannelInfo,
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            Collections.emptySet()
+        );
+
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() ->
+            verify(mqClientAPIExt).sendMessageAsync(
+            anyString(),
+            anyString(),
+            any(Message.class),
+            any(),
+            anyLong()
+          )
+        );
+    }
+
+    @Test
+    public void testRegisterSubmitFailureHandled() {
+        String consumerGroup = "consumerGroup";
+
+        Channel channel = createMockChannel();
+        RemotingProxyOutClient remotingProxyOutClient = mock(RemotingProxyOutClient.class);
+
+        RemotingChannel remotingChannel = new RemotingChannel(
+            remotingProxyOutClient,
+            proxyRelayService,
+            channel,
+            clientId,
+            Collections.emptySet()
+        );
+
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+            remotingChannel,
+            clientId,
+            LanguageCode.JAVA,
+            4
+        );
+
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(
+            topicRouteService,
+            adminService,
+            consumerManager,
+            mqClientAPIFactory,
+            null
+        );
+
+        heartbeatSyncer.threadPoolExecutor.shutdownNow();
+
+        heartbeatSyncer.onConsumerRegister(
+            consumerGroup,
+            clientChannelInfo,
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            Collections.emptySet()
+        );
+    }
+
+    @Test
+    public void testUnregisterBroadcastFailureHandled() throws Exception {
+        String consumerGroup = "consumerGroup";
+
+        Channel channel = createMockChannel();
+        RemotingProxyOutClient remotingProxyOutClient = mock(RemotingProxyOutClient.class);
+
+        RemotingChannel remotingChannel = new RemotingChannel(
+            remotingProxyOutClient,
+            proxyRelayService,
+            channel,
+            clientId,
+            Collections.emptySet()
+        );
+
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+            remotingChannel,
+            clientId,
+            LanguageCode.JAVA,
+            4
+        );
+
+        when(this.mqClientAPIExt.sendMessageAsync(
+            anyString(),
+            anyString(),
+            any(Message.class),
+            any(),
+            anyLong()
+        )).thenThrow(new RuntimeException("mock failure"));
+
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(
+            topicRouteService,
+            adminService,
+            consumerManager,
+            mqClientAPIFactory,
+            null
+        );
+
+        heartbeatSyncer.onConsumerUnRegister(
+            consumerGroup,
+            clientChannelInfo
+        );
+
+        await().atMost(Duration.ofSeconds(2)).untilAsserted(() ->
+            verify(mqClientAPIExt).sendMessageAsync(
+            anyString(),
+            anyString(),
+            any(Message.class),
+            any(),
+            anyLong()
+          )
+        );
+    }
+
+    @Test
+    public void testUnregisterSubmitFailureHandled() {
+        String consumerGroup = "consumerGroup";
+
+        Channel channel = createMockChannel();
+        RemotingProxyOutClient remotingProxyOutClient = mock(RemotingProxyOutClient.class);
+
+        RemotingChannel remotingChannel = new RemotingChannel(
+            remotingProxyOutClient,
+            proxyRelayService,
+            channel,
+            clientId,
+            Collections.emptySet()
+        );
+
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+            remotingChannel,
+            clientId,
+            LanguageCode.JAVA,
+            4
+        );
+
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(
+            topicRouteService,
+            adminService,
+            consumerManager,
+            mqClientAPIFactory,
+            null
+        );
+
+        heartbeatSyncer.threadPoolExecutor.shutdownNow();
+
+        heartbeatSyncer.onConsumerUnRegister(
+            consumerGroup,
+            clientChannelInfo
+        );
     }
 }
