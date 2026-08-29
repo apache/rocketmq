@@ -44,6 +44,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +52,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -198,6 +200,65 @@ public class MQAdminImplTest {
         assertNotNull(queryResult);
         assertEquals(1, queryResult.getMessageList().size());
         assertEquals(defaultTopic, queryResult.getMessageList().get(0).getTopic());
+    }
+
+    @Test
+    public void testParsePublishMessageQueuesReturnsOriginalListWhenNamespaceEmpty() {
+        ClientConfig clientConfig = mock(ClientConfig.class);
+        when(clientConfig.getNamespace()).thenReturn("");
+        MQClientInstance emptyNsFactory = mock(MQClientInstance.class);
+        when(emptyNsFactory.getClientConfig()).thenReturn(clientConfig);
+        MQAdminImpl adminWithEmptyNs = new MQAdminImpl(emptyNsFactory);
+
+        List<MessageQueue> input = new ArrayList<>();
+        input.add(new MessageQueue("topic1", "broker1", 0));
+        input.add(new MessageQueue("topic2", "broker2", 1));
+
+        List<MessageQueue> result = adminWithEmptyNs.parsePublishMessageQueues(input);
+        assertSame(input, result);
+    }
+
+    @Test
+    public void testParsePublishMessageQueuesReturnsOriginalListWhenNamespaceNull() {
+        ClientConfig clientConfig = mock(ClientConfig.class);
+        when(clientConfig.getNamespace()).thenReturn(null);
+        MQClientInstance nullNsFactory = mock(MQClientInstance.class);
+        when(nullNsFactory.getClientConfig()).thenReturn(clientConfig);
+        MQAdminImpl adminWithNullNs = new MQAdminImpl(nullNsFactory);
+
+        List<MessageQueue> input = new ArrayList<>();
+        input.add(new MessageQueue("topic1", "broker1", 0));
+
+        List<MessageQueue> result = adminWithNullNs.parsePublishMessageQueues(input);
+        assertSame(input, result);
+    }
+
+    @Test
+    public void testParsePublishMessageQueuesStripsNamespace() {
+        List<MessageQueue> input = new ArrayList<>();
+        input.add(new MessageQueue("namespace%topic1", defaultBroker, 0));
+        input.add(new MessageQueue("namespace%topic2", defaultBroker, 1));
+
+        List<MessageQueue> result = mqAdminImpl.parsePublishMessageQueues(input);
+        assertEquals(2, result.size());
+        assertEquals("topic1", result.get(0).getTopic());
+        assertEquals("topic2", result.get(1).getTopic());
+        assertEquals(defaultBroker, result.get(0).getBrokerName());
+    }
+
+    @Test
+    public void testParsePublishMessageQueuesPreservesOrderAndSize() {
+        List<MessageQueue> input = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            input.add(new MessageQueue("namespace%topic" + i, defaultBroker, i));
+        }
+
+        List<MessageQueue> result = mqAdminImpl.parsePublishMessageQueues(input);
+        assertEquals(100, result.size());
+        for (int i = 0; i < 100; i++) {
+            assertEquals("topic" + i, result.get(i).getTopic());
+            assertEquals(i, result.get(i).getQueueId());
+        }
     }
 
     private String buildMsgId() {
