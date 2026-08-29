@@ -59,8 +59,7 @@ import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     private DefaultReceiptHandleManager receiptHandleManager;
@@ -463,4 +462,20 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
         listenerArgumentCaptor.getValue().handle(ConsumerGroupEvent.CLIENT_UNREGISTER, GROUP, new ClientChannelInfo(channel, "", LanguageCode.JAVA, 0));
         assertTrue(receiptHandleManager.receiptHandleGroupMap.isEmpty());
     }
+
+    @Test
+    public void testClientOffline_channelInactive(){
+
+        Channel mockChannel=Mockito.mock(Channel.class);
+        ClientChannelInfo mockClientChannelInfo=Mockito.mock(ClientChannelInfo.class);
+        ReceiptHandleGroupKey mockReceiptHandleGroupKey=new ReceiptHandleGroupKey(mockChannel,GROUP);
+        Mockito.when(consumerManager.findChannel(GROUP,mockChannel)).thenReturn(mockClientChannelInfo);
+        Mockito.when(mockClientChannelInfo.getChannel()).thenReturn(mockChannel);
+        Mockito.when(mockChannel.isActive()).thenReturn(false);
+        assertTrue(receiptHandleManager.clientIsOffline(mockReceiptHandleGroupKey));
+
+    }
+
+
+
 }
