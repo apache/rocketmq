@@ -141,8 +141,6 @@ public class ConsumerOffsetManagerTest {
         ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>();
         offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + group1, offsets1);
         offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + group2, offsets2);
-        // malformed key without '@' must not break the query either
-        offsetTable.put("MalformedKey", new ConcurrentHashMap<>());
         consumerOffsetManager.setOffsetTable(offsetTable);
 
         // filtering out G2 must exclude its offsets from the min computation
@@ -156,5 +154,23 @@ public class ConsumerOffsetManagerTest {
         // without filter, the min across all groups is returned
         result = consumerOffsetManager.queryMinOffsetInAllGroup(topic, "");
         assertThat(result).containsEntry(0, 30L);
+    }
+
+    @Test
+    public void testQueryMinOffsetInAllGroupToleratesMalformedKeys() {
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        MessageStore messageStore = Mockito.mock(MessageStore.class);
+        Mockito.when(brokerController.getMessageStore()).thenReturn(messageStore);
+        Mockito.when(messageStore.getMinOffsetInQueue(Mockito.anyString(), Mockito.anyInt())).thenReturn(0L);
+
+        String topic = "Topic";
+        ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>();
+        offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + "G1", new ConcurrentHashMap<>());
+        // malformed key without '@' must not break the query
+        offsetTable.put("MalformedKey", new ConcurrentHashMap<>());
+        consumerOffsetManager.setOffsetTable(offsetTable);
+
+        assertThat(consumerOffsetManager.queryMinOffsetInAllGroup(topic, "G1")).isEmpty();
+        assertThat(consumerOffsetManager.queryMinOffsetInAllGroup(topic, "")).isEmpty();
     }
 }
