@@ -29,6 +29,7 @@ import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataMan
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.enums.Decision;
+import org.apache.rocketmq.auth.authorization.enums.PolicyType;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Environment;
@@ -144,6 +145,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -1357,6 +1359,31 @@ public class AdminBrokerProcessorTest {
         request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteAclWithPolicyType() throws RemotingCommandException {
+        when(authorizationMetadataManager.deleteAcl(any(), any(), any()))
+            .thenReturn(CompletableFuture.completedFuture(null));
+
+        DeleteAclRequestHeader deleteAclRequestHeader = new DeleteAclRequestHeader();
+        deleteAclRequestHeader.setSubject("User:abc");
+        deleteAclRequestHeader.setPolicyType("Default");
+        deleteAclRequestHeader.setResource("Topic:test");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_DELETE_ACL, deleteAclRequestHeader);
+        request.setVersion(441);
+        request.addExtField("AccessKey", "rocketmq");
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        ArgumentCaptor<Subject> subjectCaptor = ArgumentCaptor.forClass(Subject.class);
+        ArgumentCaptor<PolicyType> policyTypeCaptor = ArgumentCaptor.forClass(PolicyType.class);
+        ArgumentCaptor<Resource> resourceCaptor = ArgumentCaptor.forClass(Resource.class);
+        verify(authorizationMetadataManager).deleteAcl(subjectCaptor.capture(), policyTypeCaptor.capture(), resourceCaptor.capture());
+        assertThat(subjectCaptor.getValue().getSubjectKey()).isEqualTo("User:abc");
+        assertThat(policyTypeCaptor.getValue()).isEqualTo(PolicyType.DEFAULT);
+        assertThat(resourceCaptor.getValue()).isEqualTo(Resource.of("Topic:test"));
     }
 
     @Test
