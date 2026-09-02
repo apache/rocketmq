@@ -55,6 +55,34 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         this.brokerController = brokerController;
     }
 
+    /**
+     * End a transaction (commit or rollback) for a prepared half message.
+     *
+     * <p>Two incoming paths:
+     * <ul>
+     *   <li><b>Producer end</b> ({@code fromTransactionCheck = false}) —
+     *       the producer explicitly commits or rolls back after the
+     *       half message was written</li>
+     *   <li><b>Transaction check</b> ({@code fromTransactionCheck = true}) —
+     *       TransactionCheck call producer, then producer send this request</li>
+     * </ul>
+     *
+     * <p>For commit:
+     * <ol>
+     *   <li>Reads the prepared half message from the store</li>
+     *   <li>Rejects if the message's immunity time has expired and this is
+     *       <b>not</b> a checker callback</li>
+     *   <li>Restores the original topic/queue from properties, writes the
+     *       final message to the store, and deletes the half message</li>
+     * </ol>
+     *
+     * <p>For rollback: deletes the prepared half message without writing.
+     *
+     * @param ctx     the Netty channel context
+     * @param request the end-transaction request
+     * @return the response
+     * @throws RemotingCommandException if the request cannot be decoded
+     */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws
         RemotingCommandException {
@@ -68,6 +96,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // validate transaction flag and logging
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
@@ -127,8 +156,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     return null;
             }
         }
+
         OperationResult result = new OperationResult();
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
+            // get prepare message from prepare topic
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
@@ -137,6 +168,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                             requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
                     return response;
                 }
+
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     MessageExtBrokerInner msgInner = endMessageTransaction(result.getPrepareMessage());
@@ -145,8 +177,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
                     MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                    // enqueue message to original topic
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
+                        // delete prepare message
                         deletePrepareMessage(result);
                         // successful committed, then total num of half-messages minus 1
                         this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner.getTopic(), -1);
@@ -164,6 +198,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return res;
             }
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
+            // get prepare message from prepare topic
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
@@ -172,8 +207,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                             requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
                     return response;
                 }
+
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
+                    // delete prepare message
                     deletePrepareMessage(result);
                     // roll back, then total num of half-messages minus 1
                     this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(result.getPrepareMessage().getProperty(MessageConst.PROPERTY_REAL_TOPIC), -1);
@@ -189,6 +226,21 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * Delete a prepared (half) message after transaction commit or rollback.
+     *
+     * <p>Deletion strategy depends on the half-message storage:
+     * <ul>
+     *   <li>{@code RMQ_SYS_TRANS_HALF_TOPIC} — writes an OP record to
+     *       {@code RMQ_SYS_TRANS_OP_HALF_TOPIC} as a logical-delete marker;
+     *       the transaction checker skips messages that have a matching OP</li>
+     *   <li>{@code RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC} — physically deletes
+     *       the message from RocksDB via
+     *       {@code TransMessageRocksDBStore#deletePrepareMessage}</li>
+     * </ul>
+     *
+     * @param result the operation result containing the prepared message
+     */
     private void deletePrepareMessage(OperationResult result) {
         if (null == result || null == result.getPrepareMessage()) {
             LOGGER.error("deletePrepareMessage param error, result is null or prepareMessage is null");

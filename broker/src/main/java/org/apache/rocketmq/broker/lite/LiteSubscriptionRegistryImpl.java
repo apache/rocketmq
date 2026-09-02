@@ -47,13 +47,51 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 
+/**
+ * Maintains the client → LMQ subscription mapping for Lite Topics.
+ *
+ * <p>Two main indexes are kept in sync:
+ * <ul>
+ *   <li>{@link #client2Subscription} — clientId → {@link LiteSubscription}
+ *   (group, topic, lmqName set) for COMPLETE-mode reconciliation</li>
+ *   <li>{@link #liteTopic2Group} — lmqName → set of {@link ClientGroup}
+ *   for fast subscription lookup during Pop dispatch</li>
+ * </ul>
+ *
+ * <p>Supports four subscription actions: PARTIAL_ADD, PARTIAL_REMOVE,
+ * COMPLETE_ADD, COMPLETE_REMOVE. When a group is configured for
+ * exclusive subscription ({@code isSubLiteExclusive}), subscribing a
+ * different client to the same lmqName evicts the previous client
+ * (tracked via {@link ExclusiveEvictionTombstones} for re-send
+ * convergence). Wildcard groups are supported by mapping them to a
+ * synthetic mock lmqName ({@code topic@group}).
+ *
+ * <p>A background thread ({@link #run}) periodically removes
+ * subscriptions whose last update exceeds the configured timeout.
+ */
 public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteSubscriptionRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
 
+    /** Active clientId → Netty channel, used to push unsubscribe notifications. */
     protected final ConcurrentMap<String/*clientId*/, Channel> clientChannels = new ConcurrentHashMap<>();
+
+    /** Primary forward index: clientId → its full subscription (group, topic, lmq set). */
     protected final ConcurrentMap<String/*clientId*/, LiteSubscription> client2Subscription = new ConcurrentHashMap<>();
+
+    /**
+     * Reverse index: lmqName → clients subscribed to it, for Pop dispatch lookup.
+     * lmqName -> {clientId, group}
+     */
     protected final ConcurrentMap<String/*lmqName*/, Set<ClientGroup>> liteTopic2Group = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks which groups are wildcard-mode for each parent topic.
+     * Wildcard Group is a special subscription mode in Lite Topic
+     * where a single group receives messages from all LMQs under its parent topic
+     */
     protected final ConcurrentMap<String/*topic*/, Set<String/*group*/>> wildcardGroupMap = new ConcurrentHashMap<>();
+
+    /** Cached expansion of wildcard group clients per group, 30s TTL. */
     private final Cache<String/*group*/, List<ClientGroup>> wildcardClientCache =
         CacheBuilder.newBuilder().maximumSize(2000).expireAfterWrite(30, TimeUnit.SECONDS).build();
 
@@ -78,14 +116,40 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         clientChannels.put(clientId, channel);
     }
 
+    /**
+     * Add a partial subscription for {@code lmqNameSet} to the given client,
+     * union with whatever the client already subscribes to.
+     *
+     * <p>Rejects the call with {@link LiteQuotaException} if the total active
+     * (client, liteTopic) reference count would exceed
+     * {@code maxLiteSubscriptionCount}, and with {@link IllegalStateException}
+     * if the group is a wildcard group (use {@link #addCompleteSubscription}
+     * instead).
+     *
+     * <p>For each lmqName that is still subscription-active, the call:
+     * <ol>
+     *   <li>Adds the lmqName to the client's {@link LiteSubscription};</li>
+     *   <li>In exclusive mode, evicts the previous holder of the same
+     *   (group, lmqName) pair and clears any stale tombstone for the
+     *   caller;</li>
+     *   <li>Applies {@code offsetOption} via {@link #resetOffset};</li>
+     *   <li>Registers the (clientId, group) in
+     *   {@link #liteTopic2Group}.</li>
+     * </ol>
+     */
     @Override
     public void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet,
         OffsetOption offsetOption) {
+        // default maxLiteSubscriptionCount is 100000
         long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
         if (getActiveSubscriptionNum() >= maxCount) {
             // No need to check existence, if reach here, it must be new.
             throw new LiteQuotaException("lite subscription quota exceeded " + maxCount);
         }
+
+        // Wildcard group is not supported
+        // Wildcard group receives all LMQ message from a parent topic
+        // Wildcard group is same as normal group
         if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
             throw new IllegalStateException("subscribe lite operation is not supported for this group");
         }
@@ -94,11 +158,13 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         // Utilize existing string object
         final ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
         for (String lmqName : lmqNameSet) {
+            // subscription exists or sharding to this broker
             if (!liteLifecycleManager.isSubscriptionActive(topic, lmqName)) {
                 continue;
             }
             thisSub.addLiteTopic(lmqName);
-            // First remove the old subscription
+
+            // if exclusive mode: evict previous holder
             if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
                 excludeClientByLmqName(clientId, group, lmqName);
                 // Boundary case: this client may have a stale tombstone from a previous eviction.
@@ -106,6 +172,8 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 // subsequent popLiteTopic is not blocked by the stale mark.
                 exclusiveEvictionTombstones.remove(clientId, lmqName);
             }
+
+            // set subscription start offset
             resetOffset(lmqName, group, clientId, offsetOption);
             addTopicGroup(clientGroup, lmqName);
         }
@@ -122,6 +190,20 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
+    /**
+     * Replace the client's full subscription set with {@code lmqNameAll}
+     * (filtered to active lmqNames). For wildcard groups, the new set is
+     * reduced to a single synthetic lmqName and the wildcard marker is
+     * registered.
+     *
+     * <p>The implementation diffs the previous set against the new one:
+     * lmqNames no longer in the new set are removed from the forward and
+     * reverse indexes; lmqNames added are registered. In exclusive groups,
+     * any leftover eviction tombstones for the client are either re-notified
+     * (if the lmqName is still in the new set, indicating the previous
+     * unsubscribe notification was lost) or cleaned up (if the lmqName is no
+     * longer subscribed).
+     */
     @Override
     public void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll, long version) {
         Set<String> lmqNameNew;
@@ -269,6 +351,22 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
+    /**
+     * Register the given (clientId, group) pair in the reverse index for the LMQ.
+     *
+     * <p>The reverse index {@link #liteTopic2Group} maps lmqName → set of
+     * subscribed ClientGroups, used during Pop dispatch to find which client(s)
+     * should receive messages.
+     *
+     * <p>If this (clientGroup, lmqName) pair is new (not a duplicate):
+     * <ol>
+     *   <li>Increments the global active reference counter;</li>
+     *   <li>Invalidates the wildcard group cache if the group is a wildcard group,
+     *       so the next wildcard expansion sees up-to-date membership;</li>
+     *   <li>Notifies all registered {@link LiteCtlListener listeners} of the new
+     *       subscription binding.</li>
+     * </ol>
+     */
     protected void addTopicGroup(ClientGroup clientGroup, String lmqName) {
         Set<ClientGroup> topicGroupSet = liteTopic2Group
             .computeIfAbsent(lmqName, k -> ConcurrentHashMap.newKeySet());
@@ -281,6 +379,24 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
+    /**
+     * Unregister the given (clientId, group) pair from the reverse index for the LMQ.
+     *
+     * <p>This is the counterpart of {@link #addTopicGroup}. If the pair was
+     * actually present (not a no-op):
+     * <ol>
+     *   <li>Decrements the global active reference counter;</li>
+     *   <li>Invalidates the wildcard group cache if applicable;</li>
+     *   <li>Notifies all registered {@link LiteCtlListener listeners} of the
+     *       subscription removal;</li>
+     *   <li>If {@code resetOffset} is {@code true}, resets the consumer offset
+     *       to the minimum value (0) via {@link #resetOffset}.</li>
+     * </ol>
+     *
+     * <p>If the set of subscribers for this lmqName becomes empty after removal,
+     * the lmqName entry is cleaned up from {@link #liteTopic2Group} and the
+     * wildcard group marker is removed if this was a synthetic wildcard LMQ.
+     */
     protected void removeTopicGroup(ClientGroup clientGroup, String lmqName, boolean resetOffset) {
         Set<ClientGroup> topicGroupSet = liteTopic2Group.get(lmqName);
         if (topicGroupSet == null) {
@@ -304,7 +420,11 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     }
 
     /**
-     * Remove clients that subscribe to the same liteTopic under the same group
+     * Remove clients that subscribe to the same liteTopic under the same group.
+     * - remove liteTopic from client2Subscription by clientId
+     * - add exclusive tombstones
+     * - call client to notify unsubscribe event
+     * - call removeTopicGroup
      */
     protected void excludeClientByLmqName(String newClientId, String group, String lmqName) {
         Set<ClientGroup> clientSet = liteTopic2Group.get(lmqName);
@@ -324,11 +444,14 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                     client2Subscription.remove(clientGroup.clientId);
                 }
             }
+
             exclusiveEvictionTombstones.add(clientGroup.clientId, lmqName);
             notifyUnsubscribeLite(clientGroup.clientId, clientGroup.group, lmqName);
+
             boolean resetOffset = LiteMetadataUtil.isResetOffsetInExclusiveMode(group, brokerController);
             LOGGER.info("excludeClientByLmqName group:{}, lmqName:{}, resetOffset:{}, clientId:{} -> {}",
                 group, lmqName, resetOffset, clientGroup.clientId, newClientId);
+
             removeTopicGroup(clientGroup, lmqName, resetOffset);
         });
     }

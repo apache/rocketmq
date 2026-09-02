@@ -55,6 +55,19 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
 
+/**
+ * RocksDB-backed implementation of {@link AbstractConsumeQueueStore}.
+ * The per-message CQ data and per-(topic, queueId) offset metadata live
+ * in two column families of a single RocksDB instance,
+ * and all writes are batched via {@link WriteBatch} for atomicity.
+ *
+ * <p>Two long-polling notification sites exist:
+ * 1. {@code DefaultMessageStore.ReputMessageService.doReput()}
+ * 2. {@link RocksGroupCommitService#groupCommit()}.
+ * Because the RocksDB CQ is built by the latter,
+ * long-polling notifications only need to fire from the group commit path;
+ * the reput path can skip them.
+ */
 public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
@@ -75,8 +88,39 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final RocksDBConsumeQueueTable rocksDBConsumeQueueTable;
     private final RocksDBConsumeQueueOffsetTable rocksDBConsumeQueueOffsetTable;
 
+    /**
+     * Pre-allocated, off-heap DirectByteBuffer pool for the ConsumeQueue key/value pair.
+     * [(topicQueueIdBuffer, CQunitBuffer), ...]
+     *
+     * <p>Initialized in the constructor with 16 pairs and grown on demand
+     * when {@link #consumeQueueByteBufferCacheIndex} exceeds the current size.
+     * The pool is reset (index only) at the end of each {@link #putMessagePosition0} call.
+     *
+     * <p>Access is single-threaded (only {@link RocksGroupCommitService} drives writes)
+     */
     private final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList;
+    /**
+     * Pre-allocated, off-heap DirectByteBuffer pool for offset key/value pair.
+     * [(topicQueueIdBuffer, offsetBuffer), ...]
+     *
+     * <p>offsetBuffer: commitOffset + consumeQueueOffset
+     *
+     * <p>Initialized in the constructor with 16 pairs and grown on demand
+     * when {@link #offsetBufferCacheIndex} exceeds the current size.
+     * The pool is reset (index only) at the end of each {@link #putMessagePosition0} call.
+     *
+     * <p>Access is single-threaded (only {@link RocksGroupCommitService} drives writes)
+     */
     private final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList;
+    /**
+     * Per-batch accumulator of the max cq-offset map within a single {@link #putMessagePosition0} call.
+     * topicQueueIdBuffer -> (offsetBuffer, DispatchEntry)
+     *
+     * <p>The map is created fresh in the constructor and reused across batches
+     * entries are cleared in the {@code finally} block of {@link #putMessagePosition0}.
+     *
+     * <p>Access is single-threaded (only {@link RocksGroupCommitService} drives writes)
+     */
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap;
     private volatile boolean isCQError = false;
 
@@ -241,11 +285,26 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    /**
+     * Persist a batch of dispatch requests to the RocksDB ConsumeQueue with bounded retry.
+     * Only Called by the {@link RocksGroupCommitService} thread.
+     *
+     * <p>The retry loop runs at most 30 times with 100 ms backoff.
+     * A successful call clears the {@code isCQError} flag and the
+     * {@code LogicsQueueError} running flag, allowing the broker to
+     * recover from a previous transient failure. After 30 failed
+     * attempts, the method sets both flags and throws
+     * {@link RocksDBException}; the broker enters a degraded state and
+     * stops accepting new writes via {@code LogicsQueueError}.
+     *
+     * <p>The actual write logic lives in {@link #putMessagePosition0}.
+     */
     public void putMessagePosition(List<DispatchRequest> requests) throws RocksDBException {
         final int maxRetries = 30;
         for (int i = 0; i < maxRetries; i++) {
             if (putMessagePosition0(requests)) {
                 if (this.isCQError) {
+                    // Recovery: clear the logical-queue error so writes resume
                     this.messageStore.getRunningFlags().clearLogicsQueueError();
                     this.isCQError = false;
                 }
@@ -259,6 +318,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             }
         }
         if (!this.isCQError) {
+            // Final failure: set the in-process flag and the broker-level
+            // LogicsQueueError running flag, then throw to abort the request
             ERROR_LOG.error("[BUG] put CQ Failed.");
             this.messageStore.getRunningFlags().makeLogicsQueueError();
             this.isCQError = true;
@@ -266,23 +327,48 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         throw new RocksDBException("put CQ Failed");
     }
 
+    /**
+     * Single-shot implementation of {@link #putMessagePosition}:
+     * build the WriteBatch, commit it, and update in-memory caches.
+     *
+     * <p>The steps in order are:
+     * <ol>
+     *   <li>Acquire the storage hold (blocks reconfiguration during write).</li>
+     *   <li>For each request, dispatch a CQ entry and (if LMQ) fan out one entry per lmq,
+     *       recording the per-(topic, queueId) max offset in a temporary map.</li>
+     *   <li>Write the offset table updates into the same WriteBatch(atomic with the CQ entries).</li>
+     *   <li>{@code batchPut} commits the WriteBatch with a single fsync.</li>
+     *   <li>Update the in-memory {@code topicQueueMaxCqOffset} cache and
+     *       notify any long-polling consumers via {@link #notifyMessageArriveAndClear}.</li>
+     *   <li>Reset per-batch buffer pool indices and release the hold, even on exception.</li>
+     * </ol>
+     *
+     * <p>Returns {@code true} on success, {@code false} on exception (the caller may retry).
+     * An empty request list is a no-op that returns {@code true}.
+     */
     private boolean putMessagePosition0(List<DispatchRequest> requests) {
+        // if rocksdb is not ready, return false.
         if (!this.rocksDBStorage.hold()) {
             return false;
         }
 
         try (WriteBatch writeBatch = new WriteBatch()) {
             final int size = requests.size();
-            if (size == 0) {
+            if (size == 0) { // should move size check outside
                 return true;
             }
+
             long maxPhyOffset = 0;
+            // Iterate in reverse: older messages are appended to the batch first,
+            // so the offset-table update sees the largest(most recent) offset when written last.
             for (int i = size - 1; i >= 0; i--) {
                 final DispatchRequest request = requests.get(i);
                 DispatchEntry entry = DispatchEntry.from(request);
-                dispatch(entry, writeBatch);
-                dispatchLMQ(request, writeBatch);
 
+                dispatch(entry, writeBatch);            // default CF
+                dispatchLMQ(request, writeBatch);       // LMQ fan-out (if applicable)
+
+                // update max commitLog offset
                 final int msgSize = request.getMsgSize();
                 final long phyOffset = request.getCommitLogOffset();
                 if (phyOffset + msgSize >= maxPhyOffset) {
@@ -290,11 +376,15 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
             }
 
+            // update offset
             this.rocksDBConsumeQueueOffsetTable.putMaxPhyAndCqOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
 
+            // Atomic commit (single fsync for both CFs).
             this.rocksDBStorage.batchPut(writeBatch);
 
+            // update the in-memory cache.
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
+
             notifyMessageArriveAndClear(requests);
             return true;
         } catch (Exception e) {
@@ -308,11 +398,19 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    // put CQunit to rocksdb and update in-memory maxOffset cache.
     private void dispatch(@Nonnull DispatchEntry entry, @Nonnull final WriteBatch writeBatch) throws RocksDBException {
         this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(getCQByteBufferPair(), entry, writeBatch);
         updateTempTopicQueueMaxOffset(getOffsetByteBufferPair(), entry);
     }
 
+    /**
+     * Update in-memory maxOffset cache {@link #tempTopicQueueMaxOffsetMap}.
+     *
+     * <p>Store the first entry, and check the rest.
+     * This is a deliberate design that depends on the caller's iteration order.
+     * Because DispatchRequest list iterates in reverse order.
+     */
     private void updateTempTopicQueueMaxOffset(final Pair<ByteBuffer, ByteBuffer> offsetBBPair,
         final DispatchEntry entry) {
         RocksDBConsumeQueueOffsetTable.buildOffsetKeyAndValueByteBuffer(offsetBBPair, entry);
@@ -330,11 +428,19 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    /**
+     * Fan out a single dispatch request to one ConsumeQueue entry per LMQ destination.
+     *
+     * <p>A defensive check rejects the request if the two arrays have different lengths
+     * that would indicate a bug in the wrap step, not bad user input.
+     */
     private void dispatchLMQ(@Nonnull DispatchRequest request, @Nonnull final WriteBatch writeBatch)
         throws RocksDBException {
         if (!messageStoreConfig.isEnableLmq() || !request.containsLMQ()) {
             return;
         }
+
+        // get lmq names and offsets
         Map<String, String> map = request.getPropertiesMap();
         String lmqNames = map.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String lmqOffsets = map.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
@@ -344,18 +450,24 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             ERROR_LOG.error("[bug] queues.length!=queueOffsets.length ", request.getTopic());
             return;
         }
+
         for (int i = 0; i < queues.length; i++) {
             String queueName = queues[i];
             DispatchEntry entry = DispatchEntry.from(request);
             long queueOffset = Long.parseLong(queueOffsets[i]);
+
+            // set queueId, queueId is 0 in most cases.
             int queueId = request.getQueueId();
             if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
                 queueId = MixAll.LMQ_QUEUE_ID;
             }
+
             entry.queueId = queueId;
             entry.queueOffset = queueOffset;
             entry.topic = queueName.getBytes(StandardCharsets.UTF_8);
             log.debug("Dispatch LMQ[{}:{}]:{} --> {}", queueName, queueId, queueOffset, entry.commitLogOffset);
+
+            // store entry(CQunit) and update maxOffset cache
             dispatch(entry, writeBatch);
         }
     }
@@ -530,6 +642,20 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         return this.rocksDBConsumeQueueOffsetTable.getMaxPhyOffset();
     }
 
+    /**
+     * Lazily look up or create the {@link RocksDBConsumeQueue} for {@code (topic, queueId)}.
+     *
+     * <p>The lookup walks two levels of:
+     * 1. {@link ConcurrentHashMap ConcurrentHashMaps}:
+     * 2. {@code consumeQueueTable → topic → queueId → ConsumeQueue}.
+     *
+     * <p></p>Missing entries are created with a small initial capacity:
+     * - the inner map is sized to 1 for LMQ topics (only queueId 0 is ever used)
+     * - and 8 otherwise.
+     *
+     * <p>Because the {@code consumeQueueTable} map is initialized lazily (see {@link #recoverOffsetTable}),
+     * this method may also create entries on first access after a broker restart.
+     */
     @Override
     public ConsumeQueueInterface findOrCreateConsumeQueue(String topic, int queueId) {
         ConcurrentMap<Integer, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);

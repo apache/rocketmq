@@ -60,6 +60,18 @@ import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.remoting.protocol.subscription.RetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
+/**
+ * Manages receipt handles for gRPC proxy auto-renewal of message visibility timeouts.
+ *
+ * <p>When auto-renew is enabled, popped messages are registered here with their
+ * {@code PROPERTY_POP_CK} data. A periodic {@link #scheduledExecutorService} scans
+ * all registered handles and extends the invisible time for messages that are
+ * about to expire. When the total renewal duration exceeds
+ * {@code renewMaxTimeMillis}, the message is nack'd and returned to the broker.
+ *
+ * <p>Handles are grouped by {@link ReceiptHandleGroupKey} (channel + consumer group)
+ * and cleaned up automatically when a gRPC client disconnects.
+ */
 public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implements ReceiptHandleManager {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final MetadataService metadataService;
@@ -77,6 +89,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         this.consumerManager = consumerManager;
         this.eventListener = eventListener;
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+
+        // by default, minThreadNum is 2, maxThreadNum is 4
         this.renewalWorkerService = ThreadPoolMonitor.createAndMonitor(
             proxyConfig.getRenewThreadPoolNums(),
             proxyConfig.getRenewMaxThreadPoolNums(),
@@ -84,6 +98,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             "RenewalWorkerThread",
             proxyConfig.getRenewThreadPoolQueueCapacity()
         );
+
+        // by default, minThreadNum is 2, maxThreadNum is 4
         this.returnHandleGroupWorkerService = ThreadPoolMonitor.createAndMonitor(
             proxyConfig.getReturnHandleGroupThreadPoolNums(),
             proxyConfig.getReturnHandleGroupThreadPoolNums() * 2,
@@ -91,6 +107,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             "ReturnHandleGroupWorkerThread",
             proxyConfig.getRenewThreadPoolQueueCapacity()
         );
+
+        // clear receipt by group when consumer unregister
         consumerManager.appendConsumerIdsChangeListener(new ConsumerIdsChangeListener() {
             @Override
             public void handle(ConsumerGroupEvent event, String group, Object... args) {
@@ -115,11 +133,15 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
             }
         });
+
         this.receiptHandleGroupMap = new ConcurrentHashMap<>();
         this.renewalWorkerService.setRejectedExecutionHandler((r, executor) -> log.warn("add renew task failed. queueSize:{}", executor.getQueue().size()));
+
+        // add periodic scan task
         this.appendStartAndShutdown(new StartAndShutdown() {
             @Override
             public void start() throws Exception {
+                // by default, interval is 5000ms
                 scheduledExecutorService.scheduleWithFixedDelay(() -> scheduleRenewTask(), 0,
                     ConfigurationManager.getProxyConfig().getRenewSchedulePeriodMillis(), TimeUnit.MILLISECONDS);
             }
@@ -154,6 +176,23 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         return this.consumerManager.findChannel(groupKey.getGroup(), groupKey.getChannel()) == null;
     }
 
+    /**
+     * Periodic scan of all receipt handle groups, called by the
+     * {@link #scheduledExecutorService} at a fixed interval.
+     *
+     * <p>For each group:
+     * <ul>
+     *   <li>If the client has gone offline, the entire group is cleared
+     *       immediately</li>
+     *   <li>Otherwise, each handle is inspected — if its next visible time
+     *       minus the current time is within the {@code renewAheadTimeMillis}
+     *       threshold, a renewal is submitted to the
+     *       {@link #renewalWorkerService} thread pool</li>
+     * </ul>
+     *
+     * <p>The scan runs synchronously in the scheduler thread; the actual
+     * renewal work is dispatched asynchronously to the worker pool.
+     */
     protected void scheduleRenewTask() {
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
@@ -191,15 +230,39 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         }
     }
 
+    /**
+     * Renew a single message's visibility timeout, or stop if the renewal
+     * limit has been reached.
+     *
+     * <p>Decision logic:
+     * <ul>
+     *   <li>If the handle has exceeded {@code maxRenewRetryTimes}, it is
+     *       dropped</li>
+     *   <li>If the total renewal duration is within {@code renewMaxTimeMillis},
+     *       a {@link RenewEvent.EventType#RENEW} event is fired to extend the
+     *       invisible time</li>
+     *   <li>If the renewal duration has exceeded {@code renewMaxTimeMillis},
+     *       a {@link RenewEvent.EventType#STOP_RENEW} event is fired which
+     *       nacks the message with the group's retry policy delay</li>
+     * </ul>
+     *
+     * @param context              the proxy context
+     * @param key                  the receipt handle group key
+     * @param messageReceiptHandle the handle to renew
+     * @return a future completing with the updated handle (or {@code null} if
+     *         renewal is stopped)
+     */
     protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ProxyContext context, ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle) {
         CompletableFuture<MessageReceiptHandle> resFuture = new CompletableFuture<>();
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         long current = System.currentTimeMillis();
         try {
+            // by default, maxRenewRetryTimes is 3
             if (messageReceiptHandle.getRenewRetryTimes() >= proxyConfig.getMaxRenewRetryTimes()) {
                 log.warn("handle has exceed max renewRetryTimes. handle:{}", messageReceiptHandle);
                 return CompletableFuture.completedFuture(null);
             }
+
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
                 eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));

@@ -264,7 +264,7 @@ public class ProxyConfig implements ConfigFile {
     private String remotingAccessAddr = "";
     private int remotingListenPort = 8080;
 
-    // related to proxy's send strategy in cluster mode.
+    // related to proxy's sending strategy in cluster mode.
     private boolean sendLatencyEnable = false;
     private boolean startDetectorEnable = false;
     private int detectTimeout = 200;
@@ -272,9 +272,38 @@ public class ProxyConfig implements ConfigFile {
 
     private int remotingHeartbeatThreadPoolNums = 2 * PROCESSOR_NUMBER;
     private int remotingTopicRouteThreadPoolNums = 2 * PROCESSOR_NUMBER;
+    /**
+     * thread pool number for
+     * 1. send message(and send message v2)
+     * 2. send batch message
+     * 3. consume send message back
+     * 4. end transaction
+     * 5. recall message
+     */
     private int remotingSendMessageThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    /**
+     * thread pool number for
+     * 1. pull message
+     * 2. lite pull message
+     * 3. pop message
+     */
     private int remotingPullMessageThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    /**
+     * thread pool number for
+     * 1. update consumer offset
+     * 2. ack message
+     * 3. change message invisible time
+     * 4. get consumer connection list
+     */
     private int remotingUpdateOffsetThreadPoolNums = 4 * PROCESSOR_NUMBER;
+    /**
+     * thread pool number for
+     * 1. unregister client
+     * 2. check client config
+     * 3. get consumer list by group
+     * 4. get min/max offset, query consume offset, search offset by timestamp
+     * 5. lock/unlock batch mq
+     */
     private int remotingDefaultThreadPoolNums = 4 * PROCESSOR_NUMBER;
 
     private int remotingHeartbeatThreadPoolQueueCapacity = 50000;

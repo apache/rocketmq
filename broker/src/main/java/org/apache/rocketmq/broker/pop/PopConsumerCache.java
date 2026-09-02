@@ -35,6 +35,41 @@ import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * In-memory cache for un-acked Pop consumer records, used when
+ * {@code enablePopBufferMerge} is enabled in the KVStore path.
+ *
+ * <p>
+ * The cache structure is as follows: {
+ *     groupId@topicId@queueId: {
+ *         active: ConcurrentSkipListMap<offset, PopConsumerRecord>,
+ *         removed: ConcurrentSkipListMap<offset, PopConsumerRecord>
+ *     }
+ * }
+ * active(recordTreeMap): in-flight records
+ * removed(removedTreeMap): records to be removed
+ * </p>
+ *
+ * <p>Popped messages are stored here by
+ * {@link PopConsumerService#popAsync}. The background {@link #run()} thread
+ * periodically scans the cache and processes expired records:
+ * <ul>
+ *   <li><b>Visibility timeout expired</b> — the record is passed to the
+ *       {@code reviveConsumer} (which calls
+ *       {@link PopConsumerService#revive}) to re-publish the message to
+ *       the retry topic</li>
+ *   <li><b>Consumer offline</b> (lock timeout) — all records for that
+ *       {code groupId, topicId} pair are flushed to
+ *       {@link PopConsumerKVStore} without revival</li>
+ *   <li><b>Consumer acked</b> — the record is removed via
+ *       {@link #deleteRecords} when a matching ack arrives</li>
+ * </ul>
+ *
+ * <p>Each {@code groupId@topicId@queueId} entry is backed by a
+ * {@link ConsumerRecords} instance containing two
+ * {@link ConcurrentSkipListMap}s — one for active records and one for
+ * records staged for removal.
+ */
 public class PopConsumerCache extends ServiceThread {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -46,6 +81,14 @@ public class PopConsumerCache extends ServiceThread {
     private final Consumer<PopConsumerRecord> reviveConsumer;
 
     private final AtomicInteger estimateCacheSize;
+    /**
+     * Maps {@code consumerGroupId@topicId@queueId} to the buffered records for that
+     * consumer-queue.
+     *
+     * <p>Used by {@link #writeRecords} to add popped messages,
+     * {@link #deleteRecords} to remove acked messages, and
+     * {@link #cleanupRecords} to process expired records.
+     */
     private final ConcurrentMap<String, ConsumerRecords> consumerRecordTable;
 
     public PopConsumerCache(BrokerController brokerController, PopConsumerKVStore consumerRecordStore,
@@ -89,9 +132,20 @@ public class PopConsumerCache extends ServiceThread {
         return consumerRecords != null ? consumerRecords.getInFlightRecordCount() : 0L;
     }
 
+    /**
+     * Write popped records into the cache.
+     *
+     * <p>Each record is inserted into the {@link ConsumerRecords} for its
+     * {@code groupId@topicId@queueId}. If no entry exists for that key, a
+     * new one is created. The cache size estimate is incremented.
+     *
+     * @param consumerRecordList the popped records to cache
+     */
     public void writeRecords(List<PopConsumerRecord> consumerRecordList) {
         this.estimateCacheSize.addAndGet(consumerRecordList.size());
         consumerRecordList.forEach(consumerRecord -> {
+            // consumerRecords is the recordMap in cache
+            // it contains two maps of PopConsumerRecord
             ConsumerRecords consumerRecords = ConcurrentHashMapUtils.computeIfAbsent(consumerRecordTable,
                 this.getKey(consumerRecord), k -> new ConsumerRecords(brokerController.getBrokerConfig(),
                     consumerRecord.getGroupId(), consumerRecord.getTopicId(), consumerRecord.getQueueId()));
@@ -205,13 +259,46 @@ public class PopConsumerCache extends ServiceThread {
         }
     }
 
+    /**
+     * Records for one {@code consumerGroupId@topicId@queueId} in the Pop cache.
+     *
+     * <p>Uses two {@link ConcurrentSkipListMap}s to separate active and
+     * expiring records for safe two-phase cleanup:
+     * <ol>
+     *   <li>{@link #stageExpiredRecords} moves timed-out records from
+     *       {@link #recordTreeMap} to {@link #removeTreeMap}</li>
+     *   <li>{@link PopConsumerCache#cleanupRecords} drains
+     *       {@link #removeTreeMap} — true-expired records are revived,
+     *       approaching-expired records are written to the KVStore</li>
+     * </ol>
+     */
     protected static class ConsumerRecords {
 
         private final String groupId;
         private final String topicId;
         private final int queueId;
         private final BrokerConfig brokerConfig;
+        /**
+         * Staged records awaiting cleanup (revival or KVStore write).
+         *
+         * <p>Populated by {@link #stageExpiredRecords} and drained by
+         * {@link PopConsumerCache#cleanupRecords}. Sorted by offset
+         * so that {@link #getMinOffset} can include these records in
+         * the minimum offset computation.
+         */
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> removeTreeMap;
+        /**
+         * Active (in-flight) records that have been popped but not yet
+         * acked by the consumer.
+         *
+         * <p>Records are added via {@link #write} when messages are popped,
+         * removed via {@link #delete} when an ack arrives, and moved to
+         * {@link #removeTreeMap} via {@link #stageExpiredRecords} when
+         * the visibility timeout or stay-buffer time expires.
+         *
+         * <p>Sorted by offset for efficient minimum-offset queries
+         * ({@link #getMinOffset}).
+         */
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> recordTreeMap;
 
         public ConsumerRecords(BrokerConfig brokerConfig, String groupId, String topicId, int queueId) {

@@ -93,6 +93,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case RequestCode.CONSUMER_SEND_MSG_BACK:
                 return this.consumerSendMsgBack(ctx, request);
             default:
+                // build send message context
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
                 if (requestHeader == null) {
                     return null;
@@ -103,6 +104,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     return rewriteResult;
                 }
                 sendMessageContext = buildMsgContext(ctx, requestHeader, request);
+
+                // execute send message hook before
                 try {
                     this.executeSendMessageHookBefore(sendMessageContext);
                 } catch (AbortProcessException e) {
@@ -114,7 +117,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 RemotingCommand response;
                 clearReservedProperties(requestHeader);
 
-                if (requestHeader.isBatch()) {
+                if (requestHeader.isBatch()) { // no batch message after 5.0
                     response = this.sendBatchMessage(ctx, request, sendMessageContext, requestHeader, mappingContext,
                         (ctx1, response1) -> executeSendMessageHookAfter(response1, ctx1));
                 } else {
@@ -285,6 +288,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String liteTopic = oriProps.get(MessageConst.PROPERTY_LITE_TOPIC);
         if (StringUtils.isNotEmpty(liteTopic)) {
             String lmqName = LiteUtil.toLmqName(requestHeader.getTopic(), liteTopic);
+            // toLmqName: "%LMQ%$" + parentTopic + "$" + liteTopic
+            // Result: "%LMQ%$OrderTopic$shop_001"
             oriProps.put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqName);
         }
 
@@ -321,9 +326,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         // Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+        // sendTransactionPrepareMessage is true, when traFlag is true, after version 4.6.1
         boolean sendTransactionPrepareMessage;
         if (Boolean.parseBoolean(traFlag)
+            // For client under version 4.6.1, exclude retry message with delay level.
             && !(msgInner.getReconsumeTimes() > 0 && msgInner.getDelayTimeLevel() > 0)) { //For client under version 4.6.1
+            // default value of rejectTransactionMessage is false
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
@@ -338,6 +346,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         long beginTimeMillis = this.brokerController.getMessageStore().now();
 
+        // default is true
         if (brokerController.getBrokerConfig().isAsyncSendEnable()) {
             CompletableFuture<PutMessageResult> asyncPutMessageFuture;
             if (sendTransactionPrepareMessage) {

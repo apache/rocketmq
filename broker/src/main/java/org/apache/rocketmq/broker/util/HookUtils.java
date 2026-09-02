@@ -38,9 +38,27 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 
+/**
+ * Pre-processing utilities invoked before putting a message to the store.
+ *
+ * <p>All methods are static and called sequentially from
+ * {@code SendMessageProcessor#asyncSendMessage}:
+ * <ol>
+ *   <li>{@link #checkBeforePutMessage} — validates store state, topic length,
+ *       body presence, and OS page cache pressure</li>
+ *   <li>{@link #checkInnerBatch} — checks inner-batch sysFlag consistency</li>
+ *   <li>{@link #handleScheduleMessage} — routes timer and delay-level messages
+ *       to {@code TIMER_TOPIC} or {@code SCHEDULE_TOPIC}</li>
+ *   <li>{@link #handleLmqQuota} — enforces Light Message Queue limits</li>
+ * </ol>
+ *
+ * <p>If any step returns a non-null {@link PutMessageResult}, the operation is
+ * aborted immediately.
+ */
 public class HookUtils {
 
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -58,6 +76,13 @@ public class HookUtils {
      */
     private static final Integer MAX_TOPIC_LENGTH = 255;
 
+    /**
+     * Pre-put message validation: guards against writes when the store is
+     * shut down, in slave mode (non-duplication), not writable, topic too long,
+     * body null, or OS page cache busy.
+     *
+     * @return null if the check passes, or a rejection {@link PutMessageResult}
+     */
     public static PutMessageResult checkBeforePutMessage(BrokerController brokerController, final MessageExt msg) {
         if (brokerController.getMessageStore().isShutdown()) {
             LOG.warn("message store has shutdown, so putMessage is forbidden");
@@ -109,6 +134,14 @@ public class HookUtils {
         return null;
     }
 
+    /**
+     * Check inner-batch sysFlag consistency
+     * There is no inner-batch after v5.0.0
+     *
+     * @param brokerController brokerController(object container)
+     * @param msg msg
+     * @return putMessageResult
+     */
     public static PutMessageResult checkInnerBatch(BrokerController brokerController, final MessageExt msg) {
         if (msg.getProperties().containsKey(MessageConst.PROPERTY_INNER_NUM)
             && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
@@ -127,12 +160,31 @@ public class HookUtils {
         return null;
     }
 
+    /**
+     * Route timer or delay-level messages to the appropriate system topic.
+     *
+     * <p>For non-transaction or committed messages, two checks run in order:
+     * <ol>
+     *   <li><b>Timer wheel</b> — if the message carries timer properties
+     *   ({@code PROPERTY_TIMER_DELIVER_MS}, etc.), it is transformed and
+     *   redirected to {@code TIMER_TOPIC}. The TimerWheel must be enabled,
+     *   otherwise the message is rejected.</li>
+     *   <li><b>Delay level</b> — if {@code delayTimeLevel > 0}, the message
+     *   is redirected to {@code SCHEDULE_TOPIC_XXXX}. Both checks can apply
+     *   to the same message (legacy bridge).</li>
+     * </ol>
+     *
+     * @return non-null {@link PutMessageResult} if the message was rejected
+     */
     public static PutMessageResult handleScheduleMessage(BrokerController brokerController,
         final MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+        // normal message or committed message can be delayed
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            // is timer topic
             if (!isRolledTimerMessage(msg)) {
+                // double check, has delay level or, is timer topic and has delivery time
                 if (checkIfTimerMessage(msg)) {
                     if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                         //wheel timer is not enabled, reject the message
@@ -144,7 +196,7 @@ public class HookUtils {
                     }
                 }
             }
-            // Delay Delivery
+            // Delay Delivery, useless with default config
             if (msg.getDelayTimeLevel() > 0) {
                 transformDelayLevelMessage(brokerController, msg);
             }
@@ -152,6 +204,14 @@ public class HookUtils {
         return null;
     }
 
+    /**
+     * Enforce Light Message Queue (LMQ) quota.
+     * reject the message if:
+     *  - the number of LMQ consume queues would exceed the configured maximum
+     *  - and the target queue does not already exist.
+     *
+     * @return null if the check passes, or a rejection {@link PutMessageResult}
+     */
     public static PutMessageResult handleLmqQuota(BrokerController brokerController, final MessageExtBrokerInner msg) {
         if (!brokerController.getMessageStoreConfig().isEnableLmqQuota()
             || !brokerController.getMessageStoreConfig().isEnableLmq()
@@ -164,9 +224,12 @@ public class HookUtils {
         String[] queueNames =
             msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH).split(MixAll.LMQ_DISPATCH_SEPARATOR);
         for (String queueName : queueNames) {
+            // starts with LMQ_PREFIX(%LMQ%)
             if (!MixAll.isLmq(queueName)) {
                 continue;
             }
+
+            // default maxLmqConsumeQueueNum is 20000
             if (cqStore.getLmqNum() >= brokerController.getMessageStoreConfig().getMaxLmqConsumeQueueNum()) {
                 if (!cqStore.isLmqExist(queueName)) {
                     return new PutMessageResult(PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED, null);
@@ -201,10 +264,34 @@ public class HookUtils {
         return null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC);
     }
 
+    /**
+     * Transform a timer message and redirect it to the timer wheel topic.
+     *
+     * <p>Parses the delivery time from {@code PROPERTY_TIMER_DELAY_SEC},
+     * {@code PROPERTY_TIMER_DELAY_MS}, or {@code PROPERTY_TIMER_DELIVER_MS}.
+     * The time is aligned to {@code timerPrecisionMs} boundaries to match
+     * the TimerWheel tick resolution.
+     *
+     * <p>The original topic and queue are saved as properties.
+     * topic was changed to {@link TimerMessageStore#TIMER_TOPIC},
+     * queue was changed to 0
+     *
+     * <p>Rejection conditions:
+     * <ul>
+     *   <li>Non-delay-level messages exceeding {@code timerMaxDelaySec}</li>
+     *   <li>TimerWheel slot congestion ({@link TimerMessageStore#isReject})</li>
+     * </ul>
+     *
+     * @param brokerController the broker controller
+     * @param msg              the message to transform
+     * @return a non-null {@link PutMessageResult} if the message is rejected
+     */
     private static PutMessageResult transformTimerMessage(BrokerController brokerController,
         MessageExtBrokerInner msg) {
         //do transform
         int delayLevel = msg.getDelayTimeLevel();
+
+        // calculate deliver time
         long deliverMs;
         try {
             if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
@@ -217,21 +304,28 @@ public class HookUtils {
         } catch (Exception e) {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
+
         if (deliverMs > System.currentTimeMillis()) {
+            // default value of timerMaxDelaySec is 3600 * 24 * 3
             if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
             }
 
+            // precision operation
             int timerPrecisionMs = brokerController.getMessageStoreConfig().getTimerPrecisionMs();
             if (deliverMs % timerPrecisionMs == 0) {
+                // Exactly on boundary → move one tick earlier
                 deliverMs -= timerPrecisionMs;
             } else {
+                // Not on boundary → round down to nearest tick
                 deliverMs = deliverMs / timerPrecisionMs * timerPrecisionMs;
             }
 
+            // flow control, always skip with default config
             if (brokerController.getTimerMessageStore().isReject(deliverMs)) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL, null);
             }
+
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TIMER_OUT_MS, deliverMs + "");
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
@@ -259,6 +353,14 @@ public class HookUtils {
         msg.setQueueId(ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel()));
     }
 
+    /**
+     * Forward messages to another broker (typically the retry / dead-letter
+     * queue destination). Used as the {@link SendMessageBackHook} implementation.
+     *
+     * <p>Each message is sent with {@code waitStoreMsgOK=false} and a 3s timeout.
+     * Messages are removed from the list on success; on any failure the entire
+     * batch is aborted and {@code false} is returned.
+     */
     public static boolean sendMessageBack(BrokerController brokerController, List<MessageExt> msgList,
         String brokerName, String brokerAddr) {
         try {

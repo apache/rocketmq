@@ -1890,6 +1890,22 @@ public class TimerMessageStore {
         return timerWheel.getNum(deliverTimeMs);
     }
 
+    /**
+     * Reject timer messages when the target time slot is congested.
+     * always return false with default config
+     *
+     * <p>Three tiers of flow control based on the number of messages already
+     * scheduled for the given delivery time:
+     * <ul>
+     *   <li>&le; {@code timerCongestNumEachSlot} — always admit</li>
+     *   <li>between 1x and 2x — probabilistically reject with a linear
+     *       increasing probability</li>
+     *   <li>&ge; 2x — always reject</li>
+     * </ul>
+     *
+     * @param deliverTimeMs the target delivery timestamp
+     * @return {@code true} if the message should be rejected
+     */
     public boolean isReject(long deliverTimeMs) {
         long congestNum = timerWheel.getNum(deliverTimeMs);
         if (congestNum <= storeConfig.getTimerCongestNumEachSlot()) {
