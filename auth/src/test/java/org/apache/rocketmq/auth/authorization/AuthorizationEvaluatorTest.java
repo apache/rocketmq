@@ -523,9 +523,12 @@ public class AuthorizationEvaluatorTest {
         requestEvaluator.evaluate(endTransaction(
             null, 1L, 2L, null, "messageId"), Collections.emptyList());
 
-        requestEvaluator.evaluate(viewMessage(0L), Collections.emptyList());
-        requestEvaluator.evaluate(viewMessage(-1L), Collections.emptyList());
-        requestEvaluator.evaluate(viewMessage(null), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(viewMessage(0L), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(viewMessage(-1L), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(viewMessage(null), Collections.emptyList()));
         Assert.assertThrows(AuthorizationException.class,
             () -> requestEvaluator.evaluate(
                 RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, null),

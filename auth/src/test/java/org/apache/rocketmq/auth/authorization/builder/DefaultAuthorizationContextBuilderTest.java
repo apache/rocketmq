@@ -1044,11 +1044,13 @@ public class DefaultAuthorizationContextBuilderTest {
 
         ViewMessageRequestHeader viewMessageHeader = new ViewMessageRequestHeader();
         viewMessageHeader.setOffset(0L);
-        Assert.assertTrue(builder.build(channelHandlerContext,
-            remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)).isEmpty());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> builder.build(channelHandlerContext,
+                remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)));
         viewMessageHeader.setTopic(" ");
-        Assert.assertTrue(builder.build(channelHandlerContext,
-            remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)).isEmpty());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> builder.build(channelHandlerContext,
+                remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)));
     }
 
     @Test
