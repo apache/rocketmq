@@ -20,6 +20,8 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +42,12 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Assert;
 
 public class MessageStoreTestBase extends StoreTestBase {
+
+    protected static int nextAvailablePort() throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(0)) {
+            return serverSocket.getLocalPort();
+        }
+    }
 
     protected DefaultMessageStore createDledgerMessageStore(String base, String group, String selfId, String peers, String leaderId, boolean createAbort, int deleteFileNum) throws Exception {
         System.setProperty("dledger.disk.ratio.check", "0.95");
