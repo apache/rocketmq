@@ -279,6 +279,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<Long> searchOffset(ProxyContext ctx, MessageQueue messageQueue, long timestamp,
+        long timeoutMillis) {
+        return this.consumerProcessor.searchOffset(ctx, messageQueue, timestamp, timeoutMillis);
+    }
+
+    @Override
     public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,
                                                    String recallHandle, long timeoutMillis) {
         return this.producerProcessor.recallMessage(ctx, topic, recallHandle, timeoutMillis);

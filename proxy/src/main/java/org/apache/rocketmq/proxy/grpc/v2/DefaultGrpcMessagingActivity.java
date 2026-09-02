@@ -24,12 +24,16 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.GetOffsetRequest;
+import apache.rocketmq.v2.GetOffsetResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.RecallMessageRequest;
@@ -53,6 +57,7 @@ import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.AckMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.ChangeInvisibleDurationActivity;
+import org.apache.rocketmq.proxy.grpc.v2.consumer.OffsetActivity;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.ReceiveMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.producer.ForwardMessageToDLQActivity;
 import org.apache.rocketmq.proxy.grpc.v2.producer.RecallMessageActivity;
@@ -69,6 +74,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected ReceiveMessageActivity receiveMessageActivity;
     protected AckMessageActivity ackMessageActivity;
     protected ChangeInvisibleDurationActivity changeInvisibleDurationActivity;
+    protected OffsetActivity offsetActivity;
     protected SendMessageActivity sendMessageActivity;
     protected RecallMessageActivity recallMessageActivity;
     protected ForwardMessageToDLQActivity forwardMessageToDLQActivity;
@@ -87,6 +93,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.offsetActivity = new OffsetActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.sendMessageActivity = new SendMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.recallMessageActivity = new RecallMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
@@ -116,6 +123,16 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(ProxyContext ctx,
         QueryAssignmentRequest request) {
         return this.routeActivity.queryAssignment(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<QueryOffsetResponse> queryOffset(ProxyContext ctx, QueryOffsetRequest request) {
+        return this.offsetActivity.queryOffset(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<GetOffsetResponse> getOffset(ProxyContext ctx, GetOffsetRequest request) {
+        return this.offsetActivity.getOffset(ctx, request);
     }
 
     @Override

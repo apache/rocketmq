@@ -74,6 +74,7 @@ import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
@@ -477,6 +478,12 @@ public class LocalMessageService implements MessageService {
     public CompletableFuture<Long> getMinOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
         throw new NotImplementedException("getMinOffset is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Long> searchOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        SearchOffsetRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("searchOffset is not implemented in LocalMessageService");
     }
 
     @Override
