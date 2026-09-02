@@ -3349,6 +3349,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 if (user != null) {
                     UserInfo userInfo = UserConverter.convertUser(user);
+                    if (canReadUserPassword(request, requestHeader.getUsername())) {
+                        userInfo.setPassword(user.getPassword());
+                    }
                     response.setBody(JSON.toJSONString(userInfo).getBytes(StandardCharsets.UTF_8));
                 }
             })
@@ -3522,6 +3525,27 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         return !this.brokerController.getAuthenticationMetadataManager()
             .isSuperUser(accessKey).join();
+    }
+
+    private boolean canReadUserPassword(RemotingCommand request, String username) {
+        if (this.brokerController.getAuthConfig() == null
+            || !this.brokerController.getAuthConfig()
+            .isAuthenticationRequired(String.valueOf(request.getCode()))) {
+            return false;
+        }
+        String accessKey = getAccessKey(request);
+        if (StringUtils.isEmpty(accessKey)) {
+            return false;
+        }
+        if (StringUtils.equals(accessKey, username)) {
+            return true;
+        }
+        return this.brokerController.getAuthenticationMetadataManager()
+            .isSuperUser(accessKey).join();
+    }
+
+    private String getAccessKey(RemotingCommand request) {
+        return request.getExtFields() == null ? null : request.getExtFields().get("AccessKey");
     }
 
     private Void handleAuthException(RemotingCommand response, Throwable ex) {
