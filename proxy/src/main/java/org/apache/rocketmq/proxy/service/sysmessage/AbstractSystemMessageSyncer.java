@@ -46,6 +46,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, MessageListenerConcurrently {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -55,7 +56,8 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     protected final RPCHook rpcHook;
     protected DefaultMQPushConsumer defaultMQPushConsumer;
 
-    public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
+    public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService,
+        MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
         this.topicRouteService = topicRouteService;
         this.adminService = adminService;
         this.mqClientAPIFactory = mqClientAPIFactory;
@@ -142,6 +144,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     @Override
     public void start() throws Exception {
         this.createSysTopic();
+        this.createSysConsumerGroup();
         RPCHook rpcHook = this.getRpcHook();
         this.defaultMQPushConsumer = new DefaultMQPushConsumer(this.getSystemMessageConsumerId(), rpcHook);
 
@@ -172,6 +175,28 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         );
         if (!createSuccess) {
             throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "create system broadcast topic " + this.getBroadcastTopicName() + " failed on cluster " + clusterName);
+        }
+    }
+
+    protected void createSysConsumerGroup() {
+        String clusterName = this.getBroadcastTopicClusterName();
+        if (StringUtils.isEmpty(clusterName)) {
+            throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "system topic cluster cannot be empty");
+        }
+
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+        config.setGroupName(this.getSystemMessageConsumerId());
+        config.setConsumeBroadcastEnable(true);
+        config.setConsumeEnable(true);
+
+        boolean createSuccess = this.adminService.createSubscriptionGroupIfNotExist(
+            clusterName,
+            config,
+            3
+        );
+
+        if (!createSuccess) {
+            throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "create system broadcast consumer group " + this.getSystemMessageConsumerId() + " failed on cluster " + clusterName);
         }
     }
 
