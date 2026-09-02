@@ -17,9 +17,19 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
+import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.NotifyUnsubscribeLiteCommand;
 import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.PrintThreadStackTraceCommand;
+import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
+import apache.rocketmq.v2.SubscriptionEntry;
+import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.VerifyMessageCommand;
+import com.google.protobuf.ByteString;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
@@ -35,7 +45,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -78,5 +90,117 @@ public class GrpcClientChannelTest extends InitConfigTest {
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(remoteChannel));
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(this.grpcClientChannel));
         assertNull(GrpcClientChannel.parseChannelExtendAttribute(mock(RemotingChannel.class)));
+    }
+
+    @Test
+    public void testSummarizeSettingsDoesNotExposeResourceNames() {
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName("sensitive-publish-topic").build())
+                .build())
+            .build();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("sensitive-group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setTopic(Resource.newBuilder().setName("sensitive-subscription-topic").build())
+                    .build())
+                .build())
+            .build();
+
+        String producerSummary = GrpcClientChannel.summarizeSettings(producerSettings);
+        String consumerSummary = GrpcClientChannel.summarizeSettings(consumerSettings);
+
+        assertTrue(producerSummary.contains("clientType=PRODUCER"));
+        assertTrue(producerSummary.contains("publishingTopicCount=1"));
+        assertFalse(producerSummary.contains("sensitive-publish-topic"));
+
+        assertTrue(consumerSummary.contains("clientType=PUSH_CONSUMER"));
+        assertTrue(consumerSummary.contains("subscriptionCount=1"));
+        assertFalse(consumerSummary.contains("sensitive-subscription-topic"));
+        assertFalse(consumerSummary.contains("sensitive-group"));
+    }
+
+    @Test
+    public void testSummarizeTelemetryCommandDoesNotIncludeMessagePayload() {
+        TelemetryCommand command = TelemetryCommand.newBuilder()
+            .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
+                .setNonce("nonce-1")
+                .setMessage(Message.newBuilder()
+                    .setBody(ByteString.copyFromUtf8("secret-body"))
+                    .build())
+                .build())
+            .build();
+
+        String summary = GrpcClientChannel.summarizeTelemetryCommand(command);
+
+        assertTrue(summary.contains("VERIFY_MESSAGE_COMMAND"));
+        assertTrue(summary.contains("nonce-1"));
+        assertFalse(summary.contains("secret-body"));
+        assertFalse(summary.contains("message"));
+        assertFalse(summary.contains("body"));
+    }
+
+    @Test
+    public void testSummarizeRecoverTransactionCommandDoesNotIncludeMessagePayload() {
+        TelemetryCommand command = TelemetryCommand.newBuilder()
+            .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
+                .setTransactionId("transaction-id")
+                .setMessage(Message.newBuilder()
+                    .setBody(ByteString.copyFromUtf8("secret-body"))
+                    .build())
+                .build())
+            .build();
+
+        String summary = GrpcClientChannel.summarizeTelemetryCommand(command);
+
+        assertTrue(summary.contains("RECOVER_ORPHANED_TRANSACTION_COMMAND"));
+        assertTrue(summary.contains("transaction-id"));
+        assertTrue(summary.contains("details omitted"));
+        assertFalse(summary.contains("secret-body"));
+        assertFalse(summary.contains("message"));
+        assertFalse(summary.contains("body"));
+    }
+
+    @Test
+    public void testSummarizeTelemetryCommandDiagnosticFields() {
+        assertEquals("null", GrpcClientChannel.summarizeTelemetryCommand(null));
+        assertEquals("COMMAND_NOT_SET", GrpcClientChannel.summarizeTelemetryCommand(TelemetryCommand.getDefaultInstance()));
+
+        TelemetryCommand settingsCommand = TelemetryCommand.newBuilder()
+            .setSettings(Settings.newBuilder()
+                .setPublishing(Publishing.getDefaultInstance())
+                .build())
+            .build();
+        String settingsSummary = GrpcClientChannel.summarizeTelemetryCommand(settingsCommand);
+        assertTrue(settingsSummary.contains("SETTINGS"));
+        assertTrue(settingsSummary.contains("clientType="));
+        assertTrue(settingsSummary.contains("pubSubCase=PUBLISHING"));
+
+        TelemetryCommand threadStackCommand = TelemetryCommand.newBuilder()
+            .setPrintThreadStackTraceCommand(PrintThreadStackTraceCommand.newBuilder()
+                .setNonce("stack-nonce")
+                .build())
+            .build();
+        String threadStackSummary = GrpcClientChannel.summarizeTelemetryCommand(threadStackCommand);
+        assertTrue(threadStackSummary.contains("PRINT_THREAD_STACK_TRACE_COMMAND"));
+        assertTrue(threadStackSummary.contains("stack-nonce"));
+
+        TelemetryCommand liteCommand = TelemetryCommand.newBuilder()
+            .setNotifyUnsubscribeLiteCommand(NotifyUnsubscribeLiteCommand.newBuilder()
+                .setLiteTopic("lite-topic")
+                .build())
+            .build();
+        String liteSummary = GrpcClientChannel.summarizeTelemetryCommand(liteCommand);
+        assertTrue(liteSummary.contains("NOTIFY_UNSUBSCRIBE_LITE_COMMAND"));
+        assertTrue(liteSummary.contains("lite-topic"));
+    }
+
+    @Test
+    public void testGetAttributeLength() {
+        assertEquals(0, GrpcClientChannel.getAttributeLength(null));
+        assertEquals(7, GrpcClientChannel.getAttributeLength("invalid"));
     }
 }

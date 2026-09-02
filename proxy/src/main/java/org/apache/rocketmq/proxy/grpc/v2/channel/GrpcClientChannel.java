@@ -25,7 +25,6 @@ import apache.rocketmq.v2.VerifyMessageCommand;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.TextFormat;
 import com.google.protobuf.util.JsonFormat;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -88,7 +87,8 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         try {
             return JsonFormat.printer().print(settings);
         } catch (InvalidProtocolBufferException e) {
-            log.error("convert settings to json data failed. settings:{}", settings, e);
+            log.error("convert settings to json data failed. clientId:{}, settingsSummary:{}",
+                this.clientId, summarizeSettings(settings), e);
         }
         return null;
     }
@@ -106,11 +106,25 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
                 JsonFormat.parser().merge(attr, builder);
                 return builder.build();
             } catch (InvalidProtocolBufferException e) {
-                log.error("convert settings json data to settings failed. data:{}", attr, e);
+                log.error("convert settings json data to settings failed. attrLength:{}", getAttributeLength(attr), e);
                 return null;
             }
         }
         return null;
+    }
+
+    static String summarizeSettings(Settings settings) {
+        if (settings == null) {
+            return "null";
+        }
+        int publishingTopicCount = settings.hasPublishing() ? settings.getPublishing().getTopicsCount() : 0;
+        int subscriptionCount = settings.hasSubscription() ? settings.getSubscription().getSubscriptionsCount() : 0;
+        return String.format("clientType=%s, publishingTopicCount=%d, subscriptionCount=%d",
+            settings.getClientType(), publishingTopicCount, subscriptionCount);
+    }
+
+    static int getAttributeLength(String attr) {
+        return attr == null ? 0 : attr.length();
     }
 
     @Override
@@ -263,22 +277,57 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     public void writeTelemetryCommand(TelemetryCommand command) {
         StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
         if (observer == null) {
-            log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
+            log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}",
+                summarizeTelemetryCommand(command), this);
             return;
         }
         synchronized (this.telemetryWriteLock) {
             observer = this.telemetryCommandRef.get();
             if (observer == null) {
-                log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
+                log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}",
+                    summarizeTelemetryCommand(command), this);
                 return;
             }
             try {
                 observer.onNext(command);
             } catch (StatusRuntimeException | IllegalStateException exception) {
-                log.warn("write telemetry failed. command:{}", command, exception);
+                log.warn("write telemetry failed. command:{}, channel:{}", summarizeTelemetryCommand(command), this, exception);
                 this.clearClientObserver(observer);
             }
         }
+    }
+
+    static String summarizeTelemetryCommand(TelemetryCommand command) {
+        if (command == null) {
+            return "null";
+        }
+
+        StringBuilder builder = new StringBuilder(command.getCommandCase().name());
+        switch (command.getCommandCase()) {
+            case PRINT_THREAD_STACK_TRACE_COMMAND:
+                builder.append(", nonce=").append(command.getPrintThreadStackTraceCommand().getNonce());
+                break;
+            case VERIFY_MESSAGE_COMMAND:
+                builder.append(", nonce=").append(command.getVerifyMessageCommand().getNonce());
+                break;
+            case RECOVER_ORPHANED_TRANSACTION_COMMAND:
+                builder.append(", transactionId=")
+                    .append(command.getRecoverOrphanedTransactionCommand().getTransactionId())
+                    .append(", details omitted");
+                break;
+            case NOTIFY_UNSUBSCRIBE_LITE_COMMAND:
+                builder.append(", liteTopic=")
+                    .append(command.getNotifyUnsubscribeLiteCommand().getLiteTopic());
+                break;
+            case SETTINGS:
+                builder.append(", clientType=").append(command.getSettings().getClientType())
+                    .append(", pubSubCase=").append(command.getSettings().getPubSubCase());
+                break;
+            default:
+                // Add explicit cases for future commands that carry sensitive payloads.
+                break;
+        }
+        return builder.toString();
     }
 
     @Override
