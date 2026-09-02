@@ -223,7 +223,7 @@ public class TransactionalMessageRocksDBService {
         }
         try {
             CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
-            checkTransactionStateRequestHeader.setTopic(msgExt.getTopic());
+            checkTransactionStateRequestHeader.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
             checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
             checkTransactionStateRequestHeader.setOffsetMsgId(msgExt.getMsgId());
             checkTransactionStateRequestHeader.setMsgId(MessageClientIDSetter.getUniqID(msgExt));
