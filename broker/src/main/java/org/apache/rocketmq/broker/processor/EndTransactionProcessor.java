@@ -291,6 +291,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(MessageDecoder.messageProperties2String(msgExt.getProperties())));
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
+        // Clear the internal routing hint before encoding so it never reaches the wire data
+        // of the committed message that consumers observe.
+        MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
     }

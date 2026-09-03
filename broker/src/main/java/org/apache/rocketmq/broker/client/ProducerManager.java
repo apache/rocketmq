@@ -316,6 +316,33 @@ public class ProducerManager {
         return lastActiveChannel;
     }
 
+    /**
+     * Get an available channel for the given group, preferring the producer that originally sent the message.
+     * Falls back to round-robin if the preferred producer is not found or not available.
+     *
+     * @param groupId producer group
+     * @param preferredClientId the clientId of the original producer (from half message properties), may be null
+     * @return an available channel, or null if none found
+     */
+    public Channel getAvailableChannel(String groupId, String preferredClientId) {
+        if (groupId == null) {
+            return null;
+        }
+        if (preferredClientId != null) {
+            ConcurrentMap<Channel, ClientChannelInfo> channelMap = groupChannelTable.get(groupId);
+            if (channelMap != null) {
+                for (Map.Entry<Channel, ClientChannelInfo> entry : channelMap.entrySet()) {
+                    if (preferredClientId.equals(entry.getValue().getClientId())
+                        && entry.getKey().isActive() && entry.getKey().isWritable()) {
+                        return entry.getKey();
+                    }
+                }
+            }
+        }
+        // Fall back to round-robin selection
+        return getAvailableChannel(groupId);
+    }
+
     public Channel findChannel(String clientId) {
         return clientChannelTable.get(clientId);
     }

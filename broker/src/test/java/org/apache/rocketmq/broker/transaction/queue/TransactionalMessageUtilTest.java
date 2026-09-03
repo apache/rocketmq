@@ -39,6 +39,7 @@ public class TransactionalMessageUtilTest {
         halfMessage.setTransactionId("tranId");
         MessageAccessor.putProperty(halfMessage, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "tranId");
         MessageAccessor.putProperty(halfMessage, MessageConst.PROPERTY_PRODUCER_GROUP, "trans-producer-grp");
+        MessageAccessor.putProperty(halfMessage, MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID, "127.0.0.1@12345");
 
         MessageExtBrokerInner msgExtInner = TransactionalMessageUtil.buildTransactionalMessageFromHalfMessage(halfMessage);
 
@@ -50,6 +51,9 @@ public class TransactionalMessageUtilTest {
         assertEquals(msgExtInner.getMsgId(), halfMessage.getMsgId());
         assertTrue(MessageSysFlag.check(msgExtInner.getSysFlag(), MessageSysFlag.TRANSACTION_PREPARED_TYPE));
         assertEquals(msgExtInner.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP), halfMessage.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP));
+        // The rebuilt message is still a half message (PREPARED=true re-enters the half topic on the
+        // target broker), so the producer routing hint must survive for transaction check routing.
+        assertEquals("127.0.0.1@12345", msgExtInner.getProperty(MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID));
     }
 
     @Test

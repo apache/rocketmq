@@ -45,6 +45,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -53,6 +54,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -108,6 +110,29 @@ public class EndTransactionProcessorTest {
         assertThat(brokerController.getBrokerStatsManager().getStatsItem(Stats.BROKER_PUT_NUMS, brokerController.getBrokerConfig().getBrokerClusterName()).getValue().sum()).isEqualTo(1);
         assertThat(brokerController.getBrokerStatsManager().getStatsItem(Stats.TOPIC_PUT_NUMS, TOPIC).getValue().sum()).isEqualTo(1L);
         assertThat(brokerController.getBrokerStatsManager().getStatsItem(Stats.TOPIC_PUT_SIZE, TOPIC).getValue().sum()).isEqualTo(1L);
+    }
+
+    @Test
+    public void testProcessRequest_CommitStripsProducerRoutingHintFromWireData() throws RemotingCommandException {
+        MessageExt halfMessage = createDefaultMessageExt();
+        MessageAccessor.putProperty(halfMessage, MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID, "127.0.0.1@12345");
+        OperationResult result = new OperationResult();
+        result.setPrepareMessage(halfMessage);
+        result.setResponseCode(ResponseCode.SUCCESS);
+        when(transactionMsgService.commitMessage(any(EndTransactionRequestHeader.class))).thenReturn(result);
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class)))
+            .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, createAppendMessageResult(AppendMessageStatus.PUT_OK)));
+        RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_COMMIT_TYPE, false);
+
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        ArgumentCaptor<MessageExtBrokerInner> captor = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        verify(messageStore).putMessage(captor.capture());
+        MessageExtBrokerInner committed = captor.getValue();
+        // The hint must be stripped from both the property map and the encoded wire data.
+        assertThat(committed.getProperty(MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID)).isNull();
+        assertThat(committed.getPropertiesString()).doesNotContain(MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID);
     }
 
     @Test

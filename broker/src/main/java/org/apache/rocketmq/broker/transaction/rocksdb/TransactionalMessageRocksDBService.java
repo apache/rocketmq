@@ -234,7 +234,8 @@ public class TransactionalMessageRocksDBService {
             msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
             msgExt.setStoreSize(0);
             String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
-            Channel channel = brokerController.getProducerManager().getAvailableChannel(groupId);
+            String producerClientId = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID);
+            Channel channel = brokerController.getProducerManager().getAvailableChannel(groupId, producerClientId);
             if (channel != null) {
                 brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
             } else {
