@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.processor;
 
+import java.util.Properties;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -27,29 +28,39 @@ public class AdminBrokerProcessorConfigSanitizeTest {
 
     @Test
     public void testSanitizeRemovesSensitiveKeys() {
-        String content = "brokerName=broker-a\n"
-            + "initAuthenticationUser={\"username\":\"rocketmq\",\"password\":\"secret\"}\n"
-            + "innerClientAuthenticationCredentials={\"accessKey\":\"ak\",\"secretKey\":\"sk\"}\n"
-            + "listenPort=10911\n";
+        Properties properties = new Properties();
+        properties.setProperty("brokerName", "broker-a");
+        properties.setProperty("initAuthenticationUser", "sensitive-user-config");
+        properties.setProperty("innerClientAuthenticationCredentials", "sensitive-client-config");
+        properties.setProperty("listenPort", "10911");
 
-        String sanitized = AdminBrokerProcessor.sanitizeConfigForResponse(content);
+        String sanitized = AdminBrokerProcessor.sanitizeConfigForResponse(properties);
 
         assertFalse(sanitized.contains("initAuthenticationUser"));
         assertFalse(sanitized.contains("innerClientAuthenticationCredentials"));
-        assertFalse(sanitized.contains("secret"));
+        assertFalse(sanitized.contains("sensitive"));
         assertTrue(sanitized.contains("brokerName=broker-a"));
         assertTrue(sanitized.contains("listenPort=10911"));
+        assertEquals(4, properties.size());
     }
 
     @Test
-    public void testSanitizeFailsClosedOnUnparsableContent() {
-        // malformed unicode escape makes Properties.load throw
-        assertNull(AdminBrokerProcessor.sanitizeConfigForResponse("key=\\uZZZZ\n"));
+    public void testSanitizePreservesConfigValues() {
+        Properties properties = new Properties();
+        properties.setProperty("customPath", "C:\\rocketmq\\store");
+        properties.setProperty("label", "\u4e2d\u6587");
+        properties.setProperty("regex", "^foo\\d+$");
+
+        String sanitized = AdminBrokerProcessor.sanitizeConfigForResponse(properties);
+
+        assertTrue(sanitized.contains("customPath=C:\\rocketmq\\store"));
+        assertTrue(sanitized.contains("label=\u4e2d\u6587"));
+        assertTrue(sanitized.contains("regex=^foo\\d+$"));
     }
 
     @Test
-    public void testSanitizePassesThroughNullOrEmpty() {
+    public void testSanitizeHandlesNullOrEmpty() {
         assertNull(AdminBrokerProcessor.sanitizeConfigForResponse(null));
-        assertEquals("", AdminBrokerProcessor.sanitizeConfigForResponse(""));
+        assertEquals("", AdminBrokerProcessor.sanitizeConfigForResponse(new Properties()));
     }
 }
