@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -148,18 +147,68 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("consumerGroup", consumerGroup)
-            .add("topic", topic)
-            .add("queueId", queueId)
-            .add("pollTime", pollTime)
-            .add("bornTime", bornTime)
-            .add("order", order)
-            .add("attemptId", attemptId)
-            // print isLiteConsumer only when true
-            .add("isLiteConsumer", isLiteConsumer ? true : null)
-            .add("clientId", clientId)
-            .omitNullValues()
-            .toString();
+        StringBuilder sb = new StringBuilder(160);
+        sb.append("NotificationRequestHeader{");
+        boolean first = true;
+        if (consumerGroup != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("consumerGroup=").append(consumerGroup);
+            first = false;
+        }
+        if (topic != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("topic=").append(topic);
+            first = false;
+        }
+        if (!first) {
+            sb.append(", ");
+        }
+        sb.append("queueId=").append(queueId);
+        first = false;
+        if (!first) {
+            sb.append(", ");
+        }
+        sb.append("pollTime=").append(pollTime);
+        first = false;
+        if (!first) {
+            sb.append(", ");
+        }
+        sb.append("bornTime=").append(bornTime);
+        first = false;
+        if (order != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("order=").append(order);
+            first = false;
+        }
+        if (attemptId != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("attemptId=").append(attemptId);
+            first = false;
+        }
+        Object isLiteConsumerValue = isLiteConsumer ? true : null;
+        if (isLiteConsumerValue != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("isLiteConsumer=").append(isLiteConsumerValue);
+            first = false;
+        }
+        if (clientId != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("clientId=").append(clientId);
+            first = false;
+        }
+        sb.append('}');
+        return sb.toString();
     }
 }

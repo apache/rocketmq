@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -124,15 +123,15 @@ public class PopLiteMessageRequestHeader extends RpcRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("consumerGroup", consumerGroup)
-            .add("topic", topic)
-            .add("maxMsgNum", maxMsgNum)
-            .add("invisibleTime", invisibleTime)
-            .add("pollTime", pollTime)
-            .add("bornTime", bornTime)
-            .add("attemptId", attemptId)
-            .add("clientId", clientId)
-            .toString();
+        StringBuilder sb = new StringBuilder(176);
+        sb.append("PopLiteMessageRequestHeader{consumerGroup=").append(consumerGroup)
+            .append(", topic=").append(topic)
+            .append(", maxMsgNum=").append(maxMsgNum)
+            .append(", invisibleTime=").append(invisibleTime)
+            .append(", pollTime=").append(pollTime)
+            .append(", bornTime=").append(bornTime)
+            .append(", attemptId=").append(attemptId)
+            .append(", clientId=").append(clientId).append('}');
+        return sb.toString();
     }
 }

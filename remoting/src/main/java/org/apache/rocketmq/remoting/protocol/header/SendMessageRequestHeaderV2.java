@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
 import org.apache.rocketmq.common.action.Action;
@@ -308,22 +307,22 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("a", a)
-            .add("b", b)
-            .add("c", c)
-            .add("d", d)
-            .add("e", e)
-            .add("f", f)
-            .add("g", g)
-            .add("h", h)
-            .add("i", i)
-            .add("j", j)
-            .add("k", k)
-            .add("l", l)
-            .add("m", m)
-            .add("n", n)
-            .toString();
+        StringBuilder sb = new StringBuilder(144);
+        sb.append("SendMessageRequestHeaderV2{a=").append(a)
+            .append(", b=").append(b)
+            .append(", c=").append(c)
+            .append(", d=").append(d)
+            .append(", e=").append(e)
+            .append(", f=").append(f)
+            .append(", g=").append(g)
+            .append(", h=").append(h)
+            .append(", i=").append(i)
+            .append(", j=").append(j)
+            .append(", k=").append(k)
+            .append(", l=").append(l)
+            .append(", m=").append(m)
+            .append(", n=").append(n).append('}');
+        return sb.toString();
     }
 
     @Override

@@ -20,7 +20,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -82,10 +81,10 @@ public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("topic", topic)
-            .add("queueId", queueId)
-            .add("committed", committed)
-            .toString();
+        StringBuilder sb = new StringBuilder(112);
+        sb.append("GetMaxOffsetRequestHeader{topic=").append(topic)
+            .append(", queueId=").append(queueId)
+            .append(", committed=").append(committed).append('}');
+        return sb.toString();
     }
 }

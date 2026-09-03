@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -107,14 +106,14 @@ public class ConsumerSendMsgBackRequestHeader extends RpcRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("offset", offset)
-            .add("group", group)
-            .add("delayLevel", delayLevel)
-            .add("originMsgId", originMsgId)
-            .add("originTopic", originTopic)
-            .add("unitMode", unitMode)
-            .add("maxReconsumeTimes", maxReconsumeTimes)
-            .toString();
+        StringBuilder sb = new StringBuilder(384);
+        sb.append("ConsumerSendMsgBackRequestHeader{offset=").append(offset)
+            .append(", group=").append(group)
+            .append(", delayLevel=").append(delayLevel)
+            .append(", originMsgId=").append(originMsgId)
+            .append(", originTopic=").append(originTopic)
+            .append(", unitMode=").append(unitMode)
+            .append(", maxReconsumeTimes=").append(maxReconsumeTimes).append('}');
+        return sb.toString();
     }
 }

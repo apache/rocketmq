@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -69,10 +68,10 @@ public class RecallMessageRequestHeader extends TopicRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("producerGroup", producerGroup)
-                .add("topic", topic)
-                .add("recallHandle", recallHandle)
-                .toString();
+        StringBuilder sb = new StringBuilder(336);
+        sb.append("RecallMessageRequestHeader{producerGroup=").append(producerGroup)
+            .append(", topic=").append(topic)
+            .append(", recallHandle=").append(recallHandle).append('}');
+        return sb.toString();
     }
 }

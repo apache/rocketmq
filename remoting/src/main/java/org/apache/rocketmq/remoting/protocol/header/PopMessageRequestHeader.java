@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -174,19 +173,19 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("consumerGroup", consumerGroup)
-            .add("topic", topic)
-            .add("queueId", queueId)
-            .add("maxMsgNums", maxMsgNums)
-            .add("invisibleTime", invisibleTime)
-            .add("pollTime", pollTime)
-            .add("bornTime", bornTime)
-            .add("initMode", initMode)
-            .add("expType", expType)
-            .add("exp", exp)
-            .add("order", order)
-            .add("attemptId", attemptId)
-            .toString();
+        StringBuilder sb = new StringBuilder(416);
+        sb.append("PopMessageRequestHeader{consumerGroup=").append(consumerGroup)
+            .append(", topic=").append(topic)
+            .append(", queueId=").append(queueId)
+            .append(", maxMsgNums=").append(maxMsgNums)
+            .append(", invisibleTime=").append(invisibleTime)
+            .append(", pollTime=").append(pollTime)
+            .append(", bornTime=").append(bornTime)
+            .append(", initMode=").append(initMode)
+            .append(", expType=").append(expType)
+            .append(", exp=").append(exp)
+            .append(", order=").append(order)
+            .append(", attemptId=").append(attemptId).append('}');
+        return sb.toString();
     }
 }
