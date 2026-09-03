@@ -27,6 +27,7 @@ import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 
@@ -322,7 +323,7 @@ public class Configuration {
         for (Entry<Object, Object> next : from.entrySet()) {
             Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
+                logConfigChange(next.getKey(), toObj, fromObj);
             }
             to.put(next.getKey(), fromObj);
         }
@@ -336,10 +337,17 @@ public class Configuration {
 
             Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
+                logConfigChange(next.getKey(), toObj, fromObj);
             }
             to.put(next.getKey(), fromObj);
         }
+    }
+
+    private void logConfigChange(Object key, Object oldValue, Object newValue) {
+        String propertyName = String.valueOf(key);
+        Object oldValueForLog = ConfigLogUtils.getValueForLog(configObjectList, propertyName, oldValue);
+        Object newValueForLog = ConfigLogUtils.getValueForLog(configObjectList, propertyName, newValue);
+        log.info("Replace, key: {}, value: {} -> {}", key, oldValueForLog, newValueForLog);
     }
 
 }
