@@ -189,13 +189,14 @@ public class QueryMessageProcessorTest {
             TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
             TimerMessageStore.TIMER_TOPIC,
             TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC,
+            TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC,
             TopicValidator.RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC)) {
             when(messageStore.selectOneMessageByOffset(0L))
                 .thenReturn(messageResult(storedTopic, "actualTopic"));
             Assert.assertNull(queryMessageProcessor.processRequest(handlerContext, request));
         }
 
-        verify(channel, times(4)).writeAndFlush(any());
+        verify(channel, times(5)).writeAndFlush(any());
     }
 
     @Test
