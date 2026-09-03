@@ -22,20 +22,20 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 
 public class DispatchRequest {
-    private final String topic;
-    private final int queueId;
-    private final long commitLogOffset;
+    private String topic;
+    private int queueId;
+    private long commitLogOffset;
     private int msgSize;
-    private final long tagsCode;
-    private final long storeTimestamp;
-    private final long consumeQueueOffset;
-    private final String keys;
-    private final boolean success;
-    private final String uniqKey;
+    private long tagsCode;
+    private long storeTimestamp;
+    private long consumeQueueOffset;
+    private String keys;
+    private boolean success;
+    private String uniqKey;
 
-    private final int sysFlag;
-    private final long preparedTransactionOffset;
-    private final Map<String, String> propertiesMap;
+    private int sysFlag;
+    private long preparedTransactionOffset;
+    private Map<String, String> propertiesMap;
     private byte[] bitMap;
 
     private int bufferSize = -1;//the buffer size maybe larger than the msg size if the message is wrapped by something
@@ -47,6 +47,9 @@ public class DispatchRequest {
     private long nextReputFromOffset = -1;
 
     private String offsetId;
+
+    DispatchRequest() {
+    }
 
     public DispatchRequest(
         final String topic,
@@ -62,6 +65,14 @@ public class DispatchRequest {
         final long preparedTransactionOffset,
         final Map<String, String> propertiesMap
     ) {
+        this.reset(topic, queueId, commitLogOffset, msgSize, tagsCode, storeTimestamp,
+            consumeQueueOffset, keys, uniqKey, sysFlag, preparedTransactionOffset, propertiesMap);
+    }
+
+    void reset(String topic, int queueId, long commitLogOffset, int msgSize,
+        long tagsCode, long storeTimestamp, long consumeQueueOffset,
+        String keys, String uniqKey, int sysFlag, long preparedTransactionOffset,
+        Map<String, String> propertiesMap) {
         this.topic = topic;
         this.queueId = queueId;
         this.commitLogOffset = commitLogOffset;
@@ -72,11 +83,15 @@ public class DispatchRequest {
         this.msgBaseOffset = consumeQueueOffset;
         this.keys = keys;
         this.uniqKey = uniqKey;
-
         this.sysFlag = sysFlag;
         this.preparedTransactionOffset = preparedTransactionOffset;
         this.success = true;
         this.propertiesMap = propertiesMap;
+        this.bitMap = null;
+        this.bufferSize = -1;
+        this.batchSize = 1;
+        this.nextReputFromOffset = -1;
+        this.offsetId = null;
     }
 
     public DispatchRequest(String topic, int queueId, long consumeQueueOffset, long commitLogOffset, int size, long tagsCode) {

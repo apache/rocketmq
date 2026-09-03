@@ -343,8 +343,8 @@ public class PopLiteMessageProcessorTest {
     public void testHandleGetMessageResult_found() {
         int msgCount = 2;
         GetMessageResult getResult = mockGetMessageResult(GetMessageStatus.FOUND, msgCount, 100L);
-        getResult.getMessageQueueOffset().add(0L);
-        getResult.getMessageQueueOffset().add(1L);
+        getResult.addQueueOffset(0L);
+        getResult.addQueueOffset(1L);
 
         doNothing().when(popLiteMessageProcessor).recordPopLiteMetrics(any(), anyString(), anyString());
 

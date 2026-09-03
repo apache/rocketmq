@@ -667,20 +667,17 @@ public class DefaultMessageStore implements MessageStore {
 
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
-
-        putResultFuture.thenAccept(result -> {
+        putResultFuture.whenComplete((result, ex) -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
                 LOGGER.warn("DefaultMessageStore#putMessage: CommitLog#putMessage cost {}ms, topic={}, bodyLength={}",
                     elapsedTime, msg.getTopic(), msg.getBody().length);
             }
             this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
-
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().add(1);
             }
         });
-
         return putResultFuture;
     }
 
@@ -696,19 +693,16 @@ public class DefaultMessageStore implements MessageStore {
 
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessages(messageExtBatch);
-
-        putResultFuture.thenAccept(result -> {
-            long eclipseTime = this.getSystemClock().now() - beginTime;
-            if (eclipseTime > 500) {
-                LOGGER.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
+        putResultFuture.whenComplete((result, ex) -> {
+            long elapsedTime = this.getSystemClock().now() - beginTime;
+            if (elapsedTime > 500) {
+                LOGGER.warn("not in lock eclipse time(ms)={}, bodyLength={}", elapsedTime, messageExtBatch.getBody().length);
             }
-            this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
-
+            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().add(1);
             }
         });
-
         return putResultFuture;
     }
 
@@ -888,7 +882,7 @@ public class DefaultMessageStore implements MessageStore {
         long minOffset = 0;
         long maxOffset = 0;
 
-        GetMessageResult getResult = new GetMessageResult();
+        GetMessageResult getResult = new GetMessageResult(maxMsgNums);
         int filterMessageCount = 0;
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();

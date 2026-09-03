@@ -347,7 +347,7 @@ public class EscapeBridgeTest {
 
 
         getMessageResult.addMessage(result);
-        getMessageResult.getMessageQueueOffset().add(0L);
+        getMessageResult.addQueueOffset(0L);
         List<MessageExt> list = escapeBridge.decodeMsgList(getMessageResult, false); // skip deCompressBody test
         Assert.assertEquals(1, list.size());
         Assert.assertTrue(Arrays.equals(msg.getBody(), list.get(0).getBody()));
@@ -416,7 +416,7 @@ public class EscapeBridgeTest {
             SelectMappedBufferResult bufferResult = new SelectMappedBufferResult(0, byteBuffer, body.length, new DefaultMappedFile());
 
             result.addMessage(bufferResult);
-            result.getMessageQueueOffset().add(i + 0L);
+            result.addQueueOffset(i + 0L);
         }
         return result;
     }
