@@ -44,7 +44,7 @@ public class TraceDataEncoder {
         String[] contextList = traceData.split(String.valueOf(TraceConstants.FIELD_SPLITOR));
         for (String context : contextList) {
             String[] line = context.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
-            if (line[0].equals(TraceType.Pub.name())) {
+            if (line.length >= 13 && line[0].equals(TraceType.Pub.name())) {
                 TraceContext pubContext = new TraceContext();
                 pubContext.setTraceType(TraceType.Pub);
                 pubContext.setTimeStamp(Long.parseLong(line[1]));
@@ -77,7 +77,7 @@ public class TraceDataEncoder {
                 pubContext.setTraceBeans(new ArrayList<>(1));
                 pubContext.getTraceBeans().add(bean);
                 resList.add(pubContext);
-            } else if (line[0].equals(TraceType.SubBefore.name())) {
+            } else if (line.length >= 8 && line[0].equals(TraceType.SubBefore.name())) {
                 TraceContext subBeforeContext = new TraceContext();
                 subBeforeContext.setTraceType(TraceType.SubBefore);
                 subBeforeContext.setTimeStamp(Long.parseLong(line[1]));
@@ -91,7 +91,7 @@ public class TraceDataEncoder {
                 subBeforeContext.setTraceBeans(new ArrayList<>(1));
                 subBeforeContext.getTraceBeans().add(bean);
                 resList.add(subBeforeContext);
-            } else if (line[0].equals(TraceType.SubAfter.name())) {
+            } else if (line.length >= 6 && line[0].equals(TraceType.SubAfter.name())) {
                 TraceContext subAfterContext = new TraceContext();
                 subAfterContext.setTraceType(TraceType.SubAfter);
                 subAfterContext.setRequestId(line[1]);
@@ -112,7 +112,7 @@ public class TraceDataEncoder {
                     subAfterContext.setGroupName(line[8]);
                 }
                 resList.add(subAfterContext);
-            } else if (line[0].equals(TraceType.EndTransaction.name())) {
+            } else if (line.length >= 13 && line[0].equals(TraceType.EndTransaction.name())) {
                 TraceContext endTransactionContext = new TraceContext();
                 endTransactionContext.setTraceType(TraceType.EndTransaction);
                 endTransactionContext.setTimeStamp(Long.parseLong(line[1]));
@@ -132,7 +132,7 @@ public class TraceDataEncoder {
                 endTransactionContext.setTraceBeans(new ArrayList<>(1));
                 endTransactionContext.getTraceBeans().add(bean);
                 resList.add(endTransactionContext);
-            } else if (line[0].equals(TraceType.Recall.name())) {
+            } else if (line.length >= 7 && line[0].equals(TraceType.Recall.name())) {
                 TraceContext recallContext = new TraceContext();
                 recallContext.setTraceType(TraceType.Recall);
                 recallContext.setTimeStamp(Long.parseLong(line[1]));

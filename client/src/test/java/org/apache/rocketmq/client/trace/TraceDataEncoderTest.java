@@ -65,6 +65,17 @@ public class TraceDataEncoderTest {
     }
 
     @Test
+    public void testDecoderSkipsTruncatedRecord() {
+        String truncatedRecord = TraceType.Pub.name() + TraceConstants.CONTENT_SPLITOR
+            + TraceConstants.FIELD_SPLITOR;
+
+        List<TraceContext> contexts = TraceDataEncoder.decoderFromTraceDataString(truncatedRecord + traceData);
+
+        assertThat(contexts).hasSize(1);
+        assertThat(contexts.get(0).getTraceType()).isEqualTo(TraceType.Pub);
+    }
+
+    @Test
     public void testEncoderFromContextBean() {
         TraceContext context = new TraceContext();
         context.setTraceType(TraceType.Pub);
