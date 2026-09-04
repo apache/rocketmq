@@ -44,6 +44,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +52,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -213,6 +215,34 @@ public class MQAdminImplTest {
         result.setBrokerDatas(createBrokerData());
         result.setQueueDatas(createQueueData());
         return result;
+    }
+
+    @Test
+    public void assertParsePublishMessageQueuesReturnsOriginalListWhenNoNamespace() {
+        ClientConfig clientConfig = mock(ClientConfig.class);
+        when(clientConfig.getNamespace()).thenReturn(null);
+        when(mQClientFactory.getClientConfig()).thenReturn(clientConfig);
+        MQAdminImpl adminNoNs = new MQAdminImpl(mQClientFactory);
+
+        List<MessageQueue> original = new ArrayList<>();
+        original.add(new MessageQueue("TopicA", "broker-0", 0));
+        original.add(new MessageQueue("TopicA", "broker-0", 1));
+
+        List<MessageQueue> result = adminNoNs.parsePublishMessageQueues(original);
+        assertSame(original, result);
+    }
+
+    @Test
+    public void assertParsePublishMessageQueuesStripsNamespace() {
+        List<MessageQueue> original = new ArrayList<>();
+        original.add(new MessageQueue("namespace%TopicA", "broker-0", 0));
+        original.add(new MessageQueue("namespace%TopicA", "broker-0", 1));
+
+        List<MessageQueue> result = mqAdminImpl.parsePublishMessageQueues(original);
+        assertEquals(2, result.size());
+        for (MessageQueue mq : result) {
+            assertEquals("TopicA", mq.getTopic());
+        }
     }
 
     private List<BrokerData> createBrokerData() {
