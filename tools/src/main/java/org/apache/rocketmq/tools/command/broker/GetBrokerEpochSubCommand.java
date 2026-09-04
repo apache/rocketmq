@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
@@ -43,15 +44,13 @@ public class GetBrokerEpochSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("c", "clusterName", true, "which cluster");
-        opt.setRequired(false);
-        options.addOption(opt);
+        OptionGroup group = new OptionGroup();
+        group.addOption(new Option("c", "clusterName", true, "which cluster"));
+        group.addOption(new Option("b", "brokerName", true, "which broker to fetch"));
+        group.setRequired(true);
+        options.addOptionGroup(group);
 
-        opt = new Option("b", "brokerName", true, "which broker to fetch");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("i", "interval", true, "the interval(second) of get info");
+        Option opt = new Option("i", "interval", true, "the interval(second) of get info");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -68,7 +67,7 @@ public class GetBrokerEpochSubCommand implements SubCommand {
             if (commandLine.hasOption('i')) {
                 String interval = commandLine.getOptionValue('i');
                 int flushSecond = 3;
-                if (interval != null && !interval.trim().equals("")) {
+                if (interval != null && !interval.trim().isEmpty()) {
                     flushSecond = Integer.parseInt(interval);
                 }
 

@@ -20,6 +20,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,8 +167,8 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         }
     }
 
-    public List<AdaptiveBackOffSpinLock> getLocks() {
-        return (List<AdaptiveBackOffSpinLock>) this.locks.values();
+    public Collection<AdaptiveBackOffSpinLock> getLocks() {
+        return this.locks.values();
     }
 
     public void setLocks(Map<String, AdaptiveBackOffSpinLock> locks) {

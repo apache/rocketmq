@@ -145,6 +145,11 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         return handleGroup.remove(msgID, receiptHandle);
     }
 
+    public int getUnackedMessageCount(ProxyContext context, Channel channel, String group) {
+        ReceiptHandleGroup handleGroup = receiptHandleGroupMap.get(new ReceiptHandleGroupKey(channel, group));
+        return handleGroup == null ? 0 : handleGroup.getMsgCount();
+    }
+
     protected boolean clientIsOffline(ReceiptHandleGroupKey groupKey) {
         return this.consumerManager.findChannel(groupKey.getGroup(), groupKey.getChannel()) == null;
     }

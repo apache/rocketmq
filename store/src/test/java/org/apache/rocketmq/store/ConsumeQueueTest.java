@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -32,6 +33,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -221,7 +223,7 @@ public class ConsumeQueueTest {
         msg.setStoreHost(storeHost);
         msg.setBornHost(bornHost);
         for (int i = 0; i < 1; i++) {
-            msg.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
             msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
         }
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
@@ -296,7 +298,7 @@ public class ConsumeQueueTest {
 
     @Test
     public void testPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
-        Assume.assumeFalse(MixAll.isWindows());
+        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
         DefaultMessageStore messageStore = null;
         try {
             messageStore = genForMultiQueue();
@@ -556,5 +558,221 @@ public class ConsumeQueueTest {
         ConsumeQueue consumeQueue0 = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
             storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
         consumeQueue0.destroy();
+    }
+
+    @Test
+    public void correctMinOffsetWithReadAheadOptimizationTest() throws IOException {
+        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
+        String topic = "ReadAheadOptimizationTestTopic";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "correctMinOffsetWithReadAheadOptimizationTest");
+        FileUtils.deleteDirectory(tmpDir);
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        storeConfig.setCorrectMinOffsetMadviseEnable(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+        // Write 5000 messages to create a substantial CQ file for binary search
+        int messageCount = 5000;
+        int messageSize = 100;
+        for (int i = 0; i < messageCount; i++) {
+            DispatchRequest dispatchRequest = new DispatchRequest(
+                topic, queueId, messageSize * i, messageSize, 0, 0, i, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
+        }
+
+        // Test 1: correctMinOffset should work correctly with madvise optimization
+        // Set min offset to 0 and correct with minCommitLogOffset = 0
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(0L);
+        Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
+
+        // Test 2: Correct with a mid-range offset to trigger binary search
+        // This will exercise the madvise(MADV_RANDOM) -> binary search -> madvise(MADV_NORMAL) path
+        int targetOffset = 2500;
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(targetOffset * messageSize);
+        Assert.assertEquals(targetOffset, consumeQueue.getMinOffsetInQueue());
+
+        // Test 3: Correct with a high offset near the end
+        int highOffset = 4500;
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(highOffset * messageSize);
+        Assert.assertEquals(highOffset, consumeQueue.getMinOffsetInQueue());
+
+        // Test 4: Correct with exact match offset
+        int exactOffset = 1234;
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(exactOffset * messageSize);
+        Assert.assertEquals(exactOffset, consumeQueue.getMinOffsetInQueue());
+
+        // Test 5: Correct with offset beyond all messages (should point to end)
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(messageCount * messageSize);
+        Assert.assertEquals(messageCount * ConsumeQueue.CQ_STORE_UNIT_SIZE, consumeQueue.getMinLogicOffset());
+
+        // Test 6: Multiple sequential corrections to verify madvise restore works properly
+        for (int i = 0; i < 5; i++) {
+            int testOffset = 1000 * (i + 1);
+            consumeQueue.setMinLogicOffset(0L);
+            consumeQueue.correctMinOffset(testOffset * messageSize);
+            Assert.assertEquals(testOffset, consumeQueue.getMinOffsetInQueue());
+        }
+
+        consumeQueue.destroy();
+        FileUtils.deleteDirectory(tmpDir);
+    }
+
+    @Test
+    public void correctMinOffsetWithSmallDatasetReadAheadOptimizationTest() throws IOException {
+        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
+        String topic = "SmallDatasetTopic";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "correctMinOffsetWithSmallDatasetReadAheadOptimizationTest");
+        FileUtils.deleteDirectory(tmpDir);
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        storeConfig.setCorrectMinOffsetMadviseEnable(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+        // Test with very small dataset (edge case for binary search)
+        int messageCount = 10;
+        int messageSize = 100;
+        for (int i = 0; i < messageCount; i++) {
+            DispatchRequest dispatchRequest = new DispatchRequest(
+                topic, queueId, messageSize * i, messageSize, 0, 0, i, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
+        }
+
+        // Correct with various offsets
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(5 * messageSize);
+        Assert.assertEquals(5, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(0L);
+        Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(9 * messageSize);
+        Assert.assertEquals(9, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.destroy();
+        FileUtils.deleteDirectory(tmpDir);
+    }
+
+    @Test
+    public void correctMinOffsetWithEmptyQueueReadAheadOptimizationTest() throws IOException {
+        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
+        String topic = "EmptyQueueTopic";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "correctMinOffsetWithEmptyQueueReadAheadOptimizationTest");
+        FileUtils.deleteDirectory(tmpDir);
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        storeConfig.setCorrectMinOffsetMadviseEnable(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+        // Test with empty queue - should handle gracefully without madvise errors
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(0L);
+        Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.destroy();
+        FileUtils.deleteDirectory(tmpDir);
+    }
+
+    @Test
+    public void testCorrectMinOffsetAfterAllFilesDeleted() throws IOException {
+        String topic = "T1";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = Files.createTempDirectory("testCorrectMinOffsetAfterAllFilesDeleted").toFile();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = null;
+        ConsumeQueue reloadedConsumeQueue = null;
+        try {
+            consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+            int max = 10;
+            int messageSize = 100;
+            for (int i = 0; i < max; ++i) {
+                DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, messageSize * i, messageSize, 0, 0, i,
+                    null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
+            }
+
+            File consumeQueueDir = new File(storeConfig.getStorePathRootDir(), topic + File.separator + queueId);
+            Assert.assertTrue(consumeQueueDir.exists());
+
+            consumeQueue.setMinLogicOffset(ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            consumeQueue.setMaxPhysicOffset(max * messageSize);
+            consumeQueue.destroy();
+            consumeQueue = null;
+            FileUtils.deleteQuietly(consumeQueueDir);
+            Assert.assertFalse(consumeQueueDir.exists());
+
+            reloadedConsumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+            reloadedConsumeQueue.setMinLogicOffset(ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            reloadedConsumeQueue.setMaxPhysicOffset(max * messageSize);
+            reloadedConsumeQueue.correctMinOffset(0L);
+            Assert.assertEquals(0L, reloadedConsumeQueue.getMinLogicOffset());
+            Assert.assertEquals(-1L, reloadedConsumeQueue.getMaxPhysicOffset());
+        } finally {
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            if (consumeQueue != null) {
+                consumeQueue.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
     }
 }

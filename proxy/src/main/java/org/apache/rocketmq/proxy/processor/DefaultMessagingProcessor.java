@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclUtils;
@@ -40,6 +41,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -163,7 +165,15 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(ProxyContext ctx, ReceiptHandle handle,
         String messageId, String groupName, String topicName, long timeoutMillis) {
-        return this.producerProcessor.forwardMessageToDeadLetterQueue(ctx, handle, messageId, groupName, topicName, timeoutMillis);
+        return this.producerProcessor.forwardMessageToDeadLetterQueue(ctx,
+            handle, messageId, groupName, topicName, null, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(ProxyContext ctx, ReceiptHandle handle,
+        String messageId, String groupName, String topicName, String liteTopic, long timeoutMillis) {
+        return this.producerProcessor.forwardMessageToDeadLetterQueue(ctx,
+            handle, messageId, groupName, topicName, liteTopic, timeoutMillis);
     }
 
     @Override
@@ -197,7 +207,13 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
         String consumerGroup, String topic, long timeoutMillis) {
-        return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, timeoutMillis);
+        return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, null, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
+        String consumerGroup, String topic, String liteTopic, long timeoutMillis) {
+        return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, liteTopic, timeoutMillis);
     }
 
     @Override
@@ -208,8 +224,9 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
-        String groupName, String topicName, long invisibleTime, long timeoutMillis) {
-        return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName, invisibleTime, timeoutMillis);
+        String groupName, String topicName, long invisibleTime, String liteTopic, long timeoutMillis, boolean suspend) {
+        return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName,
+            invisibleTime, liteTopic, timeoutMillis, suspend);
     }
 
     @Override
@@ -268,14 +285,18 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<Void> syncLiteSubscription(ProxyContext ctx,
+        LiteSubscriptionDTO liteSubscriptionDTO, long timeoutMillis) {
+        return this.clientProcessor.syncLiteSubscription(ctx, liteSubscriptionDTO, timeoutMillis);
+    }
+
+    @Override
     public CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
         long timeoutMillis) {
         int originalRequestOpaque = request.getOpaque();
         request.setOpaque(RemotingCommand.createNewRequestId());
-        return this.requestBrokerProcessor.request(ctx, brokerName, request, timeoutMillis).thenApply(r -> {
-            request.setOpaque(originalRequestOpaque);
-            return r;
-        });
+        return restoreRequestOpaque(request, originalRequestOpaque,
+            () -> this.requestBrokerProcessor.request(ctx, brokerName, request, timeoutMillis));
     }
 
     @Override
@@ -283,10 +304,18 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         long timeoutMillis) {
         int originalRequestOpaque = request.getOpaque();
         request.setOpaque(RemotingCommand.createNewRequestId());
-        return this.requestBrokerProcessor.requestOneway(ctx, brokerName, request, timeoutMillis).thenApply(r -> {
+        return restoreRequestOpaque(request, originalRequestOpaque,
+            () -> this.requestBrokerProcessor.requestOneway(ctx, brokerName, request, timeoutMillis));
+    }
+
+    private <T> CompletableFuture<T> restoreRequestOpaque(RemotingCommand request, int originalRequestOpaque,
+        Supplier<CompletableFuture<T>> requestFutureSupplier) {
+        try {
+            return requestFutureSupplier.get().whenComplete((r, t) -> request.setOpaque(originalRequestOpaque));
+        } catch (RuntimeException t) {
             request.setOpaque(originalRequestOpaque);
-            return r;
-        });
+            throw t;
+        }
     }
 
     @Override
@@ -366,5 +395,9 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
         String receiptHandle) {
         return receiptHandleProcessor.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
+    }
+
+    @Override public int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group) {
+        return receiptHandleProcessor.getUnackedMessageCount(ctx, channel, group);
     }
 }

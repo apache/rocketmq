@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.store;
 
+import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
+import io.netty.util.internal.PlatformDependent;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -37,13 +40,14 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
-import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
 import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.queue.QueueOffsetOperator;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.util.LibC;
 
-public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
+public class ConsumeQueue implements ConsumeQueueInterface {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final boolean IS_LINUX = !MixAll.isWindows() && !MixAll.isMac();
 
     /**
      * ConsumeQueue's store unit. Format:
@@ -548,25 +552,28 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
      */
     @Override
     public void correctMinOffset(long minCommitLogOffset) {
-        // Check if the consume queue is the state of deprecation.
-        if (minLogicOffset >= mappedFileQueue.getMaxOffset()) {
-            log.info("ConsumeQueue[Topic={}, queue-id={}] contains no valid entries", topic, queueId);
+        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
+        if (null == lastMappedFile) {
+            log.info("ConsumeQueue[Topic={}, queue-id={}] contains no entry,"
+                    + " reset minLogicOffset to 0, maxPhysicOffset to -1", topic, queueId);
+            this.minLogicOffset = 0;
+            this.maxPhysicOffset = -1;
             return;
         }
 
-        // Check whether the consume queue maps no valid data at all. This check may cost 1 IO operation.
-        // The rationale is that consume queue always preserves the last file. In case there are many deprecated topics,
-        // This check would save a lot of efforts.
-        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
-        if (null == lastMappedFile) {
+        // Check if the consume queue is the state of deprecation.
+        if (minLogicOffset > mappedFileQueue.getMaxOffset()) {
+            log.warn("ConsumeQueue[Topic={}, queue-id={}] contains no valid entries", topic, queueId);
             return;
         }
 
         SelectMappedBufferResult lastRecord = null;
         try {
             int maxReadablePosition = lastMappedFile.getReadPosition();
-            lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
-                ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            if (maxReadablePosition >= ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
+                    ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            }
             if (null != lastRecord) {
                 ByteBuffer buffer = lastRecord.getByteBuffer();
                 long commitLogOffset = buffer.getLong();
@@ -608,6 +615,29 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 log.warn("[Bug] Failed to scan consume queue entries from file on correcting min offset: {}",
                     mappedFile.getFileName());
                 return;
+            }
+
+            // Disable kernel read-ahead for the binary search below.
+            //
+            // correctMinOffset performs binary search on mmap'd ConsumeQueue files, which is a
+            // random access pattern. The kernel's default read-ahead window is aggressively large
+            // on NVMe devices, so each page fault pulls in far more data than needed, producing
+            // periodic disk read pulses. On cloud disks where read/write bandwidth share a single
+            // quota, these pulses squeeze CommitLog writes and cause send-RT spikes.
+            //
+            // madvise(MADV_RANDOM) tells the kernel to skip read-ahead for this VMA; after the
+            // search we restore MADV_NORMAL in the finally block so sequential consumers are
+            // unaffected. Controlled by correctMinOffsetMadviseEnable (default: off).
+            // Skipped on Windows where madvise is not available.
+            Pointer pointer = null;
+            if (IS_LINUX && messageStore.getMessageStoreConfig().isCorrectMinOffsetMadviseEnable()) {
+                long address = PlatformDependent.directBufferAddress(mappedFile.getMappedByteBuffer());
+                pointer = new Pointer(address);
+                int ret = LibC.INSTANCE.madvise(pointer, new NativeLong(mappedFile.getFileSize()), LibC.MADV_RANDOM);
+                if (ret != 0) {
+                    log.warn("Failed to set MADV_RANDOM for ConsumeQueue[topic={}, queueId={}] file: {}, ret={}",
+                        topic, queueId, mappedFile.getFileName(), ret);
+                }
             }
 
             try {
@@ -669,6 +699,14 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             } catch (Exception e) {
                 log.error("Exception thrown when correctMinOffset", e);
             } finally {
+                // Restore MADV_NORMAL to allow normal readahead for sequential access
+                if (IS_LINUX && pointer != null) {
+                    int ret = LibC.INSTANCE.madvise(pointer, new NativeLong(mappedFile.getFileSize()), LibC.MADV_NORMAL);
+                    if (ret != 0) {
+                        log.warn("Failed to restore MADV_NORMAL for ConsumeQueue[topic={}, queueId={}] file: {}, ret={}",
+                            topic, queueId, mappedFile.getFileName(), ret);
+                    }
+                }
                 result.release();
             }
         }
@@ -710,7 +748,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
                     this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsPhysicalOffset(request.getCommitLogOffset());
                 if (MultiDispatchUtils.checkMultiDispatchQueue(this.messageStore.getMessageStoreConfig(), request)) {
                     multiDispatchLmqQueue(request, maxRetries);
                 }
@@ -817,44 +856,52 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
-
-            if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
-                this.minLogicOffset = expectLogicOffset;
-                this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
-                this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
-                this.fillPreBlank(mappedFile, expectLogicOffset);
-                log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
-                    + mappedFile.getWrotePosition());
+            if (!mappedFile.hold()) {
+                log.warn("Failed to hold mapped file for ConsumeQueue write, topic={} queueId={}",
+                    this.topic, this.queueId);
+                return false;
             }
-
-            if (cqOffset != 0) {
-                long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
-
-                if (expectLogicOffset < currentLogicOffset) {
-                    log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
-                        expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
-                    return true;
+            try {
+                if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
+                    this.minLogicOffset = expectLogicOffset;
+                    this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
+                    this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
+                    this.fillPreBlank(mappedFile, expectLogicOffset);
+                    log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
+                        + mappedFile.getWrotePosition());
                 }
 
-                if (expectLogicOffset != currentLogicOffset) {
-                    LOG_ERROR.warn(
-                        "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
-                        expectLogicOffset,
-                        currentLogicOffset,
-                        this.topic,
-                        this.queueId,
-                        expectLogicOffset - currentLogicOffset
-                    );
+                if (cqOffset != 0) {
+                    long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
+
+                    if (expectLogicOffset < currentLogicOffset) {
+                        log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                            expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
+                        return true;
+                    }
+
+                    if (expectLogicOffset != currentLogicOffset) {
+                        LOG_ERROR.warn(
+                            "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                            expectLogicOffset,
+                            currentLogicOffset,
+                            this.topic,
+                            this.queueId,
+                            expectLogicOffset - currentLogicOffset
+                        );
+                    }
                 }
+                this.setMaxPhysicOffset(offset + size);
+                boolean appendResult;
+                if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                    appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
+                } else {
+                    appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
+                }
+                return appendResult;
+            } finally {
+                mappedFile.release();
             }
-            this.setMaxPhysicOffset(offset + size);
-            boolean appendResult;
-            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
-                appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
-            } else {
-                appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
-            }
-            return appendResult;
         }
         return false;
     }
@@ -1232,8 +1279,26 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
         // transientStorePool is null, only need set wrote position here
         MappedFile mappedFile = mappedFileQueue.getLastMappedFile(offset * ConsumeQueue.CQ_STORE_UNIT_SIZE, true);
-        fillPreBlank(mappedFile, offset * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        if (mappedFile == null) {
+            log.error("initializeWithOffset failed: mappedFile is null for offset {}", offset);
+            return;
+        }
+        if (!mappedFile.hold()) {
+            log.error("initializeWithOffset failed: mappedFile hold() failed for offset {}", offset);
+            return;
+        }
+        try {
+            fillPreBlank(mappedFile, offset * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        } finally {
+            mappedFile.release();
+        }
 
         flush(0);
+    }
+
+    @Override
+    public boolean shutdown() {
+        this.mappedFileQueue.cleanResourcesAll();
+        return true;
     }
 }

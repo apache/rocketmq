@@ -57,7 +57,7 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
     @Mock
     StreamObserver<QueryRouteResponse> queryRouteResponseStreamObserver;
     @Mock
-    GrpcMessingActivity grpcMessingActivity;
+    GrpcMessagingActivity grpcMessagingActivity;
     GrpcMessagingApplication grpcMessagingApplication;
 
     private static final String TOPIC = "topic";
@@ -73,7 +73,7 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
         RequestPipeline pipeline = (context, headers, request) -> {
         };
         pipeline = pipeline.pipe(new ContextInitPipeline());
-        grpcMessagingApplication = new GrpcMessagingApplication(grpcMessingActivity, pipeline);
+        grpcMessagingApplication = new GrpcMessagingApplication(grpcMessagingActivity, pipeline);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
             .setEndpoints(grpcEndpoints)
             .setTopic(Resource.newBuilder().setName(TOPIC).build())
             .build();
-        Mockito.when(grpcMessingActivity.queryRoute(Mockito.any(ProxyContext.class), Mockito.eq(request)))
+        Mockito.when(grpcMessagingActivity.queryRoute(Mockito.any(ProxyContext.class), Mockito.eq(request)))
             .thenReturn(future);
         QueryRouteResponse response = QueryRouteResponse.newBuilder()
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))

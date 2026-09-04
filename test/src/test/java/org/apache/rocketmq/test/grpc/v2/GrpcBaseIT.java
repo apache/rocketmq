@@ -153,7 +153,7 @@ public class GrpcBaseIT extends BaseConf {
         }
 
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
         ConfigurationManager.getProxyConfig().setNamesrvAddr(NAMESRV_ADDR);
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
@@ -257,6 +257,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testTransactionCheckThenCommit() {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.TRANSACTION);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
 
         AtomicReference<TelemetryCommand> telemetryCommandRef = new AtomicReference<>(null);
         StreamObserver<TelemetryCommand> requestStreamObserver = stub.telemetry(new DefaultTelemetryCommandStreamObserver() {
@@ -351,6 +352,7 @@ public class GrpcBaseIT extends BaseConf {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.DELAY);
         String group = MQRandomUtils.getRandomConsumerGroup();
         long delayTime = TimeUnit.SECONDS.toMillis(5);
+        initConsumerGroup(group);
 
         // init consumer offset
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
@@ -398,6 +400,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testSimpleConsumerSendAndRecallDelayMessage() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.DELAY);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
         long delayTime = TimeUnit.SECONDS.toMillis(5);
 
         // init consumer offset
@@ -461,6 +464,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
 
         int bodySize = 4 * 1024;
 
@@ -483,6 +487,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testSimpleConsumerSendAndRecv() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
 
         // init consumer offset
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
@@ -539,6 +544,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testSimpleConsumerToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
         int maxDeliveryAttempts = 2;
 
         SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
@@ -626,6 +632,58 @@ public class GrpcBaseIT extends BaseConf {
 
         for (int i = 0; i < messageIdList.size(); i++) {
             assertThat(messageRecvList.get(i)).isEqualTo(messageIdList.get(i));
+        }
+    }
+
+    public void testSimpleConsumerSendAndRecvPriorityMessage() throws Exception {
+        brokerController1.getBrokerConfig().setPriorityOrderAsc(true);
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.PRIORITY);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+        receiveMessage(blockingStub, topic, group, 1);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        for (int i = 0; i < BaseConf.QUEUE_NUMBERS; i++) {
+            String messageId = createUniqID();
+            SendMessageResponse sendResponse = blockingStub.sendMessage(SendMessageRequest.newBuilder()
+                .addMessages(Message.newBuilder()
+                    .setTopic(Resource.newBuilder()
+                        .setName(topic)
+                        .build())
+                    .setSystemProperties(SystemProperties.newBuilder()
+                        .setMessageId(messageId)
+                        .setQueueId(0)
+                        .setMessageType(MessageType.PRIORITY)
+                        .setBodyEncoding(Encoding.GZIP)
+                        .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                        .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                        .setPriority(i)
+                        .build())
+                    .setBody(ByteString.copyFromUtf8("hello"))
+                    .build())
+                .build());
+            assertSendMessage(sendResponse, messageId);
+        }
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+        List<Message> recvList = new ArrayList<>();
+        try {
+            await().atMost(java.time.Duration.ofSeconds(10)).until(() -> {
+                List<Message> messageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group));
+                if (messageList.isEmpty()) {
+                    return false;
+                }
+                recvList.addAll(messageList);
+                return recvList.size() == BaseConf.QUEUE_NUMBERS;
+            });
+        } catch (Exception e) {
+        }
+        for (int i = 0; i < BaseConf.QUEUE_NUMBERS; i++) {
+            // default priority order: 0 as lowest priority
+            assertThat(recvList.get(i).getSystemProperties().getPriority()).isEqualTo(BaseConf.QUEUE_NUMBERS - i - 1);
         }
     }
 

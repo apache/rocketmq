@@ -20,12 +20,21 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 import io.opentelemetry.api.common.Attributes;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.pagecache.OneMessageTransfer;
 import org.apache.rocketmq.broker.pagecache.QueryMessageTransfer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -40,6 +49,7 @@ import org.apache.rocketmq.remoting.protocol.header.QueryMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewMessageRequestHeader;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_REQUEST_CODE;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESPONSE_CODE;
@@ -47,6 +57,12 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL
 
 public class QueryMessageProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Set<String> REAL_TOPIC_STORAGE_TOPICS = new HashSet<>(Arrays.asList(
+        TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+        TimerMessageStore.TIMER_TOPIC,
+        TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC,
+        TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC,
+        TopicValidator.RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC));
     private final BrokerController brokerController;
 
     public QueryMessageProcessor(final BrokerController brokerController) {
@@ -68,11 +84,6 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     public RemotingCommand queryMessage(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response =
@@ -84,16 +95,19 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                 .decodeCommandCustomHeader(QueryMessageRequestHeader.class);
 
         response.setOpaque(request.getOpaque());
-
-        String isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
-        if (isUniqueKey != null && isUniqueKey.equals("true")) {
-            requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
+        String indexType = requestHeader.getIndexType();
+        String lastKey = requestHeader.getLastKey();
+        String isUniqueKey = null;
+        if (null != request.getExtFields()) {
+            isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
         }
-
-        final QueryMessageResult queryMessageResult =
-            this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(),
-                requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(),
-                requestHeader.getEndTimestamp());
+        if (!StringUtils.isEmpty(isUniqueKey) && Boolean.parseBoolean(isUniqueKey)) {
+            requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
+            indexType = MessageConst.INDEX_UNIQUE_TYPE;
+        } else if (StringUtils.isEmpty(indexType)) {
+            indexType = MessageConst.INDEX_KEY_TYPE;
+        }
+        final QueryMessageResult queryMessageResult = this.brokerController.getMessageStore().queryMessage(requestHeader.getTopic(), requestHeader.getKey(), requestHeader.getMaxNum(), requestHeader.getBeginTimestamp(), requestHeader.getEndTimestamp(), indexType, lastKey);
         assert queryMessageResult != null;
 
         responseHeader.setIndexLastUpdatePhyoffset(queryMessageResult.getIndexLastUpdatePhyoffset());
@@ -146,6 +160,22 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         final SelectMappedBufferResult selectMappedBufferResult =
             this.brokerController.getMessageStore().selectOneMessageByOffset(requestHeader.getOffset());
         if (selectMappedBufferResult != null) {
+            if (StringUtils.isNotBlank(requestHeader.getTopic())) {
+                MessageExt message = MessageDecoder.decode(
+                    selectMappedBufferResult.getByteBuffer().duplicate(), false, false);
+                if (message == null) {
+                    selectMappedBufferResult.release();
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("decode message by the offset failed");
+                    return response;
+                }
+                if (!matchesRequestTopic(requestHeader.getTopic(), message)) {
+                    selectMappedBufferResult.release();
+                    response.setCode(ResponseCode.NO_PERMISSION);
+                    response.setRemark("The topic does not match the message");
+                    return response;
+                }
+            }
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
 
@@ -180,5 +210,28 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         }
 
         return response;
+    }
+
+    private boolean matchesRequestTopic(String requestTopic, MessageExt message) {
+        String logicalTopic = message.getTopic();
+        if (REAL_TOPIC_STORAGE_TOPICS.contains(logicalTopic)) {
+            logicalTopic = message.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+        }
+        if (Objects.equals(requestTopic, logicalTopic)) {
+            return true;
+        }
+        if (MixAll.isLmq(requestTopic)
+            && StringUtils.isNotBlank(logicalTopic)
+            && MixAll.topicAllowsLMQ(logicalTopic)) {
+            String multiDispatch = message.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+            if (StringUtils.isNotBlank(multiDispatch)) {
+                for (String dispatchTopic : StringUtils.split(multiDispatch, MixAll.LMQ_DISPATCH_SEPARATOR)) {
+                    if (Objects.equals(requestTopic, dispatchTopic)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

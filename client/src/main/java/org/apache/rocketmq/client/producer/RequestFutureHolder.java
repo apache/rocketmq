@@ -54,9 +54,13 @@ public class RequestFutureHolder {
             RequestResponseFuture rep = next.getValue();
 
             if (rep.isTimeout()) {
-                it.remove();
-                rfList.add(rep);
-                log.warn("remove timeout request, CorrelationId={}" + rep.getCorrelationId());
+                // Atomically remove so the timeout path and the reply-arrival path in
+                // ClientRemotingProcessor#processReplyMessage cannot both handle the same request.
+                RequestResponseFuture removed = requestFutureTable.remove(next.getKey());
+                if (removed != null) {
+                    rfList.add(removed);
+                    log.warn("remove timeout request, CorrelationId={}", removed.getCorrelationId());
+                }
             }
         }
 

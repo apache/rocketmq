@@ -58,7 +58,10 @@ import org.rocksdb.RocksDBException;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
+ *
+ * @deprecated Use Controller mode for automatic Broker failover in new deployments.
  */
+@Deprecated
 public class DLedgerCommitLog extends CommitLog {
 
     static {
@@ -467,8 +470,8 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     @Override
-    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
-        dledgerRecoverAbnormally(maxPhyOffsetOfConsumeQueue);
+    public void recoverAbnormally(long dispatchFromPhyOffset) throws RocksDBException {
+        dledgerRecoverAbnormally(dispatchFromPhyOffset);
     }
 
     @Override

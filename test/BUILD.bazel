@@ -38,7 +38,7 @@ java_library(
         "@maven//:org_apache_tomcat_annotations_api",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_awaitility_awaitility",
-        "@maven//:org_lz4_lz4_java",
+        "@maven//:at_yawk_lz4_lz4_java",
         "@maven//:org_reflections_reflections",
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",

@@ -96,7 +96,8 @@ public class RecallMessageProcessorTest {
     }
 
     @Test
-    public void testBuildMessage() {
+    public void testBuildMessage_withNamespace() {
+        when(messageStoreConfig.isAppendTopicForTimerDeleteKey()).thenReturn(true);
         String timestampStr = String.valueOf(System.currentTimeMillis());
         String id = "id";
         RecallMessageHandle.HandleV1 handle = new RecallMessageHandle.HandleV1(TOPIC, "brokerName", timestampStr, id);
@@ -108,6 +109,22 @@ public class RecallMessageProcessorTest {
         Assert.assertEquals(timestampStr, properties.get(MessageConst.PROPERTY_TIMER_DELIVER_MS));
         Assert.assertEquals(id, properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
         Assert.assertEquals(TOPIC + "+" + id, properties.get(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
+    }
+
+    @Test
+    public void testBuildMessage_withoutNamespace() {
+        when(messageStoreConfig.isAppendTopicForTimerDeleteKey()).thenReturn(false);
+        String timestampStr = String.valueOf(System.currentTimeMillis());
+        String id = "id";
+        RecallMessageHandle.HandleV1 handle = new RecallMessageHandle.HandleV1(TOPIC, "brokerName", timestampStr, id);
+        MessageExtBrokerInner msg =
+            recallMessageProcessor.buildMessage(handlerContext, new RecallMessageRequestHeader(), handle);
+
+        Assert.assertEquals(TOPIC, msg.getTopic());
+        Map<String, String> properties = MessageDecoder.string2messageProperties(msg.getPropertiesString());
+        Assert.assertEquals(timestampStr, properties.get(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+        Assert.assertEquals(id, properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+        Assert.assertEquals(id, properties.get(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
     }
 
     @Test

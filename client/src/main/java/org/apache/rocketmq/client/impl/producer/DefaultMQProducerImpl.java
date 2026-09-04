@@ -816,13 +816,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         continue;
                     } catch (RemotingException e) {
                         endTimestamp = System.currentTimeMillis();
-                        if (this.mqFaultStrategy.isStartDetectorEnable()) {
-                            // Set this broker unreachable when detecting schedule task is running for RemotingException.
-                            this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true, false);
-                        } else {
-                            // Otherwise, isolate this broker.
-                            this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true, true);
-                        }
+                        // Set this broker unreachable when detecting schedule task is running for RemotingException.
+                        // Otherwise, isolate this broker.
+                        this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true, !this.mqFaultStrategy.isStartDetectorEnable());
                         log.warn("sendKernelImpl exception, resend at once, InvokeID: {}, RT: {}ms, Broker: {}", invokeID, endTimestamp - beginTimestampPrev, mq, e);
                         if (log.isDebugEnabled()) {
                             log.debug(msg.toString());
@@ -984,7 +980,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
 
-                    if (msg.getProperty("__STARTDELIVERTIME") != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
+                    if (msg.getProperty("__STARTDELIVERTIME") != null
+                            || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
+                            || msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
+                            || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null
+                            || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
                         context.setMsgType(MessageType.Delay_Msg);
                     }
                     this.executeSendMessageHookBefore(context);
@@ -1438,11 +1438,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("tranExecutor is null", null);
         }
 
-        // ignore DelayTimeLevel parameter
-        if (msg.getDelayTimeLevel() != 0) {
-            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
-        }
-
+        ensureNotDelayedForTransactional(msg);
         Validators.checkMessage(msg, this.defaultMQProducer);
 
         SendResult sendResult = null;
@@ -1499,7 +1495,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             this.endTransaction(msg, sendResult, localTransactionState, localException);
         } catch (Exception e) {
-            log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);
+            log.warn("local transaction execute {}, but end broker transaction failed", localTransactionState, e);
         }
 
         TransactionSendResult transactionSendResult = new TransactionSendResult();
@@ -1510,6 +1506,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         transactionSendResult.setTransactionId(sendResult.getTransactionId());
         transactionSendResult.setLocalTransactionState(localTransactionState);
         return transactionSendResult;
+    }
+
+    private void ensureNotDelayedForTransactional(final Message msg) throws MQClientException {
+        if (msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
+                || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null
+                || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null
+                || msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null) {
+            throw new MQClientException("Transactional messages do not support delayed delivery", null);
+        }
     }
 
     /**
@@ -1657,8 +1662,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                // Only mark the request as sent here. The user callback must fire when the reply
+                // arrives (processReplyMessage), on timeout (scanExpiredRequest), or on send
+                // failure (requestFail). Invoking it here delivers a premature onSuccess(null)
+                // and, combined with the later reply/timeout callback, causes a double callback.
                 requestResponseFuture.setSendRequestOk(true);
-                requestResponseFuture.executeRequestCallback();
             }
 
             @Override

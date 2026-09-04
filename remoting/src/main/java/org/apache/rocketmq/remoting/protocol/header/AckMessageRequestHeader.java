@@ -42,6 +42,7 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private Long offset;
 
+    private String liteTopic;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -87,6 +88,14 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -95,6 +104,8 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
             .add("queueId", queueId)
             .add("extraInfo", extraInfo)
             .add("offset", offset)
+            .add("liteTopic", liteTopic)
+            .omitNullValues()
             .toString();
     }
 }

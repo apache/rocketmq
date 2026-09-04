@@ -51,7 +51,7 @@ public class Configuration {
         authConfig.setClusterName(proxyConfig.getRocketMQClusterName());
     }
 
-    public static String loadJsonConfig() throws Exception {
+    private String loadJsonConfig() throws Exception {
         String configFileName = ProxyConfig.DEFAULT_CONFIG_FILE_NAME;
         String filePath = System.getProperty(CONFIG_PATH_PROPERTY);
         if (StringUtils.isBlank(filePath)) {
@@ -67,13 +67,15 @@ public class Configuration {
         File file = new File(filePath);
         log.info("The current configuration file path is {}", filePath);
         if (!file.exists()) {
-            log.warn("the config file {} not exist", filePath);
-            throw new RuntimeException(String.format("the config file %s not exist", filePath));
+            String msg = String.format("the config file %s not exist", filePath);
+            log.warn(msg);
+            throw new RuntimeException(msg);
         }
         long fileLength = file.length();
         if (fileLength <= 0) {
-            log.warn("the config file {} length is zero", filePath);
-            throw new RuntimeException(String.format("the config file %s length is zero", filePath));
+            String msg = String.format("the config file %s length is zero", filePath);
+            log.warn(msg);
+            throw new RuntimeException(msg);
         }
 
         return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);

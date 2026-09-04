@@ -18,24 +18,26 @@ package org.apache.rocketmq.common;
 
 public class MQVersion {
 
-    public static final int CURRENT_VERSION = Version.V5_3_4.ordinal();
+    public static final int CURRENT_VERSION = Version.V5_5_1.ordinal();
+
+    private static final Version[] VERSION_VALUES = Version.values();
 
     public static String getVersionDesc(int value) {
-        int length = Version.values().length;
+        Version[] versions = VERSION_VALUES;
+        int length = versions.length;
         if (value >= length) {
-            return Version.values()[length - 1].name();
+            return versions[length - 1].name();
         }
-
-        return Version.values()[value].name();
+        return versions[value].name();
     }
 
     public static Version value2Version(int value) {
-        int length = Version.values().length;
+        Version[] versions = VERSION_VALUES;
+        int length = versions.length;
         if (value >= length) {
-            return Version.values()[length - 1];
+            return versions[length - 1];
         }
-
-        return Version.values()[value];
+        return versions[value];
     }
 
     public enum Version {

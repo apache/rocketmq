@@ -47,6 +47,8 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 
 public class BatchAckIT extends BasePop {
+    private static final int QUEUE_COUNT = 8;
+    private static final Duration POP_ASSERT_TIMEOUT = Duration.ofSeconds(30);
 
     protected String topic;
     protected String group;
@@ -60,7 +62,8 @@ public class BatchAckIT extends BasePop {
         brokerAddr = brokerController1.getBrokerAddr();
         topic = MQRandomUtils.getRandomTopic();
         group = initConsumerGroup();
-        IntegrationTestBase.initTopic(topic, NAMESRV_ADDR, BROKER1_NAME, 8, CQType.SimpleCQ, TopicMessageType.NORMAL);
+        IntegrationTestBase.initTopic(topic, NAMESRV_ADDR, BROKER1_NAME, QUEUE_COUNT, CQType.SimpleCQ,
+            TopicMessageType.NORMAL);
         producer = getProducer(NAMESRV_ADDR, topic);
         client = getRMQPopClient();
         messageQueue = new MessageQueue(topic, BROKER1_NAME, -1);
@@ -113,8 +116,10 @@ public class BatchAckIT extends BasePop {
     public void testBatchAck(Supplier<PopResult> popResultSupplier) throws Throwable {
         // Send 10 messages but do not ack, let them enter the retry topic
         producer.send(10);
+        awaitStoredMessageCount(10);
         AtomicInteger firstMsgRcvNum = new AtomicInteger();
-        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> {
+        // A single POP long poll can take up to three seconds, so leave enough time for retries on a busy CI runner.
+        await().atMost(POP_ASSERT_TIMEOUT).untilAsserted(() -> {
             PopResult popResult = popResultSupplier.get();
             if (popResult.getPopStatus().equals(PopStatus.FOUND)) {
                 firstMsgRcvNum.addAndGet(popResult.getMsgFoundList().size());
@@ -125,8 +130,9 @@ public class BatchAckIT extends BasePop {
         TimeUnit.SECONDS.sleep(6);
 
         producer.send(20);
+        awaitStoredMessageCount(30);
         List<String> extraInfoList = new ArrayList<>();
-        await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> {
+        await().atMost(POP_ASSERT_TIMEOUT).untilAsserted(() -> {
             PopResult popResult = popResultSupplier.get();
             if (popResult.getPopStatus().equals(PopStatus.FOUND)) {
                 for (MessageExt messageExt : popResult.getMsgFoundList()) {
@@ -143,6 +149,18 @@ public class BatchAckIT extends BasePop {
         TimeUnit.SECONDS.sleep(6);
         PopResult popResult = popResultSupplier.get();
         assertEquals(PopStatus.POLLING_NOT_FOUND, popResult.getPopStatus());
+    }
+
+    private void awaitStoredMessageCount(int expectedCount) {
+        // Sending completes before consume-queue dispatch necessarily catches up. Starting an orderly POP too early can
+        // lock a partially dispatched queue and prevent the remainder from being returned by a subsequent POP.
+        await().atMost(POP_ASSERT_TIMEOUT).untilAsserted(() -> {
+            long storedMessageCount = 0;
+            for (int queueId = 0; queueId < QUEUE_COUNT; queueId++) {
+                storedMessageCount += brokerController1.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+            }
+            assertEquals(expectedCount, storedMessageCount);
+        });
     }
 
     private CompletableFuture<PopResult> popMessageAsync() {

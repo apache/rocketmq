@@ -130,7 +130,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
             System.out.print("Rocksdb path is invalid.\n");
             return;
         }
-        path = Paths.get(path, type.toString()).toString();
+        path = Paths.get(path, type.getTypeName()).toString();
         String exportFile = commandLine.hasOption("exportFile") ? commandLine.getOptionValue("exportFile").trim() : null;
         Map<String, JSONObject> configMap = getConfigMapFromRocksDB(path, type);
         if (configMap != null) {

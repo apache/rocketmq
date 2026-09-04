@@ -27,7 +27,7 @@ $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### 验证broker是否启动成功，比如，broker的ip是192.168.1.2 然后名字是broker-a
 $ tail -f ~/logs/rocketmqlogs/Broker.log 
-The broker[broker-a,192.169.1.2:10911] boot success...
+The broker[broker-a,192.168.1.2:10911] boot success...
 ```
 
 我们可以在 Broker.log 中看到“The broker[brokerName,ip:port] boot success..”，这表明 broker 已成功启动。
@@ -167,4 +167,3 @@ RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
 [部署文档](controller/deploy.md)
 
 [设计思想](controller/design.md)
-

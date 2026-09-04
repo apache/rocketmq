@@ -19,13 +19,14 @@ package org.apache.rocketmq.common;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.alibaba.fastjson2.annotation.JSONField;
-import org.apache.rocketmq.common.attribute.TopicMessageType;
-import org.apache.rocketmq.common.constant.PermName;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.constant.PermName;
 
+import static org.apache.rocketmq.common.TopicAttributes.LITE_EXPIRATION_ATTRIBUTE;
 import static org.apache.rocketmq.common.TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE;
 
 public class TopicConfig {
@@ -214,6 +215,26 @@ public class TopicConfig {
     @JSONField(serialize = false, deserialize = false)
     public void setTopicMessageType(TopicMessageType topicMessageType) {
         attributes.put(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), topicMessageType.getValue());
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public void setLiteTopicExpiration(int liteTopicExpiration) {
+        if (!TopicMessageType.LITE.equals(getTopicMessageType())) {
+            return;
+        }
+        attributes.put(LITE_EXPIRATION_ATTRIBUTE.getName(), String.valueOf(liteTopicExpiration));
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public int getLiteTopicExpiration() {
+        if (!TopicMessageType.LITE.equals(getTopicMessageType())) {
+            return -1;
+        }
+        String content = attributes.get(LITE_EXPIRATION_ATTRIBUTE.getName());
+        if (content == null) {
+            return -1;
+        }
+        return NumberUtils.toInt(content, -1);
     }
 
     @Override

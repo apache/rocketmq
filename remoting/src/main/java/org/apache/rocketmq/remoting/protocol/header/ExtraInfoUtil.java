@@ -17,9 +17,14 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -281,6 +286,28 @@ public class ExtraInfoUtil {
         }
 
         return startOffsetMap;
+    }
+
+    public static List<Integer> parseLiteOrderCountInfo(String orderCountInfo, int msgCount) {
+        if (StringUtils.isEmpty(orderCountInfo)) {
+            return null;
+        }
+        String[] infos = orderCountInfo.split(";");
+        if (infos.length != msgCount) {
+            return null;
+        }
+        return Arrays.stream(infos).map(ExtraInfoUtil::parseLiteOrderCount).collect(Collectors.toList());
+    }
+
+    private static int parseLiteOrderCount(String info) {
+        if (StringUtils.isBlank(info)) {
+            return 0;
+        }
+        if (!info.contains(QUEUE_OFFSET)) {
+            return NumberUtils.toInt(info, 0);
+        }
+        String[] split = info.split(MessageConst.KEY_SEPARATOR);
+        return split.length != 3 ? 0 : NumberUtils.toInt(split[2], 0);
     }
 
     public static String getStartOffsetInfoMapKey(String topic, long key) {

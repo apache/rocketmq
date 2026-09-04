@@ -5,6 +5,10 @@ on:
   push:
     branches: [master, develop, bazel]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   java_build:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
@@ -27,7 +31,13 @@ jobs:
           distribution: "corretto"
           cache: "maven"
       - name: Build with Maven
-        run: mvn -B package --file pom.xml
+        shell: bash
+        run: |
+          JACOCO_FLAG=""
+          if [ "${{ matrix.os }}" != "ubuntu-latest" ]; then
+            JACOCO_FLAG="-Djacoco.skip=true"
+          fi
+          mvn -B package --file pom.xml $JACOCO_FLAG
 
       - name: Upload Auth JVM crash logs
         if: failure()

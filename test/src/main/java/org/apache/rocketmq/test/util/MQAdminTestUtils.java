@@ -104,12 +104,10 @@ public class MQAdminTestUtils {
         return createResult;
     }
 
-    public static boolean createSub(String nameSrvAddr, String clusterName, String consumerId) {
+    public static boolean createSub(String nameSrvAddr, String clusterName, SubscriptionGroupConfig config) {
         boolean createResult = true;
         DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setNamesrvAddr(nameSrvAddr);
-        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
-        config.setGroupName(consumerId);
         try {
             mqAdminExt.start();
             Set<String> masterSet = CommandUtil.fetchMasterAddrByClusterName(mqAdminExt,
@@ -117,7 +115,7 @@ public class MQAdminTestUtils {
             for (String addr : masterSet) {
                 try {
                     mqAdminExt.createAndUpdateSubscriptionGroupConfig(addr, config);
-                    log.info("create subscription group {} to {} success.", consumerId, addr);
+                    log.info("create subscription group {} to {} success.", config.getGroupName(), addr);
                 } catch (Exception e) {
                     e.printStackTrace();
                     Thread.sleep(1000 * 1);

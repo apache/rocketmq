@@ -94,7 +94,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
 
     protected RemotingCommand getConsumerConnectionList(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
-        RemotingCommand response = RemotingCommand.createResponseCommand(GetConsumerConnectionListRequestHeader.class);
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
         GetConsumerConnectionListRequestHeader header = (GetConsumerConnectionListRequestHeader) request.decodeCommandCustomHeader(GetConsumerConnectionListRequestHeader.class);
         ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(context, header.getConsumerGroup());
         if (consumerGroupInfo != null) {

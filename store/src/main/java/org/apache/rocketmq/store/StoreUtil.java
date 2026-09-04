@@ -18,6 +18,8 @@ package org.apache.rocketmq.store;
 
 import com.google.common.base.Preconditions;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.MappedFile;
@@ -76,4 +78,23 @@ public class StoreUtil {
         }
         return new FileQueueSnapshot();
     }
+
+    public static MessageExt getMessage(long offsetPy, int sizePy, MessageStore messageStore, ByteBuffer byteBuffer) {
+        try {
+            if (offsetPy < 0L || sizePy <= 0 || null == messageStore || null == byteBuffer) {
+                return null;
+            }
+            byteBuffer.position(0);
+            byteBuffer.limit(sizePy);
+            if (!messageStore.getData(offsetPy, sizePy, byteBuffer)) {
+                return null;
+            }
+            byteBuffer.flip();
+            return MessageDecoder.decode(byteBuffer, true, false, false);
+        } catch (Exception e) {
+            log.error("getMessage error, offsetPy: {}, sizePy: {}, error: {}", offsetPy, sizePy, e.getMessage());
+        }
+        return null;
+    }
+
 }

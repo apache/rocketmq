@@ -21,19 +21,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.store.CommitLogDispatchStore;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.rocksdb.RocksDBException;
 
-public class IndexService {
+public class IndexService implements CommitLogDispatchStore {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     /**
      * Maximum times to attempt index file creation.
@@ -163,6 +167,10 @@ public class IndexService {
     }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
+        return queryOffset(topic, key, maxNum, begin, end, null);
+    }
+
+    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end, String indexType) {
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
@@ -179,8 +187,13 @@ public class IndexService {
                     }
 
                     if (f.isTimeMatched(begin, end)) {
-
-                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end);
+                        String queryKey;
+                        if (!StringUtils.isEmpty(indexType) && MessageConst.INDEX_TAG_TYPE.equals(indexType)) {
+                            queryKey = buildKey(topic, key, MessageConst.INDEX_TAG_TYPE);
+                        } else {
+                            queryKey = buildKey(topic, key);
+                        }
+                        f.selectPhyOffset(phyOffsets, queryKey, maxNum, begin, end);
                     }
 
                     if (f.getBeginTimestamp() < begin) {
@@ -193,7 +206,7 @@ public class IndexService {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("queryMsg exception", e);
+            LOGGER.error("queryOffset exception", e);
         } finally {
             this.readWriteLock.readLock().unlock();
         }
@@ -203,6 +216,9 @@ public class IndexService {
 
     private String buildKey(final String topic, final String key) {
         return topic + "#" + key;
+    }
+    private String buildKey(final String topic, final String key, final String indexType) {
+        return topic + "#" + indexType + "#" + key;
     }
 
     public void buildIndex(DispatchRequest req) {
@@ -247,6 +263,19 @@ public class IndexService {
                     }
                 }
             }
+
+            Map<String, String> propertiesMap = req.getPropertiesMap();
+            if (null != propertiesMap && propertiesMap.containsKey(MessageConst.PROPERTY_TAGS)) {
+                String tags = req.getPropertiesMap().get(MessageConst.PROPERTY_TAGS);
+                if (!StringUtils.isEmpty(tags)) {
+                    indexFile = putKey(indexFile, msg, buildKey(topic, tags, MessageConst.INDEX_TAG_TYPE));
+                    if (indexFile == null) {
+                        LOGGER.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
+                        return;
+                    }
+                }
+            }
+
         } else {
             LOGGER.error("build index error, stop building index");
         }
@@ -392,5 +421,25 @@ public class IndexService {
         } finally {
             this.readWriteLock.writeLock().unlock();
         }
+    }
+
+    @Override
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
+        return -1L;
+    }
+
+    @Override
+    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
+        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable() &&
+            this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+            if (storeTimestamp > this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp()) {
+                return false;
+            }
+            LOGGER.info("CommitLog isMmapFileMatchedRecover find satisfied MmapFile for index, " +
+                    "MmapFile storeTimestamp={}, MmapFile phyOffset={}, indexMsgTimestamp={}, recoverNormally={}",
+                storeTimestamp, phyOffset, this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp(), recoverNormally);
+        }
+        return true;
     }
 }

@@ -27,12 +27,17 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Status;
 import apache.rocketmq.v2.SubscriptionEntry;
+import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
+import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
+import com.google.common.collect.ImmutableSet;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
+
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,11 +52,14 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.lite.LiteSubscriptionAction;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
+import org.apache.rocketmq.common.lite.OffsetOption;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.ContextStreamObserver;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
@@ -71,7 +79,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
-public class ClientActivity extends AbstractMessingActivity {
+public class ClientActivity extends AbstractMessagingActivity {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
@@ -107,7 +115,9 @@ public class ClientActivity extends AbstractMessingActivity {
                     break;
                 }
                 case PUSH_CONSUMER:
-                case SIMPLE_CONSUMER: {
+                case LITE_PUSH_CONSUMER:
+                case SIMPLE_CONSUMER:
+                case LITE_SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
                     String consumerGroup = request.getGroup().getName();
                     this.registerConsumer(ctx, consumerGroup, clientSettings.getClientType(), clientSettings.getSubscription().getSubscriptionsList(), false);
@@ -146,24 +156,28 @@ public class ClientActivity extends AbstractMessingActivity {
             }
 
             switch (clientSettings.getClientType()) {
-                case PRODUCER:
-                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = topic.getName();
-                        GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
-                        if (channel != null) {
-                            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                case PRODUCER: {
+                    GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
+                    if (channel != null) {
+                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                        for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
+                            String topicName = topic.getName();
                             this.messagingProcessor.unRegisterProducer(ctx, topicName, clientChannelInfo);
                         }
                     }
                     break;
+                }
                 case PUSH_CONSUMER:
+                case LITE_PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
+                case LITE_SIMPLE_CONSUMER:
                     validateConsumerGroup(request.getGroup());
                     String consumerGroup = request.getGroup().getName();
                     GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
                     if (channel != null) {
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
                         this.messagingProcessor.unRegisterConsumer(ctx, consumerGroup, clientChannelInfo);
+                        this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, clientSettings);
                     }
                     break;
                 default:
@@ -181,10 +195,93 @@ public class ClientActivity extends AbstractMessingActivity {
         return future;
     }
 
+    public CompletableFuture<SyncLiteSubscriptionResponse> syncLiteSubscription(ProxyContext ctx,
+        SyncLiteSubscriptionRequest request) {
+        try {
+            validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
+
+            final LiteSubscriptionAction action = toLiteAction(request.getAction());
+            final Set<String> liteTopicSet = ImmutableSet.copyOf(request.getLiteTopicSetList());
+            if (LiteSubscriptionAction.PARTIAL_ADD == action) {
+                for (String liteTopic : liteTopicSet) {
+                    validateLiteTopic(liteTopic);
+                }
+            }
+
+            final String group = request.getGroup().getName();
+            final String topic = request.getTopic().getName();
+            LiteSubscriptionDTO liteSubscriptionDTO = new LiteSubscriptionDTO()
+                .setAction(action)
+                .setClientId(ctx.getClientID())
+                .setGroup(group)
+                .setTopic(topic)
+                .setLiteTopicSet(liteTopicSet)
+                .setVersion(request.getVersion());
+
+            if (LiteSubscriptionAction.PARTIAL_ADD == action) {
+                if (request.hasOffsetOption()) {
+                    liteSubscriptionDTO.setOffsetOption(toOffsetOption(request.getOffsetOption()));
+                }
+            }
+
+            return this.messagingProcessor
+                .syncLiteSubscription(ctx, liteSubscriptionDTO, Duration.ofSeconds(2).toMillis())
+                .thenApply(v ->
+                    SyncLiteSubscriptionResponse
+                        .newBuilder()
+                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, null))
+                        .build()
+                );
+        } catch (Throwable t) {
+            CompletableFuture<SyncLiteSubscriptionResponse> future = new CompletableFuture<>();
+            future.completeExceptionally(t);
+            return future;
+        }
+    }
+
+    private static OffsetOption toOffsetOption(apache.rocketmq.v2.OffsetOption gRpcOffsetOption) {
+        OffsetOption offsetOption = new OffsetOption();
+        switch (gRpcOffsetOption.getOffsetTypeCase()) {
+            case POLICY:
+                offsetOption.setType(OffsetOption.Type.POLICY);
+                offsetOption.setValue(toOffsetPolicy(gRpcOffsetOption.getPolicy()));
+                break;
+            case OFFSET:
+                offsetOption.setType(OffsetOption.Type.OFFSET);
+                offsetOption.setValue(gRpcOffsetOption.getOffset());
+                break;
+            case TAIL_N:
+                offsetOption.setType(OffsetOption.Type.TAIL_N);
+                offsetOption.setValue(gRpcOffsetOption.getTailN());
+                break;
+            case TIMESTAMP:
+                offsetOption.setType(OffsetOption.Type.TIMESTAMP);
+                offsetOption.setValue(gRpcOffsetOption.getTimestamp());
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown OffsetOption type: " + gRpcOffsetOption.getOffsetTypeCase());
+        }
+        return offsetOption;
+    }
+
+    private static long toOffsetPolicy(apache.rocketmq.v2.OffsetOption.Policy policy) {
+        switch (policy) {
+            case LAST:
+                return OffsetOption.POLICY_LAST_VALUE;
+            case MIN:
+                return OffsetOption.POLICY_MIN_VALUE;
+            case MAX:
+                return OffsetOption.POLICY_MAX_VALUE;
+        }
+        throw new IllegalArgumentException("Unknown OffsetOption.Policy value: " + policy);
+    }
+
     public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
         return new ContextStreamObserver<TelemetryCommand>() {
+            private ProxyContext proxyCtx = null;
             @Override
             public void onNext(ProxyContext ctx, TelemetryCommand request) {
+                this.proxyCtx = ctx;
                 try {
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
@@ -208,6 +305,7 @@ public class ClientActivity extends AbstractMessingActivity {
             @Override
             public void onError(Throwable t) {
                 log.error("telemetry on error", t);
+                handleGrpcCancel(proxyCtx, t);
             }
 
             @Override
@@ -215,6 +313,36 @@ public class ClientActivity extends AbstractMessingActivity {
                 responseObserver.onCompleted();
             }
         };
+    }
+
+    private static LiteSubscriptionAction toLiteAction(apache.rocketmq.v2.LiteSubscriptionAction gRpcAction) {
+        switch (gRpcAction) {
+            case PARTIAL_ADD:
+                return LiteSubscriptionAction.PARTIAL_ADD;
+            case PARTIAL_REMOVE:
+                return LiteSubscriptionAction.PARTIAL_REMOVE;
+            case COMPLETE_ADD:
+                return LiteSubscriptionAction.COMPLETE_ADD;
+            case COMPLETE_REMOVE:
+                return LiteSubscriptionAction.COMPLETE_REMOVE;
+        }
+        throw new IllegalArgumentException("unknown LiteSubscriptionAction: " + gRpcAction);
+    }
+
+    private void handleGrpcCancel(ProxyContext ctx, Throwable t) {
+        final String clientId = ctx.getClientID();
+        if (StringUtils.isBlank(clientId)) {
+            return;
+        }
+        if (!(t instanceof StatusRuntimeException)) {
+            return;
+        }
+        log.warn("handleGrpcCancel clientId:{}", clientId);
+        StatusRuntimeException statusException = (StatusRuntimeException) t;
+        if (io.grpc.Status.CANCELLED.getCode() == statusException.getStatus().getCode() ||
+            io.grpc.Status.UNAVAILABLE.getCode() == statusException.getStatus().getCode()) {
+            this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, null);
+        }
     }
 
     protected void processTelemetryException(TelemetryCommand request, Throwable t,
@@ -313,7 +441,7 @@ public class ClientActivity extends AbstractMessingActivity {
             consumerGroup,
             clientChannelInfo,
             this.buildConsumeType(clientType),
-            MessageModel.CLUSTERING,
+            this.buildMessageModel(clientType),
             ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
             this.buildSubscriptionDataSet(subscriptionEntryList),
             updateSubscription
@@ -391,12 +519,21 @@ public class ClientActivity extends AbstractMessingActivity {
     protected ConsumeType buildConsumeType(ClientType clientType) {
         switch (clientType) {
             case SIMPLE_CONSUMER:
+            case LITE_SIMPLE_CONSUMER:
                 return ConsumeType.CONSUME_ACTIVELY;
             case PUSH_CONSUMER:
+            case LITE_PUSH_CONSUMER:
                 return ConsumeType.CONSUME_PASSIVELY;
             default:
                 throw new IllegalArgumentException("Client type is not consumer, type: " + clientType);
         }
+    }
+
+    protected MessageModel buildMessageModel(ClientType clientType) {
+        if (ClientType.LITE_PUSH_CONSUMER == clientType || ClientType.LITE_SIMPLE_CONSUMER == clientType) {
+            return MessageModel.LITE_SELECTIVE;
+        }
+        return MessageModel.CLUSTERING;
     }
 
     protected Set<SubscriptionData> buildSubscriptionDataSet(List<SubscriptionEntry> subscriptionEntryList) {

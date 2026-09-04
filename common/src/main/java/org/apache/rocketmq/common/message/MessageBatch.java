@@ -40,13 +40,14 @@ public class MessageBatch extends Message implements Iterable<Message> {
     }
 
     public static MessageBatch generateFromList(Collection<? extends Message> messages) {
-        assert messages != null;
-        assert messages.size() > 0;
+        if (messages == null || messages.isEmpty()) {
+            throw new IllegalArgumentException("messages must not be null or empty");
+        }
         List<Message> messageList = new ArrayList<>(messages.size());
         Message first = null;
         for (Message message : messages) {
-            if (message.getDelayTimeLevel() > 0) {
-                throw new UnsupportedOperationException("TimeDelayLevel is not supported for batching");
+            if (message.getDelayTimeLevel() > 0 || message.getDelayTimeMs() > 0 || message.getDelayTimeSec() > 0 || message.getDeliverTimeMs() > 0) {
+                throw new UnsupportedOperationException("Delayed messages are not supported for batching");
             }
             if (message.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                 throw new UnsupportedOperationException("Retry Group is not supported for batching");

@@ -37,12 +37,17 @@ public class DefaultElectPolicy implements ElectPolicy {
 
     // Sort in descending order according to<epoch, offset>, and sort in ascending order according to priority
     private final Comparator<BrokerLiveInfo> comparator = (o1, o2) -> {
-        if (o1.getEpoch() == o2.getEpoch()) {
-            return o1.getMaxOffset() == o2.getMaxOffset() ? o1.getElectionPriority() - o2.getElectionPriority() :
-                (int) (o2.getMaxOffset() - o1.getMaxOffset());
-        } else {
-            return o2.getEpoch() - o1.getEpoch();
+        int epochCompare = Integer.compare(o2.getEpoch(), o1.getEpoch());
+        if (epochCompare != 0) {
+            return epochCompare;
         }
+
+        int offsetCompare = Long.compare(o2.getMaxOffset(), o1.getMaxOffset());
+        if (offsetCompare != 0) {
+            return offsetCompare;
+        }
+
+        return Integer.compare(o1.getElectionPriority(), o2.getElectionPriority());
     };
 
     public DefaultElectPolicy(BrokerValidPredicate validPredicate, BrokerLiveInfoGetter brokerLiveInfoGetter) {

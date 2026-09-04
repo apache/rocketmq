@@ -6,7 +6,7 @@ The following questions are frequently asked with regard to the RocketMQ project
 
 1. Why did we create rocketmq project instead of selecting other products?
 
-   Please refer to [Why RocketMQ](http://rocketmq.apache.org/docs/motivation)
+   Please refer to [Why RocketMQ](https://rocketmq.apache.org/docs/motivation)
 
 2. Do I have to install other software, such as zookeeper, to use RocketMQ?
 

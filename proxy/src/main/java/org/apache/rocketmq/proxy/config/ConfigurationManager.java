@@ -40,7 +40,7 @@ public class ConfigurationManager {
         }
     }
 
-    public static void intConfig() throws Exception {
+    public static void initConfig() throws Exception {
         configuration = new Configuration();
         configuration.init();
     }

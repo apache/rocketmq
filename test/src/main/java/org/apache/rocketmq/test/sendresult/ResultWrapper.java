@@ -17,11 +17,14 @@
 
 package org.apache.rocketmq.test.sendresult;
 
+import org.apache.rocketmq.client.producer.SendResult;
+
 public class ResultWrapper {
     private boolean sendResult = false;
     private String msgId = null;
     private Exception sendException = null;
     private String brokerIp = null;
+    private SendResult sendResultObj = null;
 
     public String getBrokerIp() {
         return brokerIp;
@@ -53,6 +56,13 @@ public class ResultWrapper {
 
     public void setSendException(Exception sendException) {
         this.sendException = sendException;
+    }
+
+    public SendResult getSendResultObj() {
+        return sendResultObj;
+    }
+    public void setSendResultObj(SendResult sendResultObj) {
+        this.sendResultObj = sendResultObj;
     }
 
     @Override

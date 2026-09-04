@@ -92,11 +92,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =
@@ -277,15 +272,14 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
     private void processReplyMessage(MessageExt replyMsg) {
         final String correlationId = replyMsg.getUserProperty(MessageConst.PROPERTY_CORRELATION_ID);
-        final RequestResponseFuture requestResponseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().get(correlationId);
+        // Atomically remove so that only one of the reply-arrival path and the timeout-scan path
+        // (RequestFutureHolder#scanExpiredRequest) can take ownership of this request.
+        final RequestResponseFuture requestResponseFuture = RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
         if (requestResponseFuture != null) {
             requestResponseFuture.putResponseMessage(replyMsg);
-
-            RequestFutureHolder.getInstance().getRequestFutureTable().remove(correlationId);
-
-            if (requestResponseFuture.getRequestCallback() != null) {
-                requestResponseFuture.getRequestCallback().onSuccess(replyMsg);
-            }
+            // Route through executeRequestCallback so the single-callback guard applies to the
+            // reply-success path too; sync callers (null callback) are woken by putResponseMessage.
+            requestResponseFuture.executeRequestCallback();
         } else {
             String bornHost = replyMsg.getBornHostString();
             logger.warn("receive reply message, but not matched any request, CorrelationId: {} , reply from host: {}",

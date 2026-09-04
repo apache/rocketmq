@@ -45,6 +45,7 @@ import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -53,6 +54,7 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -183,7 +185,25 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         if (tlsMode != TlsMode.DISABLED) {
             try {
-                sslContext = TlsHelper.buildSslContext(false);
+                SslContext newSslContext = TlsHelper.buildSslContext(false);
+                SslContext oldSslContext = this.sslContext;
+                this.sslContext = newSslContext;
+                if (oldSslContext != null) {
+                    // Release the old SslContext to free native memory (OpenSSL provider only).
+                    // ReferenceCountUtil.release() is a no-op for JDK SslContext since it does not
+                    // implement ReferenceCounted.
+                    // Note: there is a theoretical race where an event-loop thread could read the old
+                    // sslContext (volatile) and call newHandler() after release. In practice this is
+                    // negligible because cert reload is very infrequent and the window is nanoseconds.
+                    // Worst case: the single new connection gets an IllegalReferenceCountException and
+                    // the client retries successfully — no pod crash or service disruption.
+                    try {
+                        ReferenceCountUtil.release(oldSslContext);
+                        log.info("Old SslContext released for server");
+                    } catch (Exception e) {
+                        log.warn("Failed to release old SslContext for server", e);
+                    }
+                }
                 log.info("SslContext created for server");
             } catch (CertificateException | IOException e) {
                 log.error("Failed to create SslContext for server", e);
@@ -272,9 +292,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null,
+            .addLast(getDefaultEventExecutorGroup(),
                 HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
-            .addLast(nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null,
+            .addLast(getDefaultEventExecutorGroup(),
                 encoder,
                 new NettyDecoder(),
                 distributionHandler,
@@ -430,7 +450,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     public DefaultEventExecutorGroup getDefaultEventExecutorGroup() {
-        return defaultEventExecutorGroup;
+        return nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null;
     }
 
     public NettyEncoder getEncoder() {
@@ -462,11 +482,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     return;
                 }
                 if (detectionResult.state() == ProtocolDetectionState.DETECTED) {
-                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
-                        .addAfter(defaultEventExecutorGroup, HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
-                        .addAfter(defaultEventExecutorGroup, HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
+                    ctx.pipeline().addAfter(getDefaultEventExecutorGroup(), ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
+                        .addAfter(getDefaultEventExecutorGroup(), HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                        .addAfter(getDefaultEventExecutorGroup(), HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
                 } else {
-                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), TLS_MODE_HANDLER, tlsModeHandler);
+                    ctx.pipeline().addAfter(getDefaultEventExecutorGroup(), ctx.name(), TLS_MODE_HANDLER, tlsModeHandler);
                 }
 
                 try {
@@ -509,8 +529,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     case ENFORCING:
                         if (null != sslContext) {
                             ctx.pipeline()
-                                .addAfter(defaultEventExecutorGroup, TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
-                                .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                                .addAfter(getDefaultEventExecutorGroup(), TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                                .addAfter(getDefaultEventExecutorGroup(), TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
                             ctx.close();
@@ -525,6 +545,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             } else if (tlsMode == TlsMode.ENFORCING) {
                 ctx.close();
                 log.warn("Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
+                throw new UnsupportedOperationException("The NettyRemotingServer in SSL enforcing mode doesn't support plain client");
             }
 
             try {

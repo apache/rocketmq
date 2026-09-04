@@ -282,7 +282,7 @@ public class PopConsumerCache extends ServiceThread {
         @Override
         public String toString() {
             return "ConsumerRecords{" +
-                ", topicId=" + topicId +
+                "topicId=" + topicId +
                 ", groupId=" + groupId +
                 ", queueId=" + queueId +
                 ", recordTreeMap=" + recordTreeMap.size() +

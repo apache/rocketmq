@@ -118,10 +118,25 @@ public class MessageStoreConfig {
     private boolean readAheadCacheEnable = true;
     private int readAheadMessageCountThreshold = 4096;
     private int readAheadMessageSizeThreshold = 16 * 1024 * 1024;
+    // Legacy single-TTL fallback duration for read-ahead cache entries. The primary
+    // policy uses create/after-read TTLs below.
     private long readAheadCacheExpireDuration = 15 * 1000;
+    private long readAheadCacheCreateExpireDuration = Duration.ofMinutes(3).toMillis();
+    private long readAheadCacheAfterReadExpireDuration = Duration.ofSeconds(10).toMillis();
     private double readAheadCacheSizeThresholdRate = 0.3;
 
     private int tieredStoreMaxPendingLimit = 10000;
+    /**
+     * Minimum fraction of max heap that must remain free for dispatch to proceed.
+     * Actual threshold = min(ratio × maxMemory, maxBytes).
+     * Default 0.1 (10%).
+     */
+    private double tieredStoreDispatchMinFreeMemoryRatio = 0.1;
+    /**
+     * Upper cap on the backpressure threshold in bytes, preventing the ratio-based
+     * threshold from becoming too large on big-heap instances. Default 1GB.
+     */
+    private long tieredStoreDispatchMinFreeMemoryMaxBytes = 1024 * 1024 * 1024L;
     private boolean tieredStoreCrcCheckEnable = false;
 
     private String tieredStoreFilePath = "";
@@ -356,6 +371,22 @@ public class MessageStoreConfig {
         this.readAheadCacheExpireDuration = duration;
     }
 
+    public long getReadAheadCacheCreateExpireDuration() {
+        return readAheadCacheCreateExpireDuration;
+    }
+
+    public void setReadAheadCacheCreateExpireDuration(long readAheadCacheCreateExpireDuration) {
+        this.readAheadCacheCreateExpireDuration = readAheadCacheCreateExpireDuration;
+    }
+
+    public long getReadAheadCacheAfterReadExpireDuration() {
+        return readAheadCacheAfterReadExpireDuration;
+    }
+
+    public void setReadAheadCacheAfterReadExpireDuration(long readAheadCacheAfterReadExpireDuration) {
+        this.readAheadCacheAfterReadExpireDuration = readAheadCacheAfterReadExpireDuration;
+    }
+
     public double getReadAheadCacheSizeThresholdRate() {
         return readAheadCacheSizeThresholdRate;
     }
@@ -370,6 +401,22 @@ public class MessageStoreConfig {
 
     public void setTieredStoreMaxPendingLimit(int tieredStoreMaxPendingLimit) {
         this.tieredStoreMaxPendingLimit = tieredStoreMaxPendingLimit;
+    }
+
+    public double getTieredStoreDispatchMinFreeMemoryRatio() {
+        return tieredStoreDispatchMinFreeMemoryRatio;
+    }
+
+    public void setTieredStoreDispatchMinFreeMemoryRatio(double tieredStoreDispatchMinFreeMemoryRatio) {
+        this.tieredStoreDispatchMinFreeMemoryRatio = tieredStoreDispatchMinFreeMemoryRatio;
+    }
+
+    public long getTieredStoreDispatchMinFreeMemoryMaxBytes() {
+        return tieredStoreDispatchMinFreeMemoryMaxBytes;
+    }
+
+    public void setTieredStoreDispatchMinFreeMemoryMaxBytes(long tieredStoreDispatchMinFreeMemoryMaxBytes) {
+        this.tieredStoreDispatchMinFreeMemoryMaxBytes = tieredStoreDispatchMinFreeMemoryMaxBytes;
     }
 
     public boolean isTieredStoreCrcCheckEnable() {

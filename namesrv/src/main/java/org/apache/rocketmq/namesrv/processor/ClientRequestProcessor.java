@@ -100,8 +100,4 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
 }

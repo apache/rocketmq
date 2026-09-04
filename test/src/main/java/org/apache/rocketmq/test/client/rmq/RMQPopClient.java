@@ -199,6 +199,12 @@ public class RMQPopClient implements MQConsumer {
 
     public CompletableFuture<Boolean> notification(String brokerAddr, String topic,
         String consumerGroup, int queueId, Boolean order, String attemptId, long pollTime, long bornTime, long timeoutMillis) {
+        return notification(brokerAddr, topic, consumerGroup, queueId, order, attemptId, pollTime, bornTime, timeoutMillis, null, null);
+    }
+
+
+    public CompletableFuture<Boolean> notification(String brokerAddr, String topic,
+        String consumerGroup, int queueId, Boolean order, String attemptId, long pollTime, long bornTime, long timeoutMillis, String expType, String exp) {
         NotificationRequestHeader requestHeader = new NotificationRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         requestHeader.setTopic(topic);
@@ -207,6 +213,8 @@ public class RMQPopClient implements MQConsumer {
         requestHeader.setBornTime(bornTime);
         requestHeader.setOrder(order);
         requestHeader.setAttemptId(attemptId);
+        requestHeader.setExpType(expType);
+        requestHeader.setExp(exp);
         return this.mqClientAPI.notification(brokerAddr, requestHeader, timeoutMillis);
     }
 }

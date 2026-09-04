@@ -25,7 +25,7 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
-        "@maven//:org_lz4_lz4_java",
+        "@maven//:at_yawk_lz4_lz4_java",
         "@maven//:io_netty_netty_all",
         "@maven//:commons_cli_commons_cli",
         "@maven//:com_googlecode_concurrentlinkedhashmap_concurrentlinkedhashmap_lru",
@@ -43,8 +43,10 @@ java_library(
         ":srvutil",
         "//common",
         "//:test_deps",
-        "@maven//:org_apache_commons_commons_lang3", 
-        "@maven//:io_netty_netty_all",               
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_cli_commons_cli",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_netty_netty_all",
     ],
 )
 

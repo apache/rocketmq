@@ -18,13 +18,16 @@ package org.apache.rocketmq.tieredstore.core;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import com.github.benmanes.caffeine.cache.Ticker;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -52,6 +55,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     protected static final String CACHE_KEY_FORMAT = "%s@%d@%d";
+    protected static final String FETCHER_GROUP_NAME = MixAll.CID_RMQ_SYS_PREFIX + "FETCHER_TIMESTAMP";
 
     private final String brokerName;
     private final MetadataStore metadataStore;
@@ -59,7 +63,8 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     private final TieredMessageStore messageStore;
     private final IndexService indexService;
     private final FlatFileStore flatFileStore;
-    private final long memoryMaxSize;
+    private final MessageStoreFilter topicFilter;
+    protected final long memoryMaxSize;
     private final Cache<String /* topic@queueId@offset */, SelectBufferResult> fetcherCache;
 
     public MessageStoreFetcherImpl(TieredMessageStore messageStore) {
@@ -76,25 +81,112 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         this.messageStore = messageStore;
         this.indexService = indexService;
         this.metadataStore = flatFileStore.getMetadataStore();
+        this.topicFilter = messageStore.getTopicFilter();
         this.memoryMaxSize =
             (long) (Runtime.getRuntime().maxMemory() * storeConfig.getReadAheadCacheSizeThresholdRate());
         this.fetcherCache = this.initCache(storeConfig);
         log.info("MessageStoreFetcher init success, brokerName={}", storeConfig.getBrokerName());
     }
 
-    private Cache<String, SelectBufferResult> initCache(MessageStoreConfig storeConfig) {
+    /**
+     * Build the read-ahead cache. Called from the constructor via virtual dispatch
+     * (see {@link #MessageStoreFetcherImpl(TieredMessageStore, MessageStoreConfig, FlatFileStore, IndexService)}),
+     * so subclass overrides MUST NOT read subclass instance fields — those are not yet
+     * initialized. The {@code storeConfig} parameter and the parent class field
+     * {@link #memoryMaxSize} are safe to use because they are set before this method runs.
+     */
+    protected Cache<String, SelectBufferResult> initCache(MessageStoreConfig storeConfig) {
 
+        ReadAheadCacheTtl ttl = resolveReadAheadCacheTtl(storeConfig);
+        if (ttl == null) {
+            return buildLegacyCache(storeConfig.getReadAheadCacheExpireDuration(), memoryMaxSize, Ticker.systemTicker());
+        }
+        if (ttl.isAfterReadNotShorter()) {
+            log.warn("MessageStoreFetcher read-ahead cache afterReadTtl ({}ms) >= createTtl ({}ms); "
+                + "reads will extend rather than shorten entry lifetime", ttl.afterReadMs, ttl.createMs);
+        }
+        return buildDualTtlCache(ttl.createMs, ttl.afterReadMs, memoryMaxSize, Ticker.systemTicker());
+    }
+
+    static ReadAheadCacheTtl resolveReadAheadCacheTtl(MessageStoreConfig storeConfig) {
+        long createTtl = storeConfig.getReadAheadCacheCreateExpireDuration();
+        long afterReadTtl = storeConfig.getReadAheadCacheAfterReadExpireDuration();
+        if (createTtl <= 0 && afterReadTtl <= 0) {
+            return null;
+        }
+        long fallback = storeConfig.getReadAheadCacheExpireDuration();
+        long createMs = createTtl > 0 ? createTtl : fallback;
+        long afterReadMs = afterReadTtl > 0 ? afterReadTtl : fallback;
+        if (createMs <= 0 || afterReadMs <= 0) {
+            return null;
+        }
+        return new ReadAheadCacheTtl(createMs, afterReadMs);
+    }
+
+    static Cache<String, SelectBufferResult> buildLegacyCache(long expireMs, long memoryMaxSize, Ticker ticker) {
         return Caffeine.newBuilder()
+            .ticker(ticker)
             .scheduler(Scheduler.systemScheduler())
             // Clients may repeatedly request messages at the same offset in tiered storage,
             // causing the request queue to become full. Using expire after read or write policy
             // to refresh the cache expiration time.
-            .expireAfterAccess(storeConfig.getReadAheadCacheExpireDuration(), TimeUnit.MILLISECONDS)
+            .expireAfterAccess(expireMs, TimeUnit.MILLISECONDS)
             .maximumWeight(memoryMaxSize)
             // Using the buffer size of messages to calculate memory usage
             .weigher((String key, SelectBufferResult buffer) -> buffer.getSize())
             .recordStats()
             .build();
+    }
+
+    static Cache<String, SelectBufferResult> buildDualTtlCache(
+        long createMs, long afterReadMs, long memoryMaxSize, Ticker ticker) {
+        return Caffeine.newBuilder()
+            .ticker(ticker)
+            .scheduler(Scheduler.systemScheduler())
+            .expireAfter(new DualTtlExpiry(createMs, afterReadMs))
+            .maximumWeight(memoryMaxSize)
+            .weigher((String key, SelectBufferResult buffer) -> buffer.getSize())
+            .recordStats()
+            .build();
+    }
+
+    static final class ReadAheadCacheTtl {
+        final long createMs;
+        final long afterReadMs;
+
+        ReadAheadCacheTtl(long createMs, long afterReadMs) {
+            this.createMs = createMs;
+            this.afterReadMs = afterReadMs;
+        }
+
+        boolean isAfterReadNotShorter() {
+            return afterReadMs >= createMs;
+        }
+    }
+
+    static final class DualTtlExpiry implements Expiry<String, SelectBufferResult> {
+        private final long createNanos;
+        private final long afterReadNanos;
+
+        DualTtlExpiry(long createMs, long afterReadMs) {
+            this.createNanos = TimeUnit.MILLISECONDS.toNanos(createMs);
+            this.afterReadNanos = TimeUnit.MILLISECONDS.toNanos(afterReadMs);
+        }
+
+        @Override
+        public long expireAfterCreate(String key, SelectBufferResult value, long currentTime) {
+            return createNanos;
+        }
+
+        @Override
+        public long expireAfterUpdate(String key, SelectBufferResult value, long currentTime, long currentDuration) {
+            return createNanos;
+        }
+
+        @Override
+        public long expireAfterRead(String key, SelectBufferResult value, long currentTime, long currentDuration) {
+            return afterReadNanos;
+        }
     }
 
     public Cache<String, SelectBufferResult> getFetcherCache() {
@@ -215,7 +307,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         // this method may trigger an RPC call, causing buffer fetch thread starvation
         return fetchMessageThenPutToCache(flatFile, queueOffset, fetchSize)
             .thenApplyAsync(maxOffset -> getMessageFromCache(flatFile, queueOffset, maxCount, messageFilter),
-                messageStore.getStoreExecutor().commonExecutor);
+                messageStore.getStoreExecutor().getCommonExecutor());
     }
 
     public CompletableFuture<GetMessageResultExt> getMessageFromTieredStoreAsync(
@@ -389,18 +481,37 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
             return CompletableFuture.completedFuture(-1L);
         }
 
-        return flatFile.getConsumeQueueAsync(queueOffset)
-            .thenComposeAsync(cqItem -> {
-                long commitLogOffset = MessageFormatUtil.getCommitLogOffsetFromItem(cqItem);
-                int size = MessageFormatUtil.getSizeFromItem(cqItem);
-                return flatFile.getCommitLogAsync(commitLogOffset, size);
-            }, messageStore.getStoreExecutor().bufferFetchExecutor)
-            .thenApply(MessageFormatUtil::getStoreTimeStamp)
-            .exceptionally(e -> {
-                log.error("MessageStoreFetcherImpl#getMessageStoreTimeStampAsync: " +
-                    "get or decode message failed, topic={}, queue={}, offset={}", topic, queueId, queueOffset, e);
-                return -1L;
-            });
+        // The Metrics thread frequently retrieves the storage timestamp of the latest message;
+        // as an alternative, return the queue's saved timestamp here.
+        if (queueOffset + 1L == flatFile.getConsumeQueueCommitOffset()) {
+            long timestamp = flatFile.getMaxStoreTimestamp();
+            return CompletableFuture.completedFuture(timestamp == Long.MAX_VALUE ? -1L : timestamp);
+        }
+
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            this.getMessageAsync(FETCHER_GROUP_NAME, topic, queueId, queueOffset, 1, null)
+                .whenComplete((result, e) -> {
+                    if (e != null) {
+                        log.error("MessageStoreFetcherImpl#getMessageStoreTimeStampAsync: " +
+                            "Get or decode message failed, topic={}, queue={}, offset={}", topic, queueId, queueOffset, e);
+                        future.completeExceptionally(e);
+                        return;
+                    }
+                    if (result != null && result.getMessageBufferList() != null
+                        && !result.getMessageBufferList().isEmpty()) {
+                        long timestamp = MessageFormatUtil.getStoreTimeStamp(result.getMessageBufferList().get(0));
+                        log.info("MessageStoreFetcherImpl#getMessageStoreTimeStampAsync: " +
+                            "topic={}, queue={}, offset={}, timestamp={}", topic, queueId, queueOffset, timestamp);
+                        future.complete(timestamp);
+                    } else {
+                        future.complete(-1L);
+                    }
+                });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
     }
 
     @Override
@@ -415,6 +526,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     @Override
     public CompletableFuture<QueryMessageResult> queryMessageAsync(
         String topic, String key, int maxCount, long begin, long end) {
+
+        if (topicFilter.filterTopic(topic)) {
+            return CompletableFuture.completedFuture(new QueryMessageResult());
+        }
 
         long topicId;
         try {

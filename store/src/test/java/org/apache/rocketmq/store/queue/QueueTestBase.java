@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -85,12 +86,24 @@ public class QueueTestBase extends StoreTestBase {
         messageStoreConfig.setFlushIntervalCommitLog(1);
         messageStoreConfig.setFlushCommitLogThoroughInterval(2);
 
-        return new DefaultMessageStore(
-            messageStoreConfig,
-            new BrokerStatsManager("simpleTest", true),
-            (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
-            },
-            new BrokerConfig(), topicConfigTable);
+
+        MessageStore messageStore;
+        if (messageStoreConfig.isEnableRocksDBStore()) {
+            messageStore = new RocksDBMessageStore(
+                messageStoreConfig,
+                new BrokerStatsManager("simpleTest", true),
+                (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+                },
+                new BrokerConfig(), topicConfigTable);
+        } else {
+            messageStore = new DefaultMessageStore(
+                messageStoreConfig,
+                new BrokerStatsManager("simpleTest", true),
+                (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+                },
+                new BrokerConfig(), topicConfigTable);
+        }
+        return messageStore;
     }
 
     public MessageExtBrokerInner buildMessage(String topic, int batchNum) {

@@ -63,6 +63,7 @@ public class OffsetResetForPopIT extends BaseConf {
     public void setUp() throws Exception {
         // reset pop offset rely on server side offset
         brokerController1.getBrokerConfig().setUseServerSideResetOffset(true);
+        brokerController1.getBrokerConfig().setPopConsumerKVServiceEnable(false); // force disable before fifo resetOffset issue fixed
 
         adminExt = BaseConf.getAdmin(NAMESRV_ADDR);
         adminExt.start();

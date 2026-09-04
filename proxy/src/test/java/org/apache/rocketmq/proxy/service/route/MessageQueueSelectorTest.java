@@ -30,12 +30,12 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
     public void testReadMessageQueue() {
         queueData.setPerm(PermName.PERM_READ);
         queueData.setReadQueueNums(0);
-        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), null, true);
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), true);
         assertTrue(messageQueueSelector.getQueues().isEmpty());
 
         queueData.setPerm(PermName.PERM_READ);
         queueData.setReadQueueNums(3);
-        messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), null, true);
+        messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), true);
         assertEquals(3, messageQueueSelector.getQueues().size());
         assertEquals(1, messageQueueSelector.getBrokerActingQueues().size());
         for (int i = 0; i < messageQueueSelector.getQueues().size(); i++) {
@@ -58,12 +58,12 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
     public void testWriteMessageQueue() {
         queueData.setPerm(PermName.PERM_WRITE);
         queueData.setReadQueueNums(0);
-        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), null, false);
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
         assertTrue(messageQueueSelector.getQueues().isEmpty());
 
         queueData.setPerm(PermName.PERM_WRITE);
         queueData.setWriteQueueNums(3);
-        messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), null, false);
+        messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
         assertEquals(3, messageQueueSelector.getQueues().size());
         assertEquals(1, messageQueueSelector.getBrokerActingQueues().size());
         for (int i = 0; i < messageQueueSelector.getQueues().size(); i++) {

@@ -63,6 +63,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.StoreUtil;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
@@ -222,7 +223,10 @@ public class TimerMessageStore {
         bufferLocal = new ThreadLocal<ByteBuffer>() {
             @Override
             protected ByteBuffer initialValue() {
-                return ByteBuffer.allocateDirect(storeConfig.getMaxMessageSize() + 100);
+                int maxMessageBodySize = storeConfig.getMaxMessageSize();
+                int maxMessageSize = Integer.MAX_VALUE - maxMessageBodySize >= 64 * 1024 ?
+                        maxMessageBodySize + 64 * 1024 : Integer.MAX_VALUE;
+                return ByteBuffer.allocateDirect(maxMessageSize);
             }
         };
 
@@ -316,7 +320,11 @@ public class TimerMessageStore {
             currQueueOffset = queueOffset + 1;
         }
         currQueueOffset = Math.min(currQueueOffset, timerCheckpoint.getMasterTimerQueueOffset());
-
+        if (storeConfig.isTimerRocksDBEnable()) {
+            long commitOffsetInRocksDB = messageStore.getTimerMessageRocksDBStore().getCommitOffsetInRocksDB();
+            LOGGER.info("recover time wheel, currQueueOffset: {}, commitOffsetInRocksDB: {}", currQueueOffset, commitOffsetInRocksDB);
+            currQueueOffset = Math.max(currQueueOffset, commitOffsetInRocksDB);
+        }
         ConsumeQueueInterface cq = this.messageStore.getConsumeQueue(TIMER_TOPIC, 0);
 
         // Correction based consume queue
@@ -521,6 +529,9 @@ public class TimerMessageStore {
             public void run() {
                 try {
                     if (storeConfig.isTimerEnableCheckMetrics()) {
+                        if (storeConfig.isTimerStopEnqueue()) {
+                            return;
+                        }
                         String when = storeConfig.getTimerCheckMetricsWhen();
                         if (!UtilAll.isItTimeToDo(when)) {
                             return;
@@ -827,7 +838,7 @@ public class TimerMessageStore {
         return false;
     }
 
-    public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime, MessageExt messageExt) {
+    public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime, MessageExt messageExt, boolean isFromTimeline) {
         LOGGER.debug("Do enqueue [{}] [{}]", new Timestamp(delayedTime), messageExt);
         //copy the value first, avoid concurrent problem
         long tmpWriteTimeMs = currWriteTimeMs;
@@ -845,6 +856,9 @@ public class TimerMessageStore {
         boolean isDelete = messageExt.getProperty(TIMER_DELETE_UNIQUE_KEY) != null;
         if (isDelete) {
             magic = magic | MAGIC_DELETE;
+            if (!isFromTimeline) {
+                recallToTimeline(delayedTime, offsetPy, sizePy, messageExt);
+            }
         }
         String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
         Slot slot = timerWheel.getSlot(delayedTime);
@@ -1147,14 +1161,7 @@ public class TimerMessageStore {
 
     private MessageExt getMessageByCommitOffset(long offsetPy, int sizePy) {
         for (int i = 0; i < 3; i++) {
-            MessageExt msgExt = null;
-            bufferLocal.get().position(0);
-            bufferLocal.get().limit(sizePy);
-            boolean res = messageStore.getData(offsetPy, sizePy, bufferLocal.get());
-            if (res) {
-                bufferLocal.get().flip();
-                msgExt = MessageDecoder.decode(bufferLocal.get(), true, false, false);
-            }
+            MessageExt msgExt = StoreUtil.getMessage(offsetPy, sizePy, messageStore, bufferLocal.get());
             if (null == msgExt) {
                 LOGGER.warn("Fail to read msg from commitLog offsetPy:{} sizePy:{}", offsetPy, sizePy);
             } else {
@@ -1244,7 +1251,6 @@ public class TimerMessageStore {
         long tagsCodeValue =
             MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
         msgInner.setTagsCode(tagsCodeValue);
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 
         msgInner.setSysFlag(msgExt.getSysFlag());
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
@@ -1263,6 +1269,9 @@ public class TimerMessageStore {
             MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
             MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
         }
+        // Encode after the properties are finalized so that the wire data stays consistent
+        // with the property map, aligning with TimerMessageRocksDBStore#convertMessage.
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
     }
 
@@ -1343,6 +1352,9 @@ public class TimerMessageStore {
                     bf.getInt();//size
                     bf.getLong();//prev pos
                     int magic = bf.getInt(); //magic
+                    if (magic == TimerLog.BLANK_MAGIC_CODE) {
+                        break;
+                    }
                     long enqueueTime = bf.getLong();
                     long delayedTime = bf.getInt() + enqueueTime;
                     long offsetPy = bf.getLong();
@@ -1409,7 +1421,10 @@ public class TimerMessageStore {
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
                 try {
-                    if (!TimerMessageStore.this.enqueue(0)) {
+                    if (storeConfig.isTimerRocksDBEnable() && !storeConfig.isTimerRocksDBStopScan()) {
+                        LOGGER.info("now timer use rocksdb to driver, so will not enqueue in timer wheel");
+                        waitForRunning(10 * 1000L);
+                    } else if (!TimerMessageStore.this.enqueue(0)) {
                         waitForRunning(100L * precisionMs / 1000);
                     }
                 } catch (Throwable e) {
@@ -1473,7 +1488,7 @@ public class TimerMessageStore {
                     dequeuePutQueue.put(req);
                 } else {
                     boolean doEnqueueRes = doEnqueue(
-                        req.getOffsetPy(), req.getSizePy(), req.getDelayTime(), req.getMsg());
+                        req.getOffsetPy(), req.getSizePy(), req.getDelayTime(), req.getMsg(), false);
                     req.idempotentRelease(doEnqueueRes || storeConfig.isTimerSkipUnknownError());
                 }
                 perfCounterTicks.endTick(ENQUEUE_PUT);
@@ -1692,9 +1707,6 @@ public class TimerMessageStore {
         public void run() {
             setState(AbstractStateService.START);
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service start");
-            //Mark different rounds
-            boolean isRound = true;
-            Map<String, MessageExt> avoidDeleteLose = new HashMap<>();
             while (!this.isStopped()) {
                 try {
                     setState(AbstractStateService.WAITING);
@@ -1711,18 +1723,9 @@ public class TimerMessageStore {
                             MessageExt msgExt = getMessageByCommitOffset(tr.getOffsetPy(), tr.getSizePy());
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
-                                    //Clearing is performed once in each round.
-                                    //The deletion message is received first and the common message is received once
-                                    if (!isRound) {
-                                        isRound = true;
-                                        for (MessageExt messageExt : avoidDeleteLose.values()) {
-                                            addMetric(messageExt, 1);
-                                        }
-                                        avoidDeleteLose.clear();
-                                    }
                                     if (msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null && tr.getDeleteList() != null) {
-
-                                        avoidDeleteLose.put(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY), msgExt);
+                                        //Execute metric plus one for messages that fail to be deleted
+                                        addMetric(msgExt, 1);
                                         tr.getDeleteList().add(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
                                     }
                                     tr.idempotentRelease();
@@ -1732,13 +1735,9 @@ public class TimerMessageStore {
                                     if (null == uniqueKey) {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
-                                    //Mark ready for next round
-                                    if (isRound) {
-                                        isRound = false;
-                                    }
-                                    if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0
-                                        && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey))) {
-                                        avoidDeleteLose.remove(uniqueKey);
+                                    if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey, storeConfig.isAppendTopicForTimerDeleteKey()))) {
+                                        //Normally, it cancels out with the +1 above
+                                        addMetric(msgExt, -1);
                                         doRes = true;
                                         tr.idempotentRelease();
                                         perfCounterTicks.getCounter("dequeue_delete").flow(1);
@@ -2070,9 +2069,52 @@ public class TimerMessageStore {
         return timerCheckpoint;
     }
 
-    // identify a message by topic + uk, like query operation
-    public static String buildDeleteKey(String realTopic, String uniqueKey) {
-        return realTopic + "+" + uniqueKey;
+    // identify a message by topic or topic + uk(like query operation)
+    public static String buildDeleteKey(String realTopic, String uniqueKey, Boolean appendTopicForTimerDeleteKey) {
+        return appendTopicForTimerDeleteKey ? (realTopic + "+" + uniqueKey) : uniqueKey;
+    }
+
+    private void recallToTimeline(long delayTime, long offsetPy, int sizePy, MessageExt messageExt) {
+        if (!storeConfig.isTimerRecallToTimelineEnable() || !storeConfig.isTimerRocksDBEnable()) {
+            return;
+        }
+        if (delayTime < 0L || offsetPy < 0L || sizePy <= 0 || null == messageExt) {
+            LOGGER.error("recallToTimeline param error, delayTime: {}, offsetPy: {}, sizePy: {}, messageExt: {}", delayTime, offsetPy, sizePy, messageExt);
+            return;
+        }
+        if (null == messageStore.getTimerMessageRocksDBStore() || null == messageStore.getTimerMessageRocksDBStore().getTimeline()) {
+            LOGGER.error("recallToTimeline error, timerRocksDBStore is null or timeline is null");
+            return;
+        }
+        try {
+            messageStore.getTimerMessageRocksDBStore().getTimeline().putDeleteRecord(delayTime, messageExt.getMsgId(), offsetPy, sizePy, messageExt.getQueueOffset(), messageExt);
+        } catch (Exception e) {
+            LOGGER.error("recallToTimeline error: {}", e.getMessage());
+        }
+    }
+
+    public boolean restart() {
+        try {
+            if (this.state != RUNNING) {
+                LOGGER.info("TimerMessageStore restart operation just support for running state");
+                return false;
+            }
+            this.storeConfig.setTimerRocksDBStopScan(true);
+            if (this.state == RUNNING && !this.storeConfig.isTimerStopEnqueue()) {
+                LOGGER.info("restart TimerMessageStore has been running");
+                return true;
+            }
+            long commitOffsetRocksDB = this.messageStore.getTimerMessageRocksDBStore().getCommitOffsetInRocksDB();
+            long commitOffsetFile = this.messageStore.getTimerMessageStore().getCommitQueueOffset();
+            long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
+            currQueueOffset = maxCommitOffset;
+            this.storeConfig.setTimerStopEnqueue(false);
+            LOGGER.info("TimerMessageStore restart commitOffsetRocksDB: {}, commitOffsetFile: {}, currQueueOffset: {}", commitOffsetRocksDB, commitOffsetFile, currQueueOffset);
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("TimerMessageStore restart error: {}", e.getMessage());
+            return false;
+        }
     }
 
     public TimerFlushService getTimerFlushService() {

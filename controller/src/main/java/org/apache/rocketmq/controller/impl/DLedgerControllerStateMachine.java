@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller.impl;
 
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.exception.DLedgerException;
 import io.openmessaging.storage.dledger.snapshot.SnapshotReader;
 import io.openmessaging.storage.dledger.snapshot.SnapshotWriter;
 import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
@@ -27,8 +28,6 @@ import org.apache.rocketmq.controller.impl.event.EventSerializer;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-
-import java.util.concurrent.CompletableFuture;
 
 /**
  * The state machine implementation of the dledger controller
@@ -44,6 +43,11 @@ public class DLedgerControllerStateMachine implements StateMachine {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
         this.dLedgerId = generateDLedgerId(dLedgerGroupId, dLedgerSelfId);
+    }
+
+    @Override
+    public String generateDLedgerId(String dLedgerGroupId, String dLedgerSelfId) {
+        return new StringBuilder(20).append(dLedgerGroupId).append("#").append(dLedgerSelfId).toString();
     }
 
     @Override
@@ -66,7 +70,8 @@ public class DLedgerControllerStateMachine implements StateMachine {
     }
 
     @Override
-    public void onSnapshotSave(SnapshotWriter writer, CompletableFuture<Boolean> future) {
+    public boolean onSnapshotSave(SnapshotWriter writer) {
+        return true;
     }
 
     @Override
@@ -76,6 +81,12 @@ public class DLedgerControllerStateMachine implements StateMachine {
 
     @Override
     public void onShutdown() {
+        log.info("StateMachine {} onShutdown", this.dLedgerId);
+    }
+
+    @Override
+    public void onError(DLedgerException exception) {
+        log.error("Encountered an error on StateMachine {}, dLedger may stop working since some error occurs, you should figure out the cause and repair or remove this node.", this.dLedgerId, exception);
     }
 
     @Override

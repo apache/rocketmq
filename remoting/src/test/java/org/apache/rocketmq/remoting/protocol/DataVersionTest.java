@@ -17,9 +17,15 @@
 
 package org.apache.rocketmq.remoting.protocol;
 
-import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Assert;
+import com.alibaba.fastjson2.JSON;
 import org.junit.Test;
+
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class DataVersionTest {
 
@@ -28,7 +34,7 @@ public class DataVersionTest {
         DataVersion dataVersion = new DataVersion();
         DataVersion other = new DataVersion();
         other.setTimestamp(dataVersion.getTimestamp());
-        Assert.assertTrue(dataVersion.equals(other));
+        assertEquals(dataVersion, other);
     }
 
     @Test
@@ -37,7 +43,7 @@ public class DataVersionTest {
         DataVersion other = new DataVersion();
         other.setCounter(new AtomicLong(1L));
         other.setTimestamp(dataVersion.getTimestamp());
-        Assert.assertFalse(dataVersion.equals(other));
+        assertNotEquals(dataVersion, other);
     }
 
     @Test
@@ -46,7 +52,7 @@ public class DataVersionTest {
         DataVersion other = new DataVersion();
         other.setCounter(null);
         other.setTimestamp(dataVersion.getTimestamp());
-        Assert.assertFalse(dataVersion.equals(other));
+        assertNotEquals(dataVersion, other);
     }
 
     @Test
@@ -55,7 +61,7 @@ public class DataVersionTest {
         dataVersion.setCounter(null);
         DataVersion other = new DataVersion();
         other.setTimestamp(dataVersion.getTimestamp());
-        Assert.assertFalse(dataVersion.equals(other));
+        assertNotEquals(dataVersion, other);
     }
 
     @Test
@@ -65,13 +71,25 @@ public class DataVersionTest {
         DataVersion other = new DataVersion();
         other.setCounter(null);
         other.setTimestamp(dataVersion.getTimestamp());
-        Assert.assertTrue(dataVersion.equals(other));
+        assertEquals(dataVersion, other);
     }
 
     @Test
     public void testEncode() {
         DataVersion dataVersion = new DataVersion();
-        Assert.assertTrue(dataVersion.encode().length > 0);
-        Assert.assertNotNull(dataVersion.toJson());
+        assertTrue(dataVersion.encode().length > 0);
+        assertNotNull(dataVersion.toJson());
+    }
+
+    @Test
+    public void testJsonSerializationAndDeserialization() {
+        DataVersion expected = new DataVersion();
+        expected.setCounter(new AtomicLong(Long.MAX_VALUE));
+        expected.setTimestamp(expected.getTimestamp());
+        String jsonStr = expected.toJson();
+        assertNotNull(jsonStr);
+        DataVersion actual = JSON.parseObject(jsonStr, DataVersion.class);
+        assertNotNull(actual);
+        assertEquals(expected.getTimestamp(), actual.getTimestamp());
     }
 }

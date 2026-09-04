@@ -226,7 +226,11 @@ public class TransactionalMessageBridge {
             String.valueOf(msgInner.getQueueId()));
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
-        msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
+        if (null != store.getMessageStoreConfig() && store.getMessageStoreConfig().isTransRocksDBEnable() && !store.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
+            msgInner.setTopic(TransactionalMessageUtil.buildHalfTopicForRocksDB());
+        } else {
+            msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
+        }
         msgInner.setQueueId(0);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;

@@ -6,12 +6,12 @@
 extends ClientConfig 
 implements MQProducer`
 
->`DefaultMQProducer` is the entry point for an application to post messages, out of the box, ca  quickly create a producer with a no-argument construction. it is mainly responsible for message sending, support synchronous、asynchronous、one-way send. All of these send methods support batch send.  The parameters of the sender can be adjusted through the getter/setter methods , provided by this class. `DefaultMQProducer` has multi send method and each method is slightly different. Make  sure you know the usage before you use it . Blow is a producer example . [see more examples](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/).
+>`DefaultMQProducer` is the entry point for an application to post messages. Out of the box, you can quickly create a producer with a no-argument constructor. It is mainly responsible for message sending and supports synchronous, asynchronous, and one-way sends. All of these send methods support batch sends. The parameters of the sender can be adjusted through the getter/setter methods provided by this class. `DefaultMQProducer` has multiple send methods, and each method is slightly different. Make sure you know the usage before you use it. Below is a producer example. [See more examples](https://github.com/apache/rocketmq/blob/master/example/src/main/java/org/apache/rocketmq/example/).
 
 ``` java 
 public class Producer {
     public static void main(String[] args) throws MQClientException {
-        // create a produce with producer_group_name
+        // create a producer with producer_group_name
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName");
 
         // start the producer
@@ -55,7 +55,7 @@ public class Producer {
 |int|retryTimesWhenSendAsyncFailed|Maximum number of internal attempts to send a message in asynchronous mode|
 |boolean|retryAnotherBrokerWhenNotStoreOK|Whether to retry another broker if an internal send fails|
 |int|maxMessageSize| Maximum length of message body                                   |
-|TraceDispatcher|traceDispatcher| Message trackers. Use rcpHook to track messages              |
+|TraceDispatcher|traceDispatcher| Message trackers. Use rpcHook to track messages              |
 
 ### construction method 
 
@@ -68,4 +68,3 @@ public class Producer {
 |DefaultMQProducer(RPCHook rpcHook)|creates a producer with  a rpc hook.|
 |DefaultMQProducer(final String producerGroup, RPCHook rpcHook)|creates a producer with  a rpc hook and producer group.|
 |DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic)|all of above.|
-

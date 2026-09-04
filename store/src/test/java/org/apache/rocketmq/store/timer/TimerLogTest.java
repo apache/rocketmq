@@ -97,6 +97,42 @@ public class TimerLogTest {
         assertArrayEquals(expect, data);
     }
 
+    @Test
+    public void testAppendBlankByteBuffer() throws Exception {
+        TimerLog timerLog = createTimerLog(null);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(TimerLog.UNIT_SIZE);
+        byteBuffer.putInt(TimerLog.UNIT_SIZE);
+        byteBuffer.putLong(Long.MAX_VALUE);
+        byteBuffer.putInt(0);
+        byteBuffer.putLong(Long.MAX_VALUE);
+        byteBuffer.putInt(0);
+        byteBuffer.putLong(1000);
+        byteBuffer.putInt(10);
+        byteBuffer.putInt(123);
+        byteBuffer.putInt(0);
+        int maxAppend = 1024 / TimerLog.UNIT_SIZE + 1;
+        for (int i = 0; i < maxAppend; i++) {
+            timerLog.append(byteBuffer.array(), 0, TimerLog.UNIT_SIZE);
+        }
+        SelectMappedBufferResult sbr = timerLog.getWholeBuffer(0);
+        ByteBuffer bf = sbr.getByteBuffer();
+        for (int position = 0; position < sbr.getSize(); position += TimerLog.UNIT_SIZE) {
+            bf.position(position);
+            bf.getInt();
+            bf.getLong();
+            int magic = bf.getInt();
+            if (position / TimerLog.UNIT_SIZE == maxAppend - 1) {
+                assertEquals(TimerLog.BLANK_MAGIC_CODE, magic);
+                continue;
+            }
+            bf.getLong();
+            bf.getInt();
+            bf.getLong();
+            bf.getInt();
+            bf.getInt();
+        }
+    }
+
     @After
     public void shutdown() {
         for (TimerLog timerLog : timerLogs) {

@@ -75,7 +75,6 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -727,7 +726,7 @@ public class DefaultLitePullConsumerTest {
         field.setAccessible(true);
         field.set(litePullConsumerImpl, offsetStore);
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -746,9 +745,11 @@ public class DefaultLitePullConsumerTest {
                 }
             });
 
-        doAnswer(x -> new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+        doReturn(new FindBrokerResult("127.0.0.1:10911", false))
+            .when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
-        doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
+        String clientId = mQClientFactory.getClientId();
+        doReturn(Collections.singletonList(clientId)).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
 
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
     }
@@ -787,7 +788,7 @@ public class DefaultLitePullConsumerTest {
         field.setAccessible(true);
         field.set(litePullConsumerImpl, offsetStore);
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -807,7 +808,8 @@ public class DefaultLitePullConsumerTest {
                 }
             });
 
-        when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
+        doReturn(new FindBrokerResult("127.0.0.1:10911", false))
+            .when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
     }

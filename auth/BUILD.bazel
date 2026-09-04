@@ -36,7 +36,7 @@ java_library(
         "@maven//:com_google_protobuf_protobuf_java_util",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
-        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
+        "@maven//:org_rocksdb_rocksdbjni",
     ],
 )
 
@@ -63,7 +63,7 @@ java_library(
         "@maven//:com_google_protobuf_protobuf_java_util",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
-        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
+        "@maven//:org_rocksdb_rocksdbjni",
     ],
 )
 

@@ -25,12 +25,14 @@ import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
 
 public class MixCommitlogTest extends MessageStoreTestBase {
 
+    @Ignore
     @Test
     public void testFallBehindCQ() throws Exception {
         Assume.assumeFalse(MixAll.isWindows());

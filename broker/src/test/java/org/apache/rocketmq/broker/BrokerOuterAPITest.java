@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -334,12 +335,7 @@ public class BrokerOuterAPITest {
 
     @Test
     public void testPullMessageFromSpecificBrokerAsync_brokerReturn_pullStatusCode() throws Exception {
-        Channel channel = Mockito.mock(Channel.class);
-        when(channel.isActive()).thenReturn(true);
-        NettyRemotingClient mockClient = PowerMockito.spy(new NettyRemotingClient(new NettyClientConfig()));
-        DefaultChannelPromise promise = PowerMockito.spy(new DefaultChannelPromise(PowerMockito.mock(Channel.class), new DefaultEventExecutor()));
-        PowerMockito.when(mockClient, "getAndCreateChannelAsync", any()).thenReturn(promise);
-        when(promise.channel()).thenReturn(channel);
+        NettyRemotingClient mockClient = Mockito.mock(NettyRemotingClient.class);
         BrokerOuterAPI api = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
         Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
         field.setAccessible(true);
@@ -348,14 +344,12 @@ public class BrokerOuterAPITest {
         int[] respCodes = new int[] {ResponseCode.SUCCESS, ResponseCode.PULL_NOT_FOUND, ResponseCode.PULL_RETRY_IMMEDIATELY, ResponseCode.PULL_OFFSET_MOVED};
         PullStatus[] respStatus = new PullStatus[] {PullStatus.FOUND, PullStatus.NO_NEW_MSG, PullStatus.NO_MATCHED_MSG, PullStatus.OFFSET_ILLEGAL};
         for (int i = 0; i < respCodes.length; i++) {
-            CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
-            doReturn(future).when(mockClient).invokeImpl(any(Channel.class), any(RemotingCommand.class), anyLong());
             RemotingCommand response = mockPullMessageResponse(respCodes[i]);
-            ResponseFuture responseFuture = new ResponseFuture(channel, 0, null, 1000,
-                    resp -> { }, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
-            responseFuture.setResponseCommand(response);
-            promise.trySuccess(null);
-            future.complete(responseFuture);
+            Mockito.doAnswer(invocation -> {
+                InvokeCallback callback = invocation.getArgument(3);
+                callback.operationSucceed(response);
+                return null;
+            }).when(mockClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
             Triple<PullResult, String, Boolean> rst = api.pullMessageFromSpecificBrokerAsync("", "", "", "", 1, 1, 1, 3000L).join();
             Assert.assertEquals(respStatus[i], rst.getLeft().getPullStatus());

@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -119,6 +120,10 @@ public class ConsumerLagCalculator {
         public CalculateLagResult(String group, String topic, boolean isRetry) {
             super(group, topic, isRetry);
         }
+
+        public long getLagLatency() {
+            return earliestUnconsumedTimestamp == 0 ? 0 : System.currentTimeMillis() - earliestUnconsumedTimestamp;
+        }
     }
 
     public static class CalculateInflightResult extends BaseCalculateResult {
@@ -141,16 +146,22 @@ public class ConsumerLagCalculator {
     private void processAllGroup(Consumer<ProcessGroupInfo> consumer) {
         for (Map.Entry<String, SubscriptionGroupConfig> subscriptionEntry :
             subscriptionGroupManager.getSubscriptionGroupTable().entrySet()) {
-
             String group = subscriptionEntry.getKey();
+            SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
             ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
+
+            boolean isLite = StringUtils.isNotEmpty(subscriptionGroupConfig.getLiteBindTopic());
+            if (isLite) {
+                // lite consumer metrics are calculated by LiteConsumerLagCalculator
+                continue;
+            }
+
             boolean isPop = false;
             if (consumerGroupInfo != null) {
                 isPop = consumerGroupInfo.getConsumeType() == ConsumeType.CONSUME_POP;
             }
             Set<String> topics;
             if (brokerConfig.isUseStaticSubscription()) {
-                SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
                 if (subscriptionGroupConfig.getSubscriptionDataSet() == null ||
                     subscriptionGroupConfig.getSubscriptionDataSet().isEmpty()) {
                     continue;

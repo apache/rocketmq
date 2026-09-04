@@ -35,8 +35,9 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.HISTOGRAM_RPC_LATENCY;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE_KEY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.PROTOCOL_TYPE_REMOTING;
+
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_CANCELED;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_SUCCESS;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_WRITE_CHANNEL_FAILED;
@@ -53,7 +54,7 @@ public class RemotingMetricsManager {
             return Attributes.builder();
         }
         return this.attributesBuilderSupplier.get()
-            .put(LABEL_PROTOCOL_TYPE, PROTOCOL_TYPE_REMOTING);
+            .put(LABEL_PROTOCOL_TYPE_KEY, PROTOCOL_TYPE_REMOTING);
     }
 
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {

@@ -45,12 +45,31 @@ public class AllocateMappedFileService extends ServiceThread {
         new PriorityBlockingQueue<>();
     private volatile boolean hasException = false;
     private DefaultMessageStore messageStore;
+    private PreprocessHandler preprocessHandler;
 
     public AllocateMappedFileService(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
     }
 
+    /**
+     * Set preprocess handler for external extension
+     *
+     * @param preprocessHandler the preprocess handler
+     */
+    public void setPreprocessHandler(PreprocessHandler preprocessHandler) {
+        this.preprocessHandler = preprocessHandler;
+    }
+
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
+        // Execute preprocess logic if handler is set
+        final PreprocessHandler finalPreprocessHandler = this.preprocessHandler;
+        if (finalPreprocessHandler != null) {
+            try {
+                finalPreprocessHandler.preprocess(nextFilePath, nextNextFilePath, fileSize);
+            } catch (Throwable t) {
+                log.warn("Preprocess handler in AllocateMappedFileService execution failed", t);
+            }
+        }
         int canSubmitRequests = 2;
         if (this.messageStore.isTransientStorePoolEnable()) {
             if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
@@ -228,6 +247,21 @@ public class AllocateMappedFileService extends ServiceThread {
                 req.getCountDownLatch().countDown();
         }
         return true;
+    }
+
+    /**
+     * Preprocess handler interface for external extension
+     */
+    @FunctionalInterface
+    public interface PreprocessHandler {
+        /**
+         * Preprocess before allocating mapped file
+         *
+         * @param nextFilePath the next file path
+         * @param nextNextFilePath the next next file path
+         * @param fileSize the file size
+         */
+        void preprocess(String nextFilePath, String nextNextFilePath, int fileSize);
     }
 
     static class AllocateRequest implements Comparable<AllocateRequest> {

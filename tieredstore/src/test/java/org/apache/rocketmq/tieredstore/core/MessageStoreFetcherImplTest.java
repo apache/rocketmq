@@ -21,8 +21,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.DefaultMessageFilter;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -80,6 +82,9 @@ public class MessageStoreFetcherImplTest {
         GetMessageResult getMessageResult = fetcher.getMessageAsync(
             groupName, mq.getTopic(), 0, 0, 32, null).join();
         Assert.assertEquals(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE, getMessageResult.getStatus());
+
+        FieldUtils.writeField(fetcher,
+            "topicFilter", new MessageStoreTopicFilter(storeConfig), true);
 
         getMessageResult = fetcher.getMessageAsync(
             groupName, mq.getTopic(), mq.getQueueId(), 0, 32, null).join();
@@ -325,5 +330,9 @@ public class MessageStoreFetcherImplTest {
         queryMessageResult = fetcher.queryMessageAsync(
             mq.getTopic(), "uk", 120, 0L, System.currentTimeMillis()).join();
         Assert.assertEquals(100, queryMessageResult.getMessageBufferList().size());
+
+        queryMessageResult = fetcher.queryMessageAsync(TopicValidator.SYSTEM_TOPIC_PREFIX + mq.getTopic(),
+            "uk", 120, 0L, System.currentTimeMillis()).join();
+        Assert.assertEquals(0, queryMessageResult.getMessageBufferList().size());
     }
 }

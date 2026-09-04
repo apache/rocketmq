@@ -69,6 +69,32 @@ public interface ConsumerOrderInfoManager {
     boolean checkBlock(String attemptId, String topic, String group, int queueId, long invisibleTime);
 
     /**
+     * Check whether the given attemptId has already been registered in the order info of
+     * the topic and group, i.e. the request is an in-flight retry of a previous delivery
+     * of the same receive attempt
+     *
+     * @param attemptId Attempt ID
+     * @param topic     Topic name
+     * @param group     Consumer group name
+     * @return true indicates the attemptId is registered in some queue's order info
+     */
+    boolean isAttemptIdMatched(String attemptId, String topic, String group);
+
+    /**
+     * Remove the specified topic and group
+     * Usually called during topic deletion
+     *
+     * @param topic Topic name
+     * @param group Consumer group name
+     */
+    void remove(String topic, String group);
+
+    /**
+     * Get order info count
+     */
+    int getOrderInfoCount();
+
+    /**
      * Commit message and calculate next consumption offset
      * Called when consumer ACKs messages
      *
@@ -137,6 +163,7 @@ public interface ConsumerOrderInfoManager {
      * Get available message result
      * Used to retrieve messages from cache
      */
-    CompletableFuture<GetMessageResult> getAvailableMessageResult(String attemptId, long popTime, long invisibleTime, String groupId,
+    CompletableFuture<GetMessageResult> getAvailableMessageResult(String attemptId, long popTime, long invisibleTime,
+        String groupId,
         String topicId, int queueId, int batchSize, StringBuilder orderCountInfoBuilder);
 }

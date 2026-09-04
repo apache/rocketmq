@@ -74,7 +74,7 @@ public class TimerProducer {
             System.exit(-1);
         }
 
-        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('t').trim() : "localhost:9876";
+        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('n').trim() : "localhost:9876";
         topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         threadCount = commandLine.hasOption("tc") ? Integer.parseInt(commandLine.getOptionValue("tc")) : 16;
         messageSize = commandLine.hasOption("ms") ? Integer.parseInt(commandLine.getOptionValue("ms")) : 1024;

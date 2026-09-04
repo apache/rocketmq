@@ -536,7 +536,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
                 if (BrokerRole.SLAVE == this.messageStore.getMessageStoreConfig().getBrokerRole()) {
                     this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsPhysicalOffset(request.getCommitLogOffset());
                 return;
             } else {
                 // XXX: warn and notify me
@@ -1199,5 +1200,10 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     @Override
     public void initializeWithOffset(long offset, long minPhyOffset) {
         // not support now
+    }
+
+    @Override
+    public boolean shutdown() {
+        return true;
     }
 }

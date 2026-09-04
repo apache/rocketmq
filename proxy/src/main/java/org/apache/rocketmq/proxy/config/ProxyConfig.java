@@ -81,6 +81,7 @@ public class ProxyConfig implements ConfigFile {
      */
     private boolean tlsTestModeEnable = true;
     private String tlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
+    private String tlsKeyPassword = "";
     private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int tlsCertWatchIntervalMs = 60 * 60 * 1000; // 1 hour
     /**
@@ -94,6 +95,17 @@ public class ProxyConfig implements ConfigFile {
     private boolean enableGrpcEpoll = false;
     private int grpcThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int grpcThreadPoolQueueCapacity = 100000;
+
+    /**
+     * Maximum number of concurrent gRPC calls allowed per client connection.
+     * <p>
+     * A single client issuing excessively high concurrent requests may skew the validation load balancing
+     * and overload a single proxy instance (hotspot), potentially bringing it down. Limiting
+     * {@code grpcMaxConcurrentCallsPerConnection} helps mitigate this per-connection hotspot risk.
+     * <p>
+     * Note: Setting this limit too low may cause send/consume failures (e.g., backpressure or rejected calls).
+     */
+    private int grpcMaxConcurrentCallsPerConnection = Integer.MAX_VALUE;
     private String brokerConfigPath = ConfigurationManager.getProxyHome() + "/conf/broker.conf";
     /**
      * gRPC max message size
@@ -118,6 +130,13 @@ public class ProxyConfig implements ConfigFile {
      * max message group size, 0 or negative number means no limit for proxy
      */
     private int maxMessageGroupSize = 64;
+    /**
+     * max lite topic size
+     */
+    private int maxLiteTopicSize = 64;
+    private int maxLiteRenewNumPerChannel = 100;
+    // syncLiteSubscription request rate limit per proxy
+    private int maxSyncLiteSubscriptionRate = 5000;
 
     /**
      * When a message pops, the message is invisible by default
@@ -137,6 +156,8 @@ public class ProxyConfig implements ConfigFile {
     private long grpcClientConsumerMaxLongPollingTimeoutMillis = Duration.ofSeconds(20).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
     private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
+    private long grpcServerPermitKeepAliveTimeMillis = 30000;
+    private boolean grpcServerPermitKeepAliveWithoutCalls = true;
 
     private int channelExpiredInSeconds = 60;
     private int contextExpiredInSeconds = 30;
@@ -275,7 +296,7 @@ public class ProxyConfig implements ConfigFile {
     @Override
     public void initData() {
         parseDelayLevel();
-        if (StringUtils.isEmpty(localServeAddr)) {
+        if (StringUtils.isBlank(localServeAddr)) {
             this.localServeAddr = NetworkUtil.getLocalAddress();
         }
         if (StringUtils.isBlank(localServeAddr)) {
@@ -492,6 +513,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setTlsKeyPath(String tlsKeyPath) {
         this.tlsKeyPath = tlsKeyPath;
+    }
+
+    public String getTlsKeyPassword() {
+        return tlsKeyPassword;
+    }
+
+    public void setTlsKeyPassword(String tlsKeyPassword) {
+        this.tlsKeyPassword = tlsKeyPassword;
     }
 
     public String getTlsCertPath() {
@@ -1194,6 +1223,22 @@ public class ProxyConfig implements ConfigFile {
         this.grpcClientIdleTimeMills = grpcClientIdleTimeMills;
     }
 
+    public long getGrpcServerPermitKeepAliveTimeMillis() {
+        return grpcServerPermitKeepAliveTimeMillis;
+    }
+
+    public void setGrpcServerPermitKeepAliveTimeMillis(long grpcServerPermitKeepAliveTimeMillis) {
+        this.grpcServerPermitKeepAliveTimeMillis = grpcServerPermitKeepAliveTimeMillis;
+    }
+
+    public boolean isGrpcServerPermitKeepAliveWithoutCalls() {
+        return grpcServerPermitKeepAliveWithoutCalls;
+    }
+
+    public void setGrpcServerPermitKeepAliveWithoutCalls(boolean grpcServerPermitKeepAliveWithoutCalls) {
+        this.grpcServerPermitKeepAliveWithoutCalls = grpcServerPermitKeepAliveWithoutCalls;
+    }
+
     public String getRegionId() {
         return regionId;
     }
@@ -1224,10 +1269,6 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMetricsExporterType(MetricsExporterType metricsExporterType) {
         this.metricsExporterType = metricsExporterType;
-    }
-
-    public void setMetricsExporterType(int metricsExporterType) {
-        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
 
     public void setMetricsExporterType(String metricsExporterType) {
@@ -1538,11 +1579,43 @@ public class ProxyConfig implements ConfigFile {
         this.enableMessageBodyEmptyCheck = enableMessageBodyEmptyCheck;
     }
 
+    public int getMaxLiteTopicSize() {
+        return maxLiteTopicSize;
+    }
+
+    public void setMaxLiteTopicSize(int maxLiteTopicSize) {
+        this.maxLiteTopicSize = maxLiteTopicSize;
+    }
+
+    public int getMaxLiteRenewNumPerChannel() {
+        return maxLiteRenewNumPerChannel;
+    }
+
+    public void setMaxLiteRenewNumPerChannel(int maxLiteRenewNumPerChannel) {
+        this.maxLiteRenewNumPerChannel = maxLiteRenewNumPerChannel;
+    }
+
+    public int getMaxSyncLiteSubscriptionRate() {
+        return maxSyncLiteSubscriptionRate;
+    }
+
+    public void setMaxSyncLiteSubscriptionRate(int maxSyncLiteSubscriptionRate) {
+        this.maxSyncLiteSubscriptionRate = maxSyncLiteSubscriptionRate;
+    }
+
     public int getReturnHandleGroupThreadPoolNums() {
         return returnHandleGroupThreadPoolNums;
     }
 
     public void setReturnHandleGroupThreadPoolNums(int returnHandleGroupThreadPoolNums) {
         this.returnHandleGroupThreadPoolNums = returnHandleGroupThreadPoolNums;
+    }
+
+    public int getGrpcMaxConcurrentCallsPerConnection() {
+        return grpcMaxConcurrentCallsPerConnection;
+    }
+
+    public void setGrpcMaxConcurrentCallsPerConnection(int grpcMaxConcurrentCallsPerConnection) {
+        this.grpcMaxConcurrentCallsPerConnection = grpcMaxConcurrentCallsPerConnection;
     }
 }

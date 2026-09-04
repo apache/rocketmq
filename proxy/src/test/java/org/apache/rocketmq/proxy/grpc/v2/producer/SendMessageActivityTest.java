@@ -59,8 +59,10 @@ import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.rocketmq.proxy.service.route.TopicRouteService.buildPenalizerByMQFaultStrategy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -240,6 +242,35 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testBuildMessageWithLiteTopic() {
+        String msgId = MessageClientIDSetter.createUniqID();
+        String liteTopic = "build-test-lite-topic";
+        String topic = "build-test-topic";
+
+        org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(
+            ProxyContext.create(),
+            Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(msgId)
+                    .setQueueId(0)
+                    .setMessageType(MessageType.LITE)
+                    .setLiteTopic(liteTopic)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .build())
+                .setBody(ByteString.copyFromUtf8("test body"))
+                .build(),
+            "test-producer-group"
+        );
+
+        assertEquals(liteTopic, messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC));
+        assertNull(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH));
+    }
+
+    @Test
     public void testTxMessage() {
         String msgId = MessageClientIDSetter.createUniqID();
 
@@ -266,6 +297,34 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
         assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
         assertEquals(MessageSysFlag.TRANSACTION_PREPARED_TYPE | MessageSysFlag.COMPRESSED_FLAG, sendMessageActivity.buildSysFlag(message));
+    }
+
+    @Test
+    public void testPriorityMessage() {
+        String msgId = MessageClientIDSetter.createUniqID();
+        Message message = Message.newBuilder()
+            .setTopic(Resource.newBuilder()
+                .setName(TOPIC)
+                .build())
+            .setSystemProperties(SystemProperties.newBuilder()
+                .setMessageId(msgId)
+                .setQueueId(0)
+                .setMessageType(MessageType.PRIORITY)
+                .setPriority(5)
+                .setBodyEncoding(Encoding.GZIP)
+                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                .build())
+            .setBody(ByteString.copyFromUtf8("123"))
+            .build();
+        org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(null,
+            Lists.newArrayList(
+                message
+            ),
+            Resource.newBuilder().setName(TOPIC).build()).get(0);
+
+        assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
+        assertEquals(5, messageExt.getPriority());
     }
 
     @Test
@@ -351,7 +410,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
         when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
@@ -387,10 +446,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         mqFaultStrategy.updateFaultItem(BROKER_NAME2, 1000, true, true);
         mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, false);
 
-        TopicRouteService topicRouteService = mock(TopicRouteService.class);
-        when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
-
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, buildPenalizerByMQFaultStrategy(mqFaultStrategy));
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         assertEquals(firstSelect.getBrokerName(), BROKER_NAME2);
@@ -865,6 +921,36 @@ public class SendMessageActivityTest extends BaseActivityTest {
             } catch (ExecutionException t) {
                 GrpcProxyException e = (GrpcProxyException) t.getCause();
                 assertEquals(Code.ILLEGAL_DELIVERY_TIME, e.getCode());
+                throw e;
+            }
+        });
+
+        // transaction message cannot be delay message
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("id")
+                                .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis() + Duration.ofSeconds(5).toMillis()))
+                                .setQueueId(0)
+                                .setMessageType(MessageType.TRANSACTION)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.BAD_REQUEST, e.getCode());
+                assertEquals("transaction message cannot set delivery timestamp", e.getMessage());
                 throw e;
             }
         });

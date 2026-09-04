@@ -71,7 +71,7 @@ public class TlsCertificateManagerTest {
     @Before
     public void setUp() throws Exception {
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
         // Create temporary certificate and key files
         certFile = tempDir.newFile("server.crt");
         keyFile = tempDir.newFile("server.key");
