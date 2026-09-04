@@ -19,16 +19,19 @@ package org.apache.rocketmq.broker;
 
 import java.io.File;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.MessageStoreStateMachine;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.auth.config.AuthConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,10 +40,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class BrokerShutdownTest {
 
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 40;
+    private static final long EXECUTOR_TERMINATION_TIMEOUT_SECONDS = 5;
+
     private MessageStoreConfig messageStoreConfig;
     private BrokerConfig brokerConfig;
     private NettyServerConfig nettyServerConfig;
     private AuthConfig authConfig;
+    private BrokerController brokerController;
 
     @Before
     public void setUp() {
@@ -57,111 +64,61 @@ public class BrokerShutdownTest {
 
     @After
     public void destroy() {
+        if (brokerController != null && brokerController.getMessageStore() != null
+            && !brokerController.getMessageStore().isShutdown()) {
+            brokerController.shutdown();
+        }
         UtilAll.deleteFile(new File(messageStoreConfig.getStorePathRootDir()));
     }
 
     @Test
-    public void testBrokerGracefulShutdown() throws Exception {
-        // Test that broker shuts down gracefully with proper resource cleanup
-        BrokerController brokerController = new BrokerController(
-            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig, authConfig);
-        
-        // Initialize and start the broker
-        assertThat(brokerController.initialize()).isTrue();
-        brokerController.start();
-        
-        // Verify broker is running
-        assertThat(brokerController.getBrokerMetricsManager()).isNotNull();
-        
-        // Test graceful shutdown
-        long startTime = System.currentTimeMillis();
-        brokerController.shutdown();
-        long shutdownTime = System.currentTimeMillis() - startTime;
-        
-        // Shutdown should complete within reasonable time (10 seconds)
-        assertThat(shutdownTime).isLessThan(40000);
-    }
+    public void testBrokerGracefulShutdownAndResourceCleanup() throws Exception {
+        initializeAndStartBroker();
 
-    @Test
-    public void testChainedShutdownOrdering() throws Exception {
-        // Test that shutdown components are called in proper order
-        BrokerController brokerController = new BrokerController(
-            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig, authConfig);
-        
-        assertThat(brokerController.initialize()).isTrue();
-        
-        // Track shutdown order using atomic flags
-        AtomicBoolean metricsManagerShutdown = new AtomicBoolean(false);
-        AtomicBoolean brokerStatsShutdown = new AtomicBoolean(false);
-        
-        // Start broker
-        brokerController.start();
-        
-        // Verify services are initialized
-        assertThat(brokerController.getBrokerMetricsManager()).isNotNull();
-        assertThat(brokerController.getBrokerStatsManager()).isNotNull();
-        
-        // Shutdown should not throw exceptions
-        brokerController.shutdown();
-        
-        // After shutdown, services should be properly cleaned up
-        // (We can't easily verify the exact order without modifying the implementation,
-        // but we can verify shutdown completes successfully)
-        assertThat(true).isTrue(); // Placeholder for successful completion
-    }
-
-    @Test
-    public void testShutdownWithConcurrentOperations() throws Exception {
-        // Test shutdown behavior when concurrent operations are running
-        BrokerController brokerController = new BrokerController(
-            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig, authConfig);
-        
-        assertThat(brokerController.initialize()).isTrue();
-        brokerController.start();
-        
-        CountDownLatch shutdownLatch = new CountDownLatch(1);
-        AtomicBoolean shutdownSuccess = new AtomicBoolean(false);
-        
-        // Simulate concurrent shutdown from another thread
-        Thread shutdownThread = new Thread(() -> {
-            try {
-                brokerController.shutdown();
-                shutdownSuccess.set(true);
-            } catch (Exception e) {
-                // Should not happen in graceful shutdown
-            } finally {
-                shutdownLatch.countDown();
-            }
-        });
-        
-        shutdownThread.start();
-        
-        // Wait for shutdown to complete
-        assertThat(shutdownLatch.await(40, TimeUnit.SECONDS)).isTrue();
-        assertThat(shutdownSuccess.get()).isTrue();
-    }
-
-    @Test
-    public void testResourceCleanupDuringShutdown() throws Exception {
-        // Test that resources are properly cleaned up during shutdown
-        BrokerController brokerController = new BrokerController(
-            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig, authConfig);
-        
-        assertThat(brokerController.initialize()).isTrue();
-        
-        // Verify essential components are initialized
+        MessageStore messageStore = brokerController.getMessageStore();
         assertThat(brokerController.getBrokerMetricsManager()).isNotNull();
         assertThat(brokerController.getBrokerStatsManager()).isNotNull();
         assertThat(brokerController.getConsumerOffsetManager()).isNotNull();
         assertThat(brokerController.getTopicConfigManager()).isNotNull();
-        
-        brokerController.start();
-        
-        // Shutdown should clean up all resources
+
+        long startTime = System.nanoTime();
         brokerController.shutdown();
-        
-        // After shutdown, the broker should be in a clean state
-        // We verify this by ensuring a second shutdown call doesn't cause issues
-        brokerController.shutdown(); // Should be safe to call multiple times
+        long shutdownTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+
+        assertThat(shutdownTime).isLessThan(TimeUnit.SECONDS.toMillis(SHUTDOWN_TIMEOUT_SECONDS));
+        assertThat(messageStore.isShutdown()).isTrue();
+        assertThat(messageStore.getStateMachine().getCurrentState())
+            .isEqualTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_OK);
+
+        // Repeated shutdown should keep the broker in a clean state.
+        brokerController.shutdown();
+        assertThat(messageStore.getStateMachine().getCurrentState())
+            .isEqualTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_OK);
+    }
+
+    @Test
+    public void testShutdownFromAnotherThread() throws Exception {
+        initializeAndStartBroker();
+
+        MessageStore messageStore = brokerController.getMessageStore();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> shutdownFuture = executor.submit(brokerController::shutdown);
+            shutdownFuture.get(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+            executor.awaitTermination(EXECUTOR_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
+
+        assertThat(messageStore.isShutdown()).isTrue();
+        assertThat(messageStore.getStateMachine().getCurrentState())
+            .isEqualTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_OK);
+    }
+
+    private void initializeAndStartBroker() throws Exception {
+        brokerController = new BrokerController(
+            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig, authConfig);
+        assertThat(brokerController.initialize()).isTrue();
+        brokerController.start();
     }
 }
