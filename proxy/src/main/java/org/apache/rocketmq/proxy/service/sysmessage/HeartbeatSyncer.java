@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.sysmessage;
 
 import com.alibaba.fastjson2.JSON;
+import com.google.common.base.MoreObjects;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
@@ -47,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
@@ -131,16 +133,19 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     );
                     data.setSubscriptionDataSet(subList);
 
-                    log.debug("sync register heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
+                    log.debug("sync register heart beat. topic:{}, dataSummary:{}",
+                        this.getBroadcastTopicName(), summarizeHeartbeatData(data));
                     this.sendSystemMessage(data);
                 } catch (Throwable t) {
-                    log.error("heartbeat register broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}, messageModel:{}, consumeFromWhere:{}, subList:{}",
-                        consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere, subList, t);
+                    log.error("heartbeat register broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}, messageModel:{}, consumeFromWhere:{}, subscriptionSummary:{}",
+                        consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere,
+                        summarizeSubscriptionDataSet(subList), t);
                 }
             });
         } catch (Throwable t) {
-            log.error("heartbeat submit register broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}, messageModel:{}, consumeFromWhere:{}, subList:{}",
-                consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere, subList, t);
+            log.error("heartbeat submit register broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}, messageModel:{}, consumeFromWhere:{}, subscriptionSummary:{}",
+                consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere,
+                summarizeSubscriptionDataSet(subList), t);
         }
     }
 
@@ -168,7 +173,8 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                         remoteChannel.encode()
                     );
 
-                    log.debug("sync unregister heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
+                    log.debug("sync unregister heart beat. topic:{}, dataSummary:{}",
+                        this.getBroadcastTopicName(), summarizeHeartbeatData(data));
                     this.sendSystemMessage(data);
                 } catch (Throwable t) {
                     log.error("heartbeat unregister broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}",
@@ -188,8 +194,9 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         }
 
         for (MessageExt msg : msgs) {
+            HeartbeatSyncerData data = null;
             try {
-                HeartbeatSyncerData data = JSON.parseObject(new String(msg.getBody(), StandardCharsets.UTF_8), HeartbeatSyncerData.class);
+                data = JSON.parseObject(new String(msg.getBody(), StandardCharsets.UTF_8), HeartbeatSyncerData.class);
                 if (data.getLocalProxyId().equals(localProxyId)) {
                     continue;
                 }
@@ -203,7 +210,8 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     data.getLanguage(),
                     data.getVersion()
                 );
-                log.debug("start process remote channel. data:{}, clientChannelInfo:{}", data, clientChannelInfo);
+                log.debug("start process remote channel. dataSummary:{}, clientChannelInfo:{}",
+                    summarizeHeartbeatData(data), clientChannelInfo);
                 if (data.getHeartbeatType().equals(HeartbeatType.REGISTER)) {
                     this.consumerManager.registerConsumer(
                         data.getGroup(),
@@ -222,11 +230,29 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     );
                 }
             } catch (Throwable t) {
-                log.error("heartbeat consume message failed. msg:{}, data:{}", msg, new String(msg.getBody(), StandardCharsets.UTF_8), t);
+                log.error("heartbeat consume message failed. summary:{}", summarizeHeartbeatMessage(msg, data), t);
             }
         }
 
         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+    }
+
+    static String summarizeHeartbeatMessage(MessageExt msg, HeartbeatSyncerData data) {
+        if (msg == null) {
+            return "msg=null";
+        }
+        StringBuilder summary = new StringBuilder()
+            .append("topic=").append(msg.getTopic())
+            .append(", msgId=").append(msg.getMsgId())
+            .append(", bodySize=").append(msg.getBody() == null ? 0 : msg.getBody().length);
+        if (data != null) {
+            summary.append(", heartbeatType=").append(data.getHeartbeatType())
+                .append(", group=").append(data.getGroup())
+                .append(", clientId=").append(data.getClientId())
+                .append(", subscriptionCount=")
+                .append(data.getSubscriptionDataSet() == null ? 0 : data.getSubscriptionDataSet().size());
+        }
+        return summary.toString();
     }
 
     private String buildLocalProxyId() {
@@ -238,4 +264,50 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
     private static String buildKey(String group, Channel channel) {
         return group + "@" + channel.id().asLongText();
     }
+
+    static String summarizeHeartbeatData(HeartbeatSyncerData data) {
+        if (data == null) {
+            return "null";
+        }
+        return MoreObjects.toStringHelper("HeartbeatSyncerData")
+            .add("heartbeatType", data.getHeartbeatType())
+            .add("clientId", data.getClientId())
+            .add("language", data.getLanguage())
+            .add("version", data.getVersion())
+            .add("group", data.getGroup())
+            .add("consumeType", data.getConsumeType())
+            .add("messageModel", data.getMessageModel())
+            .add("consumeFromWhere", data.getConsumeFromWhere())
+            .add("localProxyId", data.getLocalProxyId())
+            .add("channelDataPresent", data.getChannelData() != null)
+            .add("subscriptionSummary", summarizeSubscriptionDataSet(data.getSubscriptionDataSet()))
+            .toString();
+    }
+
+    static String summarizeSubscriptionDataSet(Set<SubscriptionData> subscriptions) {
+        if (subscriptions == null) {
+            return "null";
+        }
+        List<String> topics = subscriptions.stream()
+            .map(SubscriptionData::getTopic)
+            .sorted()
+            .collect(Collectors.toList());
+        return MoreObjects.toStringHelper("SubscriptionDataSet")
+            .add("count", subscriptions.size())
+            .add("topics", topics)
+            .toString();
+    }
+
+    static String summarizeSystemMessage(MessageExt msg) {
+        if (msg == null) {
+            return "null";
+        }
+        byte[] body = msg.getBody();
+        return MoreObjects.toStringHelper("MessageExt")
+            .add("topic", msg.getTopic())
+            .add("msgId", msg.getMsgId())
+            .add("bodyBytes", body == null ? 0 : body.length)
+            .toString();
+    }
+
 }

@@ -23,9 +23,11 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SubscriptionEntry;
+import com.alibaba.fastjson2.JSON;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,6 +79,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -215,6 +218,88 @@ public class HeartbeatSyncerTest extends InitConfigTest {
         heartbeatSyncer.localProxyId = RandomStringUtils.randomAlphabetic(10);
         heartbeatSyncer.consumeMessage(Lists.newArrayList(convertFromMessage(messageArgumentCaptor.getAllValues().get(1))), null);
         assertSame(channelInfoList.get(0).getChannel(), syncUnRegisterChannelInfoArgumentCaptor.getValue().getChannel());
+    }
+
+    @Test
+    public void testSummarizeHeartbeatDataDoesNotExposeSubscriptionExpressions() throws Exception {
+        String expression = "secretTagA || secretTagB";
+        HeartbeatSyncerData data = new HeartbeatSyncerData(
+            HeartbeatType.REGISTER,
+            clientId,
+            LanguageCode.JAVA,
+            5,
+            "consumerGroup",
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            "proxy-0",
+            "raw-channel-data"
+        );
+        data.setSubscriptionDataSet(Sets.newHashSet(
+            FilterAPI.buildSubscriptionData("topic-a", expression),
+            FilterAPI.buildSubscriptionData("topic-b", "*")
+        ));
+
+        String summary = HeartbeatSyncer.summarizeHeartbeatData(data);
+
+        assertTrue(summary.contains("heartbeatType=REGISTER"));
+        assertTrue(summary.contains("clientId=" + clientId));
+        assertTrue(summary.contains("group=consumerGroup"));
+        assertTrue(summary.contains("channelDataPresent=true"));
+        assertTrue(summary.contains("count=2"));
+        assertTrue(summary.contains("topic-a"));
+        assertTrue(summary.contains("topic-b"));
+        assertFalse(summary.contains(expression));
+        assertFalse(summary.contains("raw-channel-data"));
+    }
+
+    @Test
+    public void testSummarizeSystemMessageDataAvoidsDetailedHeartbeatPayload() throws Exception {
+        HeartbeatSyncerData data = new HeartbeatSyncerData(
+            HeartbeatType.REGISTER,
+            clientId,
+            LanguageCode.JAVA,
+            5,
+            "sensitiveGroup",
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            "localProxyId",
+            "sensitiveChannelData"
+        );
+        data.setSubscriptionDataSet(Sets.newHashSet(FilterAPI.buildSubscriptionData("sensitiveTopic", "sensitiveTag")));
+
+        String summary = AbstractSystemMessageSyncer.summarizeSystemMessageData(data);
+
+        assertTrue(summary.contains("HeartbeatSyncerData"));
+        assertTrue(summary.contains("heartbeatType=REGISTER"));
+        assertTrue(summary.contains("subscriptionCount=1"));
+        assertTrue(summary.contains("channelDataPresent=true"));
+        assertFalse(summary.contains(clientId));
+        assertFalse(summary.contains("sensitiveGroup"));
+        assertFalse(summary.contains("sensitiveTopic"));
+        assertFalse(summary.contains("sensitiveTag"));
+        assertFalse(summary.contains("sensitiveChannelData"));
+    }
+
+    @Test
+    public void testSummarizeSystemMessageDataUsesClassNameForAnonymousPayload() {
+        Object data = new Object() {
+        };
+
+        assertEquals(data.getClass().getName(), AbstractSystemMessageSyncer.summarizeSystemMessageData(data));
+    }
+
+    @Test
+    public void testSafelySummarizeSystemMessageDataDoesNotPropagateFailures() {
+        HeartbeatSyncerData data = new HeartbeatSyncerData() {
+            @Override
+            public Set<SubscriptionData> getSubscriptionDataSet() {
+                throw new IllegalStateException("summary failure");
+            }
+        };
+
+        assertEquals("unavailable", AbstractSystemMessageSyncer.safelySummarizeSystemMessageData(data));
     }
 
     @Test
@@ -386,6 +471,53 @@ public class HeartbeatSyncerTest extends InitConfigTest {
 
         heartbeatSyncer.processConsumerGroupEvent(ConsumerGroupEvent.CLIENT_UNREGISTER, consumerGroup, channelInfoArgumentCaptor.getValue());
         assertTrue(heartbeatSyncer.remoteChannelMap.isEmpty());
+    }
+
+    @Test
+    public void testSummarizeHeartbeatMessageDoesNotExposeSubscriptionOrChannelData() throws Exception {
+        SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("topic", "secret-tag");
+        HeartbeatSyncerData data = new HeartbeatSyncerData(
+            HeartbeatType.REGISTER,
+            "client-secret",
+            LanguageCode.JAVA,
+            5,
+            "consumerGroup",
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            "proxyId",
+            "secret-channel-data"
+        );
+        data.setSubscriptionDataSet(Sets.newHashSet(subscriptionData));
+        MessageExt msg = new MessageExt();
+        msg.setTopic("heartbeatTopic");
+        msg.setMsgId("msgId");
+        msg.setBody(JSON.toJSONString(data).getBytes(StandardCharsets.UTF_8));
+
+        String summary = HeartbeatSyncer.summarizeHeartbeatMessage(msg, data);
+
+        assertTrue(summary.contains("topic=heartbeatTopic"));
+        assertTrue(summary.contains("msgId=msgId"));
+        assertTrue(summary.contains("heartbeatType=REGISTER"));
+        assertTrue(summary.contains("group=consumerGroup"));
+        assertTrue(summary.contains("subscriptionCount=1"));
+        assertFalse(summary.contains("secret-tag"));
+        assertFalse(summary.contains("secret-channel-data"));
+    }
+
+    @Test
+    public void testSummarizeHeartbeatMessageDoesNotExposeUnparsedBody() {
+        MessageExt msg = new MessageExt();
+        msg.setTopic("heartbeatTopic");
+        msg.setMsgId("msgId");
+        msg.setBody("raw-secret-body".getBytes(StandardCharsets.UTF_8));
+
+        String summary = HeartbeatSyncer.summarizeHeartbeatMessage(msg, null);
+
+        assertTrue(summary.contains("topic=heartbeatTopic"));
+        assertTrue(summary.contains("msgId=msgId"));
+        assertTrue(summary.contains("bodySize=15"));
+        assertFalse(summary.contains("raw-secret-body"));
     }
 
     private MessageExt convertFromMessage(Message message) {
