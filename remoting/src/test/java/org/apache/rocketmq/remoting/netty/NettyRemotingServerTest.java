@@ -23,6 +23,9 @@ import io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ThreadPoolExecutor;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,6 +53,11 @@ public class NettyRemotingServerTest {
         nettyRemotingServer = new NettyRemotingServer(nettyServerConfig);
     }
 
+    @After
+    public void tearDown() {
+        nettyRemotingServer.shutdown();
+    }
+
     @Test
     public void handleHAProxyTLV() {
         when(channel.attr(any(AttributeKey.class))).thenReturn(attribute);
@@ -59,5 +67,40 @@ public class NettyRemotingServerTest {
         content.writeBytes("xxxx".getBytes(StandardCharsets.UTF_8));
         HAProxyTLV haProxyTLV = new HAProxyTLV((byte) 0xE1, content);
         nettyRemotingServer.handleHAProxyTLV(haProxyTLV, channel);
+    }
+
+    @Test
+    public void publicExecutorShouldUseBoundedQueue() {
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setServerCallbackExecutorThreads(1);
+        nettyServerConfig.setServerCallbackExecutorQueueCapacity(3);
+        NettyRemotingServer remotingServer = new NettyRemotingServer(nettyServerConfig);
+
+        try {
+            ThreadPoolExecutor publicExecutor = (ThreadPoolExecutor) remotingServer.getCallbackExecutor();
+
+            Assert.assertEquals(1, publicExecutor.getCorePoolSize());
+            Assert.assertEquals(1, publicExecutor.getMaximumPoolSize());
+            Assert.assertEquals(3, publicExecutor.getQueue().remainingCapacity());
+            Assert.assertTrue(publicExecutor.getRejectedExecutionHandler() instanceof ThreadPoolExecutor.CallerRunsPolicy);
+        } finally {
+            remotingServer.shutdown();
+        }
+    }
+
+    @Test
+    public void publicExecutorShouldFallBackToDefaultQueueCapacityWhenMisconfigured() {
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setServerCallbackExecutorThreads(1);
+        nettyServerConfig.setServerCallbackExecutorQueueCapacity(0);
+        NettyRemotingServer remotingServer = new NettyRemotingServer(nettyServerConfig);
+
+        try {
+            ThreadPoolExecutor publicExecutor = (ThreadPoolExecutor) remotingServer.getCallbackExecutor();
+
+            Assert.assertEquals(10000, publicExecutor.getQueue().remainingCapacity());
+        } finally {
+            remotingServer.shutdown();
+        }
     }
 }

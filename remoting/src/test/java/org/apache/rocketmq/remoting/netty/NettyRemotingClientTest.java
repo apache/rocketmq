@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
@@ -37,6 +38,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -64,11 +66,53 @@ public class NettyRemotingClientTest {
     @Mock
     private RPCHook rpcHookMock;
 
+    @After
+    public void tearDown() {
+        remotingClient.shutdown();
+    }
+
     @Test
     public void testSetCallbackExecutor() {
         ExecutorService customized = Executors.newCachedThreadPool();
         remotingClient.setCallbackExecutor(customized);
         assertThat(remotingClient.getCallbackExecutor()).isEqualTo(customized);
+        customized.shutdown();
+    }
+
+    @Test
+    public void publicExecutorShouldUseBoundedQueue() {
+        NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        nettyClientConfig.setClientCallbackExecutorThreads(1);
+        nettyClientConfig.setClientCallbackExecutorQueueCapacity(3);
+        NettyRemotingClient client = new NettyRemotingClient(nettyClientConfig);
+
+        try {
+            ThreadPoolExecutor publicExecutor = (ThreadPoolExecutor) client.getCallbackExecutor();
+
+            assertThat(publicExecutor.getCorePoolSize()).isEqualTo(1);
+            assertThat(publicExecutor.getMaximumPoolSize()).isEqualTo(1);
+            assertThat(publicExecutor.getQueue().remainingCapacity()).isEqualTo(3);
+            assertThat(publicExecutor.getRejectedExecutionHandler())
+                .isInstanceOf(ThreadPoolExecutor.CallerRunsPolicy.class);
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    @Test
+    public void publicExecutorShouldFallBackToDefaultQueueCapacityWhenMisconfigured() {
+        NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        nettyClientConfig.setClientCallbackExecutorThreads(1);
+        nettyClientConfig.setClientCallbackExecutorQueueCapacity(0);
+        NettyRemotingClient client = new NettyRemotingClient(nettyClientConfig);
+
+        try {
+            ThreadPoolExecutor publicExecutor = (ThreadPoolExecutor) client.getCallbackExecutor();
+
+            assertThat(publicExecutor.getQueue().remainingCapacity()).isEqualTo(10000);
+        } finally {
+            client.shutdown();
+        }
     }
 
     @Test
