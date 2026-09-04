@@ -43,7 +43,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
@@ -58,6 +60,8 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.CMResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
@@ -210,6 +214,72 @@ public class ClientActivityTest extends BaseActivityTest {
         SubscriptionData data = subscriptionDatasArgumentCaptor.getValue().stream().findAny().get();
         assertEquals("TAG", data.getExpressionType());
         assertEquals("tag", data.getSubString());
+    }
+
+    @Test
+    public void testConsumerHeartbeatReuseSubVersionForSameSubscription() throws Throwable {
+        ProxyContext context = createContext();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(buildConsumerSettings("tag"));
+        mockConsumerGroupInfo(buildTagSubscriptionData("tag", 123L));
+
+        ArgumentCaptor<Set<SubscriptionData>> subscriptionDatasArgumentCaptor = ArgumentCaptor.forClass(Set.class);
+        doNothing().when(this.messagingProcessor).registerConsumer(any(), anyString(), any(), any(), any(), any(),
+            subscriptionDatasArgumentCaptor.capture(), anyBoolean());
+
+        HeartbeatResponse response = this.sendConsumerHeartbeat(context);
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        SubscriptionData data = subscriptionDatasArgumentCaptor.getValue().stream().findAny().get();
+        assertThat(data.getSubVersion()).isEqualTo(123L);
+    }
+
+    @Test
+    public void testConsumerHeartbeatUseNewSubVersionWhenSubscriptionChanged() throws Throwable {
+        ProxyContext context = createContext();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(buildConsumerSettings("tagB"));
+        mockConsumerGroupInfo(buildTagSubscriptionData("tagA", 123L));
+
+        ArgumentCaptor<Set<SubscriptionData>> subscriptionDatasArgumentCaptor = ArgumentCaptor.forClass(Set.class);
+        doNothing().when(this.messagingProcessor).registerConsumer(any(), anyString(), any(), any(), any(), any(),
+            subscriptionDatasArgumentCaptor.capture(), anyBoolean());
+
+        HeartbeatResponse response = this.sendConsumerHeartbeat(context);
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        SubscriptionData data = subscriptionDatasArgumentCaptor.getValue().stream().findAny().get();
+        assertThat(data.getSubVersion()).isGreaterThan(123L);
+        assertThat(data.getSubString()).isEqualTo("tagB");
+    }
+
+    private Settings buildConsumerSettings(String tag) {
+        return Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression(tag)
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+    }
+
+    private void mockConsumerGroupInfo(SubscriptionData subscriptionData) {
+        ConsumerGroupInfo consumerGroupInfo = new ConsumerGroupInfo(CONSUMER_GROUP, ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        consumerGroupInfo.getSubscriptionTable().put(TOPIC, subscriptionData);
+        when(this.messagingProcessor.getConsumerGroupInfo(any(), anyString())).thenReturn(consumerGroupInfo);
+    }
+
+    private SubscriptionData buildTagSubscriptionData(String tag, long subVersion) {
+        SubscriptionData subscriptionData = new SubscriptionData(TOPIC, tag);
+        subscriptionData.getTagsSet().add(tag);
+        subscriptionData.getCodeSet().add(tag.hashCode());
+        subscriptionData.setSubVersion(subVersion);
+        return subscriptionData;
     }
 
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {
