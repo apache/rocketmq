@@ -14,33 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.store.ha;
 
-public enum HAConnectionState {
-    /**
-     * Ready to start connection.
-     */
-    READY,
-    /**
-     * CommitLog consistency checking.
-     */
-    HANDSHAKE,
-    /**
-     * Synchronizing data.
-     */
-    TRANSFER,
-    /**
-     * Temporarily stop transferring.
-     */
-    SUSPEND,
-    /**
-     * Connection shutdown.
-     */
-    SHUTDOWN;
+import org.junit.Assert;
+import org.junit.Test;
 
-    public static HAConnectionState fromOrdinal(int ordinal) {
-        HAConnectionState[] states = values();
-        return ordinal >= 0 && ordinal < states.length ? states[ordinal] : null;
+public class HAConnectionStateTest {
+
+    @Test
+    public void testFromOrdinal() {
+        Assert.assertEquals(HAConnectionState.READY, HAConnectionState.fromOrdinal(0));
+        Assert.assertEquals(HAConnectionState.SHUTDOWN,
+            HAConnectionState.fromOrdinal(HAConnectionState.values().length - 1));
+        Assert.assertNull(HAConnectionState.fromOrdinal(-1));
+        Assert.assertNull(HAConnectionState.fromOrdinal(HAConnectionState.values().length));
     }
 }
