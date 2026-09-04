@@ -31,6 +31,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class RemotingCommandTest {
     @Test
+    public void testDecodeRejectsShortFrame() {
+        Assert.assertThrows(RemotingCommandException.class,
+            () -> RemotingCommand.decode(new byte[] {0, 0, 0}));
+    }
+
+    @Test
+    public void testDecodeRejectsUnknownSerializeType() {
+        Assert.assertThrows(RemotingCommandException.class,
+            () -> RemotingCommand.decode(new byte[] {Byte.MAX_VALUE, 0, 0, 0}));
+    }
+
+    @Test
     public void testMarkProtocolType_JSONProtocolType() {
         int source = 261;
         SerializeType type = SerializeType.JSON;
