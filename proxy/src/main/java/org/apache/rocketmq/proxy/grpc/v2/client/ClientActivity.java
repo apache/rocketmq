@@ -33,8 +33,6 @@ import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
 import com.google.common.collect.ImmutableSet;
-import io.grpc.Context;
-import io.grpc.Metadata;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
@@ -52,7 +50,6 @@ import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
-import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.lite.LiteSubscriptionAction;
@@ -102,8 +99,6 @@ public class ClientActivity extends AbstractMessagingActivity {
         CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
 
         try {
-            // RIP-2: heartbeat is the authoritative liveness signal for admin client views.
-            GrpcClientChannel adminChannel = touchAdminClientChannel(ctx);
             Settings clientSettings = grpcClientSettingsManager.getClientSettings(ctx);
             if (clientSettings == null) {
                 future.complete(HeartbeatResponse.newBuilder()
@@ -135,18 +130,11 @@ public class ClientActivity extends AbstractMessagingActivity {
                     return future;
                 }
             }
-            if (adminChannel != null) {
-                adminChannel.recordHeartbeat(true, Code.OK.name());
-            }
             future.complete(HeartbeatResponse.newBuilder()
                 .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .build());
             return future;
         } catch (Throwable t) {
-            GrpcClientChannel failedChannel = touchAdminClientChannel(ctx);
-            if (failedChannel != null) {
-                failedChannel.recordHeartbeat(false, t.getMessage());
-            }
             future.completeExceptionally(t);
         }
         return future;
@@ -297,9 +285,6 @@ public class ClientActivity extends AbstractMessagingActivity {
                 try {
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
-                            // RIP-2: telemetry SETTINGS also proves liveness (initial handshake and
-                            // every settings refresh), refresh the admin activity timestamp.
-                            touchAdminClientChannel(ctx);
                             processAndWriteClientSettings(ctx, request, responseObserver);
                             break;
                         }
@@ -328,36 +313,6 @@ public class ClientActivity extends AbstractMessagingActivity {
                 responseObserver.onCompleted();
             }
         };
-    }
-
-    /**
-     * RIP-2: mark the client channel active for the admin view and capture the authenticated
-     * username (written into the request metadata by the data-plane authentication pipeline).
-     * Never throws: admin tracking must not affect the data path.
-     */
-    protected GrpcClientChannel touchAdminClientChannel(ProxyContext ctx) {
-        try {
-            String clientId = ctx.getClientID();
-            if (StringUtils.isBlank(clientId)) {
-                return null;
-            }
-            GrpcClientChannel channel = this.grpcChannelManager.getChannel(clientId);
-            if (channel == null) {
-                return null;
-            }
-            channel.touch();
-            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
-            if (metadata != null) {
-                String username = metadata.get(GrpcConstants.AUTHORIZATION_AK);
-                if (StringUtils.isNotBlank(username)) {
-                    channel.recordAuthUsername(username);
-                }
-            }
-            return channel;
-        } catch (Throwable t) {
-            log.debug("RIP-2 admin channel tracking failed", t);
-            return null;
-        }
     }
 
     private static LiteSubscriptionAction toLiteAction(apache.rocketmq.v2.LiteSubscriptionAction gRpcAction) {

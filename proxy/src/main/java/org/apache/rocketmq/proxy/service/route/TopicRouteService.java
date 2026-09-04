@@ -22,9 +22,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -53,56 +51,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    /**
-     * RIP-2: observer hook invoked whenever a topic route is loaded or refreshed from the
-     * NameServer, powering the admin SubscribeRouteEvents / DescribeRouteTopology surface.
-     */
-    public interface RouteRefreshListener {
-        /**
-         * Invoked when a topic route is loaded for the first time (or re-loaded after expiry).
-         */
-        default void onRouteLoaded(String topic, MessageQueueView view) {
-        }
-
-        /**
-         * Invoked when a cached topic route is refreshed; {@code oldView} is the previous value.
-         */
-        default void onRouteRefreshed(String topic, MessageQueueView oldView, MessageQueueView newView) {
-        }
-    }
-
     private final MQFaultStrategy mqFaultStrategy;
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
     protected final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
     protected MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider = new DefaultMessageQueuePriorityProvider();
-    private final List<RouteRefreshListener> routeRefreshListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
-
-    public void addRouteRefreshListener(RouteRefreshListener listener) {
-        if (listener != null) {
-            this.routeRefreshListeners.add(listener);
-        }
-    }
-
-    private void notifyRouteLoaded(String topic, MessageQueueView view) {
-        for (RouteRefreshListener listener : routeRefreshListeners) {
-            try {
-                listener.onRouteLoaded(topic, view);
-            } catch (Throwable t) {
-                log.warn("RIP-2 route refresh listener failed. topic:{}", topic, t);
-            }
-        }
-    }
-
-    private void notifyRouteRefreshed(String topic, MessageQueueView oldView, MessageQueueView newView) {
-        for (RouteRefreshListener listener : routeRefreshListeners) {
-            try {
-                listener.onRouteRefreshed(topic, oldView, newView);
-            } catch (Throwable t) {
-                log.warn("RIP-2 route refresh listener failed. topic:{}", topic, t);
-            }
-        }
-    }
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -125,12 +78,9 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView load(String topic) throws Exception {
                     try {
                         TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
-                        MessageQueueView view = buildMessageQueueView(topic, topicRouteData);
-                        notifyRouteLoaded(topic, view);
-                        return view;
+                        return buildMessageQueueView(topic, topicRouteData);
                     } catch (Exception e) {
                         if (TopicRouteHelper.isTopicNotExistError(e)) {
-                            notifyRouteLoaded(topic, MessageQueueView.WRAPPED_EMPTY_QUEUE);
                             return MessageQueueView.WRAPPED_EMPTY_QUEUE;
                         }
                         throw e;
@@ -141,16 +91,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
-                        TopicRouteData topicRouteData = mqClientAPIFactory.getClient()
-                            .getTopicRouteInfoFromNameServer(key, Duration.ofSeconds(3).toMillis());
-                        MessageQueueView newValue = buildMessageQueueView(key, topicRouteData);
-                        notifyRouteRefreshed(key, oldValue, newValue);
-                        return newValue;
+                        return load(key);
                     } catch (Exception e) {
-                        if (TopicRouteHelper.isTopicNotExistError(e)) {
-                            notifyRouteRefreshed(key, oldValue, MessageQueueView.WRAPPED_EMPTY_QUEUE);
-                            return MessageQueueView.WRAPPED_EMPTY_QUEUE;
-                        }
                         log.warn(String.format("reload topic route from namesrv. topic: %s", key), e);
                         return oldValue;
                     }
@@ -231,15 +173,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     public MessageQueueView getAllMessageQueueView(ProxyContext ctx, String topicName) throws Exception {
         return getCacheMessageQueueWrapper(this.topicCache, topicName);
     }
-
-    /**
-     * RIP-2: read-only snapshot of the cached topic route views, used by the admin
-     * DescribeRouteTopology surface. The returned map is a detached copy.
-     */
-    public Map<String, MessageQueueView> snapshotTopicRouteCache() {
-        return new HashMap<>(this.topicCache.asMap());
-    }
-
 
     public abstract MessageQueueView getCurrentMessageQueueView(ProxyContext ctx, String topicName) throws Exception;
 

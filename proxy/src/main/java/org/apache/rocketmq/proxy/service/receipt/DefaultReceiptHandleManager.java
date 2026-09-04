@@ -150,21 +150,6 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         return handleGroup == null ? 0 : handleGroup.getMsgCount();
     }
 
-    @Override
-    public void scanReceiptHandles(ReceiptHandleScanVisitor visitor) {
-        if (visitor == null) {
-            return;
-        }
-        for (Map.Entry<ReceiptHandleGroupKey, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
-            ReceiptHandleGroupKey groupKey = entry.getKey();
-            try {
-                entry.getValue().scan((msgID, handleStr, handle) -> visitor.onHandle(groupKey, handle));
-            } catch (Throwable t) {
-                log.warn("RIP-2 receipt handle scan failed for group key:{}", groupKey, t);
-            }
-        }
-    }
-
     protected boolean clientIsOffline(ReceiptHandleGroupKey groupKey) {
         return this.consumerManager.findChannel(groupKey.getGroup(), groupKey.getChannel()) == null;
     }
