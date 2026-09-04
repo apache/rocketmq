@@ -265,8 +265,16 @@ public class MQClientInstance {
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
-                String[] item = broker.split(":");
-                int nums = Integer.parseInt(item[1]);
+                String[] item = broker.split(":", 2);
+                if (item.length != 2) {
+                    continue;
+                }
+                int nums;
+                try {
+                    nums = Integer.parseInt(item[1]);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
                 for (int i = 0; i < nums; i++) {
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
                     info.getMessageQueueList().add(mq);

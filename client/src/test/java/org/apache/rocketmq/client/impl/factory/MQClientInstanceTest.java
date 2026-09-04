@@ -252,6 +252,17 @@ public class MQClientInstanceTest {
     }
 
     @Test
+    public void testTopicRouteData2TopicPublishInfoSkipsMalformedOrderTopicConf() {
+        TopicRouteData topicRouteData = createTopicRouteData();
+        topicRouteData.setOrderTopicConf("missing-count;invalid:not-a-number;127.0.0.1:2");
+
+        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
+
+        assertTrue(actual.isOrderTopic());
+        assertEquals(2, actual.getMessageQueueList().size());
+    }
+
+    @Test
     public void testTopicRouteData2TopicPublishInfoWithTopicQueueMappingByBroker() {
         TopicRouteData topicRouteData = createTopicRouteData();
         topicRouteData.setTopicQueueMappingByBroker(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
