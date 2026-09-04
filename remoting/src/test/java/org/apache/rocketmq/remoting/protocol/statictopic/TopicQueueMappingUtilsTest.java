@@ -31,6 +31,23 @@ import org.junit.Test;
 
 public class TopicQueueMappingUtilsTest {
 
+    @Test
+    public void testCheckAndBuildMappingItemsChoosesLatestEpochWithoutOverflow() {
+        TopicQueueMappingDetail latest = buildMappingDetail("latest", Long.MAX_VALUE);
+        TopicQueueMappingDetail stale = buildMappingDetail("stale", 0);
+
+        Map<Integer, TopicQueueMappingOne> result = TopicQueueMappingUtils.checkAndBuildMappingItems(
+            new ArrayList<>(java.util.Arrays.asList(latest, stale)), true, false);
+
+        Assert.assertEquals("latest", result.get(0).getBname());
+    }
+
+    private TopicQueueMappingDetail buildMappingDetail(String brokerName, long epoch) {
+        TopicQueueMappingDetail detail = new TopicQueueMappingDetail("topic", 1, brokerName, epoch);
+        LogicQueueMappingItem item = new LogicQueueMappingItem(0, 0, brokerName, 0, 0, -1, -1, -1);
+        detail.getHostedQueues().put(0, new ArrayList<>(Collections.singletonList(item)));
+        return detail;
+    }
 
     private Set<String> buildTargetBrokers(int num) {
         return buildTargetBrokers(num, "");
