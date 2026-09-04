@@ -123,10 +123,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     // sharable handlers
     protected final TlsModeHandler tlsModeHandler = new TlsModeHandler(TlsSystemConfig.tlsMode);
-    protected final NettyEncoder encoder = new NettyEncoder();
+    protected final NettyEncoder encoder;
     protected final NettyConnectManageHandler connectionManageHandler = new NettyConnectManageHandler();
     protected final NettyServerHandler serverHandler = new NettyServerHandler();
-    protected final RemotingCodeDistributionHandler distributionHandler = new RemotingCodeDistributionHandler();
+    protected final RemotingCodeDistributionHandler distributionHandler;
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
         this(nettyServerConfig, null);
@@ -138,6 +138,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         this.serverBootstrap = new ServerBootstrap();
         this.nettyServerConfig = nettyServerConfig;
         this.channelEventListener = channelEventListener;
+        this.distributionHandler = new RemotingCodeDistributionHandler();
+        this.encoder = new NettyEncoder(distributionHandler);
 
         this.publicExecutor = buildPublicExecutor(nettyServerConfig);
         this.scheduledExecutorService = buildScheduleExecutor();
@@ -296,8 +298,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
             .addLast(getDefaultEventExecutorGroup(),
                 encoder,
-                new NettyDecoder(),
-                distributionHandler,
+                new NettyDecoder(distributionHandler),
                 new IdleStateHandler(0, 0,
                     nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
                 connectionManageHandler,
@@ -445,6 +446,18 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             if (outBoundSnapshotString != null) {
                 TRAFFIC_LOGGER.info("Port: {}, ResponseCode Distribution: {}",
                     nettyServerConfig.getListenPort(), outBoundSnapshotString);
+            }
+
+            String inBoundTrafficSnapshotString = distributionHandler.getInBoundTrafficSnapshotString();
+            if (inBoundTrafficSnapshotString != null) {
+                TRAFFIC_LOGGER.info("Port: {}, RequestCode Traffic(byte): {}",
+                    nettyServerConfig.getListenPort(), inBoundTrafficSnapshotString);
+            }
+
+            String outBoundTrafficSnapshotString = distributionHandler.getOutBoundTrafficSnapshotString();
+            if (outBoundTrafficSnapshotString != null) {
+                TRAFFIC_LOGGER.info("Port: {}, ResponseCode Traffic(byte): {}",
+                    nettyServerConfig.getListenPort(), outBoundTrafficSnapshotString);
             }
         }
     }

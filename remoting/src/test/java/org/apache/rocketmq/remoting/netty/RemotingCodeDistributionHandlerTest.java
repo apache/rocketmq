@@ -16,45 +16,96 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import java.lang.reflect.Method;
-import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
-
-import static org.awaitility.Awaitility.await;
 
 public class RemotingCodeDistributionHandlerTest {
 
-    private final RemotingCodeDistributionHandler distributionHandler = new RemotingCodeDistributionHandler();
+    private RemotingCodeDistributionHandler handler;
+
+    @Before
+    public void setUp() {
+        handler = new RemotingCodeDistributionHandler();
+    }
 
     @Test
-    public void remotingCodeCountTest() throws Exception {
-        Class<RemotingCodeDistributionHandler> clazz = RemotingCodeDistributionHandler.class;
-        Method methodIn = clazz.getDeclaredMethod("countInbound", int.class);
-        Method methodOut = clazz.getDeclaredMethod("countOutbound", int.class);
-        methodIn.setAccessible(true);
-        methodOut.setAccessible(true);
+    public void testInboundCountAndTraffic() {
+        handler.recordInbound(100, 512);
+        handler.recordInbound(100, 1024);
 
+        Assert.assertEquals("{100:2}", handler.getInBoundSnapshotString());
+        Assert.assertEquals("{100:1536}", handler.getInBoundTrafficSnapshotString());
+    }
+
+    @Test
+    public void testOutboundCountAndTraffic() {
+        handler.recordOutbound(0, 256);
+        handler.recordOutbound(0, 256);
+        handler.recordOutbound(0, 512);
+
+        Assert.assertEquals("{0:3}", handler.getOutBoundSnapshotString());
+        Assert.assertEquals("{0:1024}", handler.getOutBoundTrafficSnapshotString());
+    }
+
+    @Test
+    public void testMultipleRequestCodes() {
+        handler.recordInbound(10, 200);
+        handler.recordInbound(10, 200);
+        handler.recordInbound(20, 300);
+
+        String countSnapshot = handler.getInBoundSnapshotString();
+        Assert.assertNotNull(countSnapshot);
+        Assert.assertTrue(countSnapshot.contains("10:2"));
+        Assert.assertTrue(countSnapshot.contains("20:1"));
+
+        String trafficSnapshot = handler.getInBoundTrafficSnapshotString();
+        Assert.assertNotNull(trafficSnapshot);
+        Assert.assertTrue(trafficSnapshot.contains("10:400"));
+        Assert.assertTrue(trafficSnapshot.contains("20:300"));
+    }
+
+    @Test
+    public void testSnapshotResetsAfterRead() {
+        handler.recordInbound(400, 100);
+
+        Assert.assertNotNull(handler.getInBoundSnapshotString());
+        Assert.assertNotNull(handler.getInBoundTrafficSnapshotString());
+
+        // Second read returns null after sumThenReset
+        Assert.assertNull(handler.getInBoundSnapshotString());
+        Assert.assertNull(handler.getInBoundTrafficSnapshotString());
+    }
+
+    @Test
+    public void testEmptySnapshotReturnsNull() {
+        Assert.assertNull(handler.getInBoundSnapshotString());
+        Assert.assertNull(handler.getOutBoundSnapshotString());
+        Assert.assertNull(handler.getInBoundTrafficSnapshotString());
+        Assert.assertNull(handler.getOutBoundTrafficSnapshotString());
+    }
+
+    @Test
+    public void testConcurrentAccess() throws Exception {
         int threadCount = 4;
-        int count = 1000 * 1000;
+        int countPerThread = 100_000;
+        int wireSize = 512;
         CountDownLatch latch = new CountDownLatch(threadCount);
-        AtomicBoolean result = new AtomicBoolean(true);
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount, new ThreadFactoryImpl("RemotingCodeTest_"));
+        AtomicBoolean success = new AtomicBoolean(true);
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
 
         for (int i = 0; i < threadCount; i++) {
-            executorService.submit(() -> {
+            executor.submit(() -> {
                 try {
-                    for (int j = 0; j < count; j++) {
-                        methodIn.invoke(distributionHandler, 1);
-                        methodOut.invoke(distributionHandler, 2);
+                    for (int j = 0; j < countPerThread; j++) {
+                        handler.recordInbound(1, wireSize);
                     }
                 } catch (Exception e) {
-                    result.set(false);
+                    success.set(false);
                 } finally {
                     latch.countDown();
                 }
@@ -62,11 +113,13 @@ public class RemotingCodeDistributionHandlerTest {
         }
 
         latch.await();
-        Assert.assertTrue(result.get());
-        await().pollInterval(Duration.ofMillis(100)).atMost(Duration.ofSeconds(10)).until(() -> {
-            boolean f1 = ("{1:" + count * threadCount + "}").equals(distributionHandler.getInBoundSnapshotString());
-            boolean f2 = ("{2:" + count * threadCount + "}").equals(distributionHandler.getOutBoundSnapshotString());
-            return f1 && f2;
-        });
+        Assert.assertTrue(success.get());
+
+        long totalCount = threadCount * (long) countPerThread;
+        long totalTraffic = totalCount * wireSize;
+        Assert.assertEquals("{1:" + totalCount + "}", handler.getInBoundSnapshotString());
+        Assert.assertEquals("{1:" + totalTraffic + "}", handler.getInBoundTrafficSnapshotString());
+
+        executor.shutdown();
     }
 }
