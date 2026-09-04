@@ -147,9 +147,11 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         // configure prefix indexing to improve the performance of scans.
         // However, in the current implementation, this is not the bottleneck.
         List<PopConsumerRecord> consumerRecordList = new ArrayList<>();
-        try (ReadOptions scanOptions = new ReadOptions()
-            .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lower).array()))
-            .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upper).array()));
+        try (Slice lowerBound = new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lower).array());
+             Slice upperBound = new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upper).array());
+             ReadOptions scanOptions = new ReadOptions()
+                 .setIterateLowerBound(lowerBound)
+                 .setIterateUpperBound(upperBound);
              RocksIterator iterator = db.newIterator(this.columnFamilyHandle, scanOptions)) {
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lower).array());
             while (iterator.isValid() && consumerRecordList.size() < maxCount) {
