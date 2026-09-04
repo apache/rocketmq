@@ -202,7 +202,7 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(464);
+        StringBuilder sb = new StringBuilder(557);
         sb.append("SendMessageRequestHeader{producerGroup=").append(producerGroup)
             .append(", topic=").append(topic)
             .append(", defaultTopic=").append(defaultTopic)

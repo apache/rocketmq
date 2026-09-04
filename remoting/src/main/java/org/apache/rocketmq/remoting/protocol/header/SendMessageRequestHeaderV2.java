@@ -307,7 +307,7 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(144);
+        StringBuilder sb = new StringBuilder(456);
         sb.append("SendMessageRequestHeaderV2{a=").append(a)
             .append(", b=").append(b)
             .append(", c=").append(c)

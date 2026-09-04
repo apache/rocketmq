@@ -97,7 +97,7 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(352);
+        StringBuilder sb = new StringBuilder(391);
         sb.append("AckMessageRequestHeader{");
         boolean first = true;
         if (consumerGroup != null) {

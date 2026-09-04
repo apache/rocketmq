@@ -124,7 +124,7 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(384);
+        StringBuilder sb = new StringBuilder(451);
         sb.append("ChangeInvisibleTimeRequestHeader{");
         boolean first = true;
         if (consumerGroup != null) {

@@ -106,7 +106,7 @@ public class ConsumerSendMsgBackRequestHeader extends RpcRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(384);
+        StringBuilder sb = new StringBuilder(284);
         sb.append("ConsumerSendMsgBackRequestHeader{offset=").append(offset)
             .append(", group=").append(group)
             .append(", delayLevel=").append(delayLevel)

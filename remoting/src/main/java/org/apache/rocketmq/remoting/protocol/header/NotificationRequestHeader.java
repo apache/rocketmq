@@ -147,7 +147,7 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(160);
+        StringBuilder sb = new StringBuilder(314);
         sb.append("NotificationRequestHeader{");
         boolean first = true;
         if (consumerGroup != null) {

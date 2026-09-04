@@ -123,7 +123,7 @@ public class PopLiteMessageRequestHeader extends RpcRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(176);
+        StringBuilder sb = new StringBuilder(318);
         sb.append("PopLiteMessageRequestHeader{consumerGroup=").append(consumerGroup)
             .append(", topic=").append(topic)
             .append(", maxMsgNum=").append(maxMsgNum)

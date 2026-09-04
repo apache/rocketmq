@@ -84,7 +84,7 @@ public class UpdateConsumerOffsetRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(144);
+        StringBuilder sb = new StringBuilder(205);
         sb.append("UpdateConsumerOffsetRequestHeader{consumerGroup=").append(consumerGroup)
             .append(", topic=").append(topic)
             .append(", queueId=").append(queueId)

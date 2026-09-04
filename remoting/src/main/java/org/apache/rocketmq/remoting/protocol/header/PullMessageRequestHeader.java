@@ -331,7 +331,7 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(512);
+        StringBuilder sb = new StringBuilder(671);
         sb.append("PullMessageRequestHeader{consumerGroup=").append(consumerGroup)
             .append(", topic=").append(topic)
             .append(", liteTopic=").append(liteTopic)

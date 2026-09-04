@@ -173,7 +173,7 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(416);
+        StringBuilder sb = new StringBuilder(384);
         sb.append("PopMessageRequestHeader{consumerGroup=").append(consumerGroup)
             .append(", topic=").append(topic)
             .append(", queueId=").append(queueId)
