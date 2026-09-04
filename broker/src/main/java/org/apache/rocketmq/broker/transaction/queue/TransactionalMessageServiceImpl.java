@@ -67,6 +67,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private static final int SLEEP_WHILE_NO_OP = 1000;
 
+    private static final int PUT_BACK_RETRY_TIMES = 3;
+
     private final ConcurrentHashMap<Integer, MessageQueueOpContext> deleteContext = new ConcurrentHashMap<>();
 
     private ServiceThread transactionalOpBatchService;
@@ -298,9 +300,30 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
                         if (isNeedCheck) {
 
-                            if (!putBackHalfMsgQueue(msgExt, i)) {
+                            int retryTimes = 0;
+                            boolean putBackSuccess = false;
+                            while (retryTimes < PUT_BACK_RETRY_TIMES) {
+                                putBackSuccess = putBackHalfMsgQueue(msgExt, i);
+                                if (putBackSuccess) {
+                                    break;
+                                }
+                                retryTimes++;
+                                if (retryTimes < PUT_BACK_RETRY_TIMES) {
+                                    try {
+                                        Thread.sleep(100L * retryTimes);
+                                    } catch (InterruptedException ignored) {
+                                    }
+                                }
+                            }
+
+                            if (!putBackSuccess) {
+                                log.error("PutBackToHalfQueue failed after {} retries, skip this message. topic={}, queueId={}, offset={}, msgId={}",
+                                    PUT_BACK_RETRY_TIMES, msgExt.getTopic(), msgExt.getQueueId(), i, msgExt.getMsgId());
+                                newOffset = i + 1;
+                                i++;
                                 continue;
                             }
+
                             putInQueueCount++;
                             log.info("Check transaction. real_topic={},uniqKey={},offset={},commitLogOffset={}",
                                     msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC),
