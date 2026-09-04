@@ -48,6 +48,20 @@ public class KeyBuilderTest {
     }
 
     @Test
+    public void testParseNormalTopicDoesNotStripAnotherGroup() {
+        String retryTopic = KeyBuilder.buildPopRetryTopicV1(topic, "another-group");
+
+        assertThat(KeyBuilder.parseNormalTopic(retryTopic, group)).isEqualTo(retryTopic);
+    }
+
+    @Test
+    public void testParseNormalTopicDoesNotFailForRegularRetryTopic() {
+        String retryTopic = MixAll.RETRY_GROUP_TOPIC_PREFIX + group;
+
+        assertThat(KeyBuilder.parseNormalTopic(retryTopic, group)).isEqualTo(retryTopic);
+    }
+
+    @Test
     public void testParseGroup() {
         String popRetryTopic = KeyBuilder.buildPopRetryTopicV2(topic, group);
         assertThat(KeyBuilder.parseGroup(popRetryTopic)).isEqualTo(group);
