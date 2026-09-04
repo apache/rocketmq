@@ -11,10 +11,9 @@ Resources (ACL 2.0 keys; modeled as cluster-typed literals with reserved names):
 | Resource key | Protects |
 |---|---|
 | `cluster:proxy.admin.client` | online client query & client diagnostics |
-| `cluster:proxy.admin.config` | runtime config query & hot update |
-| `cluster:proxy.admin.connection` | kick/disconnect clients, telemetry commands (HIGH) |
-| `cluster:proxy.admin.quota` | quota query & adjustment (adjust = HIGH) |
-| `cluster:proxy.admin.route` | route topology & route event stream |
+| `cluster:proxy.admin.config` | proxy runtime log-level change |
+| `cluster:proxy.admin.connection` | client-directed telemetry commands: thread stack, verify message (HIGH) |
+| `cluster:proxy.admin.route` | topic route view |
 | `cluster:proxy.admin.ops` | broker-facing ops: stats/topic status/message query (read) and reset offset / delete subscription / admin send (HIGH) |
 
 Action classes:
@@ -41,7 +40,7 @@ Online clients, subscriptions, accumulation, diagnostics, config/route views.
 ```bash
 sh mqadmin updateAcl -n <namesrv-addr> \
   -s user:rip2-ro \
-  -r cluster:proxy.admin.client,cluster:proxy.admin.config,cluster:proxy.admin.quota,cluster:proxy.admin.route,cluster:proxy.admin.ops \
+  -r cluster:proxy.admin.client,cluster:proxy.admin.config,cluster:proxy.admin.route,cluster:proxy.admin.ops \
   -a Get,List \
   -d Allow
 ```
@@ -49,9 +48,10 @@ sh mqadmin updateAcl -n <namesrv-addr> \
 Note: `Get,List` on `proxy.admin.ops` covers the read-only broker-facing RPCs;
 the mutating ops RPCs require `Update`/`Delete`/`Pub` and stay denied.
 
-### Role B — On-call operator (observer + connection control)
+### Role B — On-call operator (observer + client diagnostics commands)
 
-Role A plus the ability to kick misbehaving clients.
+Role A plus the ability to direct telemetry commands (thread stack / verify
+message) at a connected client.
 
 ```bash
 sh mqadmin updateAcl -n <namesrv-addr> \
@@ -64,13 +64,12 @@ sh mqadmin updateAcl -n <namesrv-addr> \
 
 ### Role C — Admin (full control, break-glass)
 
-Config hot update, quota adjustment, offset reset, subscription deletion,
-admin send.
+Offset reset, subscription deletion, admin send, client diagnostics commands.
 
 ```bash
 sh mqadmin updateAcl -n <namesrv-addr> \
   -s user:rip2-admin \
-  -r cluster:proxy.admin.client,cluster:proxy.admin.config,cluster:proxy.admin.connection,cluster:proxy.admin.quota,cluster:proxy.admin.route,cluster:proxy.admin.ops \
+  -r cluster:proxy.admin.client,cluster:proxy.admin.config,cluster:proxy.admin.connection,cluster:proxy.admin.route,cluster:proxy.admin.ops \
   -a Get,List,Update,Delete,Pub \
   -d Allow
 ```
