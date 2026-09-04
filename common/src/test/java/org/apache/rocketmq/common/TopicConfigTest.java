@@ -75,4 +75,16 @@ public class TopicConfigTest {
 
         assertThat(decodeTopicConfig).isEqualTo(topicConfig);
     }
+
+    @Test
+    public void testDecodeMalformedConfigDoesNotMutateState() {
+        TopicConfig topicConfig = new TopicConfig("original", 4, 4, perm);
+
+        boolean decoded = topicConfig.decode("changed invalid 8 6 SINGLE_TAG");
+
+        assertThat(decoded).isFalse();
+        assertThat(topicConfig.getTopicName()).isEqualTo("original");
+        assertThat(topicConfig.getReadQueueNums()).isEqualTo(4);
+        assertThat(topicConfig.getWriteQueueNums()).isEqualTo(4);
+    }
 }
