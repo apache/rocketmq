@@ -33,6 +33,7 @@ import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManag
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Environment;
 import org.apache.rocketmq.auth.authorization.model.Resource;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -62,7 +63,9 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -131,6 +134,8 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
@@ -144,6 +149,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -157,6 +163,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -184,6 +191,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -199,9 +207,11 @@ public class AdminBrokerProcessorTest {
     @Mock
     private Channel channel;
 
+    private final AuthConfig authConfig = new AuthConfig();
+
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
-        new MessageStoreConfig(), null);
+        new MessageStoreConfig(), authConfig);
 
     @Mock
     private MessageStore messageStore;
@@ -254,6 +264,8 @@ public class AdminBrokerProcessorTest {
 
     @Before
     public void init() throws Exception {
+        authConfig.setAuthenticationEnabled(true);
+        authConfig.setAuthenticationWhitelist(null);
         brokerController.setMessageStore(messageStore);
         brokerController.setAuthenticationMetadataManager(authenticationMetadataManager);
         brokerController.setAuthorizationMetadataManager(authorizationMetadataManager);
@@ -336,6 +348,36 @@ public class AdminBrokerProcessorTest {
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testResumeCheckHalfMessageRejectsMismatchedTopic() throws Exception {
+        RemotingCommand request = createResumeCheckHalfMessageCommand();
+        when(messageStore.selectOneMessageByOffset(any(Long.class)))
+            .thenReturn(createSelectMappedBufferResult("otherTopic"));
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).isEqualTo("The topic does not match the transaction message");
+        verify(messageStore, never()).putMessage(any());
+    }
+
+    @Test
+    public void testResumeCheckHalfMessageAcceptsMatchingTopic() throws Exception {
+        RemotingCommand request = createResumeCheckHalfMessageCommand();
+        when(messageStore.selectOneMessageByOffset(any(Long.class)))
+            .thenReturn(createSelectMappedBufferResult("topic"));
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class)))
+            .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, null));
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        ArgumentCaptor<MessageExtBrokerInner> messageCaptor = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        verify(messageStore).putMessage(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getProperty(MessageConst.PROPERTY_REAL_TOPIC)).isEqualTo("topic");
+        assertThat(messageCaptor.getValue().getProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES)).isEqualTo("0");
     }
 
     @Test
@@ -1282,7 +1324,7 @@ public class AdminBrokerProcessorTest {
         getUserRequestHeader.setUsername("abc");
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, getUserRequestHeader);
         request.setVersion(441);
-        request.addExtField("AccessKey", "rocketmq");
+        request.addExtField("AccessKey", "abc");
         request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
@@ -1293,8 +1335,53 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testGetUserBySuperUser() throws RemotingCommandException {
+        when(authenticationMetadataManager.isSuperUser(eq("rocketmq")))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "rocketmq");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        UserInfo userInfo = JSON.parseObject(
+            new String(response.getBody(), StandardCharsets.UTF_8), UserInfo.class);
+        assertThat(userInfo.getPassword()).isEqualTo("normal-user-secret");
+    }
+
+    @Test
+    public void testGetUserByOtherNormalUserDoesNotReturnPassword() throws RemotingCommandException {
+        when(authenticationMetadataManager.isSuperUser(eq("other")))
+            .thenReturn(CompletableFuture.completedFuture(false));
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "other");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        UserInfo userInfo = JSON.parseObject(content, UserInfo.class);
+        assertThat(userInfo.getUsername()).isEqualTo("abc");
+        assertThat(userInfo.getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+    }
+
+    @Test
     public void testListUser() throws RemotingCommandException {
-        when(authenticationMetadataManager.listUser(eq("abc"))).thenReturn(CompletableFuture.completedFuture(Arrays.asList(User.of("abc", "123", UserType.NORMAL))));
+        when(authenticationMetadataManager.listUser(eq("abc"))).thenReturn(
+            CompletableFuture.completedFuture(Arrays.asList(
+                User.of("abc", "normal-user-secret", UserType.NORMAL),
+                User.of("super", "super-user-secret", UserType.SUPER))));
 
         ListUsersRequestHeader listUserRequestHeader = new ListUsersRequestHeader();
         listUserRequestHeader.setFilter("abc");
@@ -1304,10 +1391,81 @@ public class AdminBrokerProcessorTest {
         request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        List<UserInfo> userInfo = JSON.parseArray(new String(response.getBody()), UserInfo.class);
-        assertThat(userInfo.get(0).getUsername()).isEqualTo("abc");
-        assertThat(userInfo.get(0).getPassword()).isEqualTo("123");
-        assertThat(userInfo.get(0).getUserType()).isEqualTo("Normal");
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        List<UserInfo> users = JSON.parseArray(content, UserInfo.class);
+        assertThat(users.get(0).getUsername()).isEqualTo("abc");
+        assertThat(users.get(0).getUserType()).isEqualTo("Normal");
+        assertThat(users).allMatch(user -> user.getPassword() == null);
+        assertThat(content).doesNotContain("password", "normal-user-secret", "super-user-secret");
+    }
+
+    @Test
+    public void testListUserByNormalUserDoesNotReturnPassword() throws RemotingCommandException {
+        when(authenticationMetadataManager.listUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(
+                User.of("abc", "normal-user-secret", UserType.NORMAL))));
+
+        ListUsersRequestHeader requestHeader = new ListUsersRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_LIST_USER, requestHeader);
+        request.addExtField("AccessKey", "abc");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        List<UserInfo> users = JSON.parseArray(content, UserInfo.class);
+        assertThat(users).hasSize(1);
+        assertThat(users.get(0).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+        verify(authenticationMetadataManager, never()).isSuperUser(anyString());
+    }
+
+    @Test
+    public void testGetUserWithoutAuthenticatedIdentityDoesNotReturnPassword() throws RemotingCommandException {
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        assertThat(JSON.parseObject(content, UserInfo.class).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+    }
+
+    @Test
+    public void testGetUserDoesNotTrustAccessKeyWhenAuthenticationDisabled() throws RemotingCommandException {
+        authConfig.setAuthenticationEnabled(false);
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "abc");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        assertThat(JSON.parseObject(content, UserInfo.class).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+    }
+
+    @Test
+    public void testGetUserDoesNotTrustAccessKeyWhenAuthenticationIsWhitelisted() throws RemotingCommandException {
+        authConfig.setAuthenticationWhitelist(String.valueOf(RequestCode.AUTH_GET_USER));
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "abc");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        assertThat(JSON.parseObject(content, UserInfo.class).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
     }
 
     @Test
@@ -1893,6 +2051,17 @@ public class AdminBrokerProcessorTest {
     private SelectMappedBufferResult createSelectMappedBufferResult() {
         SelectMappedBufferResult result = new SelectMappedBufferResult(0, ByteBuffer.allocate(1024), 0, new DefaultMappedFile());
         return result;
+    }
+
+    private SelectMappedBufferResult createSelectMappedBufferResult(String realTopic) throws Exception {
+        MessageExt message = createDefaultMessageExt();
+        message.setBody("body".getBytes(StandardCharsets.UTF_8));
+        message.setTopic(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
+        message.setBornHost(new InetSocketAddress("127.0.0.1", 10911));
+        message.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_REAL_TOPIC, realTopic);
+        ByteBuffer buffer = ByteBuffer.wrap(MessageDecoder.encode(message, false));
+        return new SelectMappedBufferResult(0, buffer, buffer.remaining(), null);
     }
 
     private ResumeCheckHalfMessageRequestHeader createResumeCheckHalfMessageRequestHeader() {

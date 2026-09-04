@@ -61,6 +61,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
         TimerMessageStore.TIMER_TOPIC,
         TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC,
+        TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC,
         TopicValidator.RMQ_SYS_TRANS_CHECK_MAX_TIME_TOPIC));
     private final BrokerController brokerController;
 

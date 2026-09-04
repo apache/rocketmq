@@ -35,6 +35,19 @@ public class GrpcUtils {
         }
     }
 
+    /**
+     * Replaces the current value for a metadata key. A null value clears the key.
+     */
+    public static <T> void putHeader(Metadata headers, Metadata.Key<T> key, T value) {
+        if (headers == null) {
+            return;
+        }
+        headers.discardAll(key);
+        if (value != null) {
+            headers.put(key, value);
+        }
+    }
+
     public static <R, W, T> T getAttribute(ServerCall<R, W> call, Attributes.Key<T> key) {
         Attributes attributes = call.getAttributes();
         if (attributes == null) {
