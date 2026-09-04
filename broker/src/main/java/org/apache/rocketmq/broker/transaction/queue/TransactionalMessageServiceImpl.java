@@ -61,6 +61,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     private static final int MAX_PROCESS_TIME_LIMIT = 60000;
     private static final int MAX_RETRY_TIMES_FOR_ESCAPE = 10;
 
+    static long escapeRetryBackoffMillis(int escapeFailCnt) {
+        return 100L * (1 << escapeFailCnt);
+    }
+
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
 
     private static final int OP_MSG_PULL_NUMS = 32;
@@ -250,7 +254,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                     msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                                 if (escapeFailCnt < MAX_RETRY_TIMES_FOR_ESCAPE) {
                                     escapeFailCnt++;
-                                    Thread.sleep(100L * (2 ^ escapeFailCnt));
+                                    Thread.sleep(escapeRetryBackoffMillis(escapeFailCnt));
                                 } else {
                                     escapeFailCnt = 0;
                                     newOffset = i + 1;
