@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * This class is the entry point for applications intending to send messages. </p>
@@ -162,6 +163,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Instance for batching message automatically
      */
     private ProduceAccumulator produceAccumulator = null;
+    private final AtomicBoolean produceAccumulatorStarted = new AtomicBoolean(false);
 
     /**
      * Indicate whether to block message when asynchronous sending traffic is too heavy.
@@ -374,7 +376,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void start() throws MQClientException {
         this.setProducerGroup(withNamespace(this.producerGroup));
         this.defaultMQProducerImpl.start();
-        if (this.produceAccumulator != null) {
+        if (this.produceAccumulator != null && this.produceAccumulatorStarted.compareAndSet(false, true)) {
             this.produceAccumulator.start();
         }
         if (enableTrace) {
@@ -411,7 +413,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public void shutdown() {
         this.defaultMQProducerImpl.shutdown();
-        if (this.produceAccumulator != null) {
+        if (this.produceAccumulator != null && this.produceAccumulatorStarted.compareAndSet(true, false)) {
             this.produceAccumulator.shutdown();
         }
         if (null != traceDispatcher) {

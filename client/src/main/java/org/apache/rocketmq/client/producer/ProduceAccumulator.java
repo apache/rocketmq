@@ -56,6 +56,8 @@ public class ProduceAccumulator {
     private final Map<AggregateKey, MessageAccumulation> asyncSendBatchs = new ConcurrentHashMap<AggregateKey, MessageAccumulation>();
     private final AtomicLong currentlyHoldSize = new AtomicLong(0);
     private final String instanceName;
+    // Number of started producers sharing this accumulator through the same client ID.
+    private int producerCount;
 
     public ProduceAccumulator(String instanceName) {
         this.instanceName = instanceName;
@@ -155,12 +157,17 @@ public class ProduceAccumulator {
         }
     }
 
-    void start() {
-        guardThreadForSyncSend.start();
-        guardThreadForAsyncSend.start();
+    synchronized void start() {
+        if (producerCount++ == 0) {
+            guardThreadForSyncSend.start();
+            guardThreadForAsyncSend.start();
+        }
     }
 
-    void shutdown() {
+    synchronized void shutdown() {
+        if (producerCount == 0 || --producerCount > 0) {
+            return;
+        }
         guardThreadForSyncSend.shutdown();
         guardThreadForAsyncSend.shutdown();
     }
