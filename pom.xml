@@ -118,6 +118,7 @@
         <slf4j-api.version>2.0.3</slf4j-api.version>
         <rocketmq-shaded-slf4j-api-bridge.version>1.0.0</rocketmq-shaded-slf4j-api-bridge.version>
         <commons-validator.version>1.10.0</commons-validator.version>
+        <commons-collections4.version>4.5.0</commons-collections4.version>
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
         <lz4-java.version>1.10.3</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
@@ -777,6 +778,11 @@
                 <groupId>commons-validator</groupId>
                 <artifactId>commons-validator</artifactId>
                 <version>${commons-validator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>${commons-collections4.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.luben</groupId>

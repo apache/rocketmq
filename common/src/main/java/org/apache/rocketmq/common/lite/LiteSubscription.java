@@ -17,34 +17,28 @@
 
 package org.apache.rocketmq.common.lite;
 
-import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LiteSubscription {
     private String group;
     private String topic;
-    private final Set<String> liteTopicSet = ConcurrentHashMap.newKeySet();
+    private final Set<String> lmqSet = ConcurrentHashMap.newKeySet();
     private volatile long updateTime = System.currentTimeMillis();
 
-    public boolean addLiteTopic(String liteTopic) {
-        updateTime();
-        return this.liteTopicSet.add(liteTopic);
+    public LiteSubscription touch() {
+        this.updateTime = System.currentTimeMillis();
+        return this;
     }
 
-    public void addLiteTopic(Collection<String> set) {
-        updateTime();
-        this.liteTopicSet.addAll(set);
+    public boolean addLmq(String lmqName) {
+        return this.lmqSet.add(lmqName);
     }
 
-    public boolean removeLiteTopic(String liteTopic) {
-        updateTime();
-        return this.liteTopicSet.remove(liteTopic);
-    }
-
-    public void removeLiteTopic(Collection<String> set) {
-        updateTime();
-        this.liteTopicSet.removeAll(set);
+    public boolean removeLmq(String lmqName) {
+        return this.lmqSet.remove(lmqName);
     }
 
     public String getGroup() {
@@ -65,12 +59,13 @@ public class LiteSubscription {
         return this;
     }
 
-    public Set<String> getLiteTopicSet() {
-        return liteTopicSet;
+    public Set<String> getLmqSet() {
+        return lmqSet;
     }
 
-    public LiteSubscription setLiteTopicSet(Set<String> liteTopicSet) {
-        this.liteTopicSet.addAll(liteTopicSet);
+    public LiteSubscription setLmqSet(Set<String> lmqSet) {
+        this.lmqSet.clear();
+        this.lmqSet.addAll(lmqSet);
         return this;
     }
 
@@ -82,8 +77,15 @@ public class LiteSubscription {
         this.updateTime = updateTime;
     }
 
-    private void updateTime() {
-        this.updateTime = System.currentTimeMillis();
+    public static Set<String> removals(Set<String> current, Set<String> target) {
+        Set<String> safeTarget = target == null ? Collections.emptySet() : target;
+        Set<String> result = new HashSet<>();
+        for (String item : current) {
+            if (!safeTarget.contains(item)) {
+                result.add(item);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -91,8 +93,9 @@ public class LiteSubscription {
         return "LiteSubscription{" +
             "group='" + group + '\'' +
             ", topic='" + topic + '\'' +
-            ", liteTopicSet=" + liteTopicSet +
+            ", lmqSet=" + lmqSet +
             ", updateTime=" + updateTime +
             '}';
     }
+
 }

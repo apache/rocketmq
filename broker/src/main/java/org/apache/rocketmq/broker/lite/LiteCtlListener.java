@@ -19,10 +19,13 @@ package org.apache.rocketmq.broker.lite;
 
 public interface LiteCtlListener {
 
-    void onRegister(String clientId, String group, String lmqName);
+    default void onRegister(String clientId, String group, String lmqName) {
+    }
 
-    void onUnregister(String clientId, String group, String lmqName);
+    default void onUnregister(String clientId, String group, String lmqName) {
+    }
 
-    void onRemoveAll(String clientId, String group);
+    default void onRemoveAll(String clientId, String group) {
+    }
 
 }
