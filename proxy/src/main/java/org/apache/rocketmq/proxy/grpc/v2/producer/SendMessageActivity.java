@@ -29,7 +29,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -166,7 +165,7 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             if (maxSize <= 0) {
                 return;
             }
-            if (messageGroup.getBytes(StandardCharsets.UTF_8).length >= maxSize) {
+            if (utf8Length(messageGroup) >= maxSize) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group exceed the max size " + maxSize);
             }
             if (GrpcValidator.getInstance().containControlCharacter(messageGroup)) {
@@ -214,8 +213,8 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getValue())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the value of property cannot contain control character");
             }
-            userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
-            userPropertySize += userPropertiesEntry.getValue().getBytes(StandardCharsets.UTF_8).length;
+            userPropertySize += utf8Length(userPropertiesEntry.getKey());
+            userPropertySize += utf8Length(userPropertiesEntry.getValue());
         }
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
 
@@ -223,13 +222,13 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         String tag = message.getSystemProperties().getTag();
         GrpcValidator.getInstance().validateTag(tag);
         messageWithHeader.setTags(tag);
-        userPropertySize += tag.getBytes(StandardCharsets.UTF_8).length;
+        userPropertySize += utf8Length(tag);
 
         // set keys
         List<String> keysList = message.getSystemProperties().getKeysList();
         for (String key : keysList) {
             validateMessageKey(key);
-            userPropertySize += key.getBytes(StandardCharsets.UTF_8).length;
+            userPropertySize += utf8Length(key);
         }
         if (keysList.size() > 0) {
             messageWithHeader.setKeys(keysList);
@@ -309,6 +308,35 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         }
 
         return messageWithHeader.getProperties();
+    }
+
+    /**
+     * Length of the UTF-8 encoding of {@code str} without materializing the byte array.
+     * Matches {@code str.getBytes(StandardCharsets.UTF_8).length}, including the
+     * single-byte replacement for unpaired surrogates.
+     */
+    static int utf8Length(String str) {
+        int len = 0;
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if (c < 0x80) {
+                len += 1;
+            } else if (c < 0x800) {
+                len += 2;
+            } else if (Character.isHighSurrogate(c)) {
+                if (i + 1 < str.length() && Character.isLowSurrogate(str.charAt(i + 1))) {
+                    len += 4;
+                    i++;
+                } else {
+                    len += 1;
+                }
+            } else if (Character.isLowSurrogate(c)) {
+                len += 1;
+            } else {
+                len += 3;
+            }
+        }
+        return len;
     }
 
     protected void fillDelayMessageProperty(apache.rocketmq.v2.Message message, org.apache.rocketmq.common.message.Message messageWithHeader) {
