@@ -19,10 +19,14 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.lite.LiteSubscriptionAction;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.service.lite.LiteSubscriptionService;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -36,6 +40,10 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -52,6 +60,9 @@ public class ClientProcessorTest {
 
     @Mock
     private SubscriptionGroupConfig groupConfig;
+
+    @Mock
+    private LiteSubscriptionService liteSubscriptionService;
 
     private ClientProcessor clientProcessor;
 
@@ -193,6 +204,31 @@ public class ClientProcessorTest {
         });
 
         assertTrue(exception.getMessage().contains("lite subscription quota exceeded"));
+    }
+
+    @Test
+    public void testSyncLiteSubscription_partialRemoveSkipsQuotaValidation() {
+        String group = "group";
+        String topic = "topic";
+        Set<String> liteTopicSet = new HashSet<>();
+        for (int i = 0; i < 400; i++) {
+            liteTopicSet.add("liteTopic-" + i);
+        }
+        LiteSubscriptionDTO dto = new LiteSubscriptionDTO()
+            .setAction(LiteSubscriptionAction.PARTIAL_REMOVE)
+            .setGroup(group)
+            .setTopic(topic)
+            .setLiteTopicSet(liteTopicSet);
+
+        when(groupConfig.getLiteBindTopic()).thenReturn(topic);
+        when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
+        when(serviceManager.getLiteSubscriptionService()).thenReturn(liteSubscriptionService);
+        when(liteSubscriptionService.syncLiteSubscription(any(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(null));
+
+        assertDoesNotThrow(() -> clientProcessor.syncLiteSubscription(ctx, dto, 3000).join());
+        verify(groupConfig, never()).getLiteSubClientQuota();
+        verify(liteSubscriptionService).syncLiteSubscription(ctx, dto, 3000);
     }
 
     @Test

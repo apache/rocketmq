@@ -115,12 +115,14 @@ public class ClientProcessor extends AbstractProcessor {
         LiteSubscriptionDTO liteSubscriptionDTO, long timeoutMillis
     ) {
         try {
+            LiteSubscriptionAction action = liteSubscriptionDTO.getAction();
             validateLiteBindTopic(ctx, liteSubscriptionDTO.getGroup(), liteSubscriptionDTO.getTopic());
-            if (CollectionUtils.isNotEmpty(liteSubscriptionDTO.getLiteTopicSet())) {
+            if (CollectionUtils.isNotEmpty(liteSubscriptionDTO.getLiteTopicSet())
+                && shouldValidateLiteSubscriptionQuota(action)) {
                 validateLiteSubscriptionQuota(ctx, liteSubscriptionDTO.getGroup(), liteSubscriptionDTO.getLiteTopicSet().size());
             }
 
-            if (LiteSubscriptionAction.PARTIAL_ADD == liteSubscriptionDTO.getAction()) {
+            if (LiteSubscriptionAction.PARTIAL_ADD == action) {
                 if (!syncLiteSubscriptionRateLimiter.tryAcquire()) {
                     String msg = String.format("Too many syncLiteSubscription requests, topic=%s, group=%s, clientId=%s",
                         liteSubscriptionDTO.getTopic(), liteSubscriptionDTO.getGroup(), ctx.getClientID());
@@ -137,6 +139,10 @@ public class ClientProcessor extends AbstractProcessor {
             future.completeExceptionally(t);
             return future;
         }
+    }
+
+    private boolean shouldValidateLiteSubscriptionQuota(LiteSubscriptionAction action) {
+        return LiteSubscriptionAction.PARTIAL_ADD == action || LiteSubscriptionAction.COMPLETE_ADD == action;
     }
 
     public ClientChannelInfo findConsumerChannel(
