@@ -359,4 +359,25 @@ public class BrokerMetricsManagerTest {
 
         assertThat(metricsManager.getBrokerMeter()).isNotNull();
     }
+
+    @Test
+    public void testMetricsLabelValueContainingColon() throws CloneNotSupportedException {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setMetricsExporterType(MetricsExporterType.LOG);
+        brokerConfig.setMetricsLabel("endpoint:https://collector:4317");
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store-"
+            + UUID.randomUUID());
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setListenPort(0);
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig,
+            new NettyClientConfig(), messageStoreConfig);
+        brokerController.initialize();
+
+        BrokerMetricsManager metricsManager = new BrokerMetricsManager(brokerController);
+        Attributes attributes = metricsManager.newAttributesBuilder().build();
+
+        assertThat(attributes.get(AttributeKey.stringKey("endpoint"))).isEqualTo("https://collector:4317");
+    }
 }
