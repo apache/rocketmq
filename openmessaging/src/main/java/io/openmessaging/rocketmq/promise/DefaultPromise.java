@@ -58,7 +58,7 @@ public class DefaultPromise<V> implements Promise<V> {
 
     @Override
     public V get() {
-        return result;
+        return get(0);
     }
 
     @Override
@@ -69,10 +69,14 @@ public class DefaultPromise<V> implements Promise<V> {
             }
 
             if (timeout <= 0) {
-                try {
-                    lock.wait();
-                } catch (Exception e) {
-                    cancel(e);
+                while (isDoing()) {
+                    try {
+                        lock.wait();
+                    } catch (InterruptedException e) {
+                        cancel(e);
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 }
                 return getValueOrThrowable();
             } else {
@@ -177,7 +181,6 @@ public class DefaultPromise<V> implements Promise<V> {
             Throwable e = exception.getCause() != null ? exception.getCause() : exception;
             throw new OMSRuntimeException("-1", e);
         }
-        notifyListeners();
         return result;
     }
 
@@ -222,4 +225,3 @@ public class DefaultPromise<V> implements Promise<V> {
         return true;
     }
 }
-
