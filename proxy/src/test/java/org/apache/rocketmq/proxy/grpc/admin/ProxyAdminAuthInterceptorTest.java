@@ -67,7 +67,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
     private static MethodDescriptor<byte[], byte[]> method(String name) {
         return MethodDescriptor.<byte[], byte[]>newBuilder()
             .setType(MethodDescriptor.MethodType.UNARY)
-            .setFullMethodName("apache.rocketmq.v2.ProxyAdminService/" + name)
+            .setFullMethodName("apache.rocketmq.v2.Admin/" + name)
             .setRequestMarshaller(BYTE_MARSHALLER)
             .setResponseMarshaller(BYTE_MARSHALLER)
             .build();
@@ -87,10 +87,6 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
     @Test
     public void allAdminMethodsAreMapped() {
         String[] methods = {
-            "ListClients", "ListClientsByGroup", "ListClientsByTopic", "DescribeClient",
-            "DescribeProxyConfig", "UpdateProxyConfig", "KickClient", "DisconnectChannel",
-            "DescribeQuota", "UpdateQuota", "DescribePopReceiptHandles", "DescribeBatchConsumeDiagnostics",
-            "SubscribeRouteEvents", "DescribeRouteTopology",
             "GetProxyRuntimeStats", "GetTopicRoute", "DescribeTopicStatus", "ListSubscription",
             "DescribeSubscription", "ListConsumerConnection", "DescribeGroupAccumulation",
             "GetConsumerRunningInfo", "QueryTimeSpan", "QueryMessage", "ChangeLogLevel",
@@ -104,38 +100,38 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
 
     @Test
     public void highPrivilegeOperationsNeverMapToReadActions() {
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("KickClient").action);
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("DisconnectChannel").action);
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("UpdateProxyConfig").action);
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("UpdateQuota").action);
         assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("ResetGroupOffset").action);
         assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("ChangeLogLevel").action);
+        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("PrintThreadStackTrace").action);
+        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("VerifyMessage").action);
         assertEquals(Action.DELETE, ProxyAdminAuthInterceptor.resolveResourceAction("DeleteSubscription").action);
         assertEquals(Action.PUB, ProxyAdminAuthInterceptor.resolveResourceAction("AdminSendMessage").action);
     }
 
     @Test
     public void readOnlyOperationsMapToReadActions() {
-        assertEquals(Action.LIST, ProxyAdminAuthInterceptor.resolveResourceAction("ListClients").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeClient").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeProxyConfig").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeQuota").action);
-        assertEquals(Action.LIST, ProxyAdminAuthInterceptor.resolveResourceAction("SubscribeRouteEvents").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeRouteTopology").action);
+        assertEquals(Action.LIST, ProxyAdminAuthInterceptor.resolveResourceAction("ListSubscription").action);
+        assertEquals(Action.LIST, ProxyAdminAuthInterceptor.resolveResourceAction("ListConsumerConnection").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeSubscription").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeGroupAccumulation").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("GetConsumerRunningInfo").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("QueryTimeSpan").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("QueryMessage").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("GetTopicRoute").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("GetProxyRuntimeStats").action);
+        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeTopicStatus").action);
     }
 
     @Test
     public void resourcesAreScopedPerModule() {
         assertEquals(ProxyAdminAuthInterceptor.RESOURCE_CLIENT,
-            ProxyAdminAuthInterceptor.resolveResourceAction("ListClients").resource);
+            ProxyAdminAuthInterceptor.resolveResourceAction("ListConsumerConnection").resource);
         assertEquals(ProxyAdminAuthInterceptor.RESOURCE_CONFIG,
-            ProxyAdminAuthInterceptor.resolveResourceAction("UpdateProxyConfig").resource);
+            ProxyAdminAuthInterceptor.resolveResourceAction("ChangeLogLevel").resource);
         assertEquals(ProxyAdminAuthInterceptor.RESOURCE_CONNECTION,
-            ProxyAdminAuthInterceptor.resolveResourceAction("KickClient").resource);
-        assertEquals(ProxyAdminAuthInterceptor.RESOURCE_QUOTA,
-            ProxyAdminAuthInterceptor.resolveResourceAction("UpdateQuota").resource);
+            ProxyAdminAuthInterceptor.resolveResourceAction("PrintThreadStackTrace").resource);
         assertEquals(ProxyAdminAuthInterceptor.RESOURCE_ROUTE,
-            ProxyAdminAuthInterceptor.resolveResourceAction("DescribeRouteTopology").resource);
+            ProxyAdminAuthInterceptor.resolveResourceAction("GetTopicRoute").resource);
         assertEquals(ProxyAdminAuthInterceptor.RESOURCE_OPS,
             ProxyAdminAuthInterceptor.resolveResourceAction("ResetGroupOffset").resource);
 
@@ -143,10 +139,9 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         distinct.add(ProxyAdminAuthInterceptor.RESOURCE_CLIENT);
         distinct.add(ProxyAdminAuthInterceptor.RESOURCE_CONFIG);
         distinct.add(ProxyAdminAuthInterceptor.RESOURCE_CONNECTION);
-        distinct.add(ProxyAdminAuthInterceptor.RESOURCE_QUOTA);
         distinct.add(ProxyAdminAuthInterceptor.RESOURCE_ROUTE);
         distinct.add(ProxyAdminAuthInterceptor.RESOURCE_OPS);
-        assertEquals(6, distinct.size());
+        assertEquals(5, distinct.size());
         for (String resource : distinct) {
             assertTrue(resource.startsWith("proxy.admin."));
         }
@@ -165,7 +160,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
 
         ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
-        ServerCall<byte[], byte[]> call = serverCall("ListClients");
+        ServerCall<byte[], byte[]> call = serverCall("ListConsumerConnection");
         ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
 
         interceptor.interceptCall(call, new Metadata(), next);
@@ -205,7 +200,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(true);
         try {
             ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
-            ServerCall<byte[], byte[]> call = serverCall("KickClient");
+            ServerCall<byte[], byte[]> call = serverCall("PrintThreadStackTrace");
             ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
 
             // empty metadata: no credentials at all
@@ -224,9 +219,9 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
     public void resourceActionModelIsImmutablePerMethod() {
         // sanity: repeated resolution yields the same mapping (no stateful drift)
         ProxyAdminAuthInterceptor.ResourceAction first =
-            ProxyAdminAuthInterceptor.resolveResourceAction("DescribeClient");
+            ProxyAdminAuthInterceptor.resolveResourceAction("DescribeSubscription");
         ProxyAdminAuthInterceptor.ResourceAction second =
-            ProxyAdminAuthInterceptor.resolveResourceAction("DescribeClient");
+            ProxyAdminAuthInterceptor.resolveResourceAction("DescribeSubscription");
         assertEquals(first.resource, second.resource);
         assertEquals(first.action, second.action);
         assertFalse(first.resource.isEmpty());

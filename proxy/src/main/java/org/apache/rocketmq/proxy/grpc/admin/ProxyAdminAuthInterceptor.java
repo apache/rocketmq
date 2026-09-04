@@ -57,11 +57,11 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
  * engine:
  *
  * <pre>
- *   proxy.admin.client      ListClients / DescribeClient / ByGroup / ByTopic / diagnostics (GET/LIST)
- *   proxy.admin.config      DescribeProxyConfig (GET) / UpdateProxyConfig (UPDATE)
- *   proxy.admin.connection  KickClient / DisconnectChannel (UPDATE, high privilege)
- *   proxy.admin.quota       DescribeQuota (GET) / UpdateQuota (UPDATE, high privilege)
- *   proxy.admin.route       DescribeRouteTopology (GET) / SubscribeRouteEvents (LIST)
+ *   proxy.admin.client      ListConsumerConnection / ListSubscription / DescribeSubscription /
+ *                           DescribeGroupAccumulation / GetConsumerRunningInfo / QueryTimeSpan (GET/LIST)
+ *   proxy.admin.config      ChangeLogLevel (UPDATE)
+ *   proxy.admin.connection  PrintThreadStackTrace / VerifyMessage (UPDATE, high privilege)
+ *   proxy.admin.route       GetTopicRoute (GET)
  *   proxy.admin.ops         broker-facing operations served by the Admin service
  *                           (GET/LIST for queries; UPDATE/DELETE/PUB for mutations)
  * </pre>
@@ -93,34 +93,13 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
     public static final String RESOURCE_CLIENT = "proxy.admin.client";
     public static final String RESOURCE_CONFIG = "proxy.admin.config";
     public static final String RESOURCE_CONNECTION = "proxy.admin.connection";
-    public static final String RESOURCE_QUOTA = "proxy.admin.quota";
     public static final String RESOURCE_ROUTE = "proxy.admin.route";
     public static final String RESOURCE_OPS = "proxy.admin.ops";
 
     private static final Map<String, ResourceAction> METHOD_PERMISSIONS = new HashMap<>();
 
     static {
-        // ProxyAdminService: M1 online client query.
-        METHOD_PERMISSIONS.put("ListClients", new ResourceAction(RESOURCE_CLIENT, Action.LIST));
-        METHOD_PERMISSIONS.put("ListClientsByGroup", new ResourceAction(RESOURCE_CLIENT, Action.LIST));
-        METHOD_PERMISSIONS.put("ListClientsByTopic", new ResourceAction(RESOURCE_CLIENT, Action.LIST));
-        METHOD_PERMISSIONS.put("DescribeClient", new ResourceAction(RESOURCE_CLIENT, Action.GET));
-        // ProxyAdminService: M2 runtime config & connection control.
-        METHOD_PERMISSIONS.put("DescribeProxyConfig", new ResourceAction(RESOURCE_CONFIG, Action.GET));
-        METHOD_PERMISSIONS.put("UpdateProxyConfig", new ResourceAction(RESOURCE_CONFIG, Action.UPDATE));
-        METHOD_PERMISSIONS.put("KickClient", new ResourceAction(RESOURCE_CONNECTION, Action.UPDATE));
-        METHOD_PERMISSIONS.put("DisconnectChannel", new ResourceAction(RESOURCE_CONNECTION, Action.UPDATE));
-        // ProxyAdminService: M2 quota visualization & controlled adjustment.
-        METHOD_PERMISSIONS.put("DescribeQuota", new ResourceAction(RESOURCE_QUOTA, Action.GET));
-        METHOD_PERMISSIONS.put("UpdateQuota", new ResourceAction(RESOURCE_QUOTA, Action.UPDATE));
-        // ProxyAdminService: M3/M4 POP & batch consume diagnostics.
-        METHOD_PERMISSIONS.put("DescribePopReceiptHandles", new ResourceAction(RESOURCE_CLIENT, Action.GET));
-        METHOD_PERMISSIONS.put("DescribeBatchConsumeDiagnostics", new ResourceAction(RESOURCE_CLIENT, Action.GET));
-        // ProxyAdminService: route observation.
-        METHOD_PERMISSIONS.put("SubscribeRouteEvents", new ResourceAction(RESOURCE_ROUTE, Action.LIST));
-        METHOD_PERMISSIONS.put("DescribeRouteTopology", new ResourceAction(RESOURCE_ROUTE, Action.GET));
-
-        // Admin service (broker-facing operations, also served on the admin server).
+        // Admin service (rocketmq-apis v2 admin.proto) served on the dedicated admin server.
         METHOD_PERMISSIONS.put("GetProxyRuntimeStats", new ResourceAction(RESOURCE_OPS, Action.GET));
         METHOD_PERMISSIONS.put("GetTopicRoute", new ResourceAction(RESOURCE_ROUTE, Action.GET));
         METHOD_PERMISSIONS.put("DescribeTopicStatus", new ResourceAction(RESOURCE_OPS, Action.GET));

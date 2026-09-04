@@ -43,9 +43,6 @@ import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminAuthInterceptor;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminMetricsInterceptor;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminMetricsManager;
-import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminPeerClient;
-import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminServiceGrpcService;
-import org.apache.rocketmq.proxy.grpc.admin.RouteChangeNotifier;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -107,10 +104,10 @@ public class ProxyStartup {
 
             // RIP-2: dedicated admin gRPC server (control plane). It MUST reuse the data plane's
             // shared GrpcChannelManager, otherwise online clients connected to the data plane would
-            // never be visible to the admin queries (listClients / describeClient / ... would return
-            // an always-empty, isolated manager). The whole surface is gated by the D2 kill switch
-            // proxyAdminEnabled; the admin port intentionally does NOT expose channelz/proto
-            // reflection (control-plane attack surface is kept minimal).
+            // never be visible to the admin queries (ListConsumerConnection / DescribeSubscription /
+            // ... would return an always-empty, isolated manager). The whole surface is gated by
+            // the D2 kill switch proxyAdminEnabled; the admin port intentionally does NOT expose
+            // channelz/proto reflection (control-plane attack surface is kept minimal).
             Integer adminPort = ConfigurationManager.getProxyConfig().getAdminGrpcPort();
             if (ConfigurationManager.getProxyConfig().isProxyAdminEnabled()
                 && adminPort != null && adminPort > 0) {
@@ -120,14 +117,6 @@ public class ProxyStartup {
                 GrpcClientSettingsManager sharedSettingsManager = dataPlaneActivity.getGrpcClientSettingsManager();
                 DefaultMessagingProcessor defaultProcessor = (DefaultMessagingProcessor) messagingProcessor;
 
-                // D3 cluster aggregation (peer fan-out) and route observation, both participate
-                // in the proxy start/shutdown lifecycle.
-                ProxyAdminPeerClient peerClient = new ProxyAdminPeerClient(ConfigurationManager.getAuthConfig());
-                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(peerClient);
-                RouteChangeNotifier routeChangeNotifier = new RouteChangeNotifier();
-                defaultProcessor.getServiceManager().getTopicRouteService().addRouteRefreshListener(routeChangeNotifier);
-                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(routeChangeNotifier);
-
                 // Acceptance criteria #4: the admin surface reports its own RT & error rate.
                 ProxyAdminMetricsManager.init(ConfigurationManager.getProxyConfig());
 
@@ -136,16 +125,8 @@ public class ProxyStartup {
                     messagingProcessor,
                     sharedChannelManager,
                     sharedSettingsManager);
-                ProxyAdminServiceGrpcService proxyAdminService = new ProxyAdminServiceGrpcService(
-                    defaultProcessor.getServiceManager(),
-                    defaultProcessor,
-                    sharedChannelManager,
-                    sharedSettingsManager,
-                    peerClient,
-                    routeChangeNotifier);
                 GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
                     .addService(adminService)
-                    .addService(proxyAdminService)
                     .configInterceptor()
                     // interceptor execution order: metrics (outermost) -> auth -> standard pipeline
                     .appendInterceptor(new ProxyAdminAuthInterceptor(

@@ -33,13 +33,6 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected DefaultReceiptHandleManager receiptHandleManager;
 
-    /**
-     * RIP-2 M3: read-only access to the receipt handle manager for admin diagnostics.
-     */
-    public DefaultReceiptHandleManager getReceiptHandleManager() {
-        return receiptHandleManager;
-    }
-
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
         StateEventListener<RenewEvent> eventListener = event -> {
