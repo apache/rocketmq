@@ -44,6 +44,9 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import java.util.Set;
 
 public class ClientManagerActivity extends AbstractRemotingActivity {
+    static final String EMPTY_HEARTBEAT_DATA_REMARK = "heartbeat data is empty";
+    static final String MISSING_HEARTBEAT_DATA_SET_REMARK = "heartbeat producerDataSet and consumerDataSet are required";
+
 
     private final RemotingChannelManager remotingChannelManager;
 
@@ -78,6 +81,13 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
     protected RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) {
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
+        if (heartbeatData == null) {
+            return RemotingCommand.buildErrorResponse(ResponseCode.INVALID_PARAMETER, EMPTY_HEARTBEAT_DATA_REMARK);
+        }
+        if (heartbeatData.getProducerDataSet() == null || heartbeatData.getConsumerDataSet() == null) {
+            return RemotingCommand.buildErrorResponse(ResponseCode.INVALID_PARAMETER,
+                MISSING_HEARTBEAT_DATA_SET_REMARK);
+        }
         String clientId = heartbeatData.getClientID();
 
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
