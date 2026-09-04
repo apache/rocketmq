@@ -90,6 +90,16 @@ public class ClientActivity extends AbstractMessagingActivity {
         this.init();
     }
 
+    static String summarizeSettings(Settings settings) {
+        if (settings == null) {
+            return "null";
+        }
+        int publishingTopicCount = settings.hasPublishing() ? settings.getPublishing().getTopicsCount() : 0;
+        int subscriptionCount = settings.hasSubscription() ? settings.getSubscription().getSubscriptionsCount() : 0;
+        return String.format("clientType=%s, publishingTopicCount=%d, subscriptionCount=%d",
+            settings.getClientType(), publishingTopicCount, subscriptionCount);
+    }
+
     protected void init() {
         this.messagingProcessor.registerConsumerListener(new ConsumerIdsChangeListenerImpl());
         this.messagingProcessor.registerProducerListener(new ProducerChangeListenerImpl());
@@ -362,9 +372,37 @@ public class ClientActivity extends AbstractMessagingActivity {
             }
         }
         if (exception.getStatus().getCode().equals(io.grpc.Status.Code.INTERNAL)) {
-            log.warn("process client telemetryCommand failed. request:{}", request, t);
+            log.warn("process client telemetryCommand failed. request:{}", summarizeTelemetryCommand(request), t);
         }
         responseObserver.onError(exception);
+    }
+
+    static String summarizeTelemetryCommand(TelemetryCommand request) {
+        if (request == null) {
+            return "null";
+        }
+
+        StringBuilder builder = new StringBuilder(request.getCommandCase().name());
+        if (request.hasStatus()) {
+            builder.append(", statusCode=").append(request.getStatus().getCode());
+        }
+        switch (request.getCommandCase()) {
+            case SETTINGS:
+                builder.append(", clientType=").append(request.getSettings().getClientType())
+                    .append(", pubSubCase=").append(request.getSettings().getPubSubCase());
+                break;
+            case THREAD_STACK_TRACE:
+                builder.append(", nonce=").append(request.getThreadStackTrace().getNonce())
+                    .append(", details omitted");
+                break;
+            case VERIFY_MESSAGE_RESULT:
+                builder.append(", nonce=").append(request.getVerifyMessageResult().getNonce());
+                break;
+            default:
+                // Add explicit cases for future telemetry requests that carry sensitive details.
+                break;
+        }
+        return builder.toString();
     }
 
     protected void processAndWriteClientSettings(ProxyContext ctx, TelemetryCommand request,
@@ -597,7 +635,8 @@ public class ClientActivity extends AbstractMessagingActivity {
                 if (ChannelHelper.isRemote(channel)) {
                     // save settings from channel sync from other proxy
                     Settings settings = GrpcClientChannel.parseChannelExtendAttribute(channel);
-                    log.debug("save client settings sync from other proxy. group:{}, channelInfo:{}, settings:{}", group, clientChannelInfo, settings);
+                    log.debug("save client settings sync from other proxy. group:{}, channelInfo:{}, settingsSummary:{}",
+                        group, clientChannelInfo, summarizeSettings(settings));
                     if (settings == null) {
                         return;
                     }
