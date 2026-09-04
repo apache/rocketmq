@@ -86,6 +86,20 @@ public class PopReviveServiceTest {
     private static final SocketAddress STORE_HOST = NetworkUtil.string2SocketAddress("127.0.0.1:8080");
     private static final Long INVISIBLE_TIME = 1000L;
 
+    @Test
+    public void testConsumeReviveObjSortsLargeOffsetsWithoutOverflow() {
+        PopCheckPoint earliest = buildPopCheckPoint(0, 0, 0);
+        PopCheckPoint latest = buildPopCheckPoint(1, 0, Long.MAX_VALUE);
+        PopReviveService.ConsumeReviveObj consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        consumeReviveObj.map.put("latest", latest);
+        consumeReviveObj.map.put("earliest", earliest);
+
+        List<PopCheckPoint> result = consumeReviveObj.genSortList();
+
+        assertEquals(earliest, result.get(0));
+        assertEquals(latest, result.get(1));
+    }
+
     @Mock
     private MessageStore messageStore;
     @Mock
