@@ -306,7 +306,7 @@ public class PopBufferMergeService extends ServiceThread {
                             }
                         }
                         if (indexList.size() > 0) {
-                            putBatchAckToStore(pointWrapper, indexList, count);
+                            putBatchAckToStore(pointWrapper, new ArrayList<>(indexList), count);
                         }
                     } finally {
                         indexList.clear();
