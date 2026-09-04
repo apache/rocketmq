@@ -261,6 +261,20 @@ public class DefaultMQProducerTest {
     }
 
     @Test
+    public void testBatchSendBigMessage() throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        List<Message> msgs = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Message message = new Message();
+            message.setTopic("test");
+            message.setBody((new String(bigMessage.getBody()) + i).getBytes());
+            msgs.add(message);
+        }
+        SendResult sendResult = producer.send(msgs);
+        assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+    }
+
+    @Test
     public void testBatchSendMessageAsync()
         throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         final AtomicInteger cc = new AtomicInteger(0);
