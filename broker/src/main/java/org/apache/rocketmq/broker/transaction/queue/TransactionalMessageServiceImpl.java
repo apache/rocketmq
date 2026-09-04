@@ -745,6 +745,17 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             if (!overSize && wakeupTimestamp > startTime) {
                 return wakeupTimestamp;
             }
+
+            // Nothing was batched in this round (e.g. every context in deleteContext
+            // is already drained but still present, so firstTimestamp falls back to a
+            // stale lastWriteTimestamp and the branch above does not fire). Returning 0
+            // would make TransactionalOpBatchService treat it as "run again immediately",
+            // busy-looping one CPU core at ~100%. Schedule the next scan after the batch
+            // interval instead; new deletes still wake the thread promptly via
+            // deletePrepareMessage() -> wakeup().
+            if (sendMap == null) {
+                return System.currentTimeMillis() + interval;
+            }
         } catch (Throwable t) {
             log.error("batchSendOp error.", t);
         }
