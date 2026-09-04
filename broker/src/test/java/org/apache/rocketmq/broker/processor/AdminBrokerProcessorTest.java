@@ -1561,13 +1561,14 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetTimeCheckPoint() throws RemotingCommandException {
-        when(this.brokerController.getTimerCheckpoint()).thenReturn(null);
+        when(this.brokerController.getTimerMessageStore()).thenReturn(timerMessageStore);
+        when(this.timerMessageStore.getTimerCheckpoint()).thenReturn(null);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TIMER_CHECK_POINT, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
         assertThat(response.getRemark()).isEqualTo("The checkpoint is null");
 
-        when(this.brokerController.getTimerCheckpoint()).thenReturn(new TimerCheckpoint());
+        when(this.timerMessageStore.getTimerCheckpoint()).thenReturn(new TimerCheckpoint());
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }

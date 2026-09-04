@@ -114,7 +114,9 @@ public class SlaveSynchronizeTest {
         when(brokerController.getQueryAssignmentProcessor()).thenReturn(queryAssignmentProcessor);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTimerMessageStore()).thenReturn(timerMessageStore);
-        when(brokerController.getTimerCheckpoint()).thenReturn(timerCheckpoint);
+        when(timerMessageStore.getTimerCheckpoint()).thenReturn(timerCheckpoint);
+        when(topicConfigManager.getDataVersion()).thenReturn(new DataVersion());
+        when(topicConfigManager.getTopicConfigTable()).thenReturn(new ConcurrentHashMap<>());
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         when(consumerOffsetManager.getOffsetTable()).thenReturn(new ConcurrentHashMap<>());
         when(consumerOffsetManager.getDataVersion()).thenReturn(new DataVersion());

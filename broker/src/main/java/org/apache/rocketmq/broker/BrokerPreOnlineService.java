@@ -182,12 +182,12 @@ public class BrokerPreOnlineService extends ServiceThread {
                 }
             }
 
-            if (null != this.brokerController.getTimerCheckpoint() && this.brokerController.getTimerCheckpoint().getDataVersion().compare(timerCheckpoint.getDataVersion()) <= 0) {
+            if (null != this.brokerController.getTimerMessageStore().getTimerCheckpoint() && this.brokerController.getTimerMessageStore().getTimerCheckpoint().getDataVersion().compare(timerCheckpoint.getDataVersion()) <= 0) {
                 LOGGER.info("{}'s timerCheckpoint data version is larger than master broker, {}'s timerCheckpoint will be used.", brokerAddr, brokerAddr);
-                this.brokerController.getTimerCheckpoint().setLastReadTimeMs(timerCheckpoint.getLastReadTimeMs());
-                this.brokerController.getTimerCheckpoint().setMasterTimerQueueOffset(timerCheckpoint.getMasterTimerQueueOffset());
-                this.brokerController.getTimerCheckpoint().getDataVersion().assignNewOne(timerCheckpoint.getDataVersion());
-                this.brokerController.getTimerCheckpoint().flush();
+                this.brokerController.getTimerMessageStore().getTimerCheckpoint().setLastReadTimeMs(timerCheckpoint.getLastReadTimeMs());
+                this.brokerController.getTimerMessageStore().getTimerCheckpoint().setMasterTimerQueueOffset(timerCheckpoint.getMasterTimerQueueOffset());
+                this.brokerController.getTimerMessageStore().getTimerCheckpoint().getDataVersion().assignNewOne(timerCheckpoint.getDataVersion());
+                this.brokerController.getTimerMessageStore().getTimerCheckpoint().flush();
             }
 
             for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerAttachedPlugins()) {
