@@ -17,15 +17,25 @@
 
 package org.apache.rocketmq.proxy.service.channel;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class InvocationChannelTest {
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        ConfigurationManager.initEnv();
+        ConfigurationManager.initConfig();
+    }
 
     @Test
     public void testWriteAndFlushShouldNotRemoveReRegisteredContext() {
@@ -63,5 +73,27 @@ public class InvocationChannelTest {
         channel.writeAndFlush(response);
         assertTrue(nextContextHandled.get());
         assertFalse(channel.isWritable());
+    }
+
+    @Test
+    public void testClearExpireContextShouldCompleteResponseFutureExceptionally() {
+        int originalExpiredInSeconds = ConfigurationManager.getProxyConfig().getChannelExpiredInSeconds();
+        ConfigurationManager.getProxyConfig().setChannelExpiredInSeconds(0);
+        try {
+            InvocationChannel channel = new InvocationChannel("127.0.0.1:8080", "127.0.0.1:8081");
+            CompletableFuture<RemotingCommand> responseFuture = new CompletableFuture<>();
+            channel.registerInvocationContext(1, new InvocationContext(responseFuture));
+
+            channel.clearExpireContext();
+
+            assertFalse(channel.isWritable());
+            assertTrue(responseFuture.isCompletedExceptionally());
+            CompletionException exception = assertThrows(CompletionException.class, responseFuture::join);
+            assertTrue(exception.getCause().getMessage().contains("after 0 seconds"));
+            assertTrue(exception.getCause().getMessage().contains("remoteAddress=127.0.0.1:8080"));
+            assertTrue(exception.getCause().getMessage().contains("localAddress=127.0.0.1:8081"));
+        } finally {
+            ConfigurationManager.getProxyConfig().setChannelExpiredInSeconds(originalExpiredInSeconds);
+        }
     }
 }
