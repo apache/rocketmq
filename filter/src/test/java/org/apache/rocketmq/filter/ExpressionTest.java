@@ -535,6 +535,17 @@ public class ExpressionTest {
     }
 
     @Test
+    public void testEvaluate_zeroFloatNumber() throws Exception {
+        Expression expression = genExp("a = 0.0");
+
+        EvaluationContext context = genContext(
+            KeyValue.c("a", "0.0")
+        );
+
+        eval(expression, context, Boolean.TRUE);
+    }
+
+    @Test
     public void testEvaluate_twoVariable() throws Exception {
         Expression expression = genExp("a > b");
 
