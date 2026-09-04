@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +28,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.JraftConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -75,6 +77,7 @@ public class ControllerStartup {
         }
 
         final ControllerConfig controllerConfig = new ControllerConfig();
+        final AuthConfig authConfig = new AuthConfig();
         final JraftConfig jraftConfig = new JraftConfig();
         controllerConfig.setJraftConfig(jraftConfig);
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
@@ -88,6 +91,7 @@ public class ControllerStartup {
                 properties = new Properties();
                 properties.load(in);
                 MixAll.properties2Object(properties, controllerConfig);
+                MixAll.properties2Object(properties, authConfig);
                 MixAll.properties2Object(properties, jraftConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
                 MixAll.properties2Object(properties, nettyClientConfig);
@@ -118,7 +122,11 @@ public class ControllerStartup {
         MixAll.printObjectProperties(log, controllerConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
-        final ControllerManager controllerManager = new ControllerManager(controllerConfig, nettyServerConfig, nettyClientConfig);
+        authConfig.setConfigName("controller-" + controllerConfig.getControllerDLegerSelfId());
+        authConfig.setClusterName(controllerConfig.getControllerDLegerGroup());
+        authConfig.setAuthConfigPath(controllerConfig.getControllerStorePath() + File.separator + "config");
+
+        final ControllerManager controllerManager = new ControllerManager(controllerConfig, nettyServerConfig, nettyClientConfig, authConfig);
         // remember all configs to prevent discard
         controllerManager.getConfiguration().registerConfig(properties);
 
