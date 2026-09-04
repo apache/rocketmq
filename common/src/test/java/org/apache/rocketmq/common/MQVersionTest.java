@@ -36,6 +36,11 @@ public class MQVersionTest {
     }
 
     @Test
+    public void testGetVersionDesc_NegativeVersion() {
+        assertThat(MQVersion.getVersionDesc(-1)).isEqualTo("V3_0_0_SNAPSHOT");
+    }
+
+    @Test
     public void testValue2Version() throws Exception {
         assertThat(MQVersion.value2Version(0)).isEqualTo(MQVersion.Version.V3_0_0_SNAPSHOT);
     }
@@ -43,5 +48,10 @@ public class MQVersionTest {
     @Test
     public void testValue2Version_HigherVersion() throws Exception {
         assertThat(MQVersion.value2Version(Integer.MAX_VALUE)).isEqualTo(MQVersion.Version.HIGHER_VERSION);
+    }
+
+    @Test
+    public void testValue2Version_NegativeVersion() {
+        assertThat(MQVersion.value2Version(-1)).isEqualTo(MQVersion.Version.V3_0_0_SNAPSHOT);
     }
 }
