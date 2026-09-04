@@ -49,8 +49,12 @@ public class DefaultAdminService implements AdminService {
         try {
             topicRouteData = this.getTopicRouteDataDirectlyFromNameServer(topic);
             topicExist = topicRouteData != null;
-        } catch (Throwable e) {
-            topicExist = false;
+        } catch (Exception e) {
+            if (TopicRouteHelper.isTopicNotExistError(e)) {
+                topicExist = false;
+            } else {
+                throw new IllegalStateException("get topic route for topic='" + topic + "' failed", e);
+            }
         }
 
         return topicExist;
@@ -96,7 +100,13 @@ public class DefaultAdminService implements AdminService {
         Set<String> curBrokerAddr = new HashSet<>();
         if (curBrokerDataList != null) {
             for (BrokerData brokerData : curBrokerDataList) {
-                curBrokerAddr.add(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID));
+                if (brokerData == null || brokerData.getBrokerAddrs() == null) {
+                    continue;
+                }
+                String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                if (addr != null) {
+                    curBrokerAddr.add(addr);
+                }
             }
         }
 

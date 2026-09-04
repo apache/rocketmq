@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.admin;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,6 +28,7 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -85,6 +88,51 @@ public class DefaultAdminServiceTest {
         assertEquals("createTopic", topicConfigArgumentCaptor.getValue().getTopicName());
         assertEquals(7, topicConfigArgumentCaptor.getValue().getWriteQueueNums());
         assertEquals(8, topicConfigArgumentCaptor.getValue().getReadQueueNums());
+    }
+
+    @Test
+    public void testCreateTopicOnBrokerSkipsMalformedCurrentBrokerData() throws Exception {
+        BrokerData malformedBrokerData = new BrokerData();
+
+        ArgumentCaptor<String> addrArgumentCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<TopicConfig> topicConfigArgumentCaptor = ArgumentCaptor.forClass(TopicConfig.class);
+        doNothing().when(mqClientAPIExt)
+            .createTopic(addrArgumentCaptor.capture(), anyString(), topicConfigArgumentCaptor.capture(), anyLong());
+
+        assertTrue(defaultAdminService.createTopicOnBroker(
+            "createTopic",
+            7,
+            8,
+            Collections.singletonList(malformedBrokerData),
+            createTopicRouteData(1).getBrokerDatas(),
+            false,
+            0
+        ));
+
+        assertEquals(1, addrArgumentCaptor.getAllValues().size());
+        assertEquals("127.0.0.1:10911", addrArgumentCaptor.getAllValues().get(0));
+        assertEquals("createTopic", topicConfigArgumentCaptor.getValue().getTopicName());
+    }
+
+    @Test
+    public void testTopicExistReturnsFalseForNotFound() throws Exception {
+        when(mqClientAPIExt.getTopicRouteInfoFromNameServer(eq("missingTopic"), anyLong()))
+            .thenThrow(new MQClientException(ResponseCode.TOPIC_NOT_EXIST, "topic not exist"));
+
+        assertFalse(defaultAdminService.topicExist("missingTopic"));
+    }
+
+    @Test
+    public void testTopicExistThrowsForUnexpectedRouteLookupFailure() throws Exception {
+        MQClientException cause = new MQClientException(ResponseCode.SYSTEM_ERROR, "namesrv unavailable");
+        when(mqClientAPIExt.getTopicRouteInfoFromNameServer(eq("brokenTopic"), anyLong()))
+            .thenThrow(cause);
+
+        IllegalStateException exception = Assert.assertThrows(IllegalStateException.class,
+            () -> defaultAdminService.topicExist("brokenTopic"));
+
+        assertEquals("get topic route for topic='brokenTopic' failed", exception.getMessage());
+        assertEquals(cause, exception.getCause());
     }
 
     private TopicRouteData createTopicRouteData(int brokerNum) {
