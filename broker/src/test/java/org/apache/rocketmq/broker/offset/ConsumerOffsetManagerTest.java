@@ -24,8 +24,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.mockito.Mockito;
 
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
@@ -120,5 +125,36 @@ public class ConsumerOffsetManagerTest {
         consumerOffsetManager.eraseResetOffset(topic, group, 1);
         Assert.assertFalse(consumerOffsetManager.hasOffsetReset(topic, group, 1));
         Assert.assertFalse(consumerOffsetManager.resetOffsetTable.containsKey(key));
+    }
+
+    @Test
+    public void testConcurrentCommitOffsetDoesNotLoseQueues() throws InterruptedException {
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+
+        final int queueCount = 8;
+        final int keyCount = 500;
+        ExecutorService executor = Executors.newFixedThreadPool(queueCount);
+        CountDownLatch latch = new CountDownLatch(queueCount);
+        for (int queueId = 0; queueId < queueCount; queueId++) {
+            final int qid = queueId;
+            executor.submit(() -> {
+                try {
+                    // every thread commits a distinct queue of the same brand-new keys,
+                    // so creation of each topic@group entry races
+                    for (int i = 0; i < keyCount; i++) {
+                        consumerOffsetManager.commitOffset("host", "group", "topic" + i, qid, i);
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        Assert.assertTrue(latch.await(60, TimeUnit.SECONDS));
+        executor.shutdownNow();
+
+        for (int i = 0; i < keyCount; i++) {
+            Map<Integer, Long> offsets = consumerOffsetManager.queryOffset("group", "topic" + i);
+            assertThat(offsets).as("offsets of topic" + i).hasSize(queueCount);
+        }
     }
 }
