@@ -89,6 +89,24 @@ public class ProxyConfig implements ConfigFile {
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
     private Integer grpcServerPort = 8081;
+    /**
+     * Dedicated gRPC port for the RIP-2 Proxy Admin service. When &gt; 0 the proxy
+     * starts an independent admin gRPC server (separate ACL scope, isolated
+     * traffic) in addition to the data-plane gRPC server.
+     */
+    private Integer adminGrpcPort = 8083;
+    /**
+     * RIP-2 D2 global kill switch for the Proxy Admin surface. When false the
+     * admin gRPC server is not started at all, regardless of {@link #adminGrpcPort}.
+     */
+    private boolean proxyAdminEnabled = true;
+    /**
+     * When true the admin server enforces credential checks even if the cluster-wide
+     * authentication switch is off; requests without verifiable credentials are rejected
+     * (fail-closed mode). When false the admin server follows the cluster-wide
+     * authenticationEnabled/authorizationEnabled switches (same behavior as the data plane).
+     */
+    private boolean proxyAdminRequireAuth = false;
     private long grpcShutdownTimeSeconds = 30;
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
@@ -481,6 +499,30 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public Integer getAdminGrpcPort() {
+        return adminGrpcPort;
+    }
+
+    public void setAdminGrpcPort(Integer adminGrpcPort) {
+        this.adminGrpcPort = adminGrpcPort;
+    }
+
+    public boolean isProxyAdminEnabled() {
+        return proxyAdminEnabled;
+    }
+
+    public void setProxyAdminEnabled(boolean proxyAdminEnabled) {
+        this.proxyAdminEnabled = proxyAdminEnabled;
+    }
+
+    public boolean isProxyAdminRequireAuth() {
+        return proxyAdminRequireAuth;
+    }
+
+    public void setProxyAdminRequireAuth(boolean proxyAdminRequireAuth) {
+        this.proxyAdminRequireAuth = proxyAdminRequireAuth;
     }
 
     public long getGrpcShutdownTimeSeconds() {

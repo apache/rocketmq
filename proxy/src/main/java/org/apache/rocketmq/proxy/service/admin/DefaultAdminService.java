@@ -18,13 +18,24 @@
 package org.apache.rocketmq.proxy.service.admin;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
@@ -33,6 +44,8 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
+import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
 
 public class DefaultAdminService implements AdminService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -142,5 +155,93 @@ public class DefaultAdminService implements AdminService {
 
     protected MQClientAPIExt getClient() {
         return this.mqClientAPIFactory.getClient();
+    }
+
+    // =========================================================================
+    // RIP-2 Admin: broker-facing gateway methods.
+    // Every call goes through the proxy's OWN managed broker client.
+    // =========================================================================
+
+    @Override
+    public long getMaxOffset(String brokerAddr, MessageQueue messageQueue, long timeoutMillis) throws Exception {
+        return this.getClient().getMaxOffset(brokerAddr, messageQueue, timeoutMillis);
+    }
+
+    @Override
+    public long getMinOffset(String brokerAddr, MessageQueue messageQueue, long timeoutMillis) throws Exception {
+        return this.getClient().getMinOffset(brokerAddr, messageQueue, timeoutMillis);
+    }
+
+    @Override
+    public long getEarliestMsgStoretime(String brokerAddr, MessageQueue messageQueue, long timeoutMillis) throws Exception {
+        return this.getClient().getEarliestMsgStoretime(brokerAddr, messageQueue, timeoutMillis);
+    }
+
+    @Override
+    public ConsumeStats fetchConsumeStats(String brokerAddr, String consumerGroup, String topic, long timeoutMillis) throws Exception {
+        return this.getClient().getConsumeStats(brokerAddr, consumerGroup, topic, timeoutMillis);
+    }
+
+    @Override
+    public Map<MessageQueue, Long> resetOffset(String brokerAddr, String topic, String group, long timestamp,
+        boolean isForce, long timeoutMillis) throws Exception {
+        return this.getClient().invokeBrokerToResetOffset(brokerAddr, topic, group, timestamp, isForce, timeoutMillis);
+    }
+
+    @Override
+    public void deleteSubscriptionGroup(String brokerAddr, String group, boolean removeOffset,
+        long timeoutMillis) throws Exception {
+        this.getClient().deleteSubscriptionGroup(brokerAddr, group, removeOffset, timeoutMillis);
+    }
+
+    @Override
+    public MessageExt viewMessage(String brokerAddr, String topic, long phyoffset, long timeoutMillis) throws Exception {
+        return this.getClient().viewMessage(brokerAddr, topic, phyoffset, timeoutMillis);
+    }
+
+    @Override
+    public org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping getTopicConfig(String brokerAddr, String topic, long timeoutMillis) throws Exception {
+        return this.getClient().getTopicConfig(brokerAddr, topic, timeoutMillis);
+    }
+
+    @Override
+    public org.apache.rocketmq.remoting.protocol.route.TopicRouteData getTopicRouteData(String topic) throws Exception {
+        return this.getTopicRouteDataDirectlyFromNameServer(topic);
+    }
+
+    @Override
+    public List<MessageExt> queryMessage(String brokerAddr, String topic, String key, int maxNum,
+        long beginTimestamp, long endTimestamp, long timeoutMillis) throws Exception {
+        QueryMessageRequestHeader requestHeader = new QueryMessageRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setKey(key);
+        requestHeader.setMaxNum(maxNum);
+        requestHeader.setBeginTimestamp(beginTimestamp);
+        requestHeader.setEndTimestamp(endTimestamp);
+
+        CompletableFuture<List<MessageExt>> future = new CompletableFuture<>();
+        this.getClient().queryMessage(brokerAddr, requestHeader, timeoutMillis, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+                try {
+                    RemotingCommand response = responseFuture.getResponseCommand();
+                    if (response != null && response.getCode() == ResponseCode.SUCCESS && response.getBody() != null) {
+                        List<MessageExt> messageList = MessageDecoder.decodes(
+                            java.nio.ByteBuffer.wrap(response.getBody()), true);
+                        future.complete(messageList);
+                    } else {
+                        future.complete(new ArrayList<>());
+                    }
+                } catch (Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            }
+
+            @Override
+            public void operationFail(Throwable e) {
+                future.completeExceptionally(e);
+            }
+        }, false);
+        return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 }

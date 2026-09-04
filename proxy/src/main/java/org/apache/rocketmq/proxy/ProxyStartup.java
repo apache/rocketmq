@@ -39,7 +39,14 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminAuthInterceptor;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminMetricsInterceptor;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminMetricsManager;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -81,16 +88,55 @@ public class ProxyStartup {
             TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
-            // create grpcServer
+            // create grpcServer (data plane). Capture the application reference so the
+            // RIP-2 admin server can reuse the SAME GrpcChannelManager / GrpcClientSettingsManager
+            // that the data plane uses to track online clients.
+            GrpcMessagingApplication dataPlaneApplication = createServiceProcessor(messagingProcessor);
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
                     ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
-                .addService(createServiceProcessor(messagingProcessor))
+                .addService(dataPlaneApplication)
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
                 .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
+
+            // RIP-2: dedicated admin gRPC server (control plane). It MUST reuse the data plane's
+            // shared GrpcChannelManager, otherwise online clients connected to the data plane would
+            // never be visible to the admin queries (ListConsumerConnection / DescribeSubscription /
+            // ... would return an always-empty, isolated manager). The whole surface is gated by
+            // the D2 kill switch proxyAdminEnabled; the admin port intentionally does NOT expose
+            // channelz/proto reflection (control-plane attack surface is kept minimal).
+            Integer adminPort = ConfigurationManager.getProxyConfig().getAdminGrpcPort();
+            if (ConfigurationManager.getProxyConfig().isProxyAdminEnabled()
+                && adminPort != null && adminPort > 0) {
+                DefaultGrpcMessagingActivity dataPlaneActivity =
+                    (DefaultGrpcMessagingActivity) dataPlaneApplication.getGrpcMessagingActivity();
+                GrpcChannelManager sharedChannelManager = dataPlaneActivity.getGrpcChannelManager();
+                GrpcClientSettingsManager sharedSettingsManager = dataPlaneActivity.getGrpcClientSettingsManager();
+                DefaultMessagingProcessor defaultProcessor = (DefaultMessagingProcessor) messagingProcessor;
+
+                // Acceptance criteria #4: the admin surface reports its own RT & error rate.
+                ProxyAdminMetricsManager.init(ConfigurationManager.getProxyConfig());
+
+                ProxyAdminGrpcService adminService = new ProxyAdminGrpcService(
+                    defaultProcessor.getServiceManager(),
+                    messagingProcessor,
+                    sharedChannelManager,
+                    sharedSettingsManager);
+                GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
+                    .addService(adminService)
+                    .configInterceptor()
+                    // interceptor execution order: metrics (outermost) -> auth -> standard pipeline
+                    .appendInterceptor(new ProxyAdminAuthInterceptor(
+                        ConfigurationManager.getAuthConfig(), messagingProcessor))
+                    .appendInterceptor(new ProxyAdminMetricsInterceptor())
+                    .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
+                    .build();
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminGrpcServer);
+                log.info("RIP-2 admin gRPC server will start on port {}", adminPort);
+            }
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);

@@ -109,10 +109,11 @@ public class GrpcConverter {
     protected Map<String, String> buildUserAttributes(MessageExt messageExt) {
         Map<String, String> userAttributes = new HashMap<>();
         Map<String, String> properties = messageExt.getProperties();
-
-        for (Map.Entry<String, String> property : properties.entrySet()) {
-            if (!MessageConst.STRING_HASH_SET.contains(property.getKey())) {
-                userAttributes.put(property.getKey(), property.getValue());
+        if (properties != null) {
+            for (Map.Entry<String, String> property : properties.entrySet()) {
+                if (!MessageConst.STRING_HASH_SET.contains(property.getKey())) {
+                    userAttributes.put(property.getKey(), property.getValue());
+                }
             }
         }
 
@@ -161,7 +162,9 @@ public class GrpcConverter {
         }
 
         // message_type
-        TopicMessageType topicMessageType = TopicMessageType.parseFromMessageProperty(messageExt.getProperties());
+        Map<String, String> properties = messageExt.getProperties();
+        TopicMessageType topicMessageType = TopicMessageType.parseFromMessageProperty(
+            properties != null ? properties : new HashMap<String, String>());
         systemPropertiesBuilder.setMessageType(convertToGrpcMessageType(topicMessageType));
 
         // born_timestamp (millis)
