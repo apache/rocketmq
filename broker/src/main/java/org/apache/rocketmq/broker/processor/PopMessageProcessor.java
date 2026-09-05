@@ -937,7 +937,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
 
         msgInner.setTopic(reviveTopic);
-        msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
+        msgInner.setBody(JSON.toJSONBytes(ck));
         msgInner.setQueueId(reviveQid);
         msgInner.setTags(PopAckConstants.CK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());
