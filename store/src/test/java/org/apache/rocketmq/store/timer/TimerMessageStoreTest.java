@@ -653,6 +653,56 @@ public class TimerMessageStoreTest {
         }
     }
 
+    @Test
+    public void testEnqueueRetryDoesNotReprocessSucceededRequests() throws Exception {
+        Assume.assumeFalse(MixAll.isWindows());
+        String rootDir = StoreTestUtils.createBaseDir();
+        baseDirs.add(rootDir);
+        TimerCheckpoint timerCheckpoint =
+            new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
+        TimerMetrics timerMetrics =
+            new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics");
+
+        final long poisonOffsetPy = 100L;
+        final long normalOffsetPy = 200L;
+        final Map<Long, AtomicInteger> enqueueCalls = new ConcurrentHashMap<>();
+
+        TimerMessageStore timerMessageStore =
+            new TimerMessageStore(messageStore, storeConfig, timerCheckpoint, timerMetrics, null) {
+                @Override
+                public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime,
+                    MessageExt messageExt, boolean isFromTimeline) {
+                    int calls = enqueueCalls.computeIfAbsent(offsetPy, key -> new AtomicInteger(0)).incrementAndGet();
+                    if (offsetPy == poisonOffsetPy && calls == 1) {
+                        // Simulate a transient TimerLog append failure for this request only,
+                        // leaving the other request of the batch successful
+                        return false;
+                    }
+                    return super.doEnqueue(offsetPy, sizePy, delayedTime, messageExt, isFromTimeline);
+                }
+            };
+        messageStore.setTimerMessageStore(timerMessageStore);
+        timerStores.add(timerMessageStore);
+
+        long delayTime = System.currentTimeMillis() + 10 * precisionMs;
+        TimerRequest poisonReq = new TimerRequest(poisonOffsetPy, msgBody.length, delayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        poisonReq.setMsg(buildMessage(delayTime, "TimerTest_enqueueRetryPoison", false));
+        TimerRequest normalReq = new TimerRequest(normalOffsetPy, msgBody.length, delayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        normalReq.setMsg(buildMessage(delayTime, "TimerTest_enqueueRetryNormal", false));
+        timerMessageStore.enqueuePutQueue.put(poisonReq);
+        timerMessageStore.enqueuePutQueue.put(normalReq);
+
+        TimerMessageStore.TimerEnqueuePutService service = timerMessageStore.new TimerEnqueuePutService();
+        service.fetchAndPutTimerRequest();
+
+        // The request whose first attempt failed is retried and then succeeds
+        assertEquals(2, enqueueCalls.get(poisonOffsetPy).get());
+        // The request that already succeeded in the first round must not be re-enqueued
+        assertEquals(1, enqueueCalls.get(normalOffsetPy).get());
+    }
+
     @After
     public void clear() {
         for (TimerMessageStore store : timerStores) {
