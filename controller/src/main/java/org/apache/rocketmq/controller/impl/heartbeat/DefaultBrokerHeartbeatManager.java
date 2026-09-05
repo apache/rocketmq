@@ -134,6 +134,11 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             prev.setLastUpdateTimestamp(System.currentTimeMillis());
             prev.setHeartbeatTimeoutMillis(realTimeoutMillis);
             prev.setElectionPriority(realElectionPriority);
+            // Rebind the live entry to the current channel, otherwise a close event of a stale
+            // channel would evict a broker that is already alive on a new channel
+            if (channel != null && channel != prev.getChannel()) {
+                prev.setChannel(channel);
+            }
             if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
                 prev.setEpoch(realEpoch);
                 prev.setMaxOffset(realMaxOffset);
