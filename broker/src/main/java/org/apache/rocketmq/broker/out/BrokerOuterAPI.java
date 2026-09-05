@@ -831,7 +831,7 @@ public class BrokerOuterAPI {
                     continue;
                 }
 
-                if (topicSeq >= totalTopicNum - 1) {
+                if (topicSeq >= totalTopicNum) {
                     LOGGER.info("get all topic config, totalTopicNum: {}", totalTopicNum);
                     break;
                 }
@@ -981,7 +981,7 @@ public class BrokerOuterAPI {
                     continue;
                 }
 
-                if (groupSeq >= totalGroupNum - 1) {
+                if (groupSeq >= totalGroupNum) {
                     LOGGER.info("get all subscription group config, totalGroupNum: {}", totalGroupNum);
                     break;
                 }
