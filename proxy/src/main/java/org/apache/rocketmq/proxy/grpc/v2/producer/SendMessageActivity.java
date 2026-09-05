@@ -328,12 +328,47 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         }
     }
 
+    /**
+     * The message service delivers the messages of one request to the broker as a single remoting
+     * batch and returns one SendResult for it, while the v2 protocol expects one response entry
+     * per request message: SDKs fail the send when the receipt count does not match. Expand a
+     * single batch result into per-message results, mirroring ProduceAccumulator#splitSendResults.
+     */
+    static List<SendResult> expandBatchSendResult(SendMessageRequest request, List<SendResult> resultList) {
+        int messageCount = request.getMessagesCount();
+        if (resultList.size() != 1 || messageCount < 2) {
+            return resultList;
+        }
+        SendResult batchResult = resultList.get(0);
+        List<SendResult> expandedList = new ArrayList<>(messageCount);
+        if (batchResult.getMsgId() != null && batchResult.getOffsetMsgId() != null) {
+            String[] msgIds = batchResult.getMsgId().split(",");
+            String[] offsetMsgIds = batchResult.getOffsetMsgId().split(",");
+            if (msgIds.length == messageCount && offsetMsgIds.length == messageCount) {
+                for (int i = 0; i < messageCount; i++) {
+                    SendResult expanded = new SendResult(batchResult.getSendStatus(), msgIds[i],
+                        batchResult.getMessageQueue(), batchResult.getQueueOffset() + i,
+                        batchResult.getTransactionId(), offsetMsgIds[i], batchResult.getRegionId());
+                    expanded.setRecallHandle(batchResult.getRecallHandle());
+                    expandedList.add(expanded);
+                }
+                return expandedList;
+            }
+        }
+        // No per-message ids in the batch result (e.g. an inner-batch message response):
+        // reuse the batch result for every message, same as the client-side expansion
+        for (int i = 0; i < messageCount; i++) {
+            expandedList.add(batchResult);
+        }
+        return expandedList;
+    }
+
     protected SendMessageResponse convertToSendMessageResponse(ProxyContext ctx, SendMessageRequest request,
         List<SendResult> resultList) {
         SendMessageResponse.Builder builder = SendMessageResponse.newBuilder();
 
         Set<Code> responseCodes = new HashSet<>();
-        for (SendResult result : resultList) {
+        for (SendResult result : expandBatchSendResult(request, resultList)) {
             SendResultEntry resultEntry;
             switch (result.getSendStatus()) {
                 case FLUSH_DISK_TIMEOUT:
