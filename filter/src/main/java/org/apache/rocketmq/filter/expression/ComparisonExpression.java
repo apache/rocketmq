@@ -536,7 +536,7 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
             try {
                 if (lc == Boolean.class) {
                     if (convertStringExpressions && rc == String.class) {
-                        lv = Boolean.valueOf((String) lv).booleanValue();
+                        rv = Boolean.valueOf((String) rv).booleanValue();
                     } else {
                         return -1;
                     }
