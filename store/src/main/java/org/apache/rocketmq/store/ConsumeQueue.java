@@ -136,7 +136,12 @@ public class ConsumeQueue implements ConsumeQueueInterface {
     @Override
     public void recover() {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
-        if (!mappedFiles.isEmpty()) {
+        if (mappedFiles.isEmpty()) {
+            if (isExtReadEnable()) {
+                this.consumeQueueExt.recover();
+                truncateConsumeQueueExt(1);
+            }
+        } else {
 
             int index = mappedFiles.size() - 3;
             if (index < 0) {
@@ -196,8 +201,7 @@ public class ConsumeQueue implements ConsumeQueueInterface {
 
             if (isExtReadEnable()) {
                 this.consumeQueueExt.recover();
-                log.info("Truncate consume queue extend file by max {}", maxExtAddr);
-                this.consumeQueueExt.truncateByMaxAddress(maxExtAddr);
+                truncateConsumeQueueExt(maxExtAddr);
             }
         }
     }
@@ -423,10 +427,11 @@ public class ConsumeQueue implements ConsumeQueueInterface {
 
         this.setMaxPhysicOffset(phyOffset);
         long maxExtAddr = 1;
-        boolean shouldDeleteFile = false;
+        boolean cqFileDeletionFailed = false;
         while (true) {
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
             if (mappedFile != null) {
+                boolean shouldDeleteFile = false;
                 ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
                 mappedFile.setWrotePosition(0);
@@ -438,53 +443,42 @@ public class ConsumeQueue implements ConsumeQueueInterface {
                     int size = byteBuffer.getInt();
                     long tagsCode = byteBuffer.getLong();
 
-                    if (0 == i) {
-                        if (offset >= phyOffset) {
+                    if (offset < 0 || size <= 0 || offset >= phyOffset) {
+                        if (0 == i) {
                             shouldDeleteFile = true;
-                            break;
-                        } else {
-                            int pos = i + CQ_STORE_UNIT_SIZE;
-                            mappedFile.setWrotePosition(pos);
-                            mappedFile.setCommittedPosition(pos);
-                            mappedFile.setFlushedPosition(pos);
-                            this.setMaxPhysicOffset(offset + size);
-                            // This maybe not take effect, when not every consume queue has extend file.
-                            if (isExtAddr(tagsCode)) {
-                                maxExtAddr = tagsCode;
-                            }
                         }
-                    } else {
+                        break;
+                    }
 
-                        if (offset >= 0 && size > 0) {
+                    int pos = i + CQ_STORE_UNIT_SIZE;
+                    mappedFile.setWrotePosition(pos);
+                    mappedFile.setCommittedPosition(pos);
+                    mappedFile.setFlushedPosition(pos);
+                    this.setMaxPhysicOffset(offset + size);
+                    // This maybe not take effect, when not every consume queue has extend file.
+                    long logicOffset = mappedFile.getFileFromOffset() + i;
+                    if (logicOffset >= this.minLogicOffset && isExtAddr(tagsCode)) {
+                        maxExtAddr = tagsCode;
+                    }
 
-                            if (offset >= phyOffset) {
-                                return;
-                            }
-
-                            int pos = i + CQ_STORE_UNIT_SIZE;
-                            mappedFile.setWrotePosition(pos);
-                            mappedFile.setCommittedPosition(pos);
-                            mappedFile.setFlushedPosition(pos);
-                            this.setMaxPhysicOffset(offset + size);
-                            if (isExtAddr(tagsCode)) {
-                                maxExtAddr = tagsCode;
-                            }
-
-                            if (pos == logicFileSize) {
-                                return;
-                            }
-                        } else {
-                            return;
-                        }
+                    if (pos == logicFileSize) {
+                        break;
                     }
                 }
 
                 if (shouldDeleteFile) {
                     if (deleteFile) {
+                        String mappedFilePath = mappedFile.getFileName();
                         this.mappedFileQueue.deleteLastMappedFile();
+                        if (new File(mappedFilePath).exists()) {
+                            cqFileDeletionFailed = true;
+                            log.warn("Consume queue file still exists after deletion: {}", mappedFilePath);
+                        }
                     } else {
                         this.mappedFileQueue.deleteExpiredFile(Collections.singletonList(this.mappedFileQueue.getLastMappedFile()));
                     }
+                } else {
+                    break;
                 }
 
             } else {
@@ -492,9 +486,51 @@ public class ConsumeQueue implements ConsumeQueueInterface {
             }
         }
 
-        if (isExtReadEnable()) {
-            this.consumeQueueExt.truncateByMaxAddress(maxExtAddr);
+        if (deleteFile && isExtReadEnable()) {
+            if (cqFileDeletionFailed) {
+                log.warn("Skip truncating consume queue ext because a consume queue file was not deleted");
+                return;
+            }
+            truncateConsumeQueueExt(maxExtAddr);
         }
+    }
+
+    private void truncateConsumeQueueExt(long maxExtAddr) {
+        if (this.consumeQueueExt.getTotalSize() == 0) {
+            return;
+        }
+        if (!isExtAddr(maxExtAddr) || this.consumeQueueExt.get(maxExtAddr) == null) {
+            maxExtAddr = findLastRetainedExtAddress();
+        }
+        if (isExtAddr(maxExtAddr)) {
+            this.consumeQueueExt.truncateByMaxAddress(maxExtAddr);
+        } else if (!this.consumeQueueExt.truncateAll()) {
+            log.warn("Failed to truncate all consume queue ext data, topic={}, queueId={}",
+                this.topic, this.queueId);
+        }
+    }
+
+    private long findLastRetainedExtAddress() {
+        List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
+        for (int fileIndex = mappedFiles.size() - 1; fileIndex >= 0; fileIndex--) {
+            MappedFile mappedFile = mappedFiles.get(fileIndex);
+            ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
+            for (int position = mappedFile.getWrotePosition() - CQ_STORE_UNIT_SIZE;
+                position >= 0; position -= CQ_STORE_UNIT_SIZE) {
+                long logicOffset = mappedFile.getFileFromOffset() + position;
+                if (logicOffset < this.minLogicOffset) {
+                    return 1;
+                }
+                long offset = byteBuffer.getLong(position);
+                int size = byteBuffer.getInt(position + Long.BYTES);
+                long tagsCode = byteBuffer.getLong(position + MSG_TAG_OFFSET_INDEX);
+                if (offset >= 0 && size > 0 && isExtAddr(tagsCode)
+                    && this.consumeQueueExt.get(tagsCode) != null) {
+                    return tagsCode;
+                }
+            }
+        }
+        return 1;
     }
 
     @Override
