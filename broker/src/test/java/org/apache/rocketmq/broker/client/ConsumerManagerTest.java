@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.client;
 
 import com.google.common.collect.ImmutableSet;
 import io.netty.channel.Channel;
+import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
@@ -234,5 +235,27 @@ public class ConsumerManagerTest {
         Set<String> actual = consumerManager.queryTopicConsumeByWho(TOPIC);
         assertThat(actual).contains(GROUP);
         assertThat(actual).doesNotContain(TOPIC);
+    }
+
+    @Test
+    public void testWithoutSubRegistrationRemovedOnFastChannelClose() {
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+        brokerConfig.setEnableFastChannelEventProcess(true);
+        brokerConfig.setNotifyConsumerIdsChangedEnable(false);
+        EmbeddedChannel embeddedChannel = new EmbeddedChannel();
+        ClientChannelInfo channelInfo = new ClientChannelInfo(embeddedChannel, CLIENT_ID, LanguageCode.JAVA, VERSION);
+        try {
+            consumerManager.registerConsumerWithoutSub(GROUP, channelInfo, CONSUME_PASSIVELY,
+                MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET, false);
+            assertThat(consumerManager.getConsumerGroupInfo(GROUP)).isNotNull();
+
+            boolean removed = consumerManager.doChannelCloseEvent(CLIENT_ID, embeddedChannel);
+
+            assertTrue("consumer registered via heartbeat-v2 without subscription must be removed on channel close",
+                removed);
+            assertThat(consumerManager.getConsumerGroupInfo(GROUP)).isNull();
+        } finally {
+            embeddedChannel.finishAndReleaseAll();
+        }
     }
 }
