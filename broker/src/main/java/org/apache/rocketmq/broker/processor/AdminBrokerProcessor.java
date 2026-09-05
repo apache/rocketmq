@@ -3390,7 +3390,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     if (canReadUserPassword(request, requestHeader.getUsername())) {
                         userInfo.setPassword(user.getPassword());
                     }
-                    response.setBody(JSON.toJSONString(userInfo).getBytes(StandardCharsets.UTF_8));
+                    response.setBody(JSON.toJSONBytes(userInfo));
                 }
             })
             .exceptionally(ex -> {
@@ -3413,7 +3413,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 if (CollectionUtils.isNotEmpty(users)) {
                     List<UserInfo> userInfos = UserConverter.convertUsers(users);
-                    response.setBody(JSON.toJSONString(userInfos).getBytes(StandardCharsets.UTF_8));
+                    response.setBody(JSON.toJSONBytes(userInfos));
                 }
             })
             .exceptionally(ex -> {
