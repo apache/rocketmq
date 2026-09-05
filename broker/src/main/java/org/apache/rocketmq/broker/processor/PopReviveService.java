@@ -66,6 +66,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOP
 
 public class PopReviveService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    public static final int MAX_REVIVE_SIZE = 1024 * 10;
     private final int[] ckRewriteIntervalsInSeconds = new int[] { 10, 20, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 1200, 1800, 3600, 7200 };
 
     private int queueId;
@@ -147,10 +148,15 @@ public class PopReviveService extends ServiceThread {
             POP_LOGGER.error("reviveQueueId={}, revive error, msg is: {}", queueId, msgInner);
             return false;
         }
-        this.brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(popCheckPoint);
-        this.brokerController.getBrokerStatsManager().incBrokerPutNums(popCheckPoint.getTopic(), 1);
-        this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
-        this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
+        if (this.brokerController.getPopInflightMessageCounter() != null) {
+            this.brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(popCheckPoint);
+        }
+        if (this.brokerController.getBrokerStatsManager() != null) {
+            this.brokerController.getBrokerStatsManager().incBrokerPutNums(popCheckPoint.getTopic(), 1);
+            this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
+            this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(),
+                    putMessageResult.getAppendMessageResult().getWroteBytes());
+        }
         return true;
     }
 
@@ -351,6 +357,13 @@ public class PopReviveService extends ServiceThread {
                 POP_LOGGER.info("slave skip scan, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 break;
             }
+            if (System.currentTimeMillis() - startScanTime > brokerController.getBrokerConfig().getReviveScanTime()) {
+                POP_LOGGER.info("reviveQueueId={}, scan timeout ", queueId);
+                break;
+            }
+            if (map.size() >= MAX_REVIVE_SIZE) {
+                break;
+            }
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
             if (messageExts == null || messageExts.isEmpty()) {
                 long old = endTime;
@@ -379,10 +392,7 @@ public class PopReviveService extends ServiceThread {
             } else {
                 noMsgCount = 0;
             }
-            if (System.currentTimeMillis() - startScanTime > brokerController.getBrokerConfig().getReviveScanTime()) {
-                POP_LOGGER.info("reviveQueueId={}, scan timeout ", queueId);
-                break;
-            }
+            
             for (MessageExt messageExt : messageExts) {
                 if (PopAckConstants.CK_TAG.equals(messageExt.getTags())) {
                     String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
@@ -504,12 +514,17 @@ public class PopReviveService extends ServiceThread {
                 sortList.get(0).getReviveOffset(), sortList.get(sortList.size() - 1).getStartOffset(), sortList.get(sortList.size() - 1).getReviveOffset());
         }
         long newOffset = consumeReviveObj.oldOffset;
+        long current = System.currentTimeMillis();
+        long maxEndTime = consumeReviveObj.endTime;
+        if (current > maxEndTime) {
+            maxEndTime = current;
+        }
         for (PopCheckPoint popCheckPoint : sortList) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip ck process, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 break;
             }
-            if (consumeReviveObj.endTime - popCheckPoint.getReviveTime() <= (PopAckConstants.ackTimeInterval + PopAckConstants.SECOND)) {
+            if (maxEndTime - popCheckPoint.getReviveTime() <= (PopAckConstants.ackTimeInterval + PopAckConstants.SECOND)) {
                 break;
             }
 
