@@ -327,7 +327,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic, final String filterGroups) {
 
         Map<Integer, Long> queueMinOffset = new HashMap<>();
-        Set<String> topicGroups = this.offsetTable.keySet();
+        Set<String> topicGroups = new HashSet<>(this.offsetTable.keySet());
         if (!UtilAll.isBlank(filterGroups)) {
             for (String group : filterGroups.split(",")) {
                 Iterator<String> it = topicGroups.iterator();
@@ -335,7 +335,6 @@ public class ConsumerOffsetManager extends ConfigManager {
                     String topicAtGroup = it.next();
                     if (group.equals(topicAtGroup.split(TOPIC_GROUP_SEPARATOR)[1])) {
                         it.remove();
-                        removeConsumerOffset(topicAtGroup);
                     }
                 }
             }
