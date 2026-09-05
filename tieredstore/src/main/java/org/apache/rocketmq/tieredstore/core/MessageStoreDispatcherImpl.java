@@ -262,7 +262,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             for (; offset < targetOffset; offset++) {
                 cqUnit = consumeQueue.get(offset);
                 bufferSize += cqUnit.getSize();
-                if (bufferSize >= groupCommitSize) {
+                if (bufferSize >= groupCommitSize && !appendingBufferList.isEmpty()) {
                     break;
                 }
                 message = defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
