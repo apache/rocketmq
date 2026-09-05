@@ -23,15 +23,17 @@ import java.security.NoSuchAlgorithmException;
 import org.apache.commons.codec.binary.Hex;
 
 public class BinaryUtil {
-    public static byte[] calculateMd5(byte[] binaryData) {
-        MessageDigest messageDigest = null;
+    private static final ThreadLocal<MessageDigest> MD5_DIGEST = ThreadLocal.withInitial(() -> {
         try {
-            messageDigest = MessageDigest.getInstance("MD5");
+            return MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("MD5 algorithm not found.");
+            throw new IllegalStateException("MD5 algorithm not found", e);
         }
-        messageDigest.update(binaryData);
-        return messageDigest.digest();
+    });
+    public static byte[] calculateMd5(byte[] binaryData) {
+        MessageDigest messageDigest = MD5_DIGEST.get();
+        messageDigest.reset();
+        return messageDigest.digest(binaryData);
     }
 
     public static String generateMd5(String bodyStr) {
