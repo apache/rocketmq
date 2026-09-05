@@ -177,6 +177,46 @@ public class SendMessageActivityTest extends BaseActivityTest {
         }
     }
 
+    @Test
+    public void testConvertToSendMessageResponseExpandsBatchSendResult() {
+        String[] msgIds = new String[] {
+            MessageClientIDSetter.createUniqID(),
+            MessageClientIDSetter.createUniqID(),
+            MessageClientIDSetter.createUniqID()
+        };
+        SendResult batchSendResult = new SendResult(SendStatus.SEND_OK,
+            String.join(",", msgIds), null, 10L, null,
+            String.join(",", "offsetMsg0", "offsetMsg1", "offsetMsg2"), "regionA");
+
+        SendMessageRequest.Builder requestBuilder = SendMessageRequest.newBuilder();
+        for (int i = 0; i < 3; i++) {
+            requestBuilder.addMessages(Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(TOPIC)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(msgIds[i])
+                    .setQueueId(0)
+                    .setMessageType(MessageType.NORMAL)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .build())
+                .setBody(ByteString.copyFromUtf8("123"))
+                .build());
+        }
+
+        SendMessageResponse response = this.sendMessageActivity.convertToSendMessageResponse(
+            ProxyContext.create(), requestBuilder.build(), Lists.newArrayList(batchSendResult));
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals("one entry per request message must be returned", 3, response.getEntriesCount());
+        for (int i = 0; i < 3; i++) {
+            assertEquals(Code.OK, response.getEntries(i).getStatus().getCode());
+            assertEquals(msgIds[i], response.getEntries(i).getMessageId());
+            assertEquals(10L + i, response.getEntries(i).getOffset());
+        }
+    }
+
     @Test(expected = GrpcProxyException.class)
     public void testBuildErrorMessage() {
         this.sendMessageActivity.buildMessage(null,
