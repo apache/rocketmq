@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -729,7 +730,10 @@ public class PopConsumerService extends ServiceThread {
             msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
         }
 
-        msgInner.getProperties().putAll(messageExt.getProperties());
+        Map<String, String> sourceProperties = messageExt.getProperties();
+        if (sourceProperties != null) {
+            msgInner.getProperties().putAll(sourceProperties);
+        }
 
         // set first pop time here
         if (messageExt.getReconsumeTimes() == 0 ||
