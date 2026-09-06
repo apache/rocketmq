@@ -249,6 +249,8 @@ public class LocalMessageService implements MessageService {
                 String[] queues = StringUtils.split(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH), MixAll.LMQ_DISPATCH_SEPARATOR);
                 String[] queueOffsets = StringUtils.split(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), MixAll.LMQ_DISPATCH_SEPARATOR);
                 if (queues == null || queueOffsets == null || queues.length != 1 || queues.length != queueOffsets.length) {
+                    log.warn("Invalid Lite dispatch metadata, messageId={}, brokerName={}",
+                        messageExt.getMsgId(), messageQueue.getBrokerName());
                     continue;
                 }
                 messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
