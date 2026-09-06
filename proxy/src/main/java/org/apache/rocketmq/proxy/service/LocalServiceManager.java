@@ -55,8 +55,10 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     private final ProxyRelayService proxyRelayService;
     private final MetadataService metadataService;
     private final AdminService adminService;
+    private final LiteSubscriptionService liteSubscriptionService;
 
     private final MQClientAPIFactory mqClientAPIFactory;
+    private final MQClientAPIFactory liteSubscriptionAPIFactory;
     private final ChannelManager channelManager;
 
     private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(
@@ -82,11 +84,23 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
         this.proxyRelayService = new LocalProxyRelayService(brokerController, this.transactionService);
         this.metadataService = new LocalMetadataService(brokerController);
         this.adminService = new DefaultAdminService(this.mqClientAPIFactory);
+
+        // Lite subscriptions use a separate channel
+        this.liteSubscriptionAPIFactory = new MQClientAPIFactory(
+                nameserverAccessConfig,
+                "LiteSubscription_",
+                1,
+                new DoNothingClientRemotingProcessor(null),
+                rpcHook,
+                scheduledExecutorService);
+        this.liteSubscriptionService = new LiteSubscriptionService(this.topicRouteService, this.liteSubscriptionAPIFactory);
+
         this.init();
     }
 
     protected void init() {
         this.appendStartAndShutdown(this.mqClientAPIFactory);
+        this.appendStartAndShutdown(this.liteSubscriptionAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(new LocalServiceManagerStartAndShutdown());
     }
@@ -133,7 +147,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
 
     @Override
     public LiteSubscriptionService getLiteSubscriptionService() {
-        return null;
+        return liteSubscriptionService;
     }
 
     private class LocalServiceManagerStartAndShutdown implements StartAndShutdown {
