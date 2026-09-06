@@ -520,11 +520,17 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         long popTime = System.currentTimeMillis();
         CompletableFuture<Long> getMessageFuture = CompletableFuture.completedFuture(0L);
         if (needRetry && !requestHeader.isOrder()) {
-            if (needRetryV1) {
+            // In priority mode this is the only chance to serve retry messages ahead of the
+            // normal topic, so cover both retry topic naming schemes instead of alternating
+            // between them while the V1 compatibility window is open.
+            boolean coverBothRetryTopics = usePriorityMode && brokerConfig.isEnableRetryTopicV2()
+                && brokerConfig.isRetrieveMessageFromPopRetryTopicV1();
+            if (needRetryV1 || coverBothRetryTopics) {
                 String retryTopic = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
                 getMessageFuture = popMsgFromTopic(retryTopic, true, getMessageResult, requestHeader, reviveQid, channel,
                     popTime, finalMessageFilter, startOffsetInfo, msgOffsetInfo, orderCountInfo, randomQ, getMessageFuture);
-            } else {
+            }
+            if (!needRetryV1 || coverBothRetryTopics) {
                 String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
                 getMessageFuture = popMsgFromTopic(retryTopic, true, getMessageResult, requestHeader, reviveQid, channel,
                     popTime, finalMessageFilter, startOffsetInfo, msgOffsetInfo, orderCountInfo, randomQ, getMessageFuture);
