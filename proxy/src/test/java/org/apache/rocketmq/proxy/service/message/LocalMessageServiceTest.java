@@ -32,6 +32,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
+import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
@@ -46,6 +47,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -70,6 +72,8 @@ import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -94,6 +98,8 @@ public class LocalMessageServiceTest extends InitConfigTest {
     private EndTransactionProcessor endTransactionProcessorMock;
     @Mock
     private PopMessageProcessor popMessageProcessorMock;
+    @Mock
+    private PopLiteMessageProcessor popLiteMessageProcessorMock;
     @Mock
     private ChangeInvisibleTimeProcessor changeInvisibleTimeProcessorMock;
     @Mock
@@ -126,6 +132,7 @@ public class LocalMessageServiceTest extends InitConfigTest {
         channelManager = new ChannelManager();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
+        Mockito.when(brokerControllerMock.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessorMock);
         Mockito.when(brokerControllerMock.getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessorMock);
         Mockito.when(brokerControllerMock.getAckMessageProcessor()).thenReturn(ackMessageProcessorMock);
         Mockito.when(brokerControllerMock.getEndTransactionProcessor()).thenReturn(endTransactionProcessorMock);
@@ -275,6 +282,49 @@ public class LocalMessageServiceTest extends InitConfigTest {
             boolean second = argument.readCustomHeader() instanceof EndTransactionRequestHeader;
             return first && second;
         }));
+    }
+
+    @Test
+    public void testPopLiteMessageWriteAndFlush() throws Exception {
+        long popTime = System.currentTimeMillis();
+        long invisibleTime = 3000L;
+        List<MessageExt> messages = new ArrayList<>();
+        MessageExt message1 = buildMessageExt(topic, 0, 100L);
+        message1.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%$topic$lite");
+        message1.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, "0");
+        messages.add(message1);
+        MessageExt message2 = buildMessageExt(topic, 0, 101L);
+        message2.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%$topic$lite");
+        message2.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, "1");
+        messages.add(message2);
+        byte[] body = ByteBuffer.allocate(MessageDecoder.encode(message1, false).length + MessageDecoder.encode(message2, false).length)
+            .put(MessageDecoder.encode(message1, false)).put(MessageDecoder.encode(message2, false)).array();
+        PopLiteMessageRequestHeader requestHeader = new PopLiteMessageRequestHeader();
+        requestHeader.setInvisibleTime(invisibleTime);
+        Mockito.when(popLiteMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.argThat(argument ->
+            argument.getCode() == RequestCode.POP_LITE_MESSAGE
+                && argument.readCustomHeader() instanceof PopLiteMessageRequestHeader))).thenAnswer(invocation -> {
+                    SimpleChannelHandlerContext channelHandlerContext = invocation.getArgument(0);
+                    RemotingCommand request = invocation.getArgument(1);
+                    RemotingCommand response = RemotingCommand.createResponseCommand(PopLiteMessageResponseHeader.class);
+                    response.setOpaque(request.getOpaque());
+                    response.setCode(ResponseCode.SUCCESS);
+                    response.setBody(body);
+                    PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) response.readCustomHeader();
+                    responseHeader.setPopTime(popTime);
+                    responseHeader.setInvisibleTime(invisibleTime);
+                    responseHeader.setReviveQid(1);
+                    channelHandlerContext.writeAndFlush(response);
+                    return null;
+                });
+
+        PopResult result = localMessageService.popLiteMessage(proxyContext,
+            new AddressableMessageQueue(new MessageQueue(topic, brokerName, queueId), ""), requestHeader, 1000L).get();
+        assertThat(result.getPopStatus()).isEqualTo(PopStatus.FOUND);
+        assertThat(result.getMsgFoundList()).hasSize(2);
+        assertThat(result.getMsgFoundList().get(0).getQueueOffset()).isEqualTo(0L);
+        assertThat(result.getMsgFoundList().get(1).getQueueOffset()).isEqualTo(1L);
+        assertThat(result.getMsgFoundList().get(0).getBrokerName()).isEqualTo(brokerName);
     }
 
     @Test
