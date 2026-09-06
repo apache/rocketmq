@@ -55,6 +55,8 @@ public class TimerWheel {
     };
     private final int wheelLength;
 
+    private volatile boolean dirty;
+
     private long snapOffset;
 
     public TimerWheel(String fileName, int slotsTotal, int precisionMs) throws IOException {
@@ -128,14 +130,26 @@ public class TimerWheel {
         if (mappedByteBuffer == null) {
             return;
         }
+        if (!dirty) {
+            return;
+        }
+        // Clear the flag before diffing: a concurrent putSlot during the diff re-marks it and the
+        // next flush picks the change up, so an interleaving can only cause an extra flush, never a
+        // missed one. All threads share the same underlying direct buffer (localBuffer duplicates
+        // only isolate position/limit), so the data itself is always visible here.
+        dirty = false;
         ByteBuffer bf = localBuffer.get();
-        bf.position(0);
-        bf.limit(wheelLength);
-        mappedByteBuffer.position(0);
-        mappedByteBuffer.limit(wheelLength);
-        for (int i = 0; i < wheelLength; i++) {
-            if (bf.get(i) != mappedByteBuffer.get(i)) {
-                mappedByteBuffer.put(i, bf.get(i));
+        int longAligned = wheelLength & ~7;
+        for (int i = 0; i < longAligned; i += 8) {
+            long local = bf.getLong(i);
+            if (local != mappedByteBuffer.getLong(i)) {
+                mappedByteBuffer.putLong(i, local);
+            }
+        }
+        for (int i = longAligned; i < wheelLength; i++) {
+            byte b = bf.get(i);
+            if (b != mappedByteBuffer.get(i)) {
+                mappedByteBuffer.put(i, b);
             }
         }
         this.mappedByteBuffer.force();
@@ -287,11 +301,10 @@ public class TimerWheel {
 
     public void putSlot(long timeMs, long firstPos, long lastPos) {
         localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
-        // To be compatible with previous version.
-        // The previous version's precision is fixed at 1000ms and it store timeMs / 1000 in slot.
         localBuffer.get().putLong(timeMs / precisionMs);
         localBuffer.get().putLong(firstPos);
         localBuffer.get().putLong(lastPos);
+        dirty = true;
     }
 
     public void putSlot(long timeMs, long firstPos, long lastPos, int num, int magic) {
@@ -301,6 +314,7 @@ public class TimerWheel {
         localBuffer.get().putLong(lastPos);
         localBuffer.get().putInt(num);
         localBuffer.get().putInt(magic);
+        dirty = true;
     }
 
     public void reviseSlot(long timeMs, long firstPos, long lastPos, boolean force) {
@@ -313,11 +327,13 @@ public class TimerWheel {
         } else {
             if (IGNORE != firstPos) {
                 localBuffer.get().putLong(firstPos);
+                dirty = true;
             } else {
                 localBuffer.get().getLong();
             }
             if (IGNORE != lastPos) {
                 localBuffer.get().putLong(lastPos);
+                dirty = true;
             }
         }
     }
