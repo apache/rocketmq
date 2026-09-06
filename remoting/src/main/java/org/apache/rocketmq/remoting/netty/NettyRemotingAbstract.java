@@ -247,7 +247,7 @@ public abstract class NettyRemotingAbstract {
         if (request.isOnewayRPC()) {
             if (attributesBuilder != null) {
                 attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
-                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributesBuilder.build());
             }
             return;
         }
@@ -264,7 +264,7 @@ public abstract class NettyRemotingAbstract {
                 }
                 if (remotingMetricsManager != null) {
                     attributesBuilder.put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future));
-                    remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                    remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributesBuilder.build());
                 }
                 if (callback != null) {
                     callback.accept(future);
@@ -276,7 +276,7 @@ public abstract class NettyRemotingAbstract {
             log.error(response.toString());
             if (remotingMetricsManager != null) {
                 attributesBuilder.put(LABEL_RESULT, RESULT_WRITE_CHANNEL_FAILED);
-                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributesBuilder.build());
             }
         }
 
@@ -299,7 +299,7 @@ public abstract class NettyRemotingAbstract {
         if (request.isOnewayRPC()) {
             if (attributesBuilder != null) {
                 attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
-                this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                this.remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributesBuilder.build());
             }
             return;
         }
@@ -316,7 +316,7 @@ public abstract class NettyRemotingAbstract {
                 }
                 if (this.remotingMetricsManager != null && attributesBuilder != null) {
                     attributesBuilder.put(LABEL_RESULT, this.remotingMetricsManager.getWriteAndFlushResult(future));
-                    this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                    this.remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributesBuilder.build());
                 }
                 if (callback != null) {
                     callback.accept(future);
@@ -328,7 +328,7 @@ public abstract class NettyRemotingAbstract {
             log.error(response.toString());
             if (this.remotingMetricsManager != null && attributesBuilder != null) {
                 attributesBuilder.put(LABEL_RESULT, RESULT_WRITE_CHANNEL_FAILED);
-                this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                this.remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributesBuilder.build());
             }
         }
     }
@@ -396,7 +396,7 @@ public abstract class NettyRemotingAbstract {
                 AttributesBuilder attributesBuilder = remotingMetricsManager.newAttributesBuilder()
                     .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(cmd.getCode()))
                     .put(LABEL_RESULT, RESULT_PROCESS_REQUEST_FAILED);
-                remotingMetricsManager.getRpcLatency().record(cmd.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                remotingMetricsManager.getRpcLatency().record(cmd.processTimerElapsedMs(), attributesBuilder.build());
             }
         }
     }

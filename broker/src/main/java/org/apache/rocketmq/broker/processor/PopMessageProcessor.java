@@ -87,7 +87,6 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -472,7 +471,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                                     .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                                     .build();
                                 remotingMetricsManager.getRpcLatency().record(
-                                    request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                                    request.processTimerElapsedMs(), attributes);
                                 if (!future.isSuccess()) {
                                     POP_LOGGER.error("Fail to transfer messages from page cache to {}",
                                         channel.remoteAddress(), future.cause());
@@ -625,7 +624,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                                         .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
                                         .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                                         .build();
-                                    remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                                    remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributes);
                                     if (!future.isSuccess()) {
                                         POP_LOGGER.error("Fail to transfer messages from page cache to {}",
                                             channel.remoteAddress(), future.cause());
