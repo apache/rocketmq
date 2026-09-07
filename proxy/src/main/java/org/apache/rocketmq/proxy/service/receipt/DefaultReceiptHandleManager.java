@@ -236,11 +236,9 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
      *
      * <p>Decision logic:
      * <ul>
-     *   <li>If the handle has exceeded {@code maxRenewRetryTimes}, it is
-     *       dropped</li>
+     *   <li>If the handle has exceeded {@code maxRenewRetryTimes}, it is dropped</li>
      *   <li>If the total renewal duration is within {@code renewMaxTimeMillis},
-     *       a {@link RenewEvent.EventType#RENEW} event is fired to extend the
-     *       invisible time</li>
+     *       a {@link RenewEvent.EventType#RENEW} event is fired to extend the invisible time</li>
      *   <li>If the renewal duration has exceeded {@code renewMaxTimeMillis},
      *       a {@link RenewEvent.EventType#STOP_RENEW} event is fired which
      *       nacks the message with the group's retry policy delay</li>
