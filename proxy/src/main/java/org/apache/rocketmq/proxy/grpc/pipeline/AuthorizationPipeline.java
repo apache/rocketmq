@@ -48,7 +48,7 @@ public class AuthorizationPipeline implements RequestPipeline {
         }
         try {
             List<AuthorizationContext> contexts = newContexts(context, headers, request);
-            authorizationEvaluator.evaluate(contexts);
+            authorizationEvaluator.evaluate(request, contexts);
         } catch (AuthorizationException | AuthenticationException ex) {
             throw ex;
         }  catch (Throwable ex) {

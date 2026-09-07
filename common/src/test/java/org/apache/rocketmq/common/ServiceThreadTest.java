@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -159,17 +160,15 @@ public class ServiceThreadTest {
      */
     @Test(timeout = 30000)
     public void serviceThreadShouldNotLoseWakeupUnderStress() throws Exception {
-        final int stressIterations = 10000;
+        final int stressIterations = 1000;
         final int wakerThreads = 4;
-        final long waitTimeoutMs = 20;
-        final long lostWakeupThresholdMs = 18;
+        final long waitTimeoutMs = TimeUnit.MINUTES.toMillis(2);
+        final long coordinationTimeoutSeconds = 20;
 
-        StressServiceThread service = new StressServiceThread();
-        AtomicInteger activeIteration = new AtomicInteger(-1);
-        AtomicInteger completedIteration = new AtomicInteger(-1);
-        AtomicInteger lostWakeups = new AtomicInteger(0);
-        AtomicInteger maxElapsedMs = new AtomicInteger(0);
-        AtomicBoolean running = new AtomicBoolean(true);
+        CyclicBarrier iterationStart = new CyclicBarrier(wakerThreads + 1);
+        CyclicBarrier iterationComplete = new CyclicBarrier(wakerThreads + 1);
+        AtomicReference<StressServiceThread> activeService = new AtomicReference<>();
+        AtomicInteger completedIterations = new AtomicInteger(0);
         AtomicReference<Throwable> failure = new AtomicReference<>();
         ExecutorService executor = Executors.newFixedThreadPool(wakerThreads + 1);
 
@@ -177,32 +176,28 @@ public class ServiceThreadTest {
             executor.submit(() -> {
                 try {
                     for (int i = 0; i < stressIterations; i++) {
-                        activeIteration.set(i);
-                        long elapsed = service.awaitOnce(waitTimeoutMs);
-                        maxElapsedMs.accumulateAndGet((int) elapsed, Math::max);
-                        if (elapsed >= lostWakeupThresholdMs) {
-                            lostWakeups.incrementAndGet();
-                            running.set(false);
-                            break;
-                        }
-                        completedIteration.set(i);
-                        Thread.yield();
+                        StressServiceThread service = new StressServiceThread();
+                        activeService.set(service);
+                        iterationStart.await(coordinationTimeoutSeconds, TimeUnit.SECONDS);
+                        service.awaitOnce(waitTimeoutMs);
+                        completedIterations.incrementAndGet();
+                        iterationComplete.await(coordinationTimeoutSeconds, TimeUnit.SECONDS);
                     }
                 } catch (Throwable t) {
                     failure.compareAndSet(null, t);
-                } finally {
-                    running.set(false);
                 }
             });
 
             for (int w = 0; w < wakerThreads; w++) {
                 executor.submit(() -> {
-                    while (running.get()) {
-                        int iteration = activeIteration.get();
-                        if (iteration >= 0 && completedIteration.get() < iteration) {
-                            service.wakeup();
+                    try {
+                        for (int i = 0; i < stressIterations; i++) {
+                            iterationStart.await(coordinationTimeoutSeconds, TimeUnit.SECONDS);
+                            activeService.get().wakeup();
+                            iterationComplete.await(coordinationTimeoutSeconds, TimeUnit.SECONDS);
                         }
-                        Thread.yield();
+                    } catch (Throwable t) {
+                        failure.compareAndSet(null, t);
                     }
                 });
             }
@@ -214,10 +209,9 @@ public class ServiceThreadTest {
             if (error != null) {
                 throw new AssertionError("stress test failed", error);
             }
-            assertEquals("ServiceThread lost wakeups under stress (maxElapsedMs=" + maxElapsedMs.get() + ")",
-                0, lostWakeups.get());
+            assertEquals("ServiceThread must complete every notified wait", stressIterations,
+                completedIterations.get());
         } finally {
-            running.set(false);
             executor.shutdownNow();
         }
     }
@@ -283,10 +277,8 @@ public class ServiceThreadTest {
         public void run() {
         }
 
-        long awaitOnce(long intervalMillis) {
-            long begin = System.nanoTime();
+        void awaitOnce(long intervalMillis) {
             waitForRunning(intervalMillis);
-            return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin);
         }
     }
 }

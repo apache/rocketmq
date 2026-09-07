@@ -49,7 +49,7 @@ public class AuthorizationPipeline implements RequestPipeline {
         }
         try {
             List<AuthorizationContext> contexts = newContexts(request, ctx, context);
-            authorizationEvaluator.evaluate(contexts);
+            authorizationEvaluator.evaluate(request, contexts);
         } catch (AuthorizationException | AuthenticationException ex) {
             throw ex;
         }  catch (Throwable ex) {

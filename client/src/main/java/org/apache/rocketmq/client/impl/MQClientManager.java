@@ -51,16 +51,15 @@ public class MQClientManager {
         String clientId = clientConfig.buildMQClientId();
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {
-            instance =
-                new MQClientInstance(clientConfig.cloneClientConfig(),
-                    this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
-            MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
-            if (prev != null) {
-                instance = prev;
-                log.warn("Returned Previous MQClientInstance for clientId:[{}]", clientId);
-            } else {
-                log.info("Created new MQClientInstance for clientId:[{}]", clientId);
-            }
+            ClientConfig clonedClientConfig = clientConfig.cloneClientConfig();
+            // MQClientInstance construction must not call back into factoryTable. ConcurrentHashMap rejects
+            // recursive updates from a mapping function with IllegalStateException.
+            instance = this.factoryTable.computeIfAbsent(clientId, key -> {
+                MQClientInstance newInstance = new MQClientInstance(clonedClientConfig,
+                    this.factoryIndexGenerator.getAndIncrement(), key, rpcHook);
+                log.info("Created new MQClientInstance for clientId:[{}]", key);
+                return newInstance;
+            });
         }
 
         return instance;
@@ -82,8 +81,16 @@ public class MQClientManager {
         return accumulator;
     }
 
+    /**
+     * Removes the mapped factory without checking its identity. Lifecycle cleanup should prefer
+     * {@link #removeClientFactory(String, MQClientInstance)} to avoid removing a replacement instance.
+     */
     public void removeClientFactory(final String clientId) {
         this.factoryTable.remove(clientId);
+    }
+
+    public void removeClientFactory(final String clientId, final MQClientInstance instance) {
+        this.factoryTable.remove(clientId, instance);
     }
 
     public ConcurrentMap<String, MQClientInstance> getFactoryTable() {

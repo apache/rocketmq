@@ -16,13 +16,15 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.common.action.Action;
-import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-@RocketMQAction(value = RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, action = Action.CREATE)
+/**
+ * Header metadata for a batch topic-create request. Topic names are carried in the request body.
+ *
+ * <p>This header must not declare {@code @RocketMQAction}: it has no concrete topic resource.
+ * Authorization resources are resolved from the request body by {@code DefaultAuthorizationContextBuilder}.
+ */
 public class CreateTopicListRequestHeader extends RpcRequestHeader {
     @Override
     public void checkFields() throws RemotingCommandException {

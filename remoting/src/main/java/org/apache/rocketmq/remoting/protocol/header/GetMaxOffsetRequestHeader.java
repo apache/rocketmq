@@ -31,7 +31,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-@RocketMQAction(value = RequestCode.GET_MAX_OFFSET, action = Action.GET)
+@RocketMQAction(value = RequestCode.GET_MAX_OFFSET, action = {Action.SUB, Action.GET})
 public class GetMaxOffsetRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.TOPIC)

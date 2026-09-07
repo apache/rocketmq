@@ -20,10 +20,15 @@ package org.apache.rocketmq.store;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.mockito.ArgumentCaptor;
 
@@ -344,6 +349,69 @@ public class DefaultMessageStoreTest {
             long messageStoreTimeStamp = messageStore.getMessageStoreTimeStamp(topic, queueId, i);
             assertThat(messageStoreTimeStamp).isEqualTo(appendMessageResults[i].getStoreTimestamp());
         }
+    }
+
+    @Test
+    public void testEstimateMessageCountShiftsRangeWithinQueueBounds() {
+        String topic = "FooBar";
+        int queueId = 0;
+        long minOffset = 100;
+        long to = 200;
+        long expectedCount = 50;
+        MessageFilter filter = mock(MessageFilter.class);
+        ConsumeQueueInterface consumeQueue = mock(ConsumeQueueInterface.class);
+        DefaultMessageStore store = spy(getDefaultMessageStore());
+        doReturn(consumeQueue).when(store).findConsumeQueue(topic, queueId);
+        when(consumeQueue.getMinOffsetInQueue()).thenReturn(minOffset);
+        when(consumeQueue.getMaxOffsetInQueue()).thenReturn(to);
+        when(consumeQueue.estimateMessageCount(minOffset, to, filter)).thenReturn(expectedCount);
+
+        long count = store.estimateMessageCount(topic, queueId, 0, to, filter);
+
+        assertThat(count).isEqualTo(expectedCount);
+        verify(consumeQueue).estimateMessageCount(minOffset, to, filter);
+    }
+
+    @Test
+    public void testEstimateMessageCountPreservesLengthWhenShiftedRangeFits() {
+        String topic = "FooBar";
+        int queueId = 0;
+        long minOffset = 100;
+        long maxOffset = 200;
+        long to = 50;
+        long shiftedTo = 150;
+        long expectedCount = 25;
+        MessageFilter filter = mock(MessageFilter.class);
+        ConsumeQueueInterface consumeQueue = mock(ConsumeQueueInterface.class);
+        DefaultMessageStore store = spy(getDefaultMessageStore());
+        doReturn(consumeQueue).when(store).findConsumeQueue(topic, queueId);
+        when(consumeQueue.getMinOffsetInQueue()).thenReturn(minOffset);
+        when(consumeQueue.getMaxOffsetInQueue()).thenReturn(maxOffset);
+        when(consumeQueue.estimateMessageCount(minOffset, shiftedTo, filter)).thenReturn(expectedCount);
+
+        long count = store.estimateMessageCount(topic, queueId, 0, to, filter);
+
+        assertThat(count).isEqualTo(expectedCount);
+        verify(consumeQueue).estimateMessageCount(minOffset, shiftedTo, filter);
+    }
+
+    @Test
+    public void testEstimateMessageCountReturnsZeroWhenRangeIsAfterMaxOffset() {
+        String topic = "FooBar";
+        int queueId = 0;
+        long minOffset = 100;
+        long maxOffset = 200;
+        MessageFilter filter = mock(MessageFilter.class);
+        ConsumeQueueInterface consumeQueue = mock(ConsumeQueueInterface.class);
+        DefaultMessageStore store = spy(getDefaultMessageStore());
+        doReturn(consumeQueue).when(store).findConsumeQueue(topic, queueId);
+        when(consumeQueue.getMinOffsetInQueue()).thenReturn(minOffset);
+        when(consumeQueue.getMaxOffsetInQueue()).thenReturn(maxOffset);
+
+        long count = store.estimateMessageCount(topic, queueId, 250, 300, filter);
+
+        assertThat(count).isZero();
+        verify(consumeQueue, never()).estimateMessageCount(anyLong(), anyLong(), same(filter));
     }
 
     @Test

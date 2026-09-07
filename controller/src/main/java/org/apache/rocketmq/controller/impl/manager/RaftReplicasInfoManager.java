@@ -126,7 +126,7 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         List<String> needReElectBrokerNames = scanNeedReelectBrokerSets(new BrokerValidPredicate() {
             @Override
             public boolean check(String clusterName, String brokerName, Long brokerId) {
-                return !isBrokerActive(clusterName, brokerName, brokerId, checkTime);
+                return isBrokerActive(clusterName, brokerName, brokerId, checkTime);
             }
         });
         Set<String> alreadyReportedBrokerName = notActiveBrokerIdentityInfoList.stream()
