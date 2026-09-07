@@ -98,6 +98,8 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
             "topic",
             PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
+            null,
+            null,
             true,
             txId,
             txId
@@ -113,6 +115,8 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
             "topic",
             "group",
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
+            null,
+            null,
             true,
             txId,
             txId
@@ -141,6 +145,8 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
             "topic",
             PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
+            null,
+            null,
             true,
             txId,
             txId
