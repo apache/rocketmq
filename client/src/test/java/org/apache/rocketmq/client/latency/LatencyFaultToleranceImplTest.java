@@ -19,11 +19,17 @@ package org.apache.rocketmq.client.latency;
 import org.awaitility.core.ThrowingRunnable;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class LatencyFaultToleranceImplTest {
     private LatencyFaultTolerance<String> latencyFaultTolerance;
@@ -79,5 +85,20 @@ public class LatencyFaultToleranceImplTest {
 
         latencyFaultTolerance.updateFaultItem(anotherBrokerName, 1001, 3000, false);
         assertThat(latencyFaultTolerance.isReachable(anotherBrokerName)).isEqualTo(false);
+    }
+
+    @Test
+    public void testDetectByOneRoundRespectsDetectInterval() throws Exception {
+        Resolver resolver = mock(Resolver.class);
+        ServiceDetector serviceDetector = mock(ServiceDetector.class);
+        when(resolver.resolve(brokerName)).thenReturn("127.0.0.1:10911");
+        when(serviceDetector.detect(anyString(), anyLong())).thenReturn(true);
+
+        LatencyFaultToleranceImpl impl = new LatencyFaultToleranceImpl(resolver, serviceDetector);
+        impl.setDetectInterval(3600000); // 1 hour
+        impl.updateFaultItem(brokerName, 1000, 0, true);
+        // fresh FaultItem must wait detectInterval before its first detect
+        impl.detectByOneRound();
+        verify(serviceDetector, Mockito.never()).detect(anyString(), anyLong());
     }
 }
