@@ -696,10 +696,8 @@ public class MQClientInstance {
     private boolean sendHeartbeatToBroker(long id, String brokerName, String addr, HeartbeatData heartbeatData) {
         try {
             int version = this.mQClientAPIImpl.sendHeartbeat(addr, heartbeatData, clientConfig.getMqClientApiTimeout());
-            if (!this.brokerVersionTable.containsKey(brokerName)) {
-                this.brokerVersionTable.put(brokerName, new ConcurrentHashMap<>(4));
-            }
-            this.brokerVersionTable.get(brokerName).put(addr, version);
+            this.brokerVersionTable.computeIfAbsent(brokerName, k -> new ConcurrentHashMap<>(4))
+                .put(addr, version);
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
             if (times % 20 == 0) {
                 log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
@@ -776,10 +774,8 @@ public class MQClientInstance {
                 log.info("sendHeartbeatToAllBrokerV2 normal brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
             }
             version = heartbeatV2Result.getVersion();
-            if (!this.brokerVersionTable.containsKey(brokerName)) {
-                this.brokerVersionTable.put(brokerName, new ConcurrentHashMap<>(4));
-            }
-            this.brokerVersionTable.get(brokerName).put(addr, version);
+            this.brokerVersionTable.computeIfAbsent(brokerName, k -> new ConcurrentHashMap<>(4))
+                .put(addr, version);
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
             if (times % 20 == 0) {
                 log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
@@ -1343,9 +1339,11 @@ public class MQClientInstance {
     }
 
     private int findBrokerVersion(String brokerName, String brokerAddr) {
-        if (this.brokerVersionTable.containsKey(brokerName)) {
-            if (this.brokerVersionTable.get(brokerName).containsKey(brokerAddr)) {
-                return this.brokerVersionTable.get(brokerName).get(brokerAddr);
+        ConcurrentHashMap<String, Integer> brokerVersions = this.brokerVersionTable.get(brokerName);
+        if (brokerVersions != null) {
+            Integer version = brokerVersions.get(brokerAddr);
+            if (version != null) {
+                return version;
             }
         }
         //To do need to fresh the version
