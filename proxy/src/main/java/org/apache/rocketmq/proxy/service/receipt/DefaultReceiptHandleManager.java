@@ -256,25 +256,34 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         long current = System.currentTimeMillis();
         try {
             // by default, maxRenewRetryTimes is 3
+            // stop renewing when the handle has failed too many times
             if (messageReceiptHandle.getRenewRetryTimes() >= proxyConfig.getMaxRenewRetryTimes()) {
                 log.warn("handle has exceed max renewRetryTimes. handle:{}", messageReceiptHandle);
                 return CompletableFuture.completedFuture(null);
             }
 
+            // still within the total renewal window: extend the invisible time
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
+                // fire a RENEW event; the delay is derived from the renewal retry policy
                 eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));
+
+                // add metrics operations, update receipt if acked
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when renew. handle:{}", messageReceiptHandle, throwable);
                         if (renewExceptionNeedRetry(throwable)) {
+                            // transient failure: keep the handle and retry on the next scan
                             messageReceiptHandle.incrementAndGetRenewRetryTimes();
                             resFuture.complete(messageReceiptHandle);
                         } else {
+                            // unrecoverable error (bad handle / broker): drop the handle
                             resFuture.complete(null);
                         }
                     } else if (AckStatus.OK.equals(ackResult.getStatus())) {
+                        // renewal succeeded: refresh the handle with the new extra info
                         messageReceiptHandle.updateReceiptHandle(ackResult.getExtraInfo());
+
                         messageReceiptHandle.resetRenewRetryTimes();
                         messageReceiptHandle.incrementRenewTimes();
                         resFuture.complete(messageReceiptHandle);
@@ -284,6 +293,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                     }
                 });
             } else {
+                // total renewal window exceeded: nack the message so it returns to the broker
                 SubscriptionGroupConfig subscriptionGroupConfig =
                     metadataService.getSubscriptionGroupConfig(context, messageReceiptHandle.getGroup());
                 if (subscriptionGroupConfig == null) {
@@ -292,7 +302,10 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 }
                 RetryPolicy retryPolicy = subscriptionGroupConfig.getGroupRetryPolicy().getRetryPolicy();
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
+
+                // fire a STOP_RENEW event; the nack delay follows the group's retry policy
                 eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()), RenewEvent.EventType.STOP_RENEW, future));
+
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when nack in renew. handle:{}", messageReceiptHandle, throwable);
