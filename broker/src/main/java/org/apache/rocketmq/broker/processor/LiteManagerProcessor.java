@@ -316,6 +316,10 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         body.setLiteTopic(liteTopic);
 
         if (StringUtils.isEmpty(liteTopic)) {
+            if (topK <= 0 || topK > MAX_RETURN_COUNT) {
+                return RemotingCommand.createResponseCommand(ResponseCode.INVALID_PARAMETER,
+                    String.format("topK must be between 1 and %d.", MAX_RETURN_COUNT));
+            }
             Pair<List<LiteLagInfo>, Long> lagCountPair = brokerController.getBrokerMetricsManager()
                 .getLiteConsumerLagCalculator()
                 .getLagCountTopK(group, topK);
