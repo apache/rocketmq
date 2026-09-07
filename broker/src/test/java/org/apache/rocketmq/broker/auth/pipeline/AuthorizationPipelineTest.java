@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.ViewMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import org.junit.Assert;
@@ -51,6 +52,19 @@ public class AuthorizationPipelineTest {
     public void rejectsUnsupportedRequestWithEmptyContexts() {
         AuthorizationPipeline pipeline = createPipeline();
         RemotingCommand request = RemotingCommand.createRequestCommand(-1, null);
+
+        AbortProcessException exception = Assert.assertThrows(AbortProcessException.class,
+            () -> pipeline.execute(null, request));
+        Assert.assertEquals(ResponseCode.NO_PERMISSION, exception.getResponseCode());
+    }
+
+    @Test
+    public void rejectsTopicLessViewMessageWithEmptyContexts() {
+        AuthorizationPipeline pipeline = createPipeline();
+        ViewMessageRequestHeader header = new ViewMessageRequestHeader();
+        header.setOffset(0L);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, header);
+        request.makeCustomHeaderToNet();
 
         AbortProcessException exception = Assert.assertThrows(AbortProcessException.class,
             () -> pipeline.execute(null, request));

@@ -54,6 +54,7 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
@@ -523,15 +524,28 @@ public class AuthorizationEvaluatorTest {
         requestEvaluator.evaluate(endTransaction(
             null, 1L, 2L, null, "messageId"), Collections.emptyList());
 
-        requestEvaluator.evaluate(viewMessage(0L), Collections.emptyList());
-        requestEvaluator.evaluate(viewMessage(-1L), Collections.emptyList());
-        requestEvaluator.evaluate(viewMessage(null), Collections.emptyList());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(viewMessage(0L), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(viewMessage(-1L), Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(viewMessage(null), Collections.emptyList()));
         Assert.assertThrows(AuthorizationException.class,
             () -> requestEvaluator.evaluate(
                 RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, null),
                 Collections.emptyList()));
         Assert.assertThrows(AuthorizationException.class,
             () -> requestEvaluator.evaluate(viewMessage("topic", 0L), Collections.emptyList()));
+
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(resumeCheckHalfMessage(null, "messageId"),
+                Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(resumeCheckHalfMessage(" ", "messageId"),
+                Collections.emptyList()));
+        Assert.assertThrows(AuthorizationException.class,
+            () -> requestEvaluator.evaluate(resumeCheckHalfMessage("topic", "messageId"),
+                Collections.emptyList()));
         Assert.assertThrows(AuthorizationException.class,
             () -> requestEvaluator.evaluate(RemotingCommand.createRequestCommand(-1, null),
                 Collections.emptyList()));
@@ -639,6 +653,15 @@ public class AuthorizationEvaluatorTest {
         header.setTopic(topic);
         header.setOffset(offset);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, header);
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private RemotingCommand resumeCheckHalfMessage(String topic, String messageId) {
+        ResumeCheckHalfMessageRequestHeader header = new ResumeCheckHalfMessageRequestHeader();
+        header.setTopic(topic);
+        header.setMsgId(messageId);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RESUME_CHECK_HALF_MESSAGE, header);
         request.makeCustomHeaderToNet();
         return request;
     }

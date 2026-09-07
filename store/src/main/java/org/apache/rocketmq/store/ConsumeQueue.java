@@ -856,44 +856,52 @@ public class ConsumeQueue implements ConsumeQueueInterface {
 
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
-
-            if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
-                this.minLogicOffset = expectLogicOffset;
-                this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
-                this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
-                this.fillPreBlank(mappedFile, expectLogicOffset);
-                log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
-                    + mappedFile.getWrotePosition());
+            if (!mappedFile.hold()) {
+                log.warn("Failed to hold mapped file for ConsumeQueue write, topic={} queueId={}",
+                    this.topic, this.queueId);
+                return false;
             }
-
-            if (cqOffset != 0) {
-                long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
-
-                if (expectLogicOffset < currentLogicOffset) {
-                    log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
-                        expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
-                    return true;
+            try {
+                if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
+                    this.minLogicOffset = expectLogicOffset;
+                    this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
+                    this.mappedFileQueue.setCommittedWhere(expectLogicOffset);
+                    this.fillPreBlank(mappedFile, expectLogicOffset);
+                    log.info("fill pre blank space " + mappedFile.getFileName() + " " + expectLogicOffset + " "
+                        + mappedFile.getWrotePosition());
                 }
 
-                if (expectLogicOffset != currentLogicOffset) {
-                    LOG_ERROR.warn(
-                        "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
-                        expectLogicOffset,
-                        currentLogicOffset,
-                        this.topic,
-                        this.queueId,
-                        expectLogicOffset - currentLogicOffset
-                    );
+                if (cqOffset != 0) {
+                    long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
+
+                    if (expectLogicOffset < currentLogicOffset) {
+                        log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                            expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
+                        return true;
+                    }
+
+                    if (expectLogicOffset != currentLogicOffset) {
+                        LOG_ERROR.warn(
+                            "[BUG]logic queue order maybe wrong, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                            expectLogicOffset,
+                            currentLogicOffset,
+                            this.topic,
+                            this.queueId,
+                            expectLogicOffset - currentLogicOffset
+                        );
+                    }
                 }
+                this.setMaxPhysicOffset(offset + size);
+                boolean appendResult;
+                if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                    appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
+                } else {
+                    appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
+                }
+                return appendResult;
+            } finally {
+                mappedFile.release();
             }
-            this.setMaxPhysicOffset(offset + size);
-            boolean appendResult;
-            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
-                appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
-            } else {
-                appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
-            }
-            return appendResult;
         }
         return false;
     }
@@ -1271,7 +1279,19 @@ public class ConsumeQueue implements ConsumeQueueInterface {
 
         // transientStorePool is null, only need set wrote position here
         MappedFile mappedFile = mappedFileQueue.getLastMappedFile(offset * ConsumeQueue.CQ_STORE_UNIT_SIZE, true);
-        fillPreBlank(mappedFile, offset * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        if (mappedFile == null) {
+            log.error("initializeWithOffset failed: mappedFile is null for offset {}", offset);
+            return;
+        }
+        if (!mappedFile.hold()) {
+            log.error("initializeWithOffset failed: mappedFile hold() failed for offset {}", offset);
+            return;
+        }
+        try {
+            fillPreBlank(mappedFile, offset * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        } finally {
+            mappedFile.release();
+        }
 
         flush(0);
     }

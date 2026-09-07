@@ -99,6 +99,7 @@ import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
@@ -409,7 +410,6 @@ public class DefaultAuthorizationContextBuilderTest {
         request.makeCustomHeaderToNet();
         RemotingCommand endTransactionWithoutTopic = request;
         Assert.assertTrue(builder.build(channelHandlerContext, endTransactionWithoutTopic).isEmpty());
-
         ConsumerSendMsgBackRequestHeader consumerSendMsgBackRequestHeader = new ConsumerSendMsgBackRequestHeader();
         consumerSendMsgBackRequestHeader.setGroup("group");
         request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, consumerSendMsgBackRequestHeader);
@@ -603,6 +603,14 @@ public class DefaultAuthorizationContextBuilderTest {
             Assert.assertThrows(AuthorizationException.class,
                 () -> builder.build(channelHandlerContext, request));
         }
+
+        ResumeCheckHalfMessageRequestHeader resumeHeader = new ResumeCheckHalfMessageRequestHeader();
+        resumeHeader.setMsgId("messageId");
+        Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.RESUME_CHECK_HALF_MESSAGE, resumeHeader, null)));
+        resumeHeader.setTopic(" ");
+        Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.RESUME_CHECK_HALF_MESSAGE, resumeHeader, null)));
 
         RemotingCommand sendBackRequest = remotingRequest(RequestCode.CONSUMER_SEND_MSG_BACK, null, null);
         sendBackRequest.addExtField("group", " ");
@@ -1044,11 +1052,13 @@ public class DefaultAuthorizationContextBuilderTest {
 
         ViewMessageRequestHeader viewMessageHeader = new ViewMessageRequestHeader();
         viewMessageHeader.setOffset(0L);
-        Assert.assertTrue(builder.build(channelHandlerContext,
-            remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)).isEmpty());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> builder.build(channelHandlerContext,
+                remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)));
         viewMessageHeader.setTopic(" ");
-        Assert.assertTrue(builder.build(channelHandlerContext,
-            remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)).isEmpty());
+        Assert.assertThrows(AuthorizationException.class,
+            () -> builder.build(channelHandlerContext,
+                remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null)));
     }
 
     @Test

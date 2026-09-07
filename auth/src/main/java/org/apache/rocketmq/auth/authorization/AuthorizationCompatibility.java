@@ -44,7 +44,6 @@ final class AuthorizationCompatibility {
                 case RequestCode.UNREGISTER_CLIENT:
                     return isProducerUnregister(request);
                 case RequestCode.END_TRANSACTION:
-                case RequestCode.VIEW_MESSAGE_BY_ID:
                     return isHistoricalTopicAbsent(request);
                 default:
                     return false;
@@ -104,7 +103,7 @@ final class AuthorizationCompatibility {
     }
 
     /**
-     * Historical END_TRANSACTION and VIEW_MESSAGE_BY_ID requests carry no topic field.
+     * Historical END_TRANSACTION requests carry no topic field.
      */
     private static boolean isHistoricalTopicAbsent(RemotingCommand request) {
         return request.getExtFields() != null && StringUtils.isBlank(getExtField(request, "topic"));

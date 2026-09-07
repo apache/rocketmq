@@ -42,6 +42,10 @@ public class StatefulAuthenticationStrategy extends AbstractAuthenticationStrate
 
     @Override
     public void evaluate(AuthenticationContext context) {
+        if (!this.authConfig.isAuthenticationRequired(context.getRpcCode())) {
+            this.doEvaluate(context);
+            return;
+        }
         if (StringUtils.isBlank(context.getChannelId())) {
             this.doEvaluate(context);
             return;

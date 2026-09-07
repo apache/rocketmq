@@ -27,6 +27,7 @@ import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.RequestCallback;
 import org.apache.rocketmq.client.producer.SendCallback;
@@ -36,15 +37,18 @@ import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -66,10 +70,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -143,6 +150,39 @@ public class DefaultMQProducerImplTest {
     @Test
     public void testCheckTransactionState() {
         defaultMQProducerImpl.checkTransactionState(defaultBrokerAddr, mock(MessageExt.class), mock(CheckTransactionStateRequestHeader.class));
+    }
+
+    @Test
+    public void testCheckTransactionStateEchoesTopicToEndTransaction() throws Exception {
+        String realTopic = "realTopic";
+        MessageExt messageExt = new MessageExt();
+        messageExt.setMsgId("messageId");
+        MessageAccessor.putProperty(
+            messageExt, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "messageId");
+        CheckTransactionStateRequestHeader checkHeader = new CheckTransactionStateRequestHeader();
+        checkHeader.setTopic(realTopic);
+        checkHeader.setCommitLogOffset(123L);
+        checkHeader.setTranStateTableOffset(456L);
+        TransactionListener transactionListener = mock(TransactionListener.class);
+        when(transactionListener.checkLocalTransaction(messageExt))
+            .thenReturn(LocalTransactionState.COMMIT_MESSAGE);
+        ((TransactionMQProducer) defaultMQProducerImpl.getDefaultMQProducer())
+            .setTransactionListener(transactionListener);
+        ExecutorService checkExecutor = mock(ExecutorService.class);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(0).run();
+            return null;
+        }).when(checkExecutor).submit(any(Runnable.class));
+        setField(defaultMQProducerImpl, "checkExecutor", checkExecutor);
+
+        defaultMQProducerImpl.checkTransactionState(defaultBrokerAddr, messageExt, checkHeader);
+
+        ArgumentCaptor<EndTransactionRequestHeader> endHeaderCaptor =
+            ArgumentCaptor.forClass(EndTransactionRequestHeader.class);
+        verify(mQClientAPIImpl).endTransactionOneway(
+            eq(defaultBrokerAddr), endHeaderCaptor.capture(), isNull(), eq(3000L));
+        assertEquals(realTopic, endHeaderCaptor.getValue().getTopic());
+        assertTrue(endHeaderCaptor.getValue().getFromTransactionCheck());
     }
 
     @Test

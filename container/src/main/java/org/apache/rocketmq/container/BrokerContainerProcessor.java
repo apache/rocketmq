@@ -280,6 +280,30 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    // sensitive config keys that must never be returned by config query interfaces
+    private static final String[] SENSITIVE_CONFIG_KEYS = new String[] {
+        "initAuthenticationUser", "innerClientAuthenticationCredentials"
+    };
+
+    /**
+     * Remove sensitive entries from the exported config content. Returns null when the
+     * content cannot be parsed, so callers must fail closed instead of returning the
+     * original content.
+     */
+    static String sanitizeConfigForResponse(String content) {
+        if (content == null || content.isEmpty()) {
+            return content;
+        }
+        Properties properties = MixAll.string2Properties(content);
+        if (properties == null) {
+            return null;
+        }
+        for (String key : SENSITIVE_CONFIG_KEYS) {
+            properties.remove(key);
+        }
+        return MixAll.properties2String(properties, true);
+    }
+
     private boolean validateBlackListConfigExist(Properties properties) {
         for (String blackConfig : configBlackList) {
             if (properties.containsKey(blackConfig)) {
@@ -294,8 +318,14 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerConfigResponseHeader.class);
         final GetBrokerConfigResponseHeader responseHeader = (GetBrokerConfigResponseHeader) response.readCustomHeader();
 
-        String content = this.brokerContainer.getConfiguration().getAllConfigsFormatString();
-        if (content != null && content.length() > 0) {
+        String content = sanitizeConfigForResponse(this.brokerContainer.getConfiguration().getAllConfigsFormatString());
+        if (content == null) {
+            LOGGER.error("BrokerContainerProcessor#getBrokerConfig: failed to sanitize broker config");
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Failed to sanitize broker config");
+            return response;
+        }
+        if (content.length() > 0) {
             try {
                 content = MixAll.adjustConfigForPlatform(content);
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));

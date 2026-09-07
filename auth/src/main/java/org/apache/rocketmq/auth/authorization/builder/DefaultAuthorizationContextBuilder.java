@@ -257,10 +257,8 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     }
                     break;
                 case RequestCode.VIEW_MESSAGE_BY_ID:
-                    if (StringUtils.isNotBlank(fields.get(TOPIC))) {
-                        topic = Resource.ofTopic(fields.get(TOPIC));
-                        result.add(DefaultAuthorizationContext.of(subject, topic, Action.GET, sourceIp));
-                    }
+                    topic = Resource.ofTopic(requireResource(fields.get(TOPIC), "topic"));
+                    result.add(DefaultAuthorizationContext.of(subject, topic, Action.GET, sourceIp));
                     break;
                 case RequestCode.CONSUMER_SEND_MSG_BACK:
                     group = Resource.ofGroup(requireResource(fields.get(GROUP), "consumer group"));
