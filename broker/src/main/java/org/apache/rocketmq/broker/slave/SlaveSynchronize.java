@@ -236,10 +236,10 @@ public class SlaveSynchronize {
                 if (null != brokerController.getMessageStore().getTimerMessageStore() &&
                         !brokerController.getTimerMessageStore().isShouldRunningDequeue()) {
                     TimerCheckpoint checkpoint = this.brokerController.getBrokerOuterAPI().getTimerCheckPoint(masterAddrBak);
-                    if (null != this.brokerController.getTimerCheckpoint()) {
-                        this.brokerController.getTimerCheckpoint().setLastReadTimeMs(checkpoint.getLastReadTimeMs());
-                        this.brokerController.getTimerCheckpoint().setMasterTimerQueueOffset(checkpoint.getMasterTimerQueueOffset());
-                        this.brokerController.getTimerCheckpoint().getDataVersion().assignNewOne(checkpoint.getDataVersion());
+                    if (null != this.brokerController.getTimerMessageStore().getTimerCheckpoint()) {
+                        this.brokerController.getTimerMessageStore().getTimerCheckpoint().setLastReadTimeMs(checkpoint.getLastReadTimeMs());
+                        this.brokerController.getTimerMessageStore().getTimerCheckpoint().setMasterTimerQueueOffset(checkpoint.getMasterTimerQueueOffset());
+                        this.brokerController.getTimerMessageStore().getTimerCheckpoint().getDataVersion().assignNewOne(checkpoint.getDataVersion());
                     }
                 }
             } catch (Exception e) {

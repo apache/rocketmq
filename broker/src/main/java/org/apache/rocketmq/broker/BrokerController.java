@@ -2904,10 +2904,6 @@ public class BrokerController {
         return this.isIsolated;
     }
 
-    public TimerCheckpoint getTimerCheckpoint() {
-        return timerCheckpoint;
-    }
-
     public TopicRouteInfoManager getTopicRouteInfoManager() {
         return this.topicRouteInfoManager;
     }
