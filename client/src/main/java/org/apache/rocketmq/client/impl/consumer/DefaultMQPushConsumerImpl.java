@@ -129,6 +129,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private OffsetStore offsetStore;
     private ConsumeMessageService consumeMessageService;
     private ConsumeMessageService consumeMessagePopService;
+    private MessageDeduplicator messageDeduplicator;
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
 
@@ -241,6 +242,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
+    }
+
+    public MessageDeduplicator getMessageDeduplicator() {
+        return messageDeduplicator;
     }
 
     public void pullMessage(final PullRequest pullRequest) {
@@ -906,6 +911,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 break;
             case RUNNING:
                 this.consumeMessageService.shutdown(awaitTerminateMillis);
+                if (this.messageDeduplicator != null) {
+                    this.messageDeduplicator.shutdown();
+                }
                 this.persistConsumerOffset();
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
@@ -965,6 +973,25 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.defaultMQPushConsumer.setOffsetStore(this.offsetStore);
                 }
                 this.offsetStore.load();
+
+                // Initialize message deduplicator if enabled and concurrent consumption mode
+                // Deduplication is only supported for concurrent consumption mode
+                if (this.defaultMQPushConsumer.isEnableMessageDeduplication()) {
+                    boolean isConcurrentMode = this.getMessageListenerInner() instanceof MessageListenerConcurrently;
+                    if (isConcurrentMode) {
+                        this.messageDeduplicator = new MessageDeduplicator(
+                            this.defaultMQPushConsumer.getDeduplicationCacheSize(),
+                            this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());
+                        log.info("Message deduplication enabled for consumer group {} with cacheSize={}, expireTimeMs={}",
+                            this.defaultMQPushConsumer.getConsumerGroup(),
+                            this.defaultMQPushConsumer.getDeduplicationCacheSize(),
+                            this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());
+                    } else {
+                        log.warn("Message deduplication is only supported for concurrent consumption mode. " +
+                            "Current listener type: {}. Deduplication will NOT be enabled for orderly or POP consumption.",
+                            this.getMessageListenerInner().getClass().getSimpleName());
+                    }
+                }
 
                 if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {
                     this.consumeOrderly = true;
@@ -1204,6 +1231,24 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (this.defaultMQPushConsumer.getPopBatchNums() <= 0 || this.defaultMQPushConsumer.getPopBatchNums() > 32) {
             throw new MQClientException(
                 "popBatchNums Out of range [1, 32]"
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
+                null);
+        }
+
+        // deduplicationCacheSize
+        if (this.defaultMQPushConsumer.getDeduplicationCacheSize() < 1000
+            || this.defaultMQPushConsumer.getDeduplicationCacheSize() > 100000) {
+            throw new MQClientException(
+                "deduplicationCacheSize Out of range [1000, 100000]"
+                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
+                null);
+        }
+
+        // deduplicationCacheExpireTime
+        if (this.defaultMQPushConsumer.getDeduplicationCacheExpireTime() < 10000
+            || this.defaultMQPushConsumer.getDeduplicationCacheExpireTime() > 3600000) {
+            throw new MQClientException(
+                "deduplicationCacheExpireTime Out of range [10000, 3600000]"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
                 null);
         }
