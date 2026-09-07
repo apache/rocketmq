@@ -971,7 +971,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand getTimerCheckPoint(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "Unknown");
-        TimerCheckpoint timerCheckpoint = this.brokerController.getTimerCheckpoint();
+        TimerCheckpoint timerCheckpoint = this.brokerController.getTimerMessageStore().getTimerCheckpoint();
         if (null == timerCheckpoint) {
             LOGGER.error("AdminBrokerProcessor#getTimerCheckPoint: checkpoint is null, caller={}", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
