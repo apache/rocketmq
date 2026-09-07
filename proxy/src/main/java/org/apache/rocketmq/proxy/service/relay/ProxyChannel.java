@@ -59,16 +59,40 @@ public abstract class ProxyChannel extends SimpleChannel {
         String localAddress) {
         super(parent, remoteAddress, localAddress);
         this.proxyRelayService = proxyRelayService;
-        this.remoteSocketAddress = NetworkUtil.string2SocketAddress(remoteAddress);
-        this.localSocketAddress = NetworkUtil.string2SocketAddress(localAddress);
+        this.remoteSocketAddress = parseSocketAddress(remoteAddress);
+        this.localSocketAddress = parseSocketAddress(localAddress);
     }
 
     protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress,
         String localAddress) {
         super(parent, id, remoteAddress, localAddress);
         this.proxyRelayService = proxyRelayService;
-        this.remoteSocketAddress = NetworkUtil.string2SocketAddress(remoteAddress);
-        this.localSocketAddress = NetworkUtil.string2SocketAddress(localAddress);
+        this.remoteSocketAddress = parseSocketAddress(remoteAddress);
+        this.localSocketAddress = parseSocketAddress(localAddress);
+    }
+
+    protected static String socketAddress2String(SocketAddress address) {
+        if (address == null) {
+            return null;
+        }
+        try {
+            return NetworkUtil.socketAddress2String(address);
+        } catch (RuntimeException e) {
+            log.warn("convert socket address failed. address:{}", address);
+            return null;
+        }
+    }
+
+    private static SocketAddress parseSocketAddress(String address) {
+        if (address == null || address.isEmpty()) {
+            return null;
+        }
+        try {
+            return NetworkUtil.string2SocketAddress(address);
+        } catch (RuntimeException e) {
+            log.warn("parse proxy channel socket address failed. address:{}", address);
+            return null;
+        }
     }
 
     @Override
