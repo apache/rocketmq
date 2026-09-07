@@ -22,6 +22,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.authorization.enums.PolicyType;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -62,6 +63,10 @@ public class DeleteAclSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("t", "policyType", true, "the policyType of acl to delete");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -82,11 +87,16 @@ public class DeleteAclSubCommand implements SubCommand {
                 resource = StringUtils.trim(commandLine.getOptionValue("r"));
             }
 
+            String policyType = null;
+            if (commandLine.hasOption('t')) {
+                policyType = normalizePolicyType(StringUtils.trim(commandLine.getOptionValue("t")));
+            }
+
             if (commandLine.hasOption('b')) {
                 String addr = StringUtils.trim(commandLine.getOptionValue('b'));
 
                 defaultMQAdminExt.start();
-                defaultMQAdminExt.deleteAcl(addr, subject, resource);
+                defaultMQAdminExt.deleteAcl(addr, subject, policyType, resource);
 
                 System.out.printf("delete acl to %s success.%n", addr);
                 return;
@@ -97,7 +107,7 @@ public class DeleteAclSubCommand implements SubCommand {
                 Set<String> brokerAddrSet =
                     CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.deleteAcl(addr, subject, resource);
+                    defaultMQAdminExt.deleteAcl(addr, subject, policyType, resource);
                     System.out.printf("delete acl to %s success.%n", addr);
                 }
                 return;
@@ -109,5 +119,16 @@ public class DeleteAclSubCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+    private String normalizePolicyType(String policyType) {
+        if (StringUtils.isBlank(policyType)) {
+            return null;
+        }
+        PolicyType parsedPolicyType = PolicyType.getByName(policyType);
+        if (parsedPolicyType == null) {
+            throw new IllegalArgumentException("Invalid policyType: " + policyType);
+        }
+        return parsedPolicyType.getName();
     }
 }

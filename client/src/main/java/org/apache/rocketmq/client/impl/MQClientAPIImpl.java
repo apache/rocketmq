@@ -3702,7 +3702,11 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
     }
 
     public void deleteAcl(String addr, String subject, String resource, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
-        DeleteAclRequestHeader requestHeader = new DeleteAclRequestHeader(subject, resource);
+        this.deleteAcl(addr, subject, null, resource, millis);
+    }
+
+    public void deleteAcl(String addr, String subject, String policyType, String resource, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        DeleteAclRequestHeader requestHeader = new DeleteAclRequestHeader(subject, policyType, resource);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_DELETE_ACL, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
