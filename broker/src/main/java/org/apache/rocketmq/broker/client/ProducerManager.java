@@ -85,7 +85,7 @@ public class ProducerManager {
                 if (map.containsKey(group)) {
                     map.get(group).add(new ProducerInfo(
                         clientChannelInfo.getClientId(),
-                        clientChannelInfo.getChannel().remoteAddress().toString(),
+                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
                         clientChannelInfo.getLanguage(),
                         clientChannelInfo.getVersion(),
                         clientChannelInfo.getLastUpdateTimestamp()
@@ -93,7 +93,7 @@ public class ProducerManager {
                 } else {
                     map.put(group, new ArrayList<>(Collections.singleton(new ProducerInfo(
                         clientChannelInfo.getClientId(),
-                        clientChannelInfo.getChannel().remoteAddress().toString(),
+                        RemotingHelper.parseChannelRemoteAddr(clientChannelInfo.getChannel()),
                         clientChannelInfo.getLanguage(),
                         clientChannelInfo.getVersion(),
                         clientChannelInfo.getLastUpdateTimestamp()
