@@ -585,6 +585,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int liteLagLatencyTopK = 50;
 
+    private boolean useSeparateRetryQueueForPriorityTopic = false;
     // HashedWheelTimer config for pop order lock manager
     private long popOrderLockTimerTickMs = 100;
     private int popOrderLockTimerTicksPerWheel = 512;
@@ -2553,5 +2554,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMaxMessageFilterNumForNotification(int maxMessageFilterNumForNotification) {
         this.maxMessageFilterNumForNotification = maxMessageFilterNumForNotification;
+    }
+
+    public boolean isUseSeparateRetryQueueForPriorityTopic() {
+        return useSeparateRetryQueueForPriorityTopic;
+    }
+
+    public void setUseSeparateRetryQueueForPriorityTopic(boolean useSeparateRetryQueueForPriorityTopic) {
+        this.useSeparateRetryQueueForPriorityTopic = useSeparateRetryQueueForPriorityTopic;
     }
 }
