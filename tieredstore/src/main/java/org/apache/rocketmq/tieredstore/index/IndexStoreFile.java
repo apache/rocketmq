@@ -114,7 +114,7 @@ public class IndexStoreFile implements IndexFile {
         this.fileChannel = this.mappedFile.getFileChannel();
 
         this.beginTimestamp.set(timestamp);
-        this.endTimestamp.set(byteBuffer.getLong(INDEX_BEGIN_TIME_STAMP));
+        this.endTimestamp.set(byteBuffer.getLong(INDEX_END_TIME_STAMP));
         this.hashSlotCount.set(byteBuffer.getInt(INDEX_SLOT_COUNT));
         this.indexItemCount.set(byteBuffer.getInt(INDEX_ITEM_INDEX));
         this.flushNewMetadata(byteBuffer, indexItemMaxCount == this.indexItemCount.get() + 1);
