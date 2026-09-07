@@ -49,12 +49,15 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.processor.PopMessageResultFilter;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -420,6 +423,62 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             receiveStreamObserver
         );
         assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
+    @Test
+    public void testReceiveMessageWithMissingClientSettings() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(null);
+        // ReceiveMessageActivity falls back to the default consumer settings; stub the mock to return the real
+        // default produced by GrpcClientSettingsManager, mirroring the production code path.
+        Settings defaultConsumerSettings = new GrpcClientSettingsManager(messagingProcessor).getDefaultConsumerSettings();
+        when(this.grpcClientSettingsManager.getDefaultConsumerSettings()).thenReturn(defaultConsumerSettings);
+
+        ArgumentCaptor<PopMessageResultFilterImpl> filterCaptor = ArgumentCaptor.forClass(PopMessageResultFilterImpl.class);
+        PopResult popResult = new PopResult(PopStatus.NO_NEW_MSG, new ArrayList<>());
+        when(this.messagingProcessor.popMessage(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyLong(),
+            anyLong(),
+            anyInt(),
+            any(),
+            anyBoolean(),
+            filterCaptor.capture(),
+            isNull(),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+
+        // Regression for apache/rocketmq#8714: when client settings are missing, the receive path must fall back
+        // to the real consumer default, not the protobuf empty default. The filter built for the pop call must
+        // therefore carry a positive maxAttempts so fresh messages (reconsumeTimes == 0) are not DLQ'd. With the
+        // old Settings.getDefaultInstance() fallback (maxAttempts == 0) this assertion would fail.
+        PopMessageResultFilterImpl filter = filterCaptor.getValue();
+        MessageExt freshMessage = new MessageExt();
+        freshMessage.setReconsumeTimes(0);
+        assertNotEquals(PopMessageResultFilter.FilterResult.TO_DLQ,
+            filter.filterMessage(createContext(), CONSUMER_GROUP, new SubscriptionData(), freshMessage));
     }
 
     private Code getResponseCodeFromReceiveMessageResponseList(List<ReceiveMessageResponse> responseList) {

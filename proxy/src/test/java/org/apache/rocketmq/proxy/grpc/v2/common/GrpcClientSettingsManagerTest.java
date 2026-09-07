@@ -42,6 +42,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -74,6 +75,20 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         Settings settings = this.grpcClientSettingsManager.getClientSettings(context);
         assertNotEquals(settings.getBackoffPolicy(), settings.getBackoffPolicy().getDefaultInstanceForType());
         assertNotEquals(settings.getPublishing(), settings.getPublishing().getDefaultInstanceForType());
+    }
+
+    @Test
+    public void testDefaultConsumerSettingsHasNonZeroMaxAttempts() {
+        // When client settings are missing, ReceiveMessageActivity falls back to the default consumer settings.
+        // The protobuf empty default leaves backoffPolicy.maxAttempts at 0, which makes
+        // PopMessageResultFilterImpl route fresh messages (reconsumeTimes == 0) straight to the DLQ.
+        // The real consumer default must carry a positive maxAttempts to avoid that.
+        Settings defaultSettings = this.grpcClientSettingsManager.getDefaultConsumerSettings();
+        int maxAttempts = defaultSettings.getBackoffPolicy().getMaxAttempts();
+        assertNotEquals("default consumer settings must not reuse the protobuf empty default",
+            RetryPolicy.getDefaultInstance(), defaultSettings.getBackoffPolicy());
+        assertTrue("default consumer maxAttempts must be positive so fresh messages are not DLQ'd, got " + maxAttempts,
+            maxAttempts > 0);
     }
 
     @Test
