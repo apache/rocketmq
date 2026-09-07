@@ -631,8 +631,12 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase {
             }
             List<org.apache.rocketmq.common.message.Message> list = new ArrayList<>();
             list.add(msg);
+            // RIP-2 fix: a QueueSelector must be provided — passing null made every
+            // adminSendMessage fail with NPE inside the producer pipeline.
             List<org.apache.rocketmq.client.producer.SendResult> sendResults =
-                messagingProcessor.sendMessage(ctx(), null, "ADMIN_SEND_PRODUCER_GROUP", 0, list,
+                messagingProcessor.sendMessage(ctx(),
+                    (queueCtx, messageQueueView) -> messageQueueView.getWriteSelector().getQueues().get(0),
+                    "ADMIN_SEND_PRODUCER_GROUP", 0, list,
                     DEFAULT_TIMEOUT_MILLIS).get(DEFAULT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
             String messageId = sendResults != null && !sendResults.isEmpty() ? sendResults.get(0).getMsgId() : "";
             responseObserver.onNext(AdminSendMessageResponse.newBuilder()
