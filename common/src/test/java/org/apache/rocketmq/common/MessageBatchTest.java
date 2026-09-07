@@ -23,6 +23,8 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+
 public class MessageBatchTest {
 
     public List<Message> generateMessages() {
@@ -77,5 +79,13 @@ public class MessageBatchTest {
         List<Message> messages = generateMessages();
         messages.get(1).setTopic(MixAll.RETRY_GROUP_TOPIC_PREFIX + "topic");
         MessageBatch.generateFromList(messages);
+    }
+
+    @Test
+    public void testPutUserPropertyWithNullMessages() {
+        MessageBatch messageBatch = new MessageBatch(null);
+        messageBatch.putUserProperty("name", "value");
+
+        assertEquals("value", messageBatch.getUserProperty("name"));
     }
 }
