@@ -71,6 +71,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -414,6 +416,98 @@ public class ClientActivityTest extends BaseActivityTest {
         ProxyRelayResult<ConsumeMessageDirectlyResult> result = resultArgumentCaptor.getValue();
         assertThat(result.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(result.getResult().getConsumeResult()).isEqualTo(CMResult.CR_SUCCESS);
+    }
+
+    @Test
+    public void testTelemetryOnCompletedClearsClientObserver() throws Throwable {
+        ProxyContext context = createContext();
+        ContextStreamObserver<TelemetryCommand> requestObserver = startProducerTelemetry(context);
+
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+        assertNotNull(channel);
+        assertTrue(channel.isActive());
+        assertTrue(channel.isOpen());
+        assertTrue(channel.isWritable());
+
+        requestObserver.onCompleted();
+
+        assertFalse(channel.isActive());
+        assertFalse(channel.isOpen());
+        assertFalse(channel.isWritable());
+    }
+
+    @Test
+    public void testTelemetryOnErrorClearsClientObserver() throws Throwable {
+        ProxyContext context = createContext();
+        ContextStreamObserver<TelemetryCommand> requestObserver = startProducerTelemetry(context);
+
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+        assertNotNull(channel);
+        assertTrue(channel.isActive());
+
+        requestObserver.onError(new StatusRuntimeException(Status.CANCELLED));
+
+        assertFalse(channel.isActive());
+        assertFalse(channel.isOpen());
+        assertFalse(channel.isWritable());
+    }
+
+    @Test
+    public void testOldStreamCompletionDoesNotClearNewerObserver() throws Throwable {
+        ProxyContext context = createContext();
+        ContextStreamObserver<TelemetryCommand> oldStream = startProducerTelemetry(context);
+
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+        assertNotNull(channel);
+        assertTrue(channel.isActive());
+
+        // the client reconnects with a new telemetry stream on the same channel
+        ContextStreamObserver<TelemetryCommand> newStream = startProducerTelemetry(context);
+        assertTrue(channel.isActive());
+
+        // a delayed completion of the old stream must not detach the newer observer
+        oldStream.onCompleted();
+        assertTrue(channel.isActive());
+        assertTrue(channel.isOpen());
+        assertTrue(channel.isWritable());
+
+        // the active stream completion detaches its own observer
+        newStream.onCompleted();
+        assertFalse(channel.isActive());
+        assertFalse(channel.isOpen());
+        assertFalse(channel.isWritable());
+    }
+
+    private ContextStreamObserver<TelemetryCommand> startProducerTelemetry(ProxyContext context) throws Throwable {
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(settings);
+
+        CompletableFuture<TelemetryCommand> future = new CompletableFuture<>();
+        StreamObserver<TelemetryCommand> responseObserver = new StreamObserver<TelemetryCommand>() {
+            @Override
+            public void onNext(TelemetryCommand value) {
+                future.complete(value);
+            }
+
+            @Override
+            public void onError(Throwable t) {
+            }
+
+            @Override
+            public void onCompleted() {
+            }
+        };
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(responseObserver);
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(settings)
+            .build());
+        future.get();
+        return requestObserver;
     }
 
     protected CompletableFuture<TelemetryCommand> sendClientTelemetry(ProxyContext ctx, Settings settings) {
