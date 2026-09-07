@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -99,6 +100,34 @@ public class CommandUtilTest {
     public void testFetchMasterAddrByClusterName() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         Set<String> result = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExtImpl, "default-cluster");
         assertThat(result.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void testFetchMasterAndSlaveAddrByClusterName() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        Set<String> result = CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExtImpl, "default-cluster");
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.iterator().next()).isEqualTo("127.0.0.1:10911");
+    }
+
+    @Test
+    public void testFetchMasterAddrByBrokerNameThrowsException() {
+        assertThatThrownBy( () -> {
+            CommandUtil.fetchMasterAddrByBrokerName(defaultMQAdminExtImpl, "default-cluster");
+        })
+                .isInstanceOf(Exception.class)
+                .hasMessageContaining("No broker address for broker name");
+    }
+
+    @Test
+    public void testFetchMasterAndSlaveAddrByBrokerName() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        Set<String> result = CommandUtil.fetchMasterAndSlaveAddrByBrokerName(defaultMQAdminExtImpl, "default-cluster");
+        assertThat(result.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void testFetchBrokerNameByAddr() throws Exception {
+        String result = CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExtImpl, "127.0.0.1:10911");
+        assertThat(result).isEqualTo("default-broker");
     }
 
     @Test
