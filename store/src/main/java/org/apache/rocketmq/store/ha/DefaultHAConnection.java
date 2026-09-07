@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store.ha;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -61,7 +62,8 @@ public class DefaultHAConnection implements HAConnection {
     public DefaultHAConnection(final DefaultHAService haService, final SocketChannel socketChannel) throws IOException {
         this.haService = haService;
         this.socketChannel = socketChannel;
-        this.clientAddress = this.socketChannel.socket().getRemoteSocketAddress().toString();
+        SocketAddress remoteAddress = this.socketChannel.socket().getRemoteSocketAddress();
+        this.clientAddress = remoteAddress != null ? remoteAddress.toString() : "";
         this.socketChannel.configureBlocking(false);
         this.socketChannel.socket().setSoLinger(false, -1);
         this.socketChannel.socket().setTcpNoDelay(true);
