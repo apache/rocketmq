@@ -26,6 +26,8 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.GetOffsetRequest;
+import apache.rocketmq.v2.GetOffsetResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.MessagingServiceGrpc;
@@ -33,6 +35,8 @@ import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.RecallMessageRequest;
@@ -295,6 +299,40 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
                 context,
                 request,
                 () -> grpcMessagingActivity.ackMessage(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
+    }
+
+    @Override
+    public void queryOffset(QueryOffsetRequest request, StreamObserver<QueryOffsetResponse> responseObserver) {
+        Function<Status, QueryOffsetResponse> statusResponseCreator = status -> QueryOffsetResponse.newBuilder().setStatus(status).build();
+        ProxyContext context = createContext();
+        try {
+            this.addExecutor(this.consumerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessagingActivity.queryOffset(context, request)
+                    .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
+    }
+
+    @Override
+    public void getOffset(GetOffsetRequest request, StreamObserver<GetOffsetResponse> responseObserver) {
+        Function<Status, GetOffsetResponse> statusResponseCreator = status -> GetOffsetResponse.newBuilder().setStatus(status).build();
+        ProxyContext context = createContext();
+        try {
+            this.addExecutor(this.consumerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessagingActivity.getOffset(context, request)
                     .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
                 responseObserver,
                 statusResponseCreator);

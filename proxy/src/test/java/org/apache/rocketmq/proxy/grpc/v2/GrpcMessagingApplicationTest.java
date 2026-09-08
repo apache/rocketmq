@@ -21,7 +21,12 @@ import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Endpoints;
+import apache.rocketmq.v2.GetOffsetRequest;
+import apache.rocketmq.v2.GetOffsetResponse;
 import apache.rocketmq.v2.MessageQueue;
+import apache.rocketmq.v2.QueryOffsetPolicy;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
@@ -56,6 +61,10 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
     protected static final String JAVA = "JAVA";
     @Mock
     StreamObserver<QueryRouteResponse> queryRouteResponseStreamObserver;
+    @Mock
+    StreamObserver<QueryOffsetResponse> queryOffsetResponseStreamObserver;
+    @Mock
+    StreamObserver<GetOffsetResponse> getOffsetResponseStreamObserver;
     @Mock
     GrpcMessagingActivity grpcMessagingActivity;
     GrpcMessagingApplication grpcMessagingApplication;
@@ -103,6 +112,70 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
         future.complete(response);
         await().untilAsserted(() -> {
             Mockito.verify(queryRouteResponseStreamObserver, Mockito.times(1)).onNext(Mockito.same(response));
+        });
+    }
+
+    @Test
+    public void testQueryOffset() {
+        Metadata metadata = new Metadata();
+        metadata.put(GrpcConstants.CLIENT_ID, CLIENT_ID);
+        metadata.put(GrpcConstants.LANGUAGE, JAVA);
+        metadata.put(GrpcConstants.REMOTE_ADDRESS, REMOTE_ADDR);
+        metadata.put(GrpcConstants.LOCAL_ADDRESS, LOCAL_ADDR);
+
+        Assert.assertNotNull(Context.current()
+            .withValue(GrpcConstants.METADATA, metadata)
+            .attach());
+
+        CompletableFuture<QueryOffsetResponse> future = new CompletableFuture<>();
+        QueryOffsetRequest request = QueryOffsetRequest.newBuilder()
+            .setMessageQueue(MessageQueue.newBuilder()
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .setQueryOffsetPolicy(QueryOffsetPolicy.END)
+            .build();
+        Mockito.when(grpcMessagingActivity.queryOffset(Mockito.any(ProxyContext.class), Mockito.eq(request)))
+            .thenReturn(future);
+        QueryOffsetResponse response = QueryOffsetResponse.newBuilder()
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+            .setOffset(1)
+            .build();
+        grpcMessagingApplication.queryOffset(request, queryOffsetResponseStreamObserver);
+        future.complete(response);
+        await().untilAsserted(() -> {
+            Mockito.verify(queryOffsetResponseStreamObserver, Mockito.times(1)).onNext(Mockito.same(response));
+        });
+    }
+
+    @Test
+    public void testGetOffset() {
+        Metadata metadata = new Metadata();
+        metadata.put(GrpcConstants.CLIENT_ID, CLIENT_ID);
+        metadata.put(GrpcConstants.LANGUAGE, JAVA);
+        metadata.put(GrpcConstants.REMOTE_ADDRESS, REMOTE_ADDR);
+        metadata.put(GrpcConstants.LOCAL_ADDRESS, LOCAL_ADDR);
+
+        Assert.assertNotNull(Context.current()
+            .withValue(GrpcConstants.METADATA, metadata)
+            .attach());
+
+        CompletableFuture<GetOffsetResponse> future = new CompletableFuture<>();
+        GetOffsetRequest request = GetOffsetRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName("group").build())
+            .setMessageQueue(MessageQueue.newBuilder()
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        Mockito.when(grpcMessagingActivity.getOffset(Mockito.any(ProxyContext.class), Mockito.eq(request)))
+            .thenReturn(future);
+        GetOffsetResponse response = GetOffsetResponse.newBuilder()
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+            .setOffset(1)
+            .build();
+        grpcMessagingApplication.getOffset(request, getOffsetResponseStreamObserver);
+        future.complete(response);
+        await().untilAsserted(() -> {
+            Mockito.verify(getOffsetResponseStreamObserver, Mockito.times(1)).onNext(Mockito.same(response));
         });
     }
 
