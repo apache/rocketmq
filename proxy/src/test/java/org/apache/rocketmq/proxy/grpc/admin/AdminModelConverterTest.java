@@ -23,7 +23,7 @@ import apache.rocketmq.v2.GetTopicRouteResponse;
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.QueryTimeSpanResponse;
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
