@@ -16,7 +16,7 @@ that interface on the Proxy itself.
 
 The gRPC contract is the **upstream `Admin` service** defined in
 `apache/rocketmq/v2/admin.proto` of the `apache/rocketmq-apis` repository (main
-branch, proto artifact `org.apache.rocketmq:rocketmq-proto:2.2.0`). This
+branch, consumed as a git submodule — see §6). This
 implementation deliberately does NOT introduce a bespoke
 `ProxyAdminService` in the protocol layer: the control-plane RPC surface lives in
 the same versioned, community-reviewed proto that the dashboard and multi-language
@@ -30,7 +30,7 @@ dedicated admin gRPC server.
 1. A dedicated, independent gRPC Admin server on the Proxy, isolated from the
    data-plane `MessagingService`.
 2. Stable, backward-compatible contract from rocketmq-apis main (`Admin`
-   service, proto 2.2.0).
+   service, `apache/rocketmq/v2/admin.proto`).
 3. First-class authorization under dedicated `proxy.admin.*` ACL 2.0 resources
    with read-only / high-privilege action separation.
 4. The admin surface exposes its own call RT and error-rate metrics.
@@ -123,19 +123,23 @@ M2+ items (config hot update, quotas, connection control, Pop/batch diagnostics,
 route observation streaming) are not part of the upstream `Admin` contract and
 are out of scope for this delivery.
 
-## 6. Building the proto artifact
+## 6. Building the proto sources
 
-`org.apache.rocketmq:rocketmq-proto:2.2.0` is generated from the
-`apache/rocketmq-apis` repository **main branch** (`java/VERSION` = 2.2.0).
-Install it into the local Maven repository once, then build this repo normally;
-the apis repository is intentionally NOT vendored or submoduled here.
+The `apache/rocketmq-apis` repository (main branch, containing
+`apache/rocketmq/v2/admin.proto`) is consumed as a **git submodule**
+(`rocketmq-apis/`, see `.gitmodules`); CI workflows check it out with
+`submodules: true`.
 
-- Preferred: `bazel build //java:assemble-maven` in the rocketmq-apis checkout,
-  then `mvn install:install-file` the produced jar/pom.
-- Offline fallback (no bazel network access): generate with
-  `protoc` 3.20.1 + `protoc-gen-grpc-java` 1.53.0 from Maven Central,
-  compile the generated sources against `protobuf-java`/`grpc-*` jars, and
-  install the jar with the 2.1.2 pom as template (version bumped).
+- **Maven**: the `rocketmq-proto` module generates the Java + gRPC stubs for
+  `apache/rocketmq/v2/{definition,service,admin}.proto` at build time via
+  `protobuf-maven-plugin`; its version follows the reactor (`${revision}`), so
+  no published proto artifact is required to build this repository.
+- **Bazel**: `//rocketmq-proto:rocketmq-proto` builds the same classes through a
+  `genrule` over the submodule (surfaced as the `@rocketmq_apis` external
+  repository), using pinned `protoc` / `protoc-gen-grpc-java` binaries and the
+  well-known-type protos.
+- Other consumers (dashboard, SDKs) continue to use the artifact published by
+  rocketmq-apis; only this repository builds the proto from source.
 
 ## 7. Observability
 
