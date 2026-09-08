@@ -20,3 +20,8 @@ bazel-testlogs
 .vscode
 MODULE.bazel.lock
 *.flattened-pom.xml
+.qoder/
+profiling-docs/
+profiling-tools/
+.gorepro/
+.gotmp/
