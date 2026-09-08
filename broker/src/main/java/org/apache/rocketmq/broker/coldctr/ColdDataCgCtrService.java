@@ -145,7 +145,7 @@ public class ColdDataCgCtrService extends ServiceThread {
         configMapList.sort(new Comparator<Entry<String, Long>>() {
             @Override
             public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
-                return (int)(o2.getValue() - o1.getValue());
+                return Long.compare(o2.getValue(), o1.getValue());
             }
         });
         Iterator<Entry<String, Long>> iterator = configMapList.iterator();
