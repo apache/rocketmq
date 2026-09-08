@@ -350,7 +350,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                             if (subscriptionData == null) {
                                 throw new AuthorizationException("subscription is null.");
                             }
-                            if ("".equals(subscriptionData.getTopic())) {
+                            if (StringUtils.isBlank(subscriptionData.getTopic())) {
                                 continue;
                             }
                             String subscriptionTopic =

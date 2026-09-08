@@ -1097,14 +1097,8 @@ public class DefaultAuthorizationContextBuilderTest {
         HeartbeatData heartbeatData = new HeartbeatData();
         ConsumerData consumerData = new ConsumerData();
         consumerData.setGroupName("group");
-        SubscriptionData subscriptionData = new SubscriptionData();
-        subscriptionData.setTopic(" ");
-        consumerData.setSubscriptionDataSet(Collections.singleton(subscriptionData));
+        consumerData.setSubscriptionDataSet(Collections.singleton(null));
         heartbeatData.setConsumerDataSet(Collections.singleton(consumerData));
-        Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
-            remotingRequest(RequestCode.HEART_BEAT, new HeartbeatRequestHeader(),
-                JSON.toJSONBytes(heartbeatData))));
-        subscriptionData.setTopic(null);
         Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
             remotingRequest(RequestCode.HEART_BEAT, new HeartbeatRequestHeader(),
                 JSON.toJSONBytes(heartbeatData))));
@@ -1451,12 +1445,15 @@ public class DefaultAuthorizationContextBuilderTest {
     }
 
     @Test
-    public void buildHeartbeatSkipsEmptyTopic() {
+    public void buildHeartbeatSkipsBlankTopics() {
         mockRemotingChannel();
         ConsumerData consumerData = new ConsumerData();
         consumerData.setGroupName("group");
         consumerData.setSubscriptionDataSet(new LinkedHashSet<>(Arrays.asList(
+            new SubscriptionData(null, "*"),
             new SubscriptionData("", "*"),
+            new SubscriptionData(" ", "*"),
+            new SubscriptionData("\t\r\n", "*"),
             new SubscriptionData("topic", "*"),
             new SubscriptionData("%RETRY%group", "*"))));
         HeartbeatData heartbeatData = new HeartbeatData();
@@ -1471,11 +1468,15 @@ public class DefaultAuthorizationContextBuilderTest {
     }
 
     @Test
-    public void buildHeartbeatWithOnlyEmptyTopicStillChecksGroup() {
+    public void buildHeartbeatWithOnlyBlankTopicsStillChecksGroup() {
         mockRemotingChannel();
         ConsumerData consumerData = new ConsumerData();
         consumerData.setGroupName("group");
-        consumerData.setSubscriptionDataSet(Collections.singleton(new SubscriptionData("", "*")));
+        consumerData.setSubscriptionDataSet(new LinkedHashSet<>(Arrays.asList(
+            new SubscriptionData(null, "*"),
+            new SubscriptionData("", "*"),
+            new SubscriptionData(" ", "*"),
+            new SubscriptionData("\t\r\n", "*"))));
         HeartbeatData heartbeatData = new HeartbeatData();
         heartbeatData.setConsumerDataSet(Collections.singleton(consumerData));
 
