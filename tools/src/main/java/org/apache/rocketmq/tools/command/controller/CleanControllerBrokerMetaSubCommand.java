@@ -26,8 +26,6 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-import java.util.Arrays;
-
 public class CleanControllerBrokerMetaSubCommand implements SubCommand {
 
     @Override
@@ -83,7 +81,9 @@ public class CleanControllerBrokerMetaSubCommand implements SubCommand {
         if (commandLine.hasOption('b')) {
             brokerControllerIdsToClean = commandLine.getOptionValue('b').trim();
             try {
-                Arrays.stream(brokerControllerIdsToClean.split(";")).map(idStr -> Long.parseLong(idStr));
+                for (String brokerControllerId : brokerControllerIdsToClean.split(";")) {
+                    Long.parseLong(brokerControllerId);
+                }
             } catch (NumberFormatException numberFormatException) {
                 throw new IllegalArgumentException("please set the option <brokerControllerIdsToClean> according to the format", numberFormatException);
             }
