@@ -1480,6 +1480,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                 if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                                     mt.setTrackType(TrackType.NOT_ONLINE);
                                 }
+                                if (ResponseCode.BROADCAST_CONSUMPTION == e.getResponseCode()) {
+                                    mt.setTrackType(TrackType.CONSUME_BROADCASTING);
+                                }
                                 mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                                 result.add(mt);
                                 countDownLatch.countDown();
@@ -1487,6 +1490,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                             } catch (MQBrokerException e) {
                                 if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                                     mt.setTrackType(TrackType.NOT_ONLINE);
+                                }
+                                if (ResponseCode.BROADCAST_CONSUMPTION == e.getResponseCode()) {
+                                    mt.setTrackType(TrackType.CONSUME_BROADCASTING);
                                 }
                                 mt.setExceptionDesc("CODE:" + e.getResponseCode() + " DESC:" + e.getErrorMessage());
                                 result.add(mt);
