@@ -226,4 +226,67 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         assertEquals(first.action, second.action);
         assertFalse(first.resource.isEmpty());
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void authenticationFailureClosesUnauthenticated() {
+        // cluster authentication on + no credentials -> evaluator throws AuthenticationException.
+        // AuthenticationFactory caches evaluators per configName, so use a unique name to get
+        // a fresh evaluator bound to THIS config (otherwise a stale one from another test wins).
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.setConfigName("proxy-admin-auth-failure-test-" + System.nanoTime());
+        authConfig.setAuthenticationEnabled(true);
+        authConfig.setAuthorizationEnabled(false);
+        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+
+        ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
+        ServerCall<byte[], byte[]> call = serverCall("ListConsumerConnection");
+        ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
+
+        interceptor.interceptCall(call, new Metadata(), next);
+        verify(next, never()).startCall(any(), any());
+        org.mockito.ArgumentCaptor<Status> statusCaptor = org.mockito.ArgumentCaptor.forClass(Status.class);
+        verify(call).close(statusCaptor.capture(), any(Metadata.class));
+        assertEquals(Status.Code.UNAUTHENTICATED, statusCaptor.getValue().getCode());
+        assertNotNull(statusCaptor.getValue().getDescription());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void authorizationEnabledRejectsMissingCredentials() {
+        // authorization on without authentication -> mapped method demands credentials first
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.setConfigName("proxy-admin-authz-only-test-" + System.nanoTime());
+        authConfig.setAuthenticationEnabled(false);
+        authConfig.setAuthorizationEnabled(true);
+        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+
+        ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
+        ServerCall<byte[], byte[]> call = serverCall("GetTopicRoute");
+        ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
+
+        interceptor.interceptCall(call, new Metadata(), next);
+        verify(next, never()).startCall(any(), any());
+        org.mockito.ArgumentCaptor<Status> statusCaptor = org.mockito.ArgumentCaptor.forClass(Status.class);
+        verify(call).close(statusCaptor.capture(), any(Metadata.class));
+        assertEquals(Status.Code.UNAUTHENTICATED, statusCaptor.getValue().getCode());
+        assertTrue(statusCaptor.getValue().getDescription().contains("missing credentials"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void openModeResolvesSourceIpAndPassesThrough() {
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.setAuthenticationEnabled(false);
+        authConfig.setAuthorizationEnabled(false);
+        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+
+        ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
+        ServerCall<byte[], byte[]> call = serverCall("ListClients");
+        ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
+
+        interceptor.interceptCall(call, new Metadata(), next);
+        verify(next).startCall(any(), any());
+        verify(call, never()).close(any(), any());
+    }
 }

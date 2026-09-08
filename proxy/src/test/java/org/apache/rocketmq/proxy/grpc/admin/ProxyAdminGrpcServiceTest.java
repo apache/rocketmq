@@ -91,12 +91,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -164,10 +168,13 @@ public class ProxyAdminGrpcServiceTest {
     }
 
     private void stubBrokerRoute() throws Exception {
-        AddressableMessageQueue mq = new AddressableMessageQueue(new MessageQueue("t", "broker-a", 0),
-            "127.0.0.1:10911");
+        stubBrokerRoute(Collections.singletonList(
+            new AddressableMessageQueue(new MessageQueue("t", "broker-a", 0), "127.0.0.1:10911")));
+    }
+
+    private void stubBrokerRoute(java.util.List<AddressableMessageQueue> queues) throws Exception {
         MessageQueueSelector selector = mock(MessageQueueSelector.class);
-        when(selector.getQueues()).thenReturn(Collections.singletonList(mq));
+        when(selector.getQueues()).thenReturn(queues);
         MessageQueueView mqv = mock(MessageQueueView.class);
         when(mqv.getReadSelector()).thenReturn(selector);
         when(topicRouteService.getAllMessageQueueView(any(), anyString())).thenReturn(mqv);
@@ -480,5 +487,324 @@ public class ProxyAdminGrpcServiceTest {
         assertEquals(12345L, obs.value.getQueueTimeSpanList(0).getMinTimestamp());
         Broker broker = obs.value.getQueueTimeSpanList(0).getMessageQueue().getBroker();
         assertEquals("broker-a", broker.getName());
+    }
+
+    // --------------------------------------------------- failure / edge branches
+
+    @Test
+    public void describeTopicStatusFailsWhenRouteMissing() {
+        // topicRouteService returns null by default -> resolveBrokerAddr throws
+        SimpleObserver<DescribeTopicStatusResponse> obs = new SimpleObserver<>();
+        service.describeTopicStatus(
+            DescribeTopicStatusRequest.newBuilder().setTopic(Resource.newBuilder().setName("missing")).build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+        assertTrue(obs.value.getStatus().getMessage().contains("topic route not found"));
+    }
+
+    @Test
+    public void getTopicRouteFailsWhenAdminServiceThrows() throws Exception {
+        when(adminService.getTopicRouteData("t")).thenThrow(new RuntimeException("namesrv unreachable"));
+        SimpleObserver<GetTopicRouteResponse> obs = new SimpleObserver<>();
+        service.getTopicRoute(GetTopicRouteRequest.newBuilder().setTopic(Resource.newBuilder().setName("t")).build(),
+            obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+        assertTrue(obs.value.getStatus().getMessage().contains("namesrv unreachable"));
+    }
+
+    @Test
+    public void deleteSubscriptionRejectsMissingTopicOrGroup() {
+        SimpleObserver<DeleteSubscriptionResponse> obs = new SimpleObserver<>();
+        service.deleteSubscription(DeleteSubscriptionRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName("g")).build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.BAD_REQUEST, obs.value.getStatus().getCode());
+    }
+
+    @Test
+    public void deleteSubscriptionAggregatesBrokerErrors() throws Exception {
+        stubBrokerRoute();
+        doThrow(new RuntimeException("broker down"))
+            .when(adminService).deleteSubscriptionGroup(anyString(), eq("g"), anyBoolean(), anyLong());
+
+        SimpleObserver<DeleteSubscriptionResponse> obs = new SimpleObserver<>();
+        service.deleteSubscription(DeleteSubscriptionRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setGroup(Resource.newBuilder().setName("g"))
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+        assertTrue(obs.value.getStatus().getMessage().contains("broker down"));
+    }
+
+    @Test
+    public void deleteSubscriptionDeduplicatesBrokers() throws Exception {
+        stubBrokerRoute(java.util.Arrays.asList(
+            new AddressableMessageQueue(new MessageQueue("t", "broker-a", 0), "127.0.0.1:10911"),
+            new AddressableMessageQueue(new MessageQueue("t", "broker-a", 1), "127.0.0.1:10911")));
+
+        SimpleObserver<DeleteSubscriptionResponse> obs = new SimpleObserver<>();
+        service.deleteSubscription(DeleteSubscriptionRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setGroup(Resource.newBuilder().setName("g"))
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        // two queues on the same broker must be collapsed into one delete call
+        verify(adminService, times(1)).deleteSubscriptionGroup(eq("127.0.0.1:10911"), eq("g"), anyBoolean(), anyLong());
+    }
+
+    @Test
+    public void resetGroupOffsetReachesEveryBroker() throws Exception {
+        stubBrokerRoute(java.util.Arrays.asList(
+            new AddressableMessageQueue(new MessageQueue("t", "broker-a", 0), "127.0.0.1:10911"),
+            new AddressableMessageQueue(new MessageQueue("t", "broker-b", 0), "127.0.0.2:10911")));
+        when(adminService.resetOffset(anyString(), eq("t"), eq("g"), anyLong(), eq(true), anyLong()))
+            .thenReturn(Collections.emptyMap());
+
+        SimpleObserver<ResetGroupOffsetResponse> obs = new SimpleObserver<>();
+        service.resetGroupOffset(ResetGroupOffsetRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName("g"))
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setResetTimestamp(com.google.protobuf.Timestamp.newBuilder().setSeconds(1000).build())
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        verify(adminService).resetOffset(eq("127.0.0.1:10911"), eq("t"), eq("g"), anyLong(), eq(true), anyLong());
+        verify(adminService).resetOffset(eq("127.0.0.2:10911"), eq("t"), eq("g"), anyLong(), eq(true), anyLong());
+    }
+
+    @Test
+    public void resetGroupOffsetAggregatesBrokerErrors() throws Exception {
+        stubBrokerRoute();
+        when(adminService.resetOffset(anyString(), eq("t"), eq("g"), anyLong(), eq(true), anyLong()))
+            .thenThrow(new RuntimeException("reset rejected"));
+
+        SimpleObserver<ResetGroupOffsetResponse> obs = new SimpleObserver<>();
+        service.resetGroupOffset(ResetGroupOffsetRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName("g"))
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setResetTimestamp(com.google.protobuf.Timestamp.newBuilder().setSeconds(1000).build())
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+        assertTrue(obs.value.getStatus().getMessage().contains("reset rejected"));
+    }
+
+    @Test
+    public void queryMessageByKeyContinuesAcrossBrokers() throws Exception {
+        stubBrokerRoute(java.util.Arrays.asList(
+            new AddressableMessageQueue(new MessageQueue("t", "broker-a", 0), "127.0.0.1:10911"),
+            new AddressableMessageQueue(new MessageQueue("t", "broker-b", 0), "127.0.0.2:10911")));
+        MessageExt ext = new MessageExt();
+        ext.setMsgId("MSG-K1");
+        ext.setTopic("t");
+        when(adminService.queryMessage(eq("127.0.0.1:10911"), eq("t"), eq("key"), anyInt(), anyLong(), anyLong(),
+            anyLong())).thenThrow(new RuntimeException("broker-a down"));
+        when(adminService.queryMessage(eq("127.0.0.2:10911"), eq("t"), eq("key"), anyInt(), anyLong(), anyLong(),
+            anyLong())).thenReturn(Collections.singletonList(ext));
+
+        SimpleObserver<ListMessageResponse> obs = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setMessageKey("key")
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        assertEquals(1, obs.value.getMessagesCount());
+    }
+
+    @Test
+    public void queryMessageByMessageIdSkipsNullResult() throws Exception {
+        stubBrokerRoute();
+        when(adminService.viewMessage(anyString(), eq("t"), anyLong(), anyLong())).thenReturn(null);
+
+        SimpleObserver<ListMessageResponse> obs = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setMessageId("not-a-valid-offset-id")
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        assertEquals(0, obs.value.getMessagesCount());
+    }
+
+    @Test
+    public void queryMessageRespectsTimestampRangeAndMaxNums() throws Exception {
+        stubBrokerRoute();
+        when(adminService.queryMessage(anyString(), eq("t"), eq("key"), eq(5), anyLong(), anyLong(), anyLong()))
+            .thenReturn(Collections.emptyList());
+
+        SimpleObserver<ListMessageResponse> obs = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setMessageKey("key")
+            .setMaxMessageNums(5)
+            .setBeginTimestamp(com.google.protobuf.Timestamp.newBuilder().setSeconds(100).build())
+            .setEndTimestamp(com.google.protobuf.Timestamp.newBuilder().setSeconds(200).build())
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        assertEquals(0, obs.value.getMessagesCount());
+    }
+
+    @Test
+    public void describeGroupAccumulationFailsWhenRouteMissing() {
+        SimpleObserver<DescribeGroupAccumulationResponse> obs = new SimpleObserver<>();
+        service.describeGroupAccumulation(DescribeGroupAccumulationRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName("g"))
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+    }
+
+    @Test
+    public void queryTimeSpanFailsWhenRouteMissing() {
+        SimpleObserver<QueryTimeSpanResponse> obs = new SimpleObserver<>();
+        service.queryTimeSpan(QueryTimeSpanRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName("g"))
+            .addTopics(Resource.newBuilder().setName("missing"))
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+    }
+
+    @Test
+    public void listSubscriptionFailsWhenChannelManagerThrows() {
+        when(grpcChannelManager.getClientChannels()).thenThrow(new RuntimeException("channel manager down"));
+        SimpleObserver<ListSubscriptionResponse> obs = new SimpleObserver<>();
+        service.listSubscription(ListSubscriptionRequest.newBuilder().build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+    }
+
+    @Test
+    public void describeSubscriptionFailsWhenChannelManagerThrows() {
+        when(grpcChannelManager.getClientChannels()).thenThrow(new RuntimeException("channel manager down"));
+        SimpleObserver<DescribeSubscriptionResponse> obs = new SimpleObserver<>();
+        service.describeSubscription(DescribeSubscriptionRequest.newBuilder().build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+    }
+
+    @Test
+    public void listConsumerConnectionFailsWhenChannelManagerThrows() {
+        when(grpcChannelManager.getClientChannels()).thenThrow(new RuntimeException("channel manager down"));
+        SimpleObserver<ListConsumerConnectionResponse> obs = new SimpleObserver<>();
+        service.listConsumerConnection(
+            ListConsumerConnectionRequest.newBuilder().setGroup(Resource.newBuilder().setName("g")).build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+    }
+
+    @Test
+    public void listConsumerConnectionSkipsClientsWithoutSettings() {
+        GrpcClientChannel unknown = mock(GrpcClientChannel.class);
+        when(unknown.getClientId()).thenReturn("unknown");
+        when(grpcChannelManager.getClientChannels()).thenReturn(Collections.singletonList(unknown));
+        when(grpcClientSettingsManager.getRawClientSettings("unknown")).thenReturn(null);
+
+        SimpleObserver<ListConsumerConnectionResponse> obs = new SimpleObserver<>();
+        service.listConsumerConnection(
+            ListConsumerConnectionRequest.newBuilder().setGroup(Resource.newBuilder().setName("g")).build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        assertEquals(0, obs.value.getClientInfoCount());
+    }
+
+    @Test
+    public void listConsumerConnectionFiltersByGroupWithSubscription() {
+        GrpcClientChannel producer = mock(GrpcClientChannel.class);
+        when(producer.getClientId()).thenReturn("p1");
+        when(grpcChannelManager.getClientChannels()).thenReturn(Collections.singletonList(producer));
+        // producer settings carry a subscription of a different group -> filtered out
+        when(grpcClientSettingsManager.getRawClientSettings("p1"))
+            .thenReturn(subscriptionSettings(ClientType.PRODUCER, "other", "t", "*"));
+
+        SimpleObserver<ListConsumerConnectionResponse> obs = new SimpleObserver<>();
+        service.listConsumerConnection(
+            ListConsumerConnectionRequest.newBuilder().setGroup(Resource.newBuilder().setName("g")).build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        assertEquals(0, obs.value.getClientInfoCount());
+    }
+
+    @Test
+    public void printThreadStackTraceFailsWhenTelemetryWriteFails() {
+        stubOnlineClient("c1", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        doThrow(new RuntimeException("telemetry down")).when(channel).writeTelemetryCommand(any());
+
+        SimpleObserver<PrintThreadStackTraceResponse> obs = new SimpleObserver<>();
+        service.printThreadStackTrace(
+            PrintThreadStackTraceRequest.newBuilder().setClientId("c1").build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+        assertTrue(obs.value.getStatus().getMessage().contains("telemetry down"));
+    }
+
+    @Test
+    public void verifyMessageFailsWhenTelemetryWriteFails() {
+        stubOnlineClient("c1", subscriptionSettings(ClientType.SIMPLE_CONSUMER, "g", "t", "*"));
+        doThrow(new RuntimeException("telemetry down")).when(channel).writeTelemetryCommand(any());
+
+        SimpleObserver<VerifyMessageResponse> obs = new SimpleObserver<>();
+        service.verifyMessage(VerifyMessageRequest.newBuilder()
+            .setClientId("c1")
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setMessageId("MSG-1")
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+        assertTrue(obs.value.getStatus().getMessage().contains("telemetry down"));
+    }
+
+    @Test
+    public void getConsumerRunningInfoReturnsEmptyWithoutSettings() {
+        stubOnlineClient("c1", null);
+
+        SimpleObserver<GetConsumerRunningInfoResponse> obs = new SimpleObserver<>();
+        service.getConsumerRunningInfo(
+            GetConsumerRunningInfoRequest.newBuilder().setClientId("c1").build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        assertEquals(0, obs.value.getConsumerRunningInfo().getSubscriptionsCount());
+    }
+
+    @Test
+    public void adminSendMessageWithTagsKeysAndProperties() {
+        SendResult sendResult = new SendResult();
+        sendResult.setMsgId("SENT-2");
+        when(messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), anyList(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(sendResult)));
+
+        SimpleObserver<AdminSendMessageResponse> obs = new SimpleObserver<>();
+        service.adminSendMessage(AdminSendMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setBody(com.google.protobuf.ByteString.copyFromUtf8("hello"))
+            .setTag("tagA")
+            .setKey("key1")
+            .putUserProperties("traceId", "abc")
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.OK, obs.value.getStatus().getCode());
+        assertEquals("SENT-2", obs.value.getMessageId());
+    }
+
+    @Test
+    public void adminSendMessageFailsGracefullyWhenSendFails() {
+        CompletableFuture<java.util.List<SendResult>> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("send failed"));
+        when(messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), anyList(), anyLong()))
+            .thenReturn(failed);
+
+        SimpleObserver<AdminSendMessageResponse> obs = new SimpleObserver<>();
+        service.adminSendMessage(AdminSendMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("t"))
+            .setBody(com.google.protobuf.ByteString.copyFromUtf8("hello"))
+            .build(), obs);
+        assertNotNull(obs.value);
+        assertEquals(Code.INTERNAL_ERROR, obs.value.getStatus().getCode());
+        assertTrue(obs.value.getStatus().getMessage().contains("send failed"));
     }
 }
