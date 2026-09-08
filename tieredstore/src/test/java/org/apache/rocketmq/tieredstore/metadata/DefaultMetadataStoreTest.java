@@ -145,6 +145,18 @@ public class DefaultMetadataStoreTest {
         Assert.assertNotNull(metadataStore.getTopic(topic1));
     }
 
+    @Test
+    public void testUpdateTopicRefreshesReplacementTimestamp() {
+        TopicMetadata existing = metadataStore.addTopic(mq0.getTopic(), 1);
+        TopicMetadata replacement = new TopicMetadata(existing.getTopicId(), existing.getTopic(), 2);
+        replacement.setUpdateTimestamp(0);
+
+        metadataStore.updateTopic(replacement);
+
+        Assert.assertSame(replacement, metadataStore.getTopic(mq0.getTopic()));
+        Assert.assertTrue(replacement.getUpdateTimestamp() > 0);
+    }
+
     private long countFileSegment(MetadataStore metadataStore) {
         AtomicLong count = new AtomicLong();
         metadataStore.iterateFileSegment(segmentMetadata -> count.incrementAndGet());
