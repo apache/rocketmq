@@ -277,6 +277,9 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                     break;
                 }
             }
+            if (delayLevel < 0) {
+                delayLevel = 0;
+            }
 
             changePopInvisibleTime(msgExt, consumerGroup, delayLevel);
             log.warn("Consume too many times, but delay time {} not enough. changePopInvisibleTime to delayLevel {} . message key:{}",
