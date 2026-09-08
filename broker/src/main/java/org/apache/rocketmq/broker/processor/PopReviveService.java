@@ -725,7 +725,7 @@ public class PopReviveService extends ServiceThread {
                 return sortList;
             }
             sortList = new ArrayList<>(map.values());
-            sortList.sort((o1, o2) -> (int) (o1.getReviveOffset() - o2.getReviveOffset()));
+            sortList.sort((o1, o2) -> Long.compare(o1.getReviveOffset(), o2.getReviveOffset()));
             return sortList;
         }
     }
