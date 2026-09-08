@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.processor;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -134,6 +135,23 @@ public class ClientProcessorTest {
         assertDoesNotThrow(() -> {
             clientProcessor.validateLiteSubTopic(ctx, group, subList);
         });
+    }
+
+    @Test
+    public void testValidateLiteSubTopic_rejectsAnySubscriptionForAnotherTopic() {
+        String group = "group";
+        SubscriptionData matchingSubscription = new SubscriptionData();
+        matchingSubscription.setTopic("topic1");
+        SubscriptionData mismatchingSubscription = new SubscriptionData();
+        mismatchingSubscription.setTopic("topic2");
+        Set<SubscriptionData> subList = new LinkedHashSet<>();
+        subList.add(matchingSubscription);
+        subList.add(mismatchingSubscription);
+
+        when(groupConfig.getLiteBindTopic()).thenReturn("topic1");
+        when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
+
+        assertThrows(GrpcProxyException.class, () -> clientProcessor.validateLiteSubTopic(ctx, group, subList));
     }
 
     @Test

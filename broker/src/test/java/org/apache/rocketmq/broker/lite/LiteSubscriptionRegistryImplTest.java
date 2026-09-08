@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.lite;
 
 import io.netty.channel.Channel;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -123,6 +124,41 @@ public class LiteSubscriptionRegistryImplTest {
         assertThrows(LiteQuotaException.class, () -> {
             registry.addPartialSubscription(clientId, group, topic, lmqNameSet, null);
         });
+    }
+
+    @Test
+    public void testAddPartialSubscription_RejectsBatchThatExceedsQuota() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1L);
+        when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
+
+        assertThrows(LiteQuotaException.class, () -> registry.addPartialSubscription(
+            "testClient", "testGroup", "testTopic", new HashSet<>(Arrays.asList("lmq1", "lmq2")), null));
+
+        assertEquals(0, registry.getActiveSubscriptionNum());
+    }
+
+    @Test
+    public void testAddCompleteSubscription_RejectsQuotaOverflow() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1L);
+        when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
+
+        assertThrows(LiteQuotaException.class, () -> registry.addCompleteSubscription(
+            "testClient", "testGroup", "testTopic", new HashSet<>(Arrays.asList("lmq1", "lmq2")), 1L));
+
+        assertEquals(0, registry.getActiveSubscriptionNum());
+    }
+
+    @Test
+    public void testAddPartialSubscription_AllowsExistingSubscriptionAtQuota() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1L);
+        when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
+        Set<String> subscriptions = Collections.singleton("lmq1");
+
+        registry.addPartialSubscription("testClient", "testGroup", "testTopic", subscriptions, null);
+
+        registry.addPartialSubscription("testClient", "testGroup", "testTopic", subscriptions, null);
+
+        assertEquals(1, registry.getActiveSubscriptionNum());
     }
 
     /**

@@ -79,24 +79,24 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     }
 
     @Override
-    public void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet,
+    public synchronized void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet,
         OffsetOption offsetOption) {
-        long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
-        if (getActiveSubscriptionNum() >= maxCount) {
-            // No need to check existence, if reach here, it must be new.
-            throw new LiteQuotaException("lite subscription quota exceeded " + maxCount);
-        }
         if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
             throw new IllegalStateException("subscribe lite operation is not supported for this group");
         }
+        if (brokerController.getBrokerConfig().getMaxLiteSubscriptionCount() <= 0
+            && !lmqNameSet.isEmpty()) {
+            throw new LiteQuotaException("lite subscription quota exceeded 0");
+        }
+
+        Set<String> activeLmqNames = lmqNameSet.stream()
+            .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
+            .collect(Collectors.toSet());
+        ClientGroup clientGroup = new ClientGroup(clientId, group);
+        ensureQuota(clientGroup, Collections.emptySet(), activeLmqNames);
 
         LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
-        // Utilize existing string object
-        final ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
-        for (String lmqName : lmqNameSet) {
-            if (!liteLifecycleManager.isSubscriptionActive(topic, lmqName)) {
-                continue;
-            }
+        for (String lmqName : activeLmqNames) {
             thisSub.addLiteTopic(lmqName);
             // First remove the old subscription
             if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
@@ -123,32 +123,37 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     }
 
     @Override
-    public void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll, long version) {
+    public synchronized void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll, long version) {
         Set<String> lmqNameNew;
         if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
             lmqNameNew = Collections.singleton(mockLmqNameForWildcardGroup(topic, group));
-            markWildcardGroup(topic, group);
         } else {
             lmqNameNew = lmqNameAll.stream()
                 .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
                 .collect(Collectors.toSet());
         }
 
-        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
-        Set<String> lmqNamePrev = thisSub.getLiteTopicSet();
-        // Find topics to remove (in current set but not in new set)
+        LiteSubscription existingSubscription = client2Subscription.get(clientId);
+        Set<String> lmqNamePrev = existingSubscription == null ? Collections.emptySet() : existingSubscription.getLiteTopicSet();
+        ClientGroup clientGroup = new ClientGroup(clientId, group);
         Set<String> lmqNameRemove = lmqNamePrev.stream()
             .filter(lmqName -> !lmqNameNew.contains(lmqName))
             .collect(Collectors.toSet());
+        ensureQuota(clientGroup, lmqNameRemove, lmqNameNew);
 
-        ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
+        if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+            markWildcardGroup(topic, group);
+        }
+        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
+
+        ClientGroup subscriptionClientGroup = new ClientGroup(clientId, thisSub.getGroup());
         lmqNameRemove.forEach(lmqName -> {
             thisSub.removeLiteTopic(lmqName);
-            removeTopicGroup(clientGroup, lmqName, false);
+            removeTopicGroup(subscriptionClientGroup, lmqName, false);
         });
         lmqNameNew.forEach(lmqName -> {
             thisSub.addLiteTopic(lmqName);
-            addTopicGroup(clientGroup, lmqName);
+            addTopicGroup(subscriptionClientGroup, lmqName);
         });
         // Tombstone operations only apply to exclusive groups.
         if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
@@ -279,6 +284,20 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 listener.onRegister(clientGroup.clientId, clientGroup.group, lmqName);
             }
         }
+    }
+
+    private void ensureQuota(ClientGroup clientGroup, Set<String> lmqNameRemove, Set<String> lmqNameNew) {
+        long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
+        long removedCount = lmqNameRemove.stream().filter(lmqName -> containsClientGroup(lmqName, clientGroup)).count();
+        long addedCount = lmqNameNew.stream().filter(lmqName -> !containsClientGroup(lmqName, clientGroup)).count();
+        if ((long) getActiveSubscriptionNum() - removedCount + addedCount > maxCount) {
+            throw new LiteQuotaException("lite subscription quota exceeded " + maxCount);
+        }
+    }
+
+    private boolean containsClientGroup(String lmqName, ClientGroup clientGroup) {
+        Set<ClientGroup> clientGroups = liteTopic2Group.get(lmqName);
+        return clientGroups != null && clientGroups.contains(clientGroup);
     }
 
     protected void removeTopicGroup(ClientGroup clientGroup, String lmqName, boolean resetOffset) {
