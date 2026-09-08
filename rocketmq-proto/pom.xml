@@ -68,6 +68,14 @@
             <artifactId>grpc-stub</artifactId>
             <version>${grpc.version}</version>
         </dependency>
+        <!-- javax.annotation.Generated is referenced by the generated gRPC code
+             and only exists in the JDK 8 runtime -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- generation-time only: google/protobuf/{timestamp,duration}.proto imports -->
         <dependency>
             <groupId>com.google.api.grpc</groupId>

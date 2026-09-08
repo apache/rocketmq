@@ -28,6 +28,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       # Initializes the CodeQL tools for scanning.
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: 8
+          distribution: "corretto"
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
