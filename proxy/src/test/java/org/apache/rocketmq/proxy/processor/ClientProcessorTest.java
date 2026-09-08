@@ -137,6 +137,27 @@ public class ClientProcessorTest {
     }
 
     @Test
+    public void testValidateLiteSubTopic_mismatchedSecondTopic_throwsException() {
+        String group = "group";
+        String bindTopic = "topic1";
+        SubscriptionData matching = new SubscriptionData();
+        matching.setTopic(bindTopic);
+        SubscriptionData mismatching = new SubscriptionData();
+        mismatching.setTopic("topic2");
+        Set<SubscriptionData> subList = new HashSet<>();
+        subList.add(matching);
+        subList.add(mismatching);
+
+        when(groupConfig.getLiteBindTopic()).thenReturn(bindTopic);
+        when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
+
+        GrpcProxyException exception = assertThrows(GrpcProxyException.class, () -> {
+            clientProcessor.validateLiteSubTopic(ctx, group, subList);
+        });
+        assertTrue(exception.getMessage().contains("expected to bind topic"));
+    }
+
+    @Test
     public void testValidateLiteBindTopic_matchingTopics_noException() {
         String group = "group";
         String bindTopic = "topic1";
