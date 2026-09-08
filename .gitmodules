@@ -1,0 +1,4 @@
+[submodule "rocketmq-apis"]
+	path = rocketmq-apis
+	url = https://github.com/apache/rocketmq-apis.git
+	branch = main
