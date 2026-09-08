@@ -81,6 +81,18 @@ public class ProcessQueueTest {
     }
 
     @Test
+    public void testRemoveMessagesReturnsOffsetAfterHighestOutOfOrderMessage() {
+        ProcessQueue pq = new ProcessQueue();
+        List<MessageExt> messages = createMessageList(2);
+        messages.get(0).setQueueOffset(10);
+        messages.get(1).setQueueOffset(5);
+
+        pq.putMessage(messages);
+
+        assertThat(pq.removeMessage(messages)).isEqualTo(11);
+    }
+
+    @Test
     public void testContainsMessage() {
         ProcessQueue pq = new ProcessQueue();
         final List<MessageExt> messageList = createMessageList(2);
