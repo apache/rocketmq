@@ -44,6 +44,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -171,7 +172,7 @@ public class ClientRequestProcessorTest {
 
     @Test
     public void testShutdownRejectsRouteRequestsForAllVersions() throws Exception {
-        when(namesrvController.isShuttingDown()).thenReturn(true);
+        when(namesrvController.isShutdown()).thenReturn(true);
         for (int version : new int[] {MQVersion.Version.V4_9_3.ordinal(), MQVersion.Version.V5_3_1.ordinal(),
             MQVersion.Version.V5_3_1.ordinal() + 1}) {
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, null);
@@ -185,24 +186,28 @@ public class ClientRequestProcessorTest {
     }
 
     @Test
-    public void testShutdownDuringRouteLookupDiscardsRouteResponse() throws Exception {
+    public void testRouteLookupKeepsOriginalResultWhenShutdownStarts() throws Exception {
         GetRouteInfoRequestHeader header = new GetRouteInfoRequestHeader();
         header.setTopic("TestTopic");
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, header);
         request.makeCustomHeaderToNet();
         when(namesrvConfig.isNeedWaitForService()).thenReturn(false);
         for (TopicRouteData route : new TopicRouteData[] {createMockTopicRouteData(), null}) {
-            when(namesrvController.isShuttingDown()).thenReturn(false);
-            when(routeInfoManager.pickupTopicRouteData("TestTopic")).thenAnswer(invocation -> {
-                when(namesrvController.isShuttingDown()).thenReturn(true);
+            when(namesrvController.isShutdown()).thenReturn(false);
+            doAnswer(invocation -> {
+                when(namesrvController.isShutdown()).thenReturn(true);
                 return route;
-            });
+            }).when(routeInfoManager).pickupTopicRouteData("TestTopic");
 
             RemotingCommand response = clientRequestProcessor.processRequest(ctx, request);
 
-            assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
-            assertEquals("name server not ready", response.getRemark());
-            assertNull(response.getBody());
+            if (route != null) {
+                assertEquals(ResponseCode.SUCCESS, response.getCode());
+                assertNotNull(response.getBody());
+            } else {
+                assertEquals(ResponseCode.TOPIC_NOT_EXIST, response.getCode());
+                assertNull(response.getBody());
+            }
         }
     }
 

@@ -69,7 +69,7 @@ public class NamesrvController {
     private final KVConfigManager kvConfigManager;
     private final RouteInfoManager routeInfoManager;
 
-    private volatile boolean shuttingDown;
+    private volatile boolean shutdown;
 
     private RemotingClient remotingClient;
     private RemotingServer remotingServer;
@@ -239,12 +239,12 @@ public class NamesrvController {
         this.routeInfoManager.start();
     }
 
-    public boolean isShuttingDown() {
-        return shuttingDown;
+    public boolean isShutdown() {
+        return shutdown;
     }
 
     public void shutdown() {
-        this.shuttingDown = true;
+        this.shutdown = true;
         this.remotingClient.shutdown();
         this.remotingServer.shutdown();
         this.defaultExecutor.shutdown();

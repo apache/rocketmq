@@ -61,17 +61,17 @@ public class NamesrvControllerTest {
         FieldUtils.writeField(namesrvController, "clientRequestExecutor", mock(ExecutorService.class), true);
         namesrvController.setRemotingServer(remotingServer);
         doAnswer(invocation -> {
-            Assert.assertTrue(namesrvController.isShuttingDown());
+            Assert.assertTrue(namesrvController.isShutdown());
             return null;
         }).when(remotingClient).shutdown();
         doAnswer(invocation -> {
-            Assert.assertTrue(namesrvController.isShuttingDown());
+            Assert.assertTrue(namesrvController.isShutdown());
             return null;
         }).when(remotingServer).shutdown();
 
-        Assert.assertFalse(namesrvController.isShuttingDown());
+        Assert.assertFalse(namesrvController.isShutdown());
         namesrvController.shutdown();
-        Assert.assertTrue(namesrvController.isShuttingDown());
+        Assert.assertTrue(namesrvController.isShutdown());
         verify(remotingClient).shutdown();
         verify(remotingServer).shutdown();
     }
