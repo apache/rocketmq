@@ -20,7 +20,10 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.hook.ConsumeMessageContext;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -46,6 +49,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -179,6 +183,30 @@ public class ConsumeMessagePopConcurrentlyServiceTest {
         when(defaultMQPushConsumerImpl.getPopDelayLevel()).thenReturn(new int[]{1, 10});
         popService.processConsumeResult(ConsumeConcurrentlyStatus.CONSUME_SUCCESS, context, consumeRequest);
         verify(defaultMQPushConsumerImpl, times(1)).ackAsync(any(MessageExt.class), any());
+    }
+
+    @Test
+    public void testConsumeRequestReportsTimeOutWhenConsumeExceedsInvisibleTime() {
+        long now = System.currentTimeMillis();
+        MessageExt messageExt = createMessageExt();
+        messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
+            "0 " + now + " 500 0 " + defaultTopic + " " + defaultBroker + " 0");
+        PopProcessQueue processQueue = mock(PopProcessQueue.class);
+        MessageQueue messageQueue = mock(MessageQueue.class);
+        when(messageQueue.getTopic()).thenReturn(defaultTopic);
+        when(defaultMQPushConsumerImpl.hasHook()).thenReturn(true);
+        when(messageListener.consumeMessage(any(), any(ConsumeConcurrentlyContext.class))).thenAnswer(invocation -> {
+            Thread.sleep(700);
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+        ConsumeMessagePopConcurrentlyService.ConsumeRequest consumeRequest =
+            popService.new ConsumeRequest(Collections.singletonList(messageExt), processQueue, messageQueue);
+
+        consumeRequest.run();
+
+        ArgumentCaptor<ConsumeMessageContext> captor = ArgumentCaptor.forClass(ConsumeMessageContext.class);
+        verify(defaultMQPushConsumerImpl, times(1)).executeHookAfter(captor.capture());
+        assertEquals(ConsumeReturnType.TIME_OUT.name(), captor.getValue().getProps().get(MixAll.CONSUME_CONTEXT_TYPE));
     }
 
     private MessageExt createMessageExt() {

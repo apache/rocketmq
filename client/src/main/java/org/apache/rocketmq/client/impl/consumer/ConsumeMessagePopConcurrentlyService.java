@@ -437,7 +437,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                 } else {
                     returnType = ConsumeReturnType.RETURNNULL;
                 }
-            } else if (consumeRT >= invisibleTime * 1000) {
+            } else if (consumeRT >= invisibleTime) {
                 returnType = ConsumeReturnType.TIME_OUT;
             } else if (ConsumeConcurrentlyStatus.RECONSUME_LATER == status) {
                 returnType = ConsumeReturnType.FAILED;
