@@ -97,6 +97,9 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             if (!liteLifecycleManager.isSubscriptionActive(topic, lmqName)) {
                 continue;
             }
+            if (!isLiteTopicSubscribed(clientGroup, lmqName) && getActiveSubscriptionNum() >= maxCount) {
+                throw new LiteQuotaException("lite subscription quota exceeded " + maxCount);
+            }
             thisSub.addLiteTopic(lmqName);
             // First remove the old subscription
             if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
@@ -147,6 +150,10 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             removeTopicGroup(clientGroup, lmqName, false);
         });
         lmqNameNew.forEach(lmqName -> {
+            long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
+            if (!isLiteTopicSubscribed(clientGroup, lmqName) && getActiveSubscriptionNum() >= maxCount) {
+                throw new LiteQuotaException("lite subscription quota exceeded " + maxCount);
+            }
             thisSub.addLiteTopic(lmqName);
             addTopicGroup(clientGroup, lmqName);
         });
@@ -267,6 +274,11 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 activeNum.decrementAndGet();
             }
         }
+    }
+
+    protected boolean isLiteTopicSubscribed(ClientGroup clientGroup, String lmqName) {
+        Set<ClientGroup> topicGroupSet = liteTopic2Group.get(lmqName);
+        return topicGroupSet != null && topicGroupSet.contains(clientGroup);
     }
 
     protected void addTopicGroup(ClientGroup clientGroup, String lmqName) {
