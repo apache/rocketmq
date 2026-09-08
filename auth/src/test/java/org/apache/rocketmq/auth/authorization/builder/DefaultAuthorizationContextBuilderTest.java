@@ -827,6 +827,12 @@ public class DefaultAuthorizationContextBuilderTest {
         assertResourceOrder(result, "Topic:viewTopic");
         assertActions(result, "Topic:viewTopic", Action.GET);
 
+        viewMessageHeader.setTopic("%RETRY%retryGroup");
+        result = builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.VIEW_MESSAGE_BY_ID, viewMessageHeader, null));
+        assertResourceOrder(result, "Group:retryGroup");
+        assertActions(result, "Group:retryGroup", Action.GET);
+
         BatchAck firstAck = batchAck("topicA", "groupA", "0");
         BatchAck duplicateAck = batchAck("topicA", "groupA", "0");
         BatchAck secondAck = batchAck("topicB", "groupB", "0");

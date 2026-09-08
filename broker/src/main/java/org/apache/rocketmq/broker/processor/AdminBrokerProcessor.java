@@ -1178,7 +1178,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerConfigResponseHeader.class);
         final GetBrokerConfigResponseHeader responseHeader = (GetBrokerConfigResponseHeader) response.readCustomHeader();
 
-        String content = sanitizeConfigForResponse(this.brokerController.getConfiguration().getAllConfigsFormatString());
+        String content = sanitizeConfigForResponse(
+            this.brokerController.getConfiguration().getAllConfigsSnapshot());
         if (content == null) {
             LOGGER.error("AdminBrokerProcessor#getBrokerConfig: failed to sanitize broker config, caller={}",
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
@@ -1213,18 +1214,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     };
 
     /**
-     * Remove sensitive entries from the exported config content. Returns null when the
-     * content cannot be parsed, so callers must fail closed instead of returning the
-     * original content.
+     * Remove sensitive entries from a snapshot of the broker configuration.
      */
-    static String sanitizeConfigForResponse(String content) {
-        if (content == null || content.isEmpty()) {
-            return content;
-        }
-        Properties properties = MixAll.string2Properties(content);
-        if (properties == null) {
+    static String sanitizeConfigForResponse(Properties source) {
+        if (source == null) {
             return null;
         }
+        Properties properties = new Properties();
+        properties.putAll(source);
         for (String key : SENSITIVE_CONFIG_KEYS) {
             properties.remove(key);
         }
