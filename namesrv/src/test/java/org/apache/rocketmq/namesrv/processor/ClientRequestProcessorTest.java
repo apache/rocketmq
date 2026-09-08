@@ -47,7 +47,7 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -182,7 +182,7 @@ public class ClientRequestProcessorTest {
             assertEquals("name server not ready", response.getRemark());
             assertNull(response.getBody());
         }
-        verifyZeroInteractions(routeInfoManager);
+        verifyNoInteractions(routeInfoManager);
     }
 
     @Test
