@@ -51,7 +51,14 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         final RemotingCommand request) throws Exception {
-        return this.getRouteInfoByTopic(ctx, request);
+        if (!namesrvController.isShuttingDown()) {
+            RemotingCommand response = this.getRouteInfoByTopic(ctx, request);
+            // Shutdown may have started while the route was being read or encoded.
+            if (!namesrvController.isShuttingDown()) {
+                return response;
+            }
+        }
+        return RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "name server not ready");
     }
 
     public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
