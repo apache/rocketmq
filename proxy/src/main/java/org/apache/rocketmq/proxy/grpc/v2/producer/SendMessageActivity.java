@@ -195,12 +195,8 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         }
     }
 
-    protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
-        long userPropertySize = 0;
+    protected void checkUserProperties(Map<String, String> userProperties) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
-        // set user properties
-        Map<String, String> userProperties = message.getUserPropertiesMap();
         if (userProperties.size() > config.getUserPropertyMaxNum()) {
             throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "too many user properties, max is " + config.getUserPropertyMaxNum());
         }
@@ -214,6 +210,17 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getValue())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the value of property cannot contain control character");
             }
+        }
+    }
+
+    protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
+        long userPropertySize = 0;
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
+        // set user properties
+        Map<String, String> userProperties = message.getUserPropertiesMap();
+        checkUserProperties(userProperties);
+        for (Map.Entry<String, String> userPropertiesEntry : userProperties.entrySet()) {
             userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
             userPropertySize += userPropertiesEntry.getValue().getBytes(StandardCharsets.UTF_8).length;
         }
