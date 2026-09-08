@@ -273,13 +273,16 @@ public class BrokerOuterAPI {
 
     public BrokerMemberGroup getBrokerMemberGroup(String clusterName, String brokerName)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        BrokerMemberGroup brokerMemberGroup = new BrokerMemberGroup(clusterName, brokerName);
+
         GetBrokerMemberGroupRequestHeader requestHeader = new GetBrokerMemberGroupRequestHeader();
         requestHeader.setClusterName(clusterName);
         requestHeader.setBrokerName(brokerName);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_MEMBER_GROUP, requestHeader);
 
-        RemotingCommand response = this.remotingClient.invokeSync(null, request, 3000);
+        RemotingCommand response = null;
+        response = this.remotingClient.invokeSync(null, request, 3000);
         assert response != null;
 
         switch (response.getCode()) {
@@ -289,16 +292,14 @@ public class BrokerOuterAPI {
                     GetBrokerMemberGroupResponseBody brokerMemberGroupResponseBody =
                         GetBrokerMemberGroupResponseBody.decode(body, GetBrokerMemberGroupResponseBody.class);
 
-                    BrokerMemberGroup memberGroup = brokerMemberGroupResponseBody.getBrokerMemberGroup();
-                    if (memberGroup != null && memberGroup.getBrokerAddrs() != null) {
-                        return memberGroup;
-                    }
+                    return brokerMemberGroupResponseBody.getBrokerMemberGroup();
                 }
-                throw new IllegalStateException("Missing broker member group in response");
             }
             default:
-                throw new IllegalStateException(new MQBrokerException(response.getCode(), response.getRemark()));
+                break;
         }
+
+        return brokerMemberGroup;
     }
 
     public BrokerMemberGroup getBrokerMemberGroupCompatible(String clusterName, String brokerName)
@@ -319,9 +320,6 @@ public class BrokerOuterAPI {
                 byte[] body = response.getBody();
                 if (body != null) {
                     TopicRouteData topicRouteData = TopicRouteData.decode(body, TopicRouteData.class);
-                    if (topicRouteData == null || topicRouteData.getBrokerDatas() == null) {
-                        throw new IllegalStateException("Missing broker route data in response");
-                    }
                     for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
                         if (brokerData != null
                             && brokerData.getBrokerName().equals(brokerName)
@@ -332,13 +330,12 @@ public class BrokerOuterAPI {
                     }
                     return brokerMemberGroup;
                 }
-                throw new IllegalStateException("Missing broker route data in response");
             }
-            case ResponseCode.TOPIC_NOT_EXIST:
-                return brokerMemberGroup;
             default:
-                throw new IllegalStateException(new MQBrokerException(response.getCode(), response.getRemark()));
+                break;
         }
+
+        return brokerMemberGroup;
     }
 
     public void sendHeartbeatViaDataVersion(

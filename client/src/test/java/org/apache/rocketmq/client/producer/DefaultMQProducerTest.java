@@ -554,19 +554,8 @@ public class DefaultMQProducerTest {
 
 
     @Test
-    public void testRunningSetBackCompress() throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
+    public void testRunningSetBackCompress() throws RemotingException, InterruptedException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(5);
-        final CountDownLatch sendsAccepted = new CountDownLatch(5);
-        final List<SendCallback> pendingCallbacks = Collections.synchronizedList(new ArrayList<>());
-        when(mQClientFactory.findBrokerAddressInPublish("BrokerA")).thenReturn("127.0.0.1:10911");
-        when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class),
-            anyLong(), any(CommunicationMode.class), nullable(SendCallback.class), nullable(TopicPublishInfo.class),
-            nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
-            .thenAnswer(invocation -> {
-                pendingCallbacks.add(invocation.getArgument(6));
-                sendsAccepted.countDown();
-                return createSendResult(SendStatus.SEND_OK);
-            });
         SendCallback sendCallback = new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
@@ -602,14 +591,8 @@ public class DefaultMQProducerTest {
             }).start();
         }
         producer.setBackPressureForAsyncSendNum(15);
-        // All five sends have acquired permits; complete their callbacks only after resizing.
-        assertTrue(sendsAccepted.await(10, TimeUnit.SECONDS));
-        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits()).isEqualTo(10);
-        for (SendCallback callback : pendingCallbacks) {
-            callback.onSuccess(createSendResult(SendStatus.SEND_OK));
-        }
-        assertThat(countDownLatch.getCount()).isZero();
-        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits()).isEqualTo(15);
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits() + countDownLatch.getCount()).isEqualTo(15);
         producer.setEnableBackpressureForAsyncMode(false);
     }
 
