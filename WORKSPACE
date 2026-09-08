@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 
 RULES_JVM_EXTERNAL_TAG = "4.2"
 
@@ -71,9 +71,9 @@ maven_install(
         "org.bouncycastle:bcpkix-jdk18on:1.83",
         "com.google.code.gson:gson:2.9.0",
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
-        "org.apache.rocketmq:rocketmq-proto:2.2.0",
         "com.google.protobuf:protobuf-java:3.24.4",
         "com.google.protobuf:protobuf-java-util:3.24.4",
+        "javax.annotation:javax.annotation-api:1.3.2",
         "com.conversantmedia:disruptor:1.2.10",
         "org.apache.tomcat:annotations-api:6.0.53",
         "com.google.code.findbugs:jsr305:3.0.2",
@@ -123,6 +123,72 @@ maven_install(
         "https://repo1.maven.org/maven2",
         "https://repo.maven.apache.org/maven2",
     ],
+)
+
+# Well-known type protos (google/protobuf/{timestamp,duration}.proto). The
+# standalone protoc executable does not bundle them, so they have to be placed on
+# the include path explicitly.
+http_archive(
+    name = "com_google_protobuf_wkt",
+    build_file_content = """
+filegroup(
+    name = "wkt_protos",
+    srcs = glob(["*.proto"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "616bb3536ac1fff3fb1a141450fa28b875e985712170ea7f1bfe5e5fc41e2cd8",
+    strip_prefix = "protobuf-24.4/src/google/protobuf",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/refs/tags/v24.4.tar.gz"],
+)
+
+# protoc / grpc codegen binaries. rules_jvm_external can only resolve jar
+# artifacts, so the prebuilt executables are fetched directly. Using prebuilt
+# binaries avoids the grpc-java Bazel toolchain, which would build protoc and
+# the grpc plugin from C++ sources.
+http_file(
+    name = "com_google_protobuf_protoc_linux_x86_64",
+    downloaded_file_path = "protoc",
+    executable = True,
+    sha256 = "59a70515db36977cf29ab09323b469dca51dd6572a5e08a731d741f22eef2b6c",
+    urls = ["https://repo1.maven.org/maven2/com/google/protobuf/protoc/3.24.4/protoc-3.24.4-linux-x86_64.exe"],
+)
+
+http_file(
+    name = "com_google_protobuf_protoc_osx_x86_64",
+    downloaded_file_path = "protoc",
+    executable = True,
+    sha256 = "8689519587d41b7af9e3b3f2e8c3d1335a23315857d157f61c26c10a1c61a9fa",
+    urls = ["https://repo1.maven.org/maven2/com/google/protobuf/protoc/3.24.4/protoc-3.24.4-osx-x86_64.exe"],
+)
+
+http_file(
+    name = "io_grpc_protoc_gen_grpc_java_linux_x86_64",
+    downloaded_file_path = "protoc-gen-grpc-java",
+    executable = True,
+    sha256 = "52dcbe738d3c920d7744780c67417309fe4ed990b380e9d1cf073c0654656191",
+    urls = ["https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/1.53.0/protoc-gen-grpc-java-1.53.0-linux-x86_64.exe"],
+)
+
+http_file(
+    name = "io_grpc_protoc_gen_grpc_java_osx_x86_64",
+    downloaded_file_path = "protoc-gen-grpc-java",
+    executable = True,
+    sha256 = "97da9c1a408fb23391853273272a9c04f1b8ba6a2ce3c18ff95eab9cc91f0388",
+    urls = ["https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/1.53.0/protoc-gen-grpc-java-1.53.0-osx-x86_64.exe"],
+)
+
+# The rocketmq-apis git submodule (apache main), which supplies
+# apache/rocketmq/v2/*.proto including the RIP-2 admin.proto.
+#
+# The submodule ships its own BUILD files, but they pull in toolchains this
+# workspace does not declare (graknlabs_bazel_distribution, googleapis), so the
+# directory is listed in .bazelignore (keeps `bazel build //...` from trying to
+# build it) and is surfaced here through a minimal build file instead.
+new_local_repository(
+    name = "rocketmq_apis",
+    build_file = "//bazel:rocketmq_apis.BUILD",
+    path = "rocketmq-apis",
 )
 
 http_archive(

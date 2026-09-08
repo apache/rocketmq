@@ -1,0 +1,75 @@
+# Protocol classes generated at build time from the rocketmq-apis git submodule.
+#
+# The RIP-2 admin contract (admin.proto) is not part of any rocketmq-proto
+# artifact published to Maven Central, so the Java + gRPC classes are generated
+# here from the submodule's .proto sources rather than resolved as a Maven
+# artifact. This mirrors what the rocketmq-proto Maven module does for the Maven
+# build.
+
+genrule(
+    name = "rocketmq_proto_srcjar",
+    srcs = [
+        "@com_google_protobuf_wkt//:wkt_protos",
+        "@rocketmq_apis//:v2_protos",
+    ],
+    tools = [
+        "@com_google_protobuf_protoc_linux_x86_64//file",
+        "@com_google_protobuf_protoc_osx_x86_64//file",
+        "@io_grpc_protoc_gen_grpc_java_linux_x86_64//file",
+        "@io_grpc_protoc_gen_grpc_java_osx_x86_64//file",
+    ],
+    outs = ["rocketmq_proto_srcjar.jar"],
+    cmd = """
+        set -e
+        case "$$(uname -s)" in
+          Linux)
+            PROTOC="$$(pwd)/$(location @com_google_protobuf_protoc_linux_x86_64//file)"
+            PLUGIN="$$(pwd)/$(location @io_grpc_protoc_gen_grpc_java_linux_x86_64//file)"
+            ;;
+          Darwin)
+            PROTOC="$$(pwd)/$(location @com_google_protobuf_protoc_osx_x86_64//file)"
+            PLUGIN="$$(pwd)/$(location @io_grpc_protoc_gen_grpc_java_osx_x86_64//file)"
+            ;;
+          *)
+            echo "unsupported platform for proto codegen: $$(uname -s)" >&2
+            exit 1
+            ;;
+        esac
+        PT="$$(pwd)/$(@D)/proto_tree"
+        JAVA_OUT="$$(pwd)/$(@D)/java_out"
+        OUT="$$(pwd)/$@"
+        rm -rf $$PT $$JAVA_OUT
+        mkdir -p $$PT/apache/rocketmq/v2 $$PT/google/protobuf $$JAVA_OUT
+        for f in $(SRCS); do
+            case "$$f" in
+                */apache/rocketmq/v2/*.proto) cp "$$f" $$PT/apache/rocketmq/v2/ ;;
+                *) cp "$$f" $$PT/google/protobuf/ ;;
+            esac
+        done
+        $$PROTOC \
+            --plugin=protoc-gen-grpc-java=$$PLUGIN \
+            -I$$PT \
+            --java_out=$$JAVA_OUT \
+            --grpc-java_out=$$JAVA_OUT \
+            $$PT/apache/rocketmq/v2/*.proto
+        if command -v jar > /dev/null 2>&1; then
+            (cd $$JAVA_OUT && jar cf $$OUT .)
+        else
+            (cd $$JAVA_OUT && zip -qr $$OUT .)
+        fi
+    """,
+)
+
+java_library(
+    name = "rocketmq-proto",
+    srcs = [":rocketmq_proto_srcjar"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:io_grpc_grpc_protobuf",
+        "@maven//:io_grpc_grpc_stub",
+        "@maven//:javax_annotation_javax_annotation_api",
+    ],
+)
