@@ -18,7 +18,7 @@ genrule(
         "@io_grpc_protoc_gen_grpc_java_linux_x86_64//file",
         "@io_grpc_protoc_gen_grpc_java_osx_x86_64//file",
     ],
-    outs = ["rocketmq_proto_srcjar.jar"],
+    outs = ["rocketmq_proto.srcjar"],
     cmd = """
         set -e
         case "$$(uname -s)" in
