@@ -257,13 +257,13 @@ public class BrokerOuterAPI {
     }
 
     public BrokerMemberGroup syncBrokerMemberGroup(String clusterName, String brokerName)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         return syncBrokerMemberGroup(clusterName, brokerName, false);
     }
 
     public BrokerMemberGroup syncBrokerMemberGroup(String clusterName, String brokerName,
         boolean isCompatibleWithOldNameSrv)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         if (isCompatibleWithOldNameSrv) {
             return getBrokerMemberGroupCompatible(clusterName, brokerName);
         } else {
@@ -272,17 +272,14 @@ public class BrokerOuterAPI {
     }
 
     public BrokerMemberGroup getBrokerMemberGroup(String clusterName, String brokerName)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        BrokerMemberGroup brokerMemberGroup = new BrokerMemberGroup(clusterName, brokerName);
-
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         GetBrokerMemberGroupRequestHeader requestHeader = new GetBrokerMemberGroupRequestHeader();
         requestHeader.setClusterName(clusterName);
         requestHeader.setBrokerName(brokerName);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_MEMBER_GROUP, requestHeader);
 
-        RemotingCommand response = null;
-        response = this.remotingClient.invokeSync(null, request, 3000);
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, 3000);
         assert response != null;
 
         switch (response.getCode()) {
@@ -292,18 +289,20 @@ public class BrokerOuterAPI {
                     GetBrokerMemberGroupResponseBody brokerMemberGroupResponseBody =
                         GetBrokerMemberGroupResponseBody.decode(body, GetBrokerMemberGroupResponseBody.class);
 
-                    return brokerMemberGroupResponseBody.getBrokerMemberGroup();
+                    BrokerMemberGroup memberGroup = brokerMemberGroupResponseBody.getBrokerMemberGroup();
+                    if (memberGroup != null && memberGroup.getBrokerAddrs() != null) {
+                        return memberGroup;
+                    }
                 }
+                throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "Missing broker member group in response");
             }
             default:
-                break;
+                throw new MQBrokerException(response.getCode(), response.getRemark());
         }
-
-        return brokerMemberGroup;
     }
 
     public BrokerMemberGroup getBrokerMemberGroupCompatible(String clusterName, String brokerName)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
         BrokerMemberGroup brokerMemberGroup = new BrokerMemberGroup(clusterName, brokerName);
 
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
@@ -320,6 +319,9 @@ public class BrokerOuterAPI {
                 byte[] body = response.getBody();
                 if (body != null) {
                     TopicRouteData topicRouteData = TopicRouteData.decode(body, TopicRouteData.class);
+                    if (topicRouteData == null || topicRouteData.getBrokerDatas() == null) {
+                        throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "Missing broker route data in response");
+                    }
                     for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
                         if (brokerData != null
                             && brokerData.getBrokerName().equals(brokerName)
@@ -330,12 +332,13 @@ public class BrokerOuterAPI {
                     }
                     return brokerMemberGroup;
                 }
+                throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "Missing broker route data in response");
             }
+            case ResponseCode.TOPIC_NOT_EXIST:
+                return brokerMemberGroup;
             default:
-                break;
+                throw new MQBrokerException(response.getCode(), response.getRemark());
         }
-
-        return brokerMemberGroup;
     }
 
     public void sendHeartbeatViaDataVersion(

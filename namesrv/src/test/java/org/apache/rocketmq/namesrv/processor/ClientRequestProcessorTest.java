@@ -20,6 +20,7 @@ package org.apache.rocketmq.namesrv.processor;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -182,6 +183,23 @@ public class ClientRequestProcessorTest {
             assertEquals("name server not ready", response.getRemark());
             assertNull(response.getBody());
         }
+        verifyNoInteractions(routeInfoManager);
+    }
+
+    @Test
+    public void testShutdownRejectsBrokerMemberLookup() throws Exception {
+        when(namesrvController.isShutdown()).thenReturn(true);
+        GetRouteInfoRequestHeader header = new GetRouteInfoRequestHeader();
+        header.setTopic(TopicValidator.SYNC_BROKER_MEMBER_GROUP_PREFIX + "broker-a");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, header);
+        request.setVersion(MQVersion.Version.V5_3_1.ordinal());
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = clientRequestProcessor.processRequest(ctx, request);
+
+        assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
+        assertEquals("name server not ready", response.getRemark());
+        assertNull(response.getBody());
         verifyNoInteractions(routeInfoManager);
     }
 
