@@ -50,6 +50,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +109,22 @@ public class IndexStoreServiceTest {
         }
         ConcurrentSkipListMap<Long, IndexFile> timeStoreTable = indexService.getTimeStoreTable();
         Assert.assertEquals(3, timeStoreTable.size());
+    }
+
+    @Test
+    public void putKeyReturnsFileFullAfterRetriesExhausted() throws IllegalAccessException {
+        IndexStoreService service = Mockito.spy(new IndexStoreService(fileAllocator, filePath, false));
+        IndexFile fullIndexFile = Mockito.mock(IndexFile.class);
+        Mockito.when(fullIndexFile.putKey(
+            TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, 1L))
+            .thenReturn(AppendResult.FILE_FULL);
+        FieldUtils.writeField(service, "currentWriteFile", fullIndexFile, true);
+        Mockito.doNothing().when(service).createNewIndexFile(Mockito.anyLong());
+
+        Assert.assertEquals(AppendResult.FILE_FULL, service.putKey(
+            TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, 1L));
+        Mockito.verify(fullIndexFile, Mockito.times(3)).putKey(
+            TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, 1L);
     }
 
     @Test
