@@ -21,11 +21,8 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -66,7 +63,6 @@ public class RocksDBLiteLifecycleManagerTest {
     private static String storePathRootDir;
     private static MessageStore messageStore;
     private static RocksDBLiteLifecycleManager liteLifecycleManager;
-    private static TopicConfig mockTopicConfig = new TopicConfig();
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -87,7 +83,6 @@ public class RocksDBLiteLifecycleManagerTest {
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(topicConfigManager.getTopicConfigTable()).thenReturn(TOPIC_CONFIG_TABLE);
-        when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(mockTopicConfig);
         when(subscriptionGroupManager.getSubscriptionGroupTable()).thenReturn(new ConcurrentHashMap<>());
 
         RocksDBLiteLifecycleManager testObject = new RocksDBLiteLifecycleManager(brokerController, liteSharding);
@@ -100,7 +95,6 @@ public class RocksDBLiteLifecycleManagerTest {
         messageStore.shutdown();
         messageStore.destroy();
         UtilAll.deleteFile(new File(storePathRootDir));
-        mockTopicConfig = new TopicConfig();
     }
 
     @Ignore
@@ -148,48 +142,6 @@ public class RocksDBLiteLifecycleManagerTest {
     }
 
     @Test
-    public void testCollectByParentTopic() {
-        int num = 3;
-        String parentTopic = UUID.randomUUID().toString();
-        for (int i = 0; i < num; i++) {
-            messageStore.putMessage(LiteTestUtil.buildMessage(parentTopic, UUID.randomUUID().toString()));
-            messageStore.putMessage(LiteTestUtil.buildMessage(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
-        }
-        await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
-        List<String> result = liteLifecycleManager.collectByParentTopic(parentTopic);
-        Assert.assertEquals(num, result.size());
-        for (String lmqName : result) {
-            Assert.assertTrue(LiteUtil.belongsTo(lmqName, parentTopic));
-        }
-
-        result = liteLifecycleManager.collectByParentTopic(UUID.randomUUID().toString());
-        Assert.assertEquals(0, result.size());
-    }
-
-    @Test
-    public void testCollectExpiredLiteTopic() {
-        int num = 3;
-        String parentTopic = UUID.randomUUID().toString();
-        for (int i = 0; i < num; i++) {
-            messageStore.putMessage(LiteTestUtil.buildMessage(parentTopic, UUID.randomUUID().toString()));
-            messageStore.putMessage(LiteTestUtil.buildMessage(UUID.randomUUID().toString(), null));
-        }
-        await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
-
-        when(liteLifecycleManager.isLiteTopicExpired(anyString(), anyString(), anyLong())).thenReturn(false);
-        List<Pair<String, String>> result = liteLifecycleManager.collectExpiredLiteTopic();
-        Assert.assertEquals(0, result.size());
-
-        when(liteLifecycleManager.isLiteTopicExpired(eq(parentTopic), anyString(), anyLong())).thenReturn(true);
-        result = liteLifecycleManager.collectExpiredLiteTopic();
-        Assert.assertEquals(num, result.size());
-        for (Pair<String, String> pair : result) {
-            Assert.assertEquals(parentTopic, pair.getObject1());
-            Assert.assertTrue(LiteUtil.belongsTo(pair.getObject2(), parentTopic));
-        }
-    }
-
-    @Test
     public void testCleanExpiredLiteTopic() throws Exception {
         int num = 3;
         String parentTopic = UUID.randomUUID().toString();
@@ -208,34 +160,6 @@ public class RocksDBLiteLifecycleManagerTest {
 
         when(liteLifecycleManager.isLiteTopicExpired(eq(parentTopic), anyString(), anyLong())).thenReturn(true);
         liteLifecycleManager.cleanExpiredLiteTopic();
-
-        for (int i = 0; i < num; i++) {
-            String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
-            Assert.assertEquals(0, (long) messageStore.getQueueStore().getMaxOffset(lmqName, 0));
-            Assert.assertEquals(0, liteLifecycleManager.getMaxOffsetInQueue(lmqName));
-        }
-    }
-
-    @Test
-    public void testCleanByParentTopic() throws Exception {
-        int num = 3;
-        String parentTopic = UUID.randomUUID().toString();
-        mockTopicConfig.getAttributes().put(
-            TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
-        List<String> liteTopics =
-            IntStream.range(0, 3).mapToObj(i -> UUID.randomUUID().toString()).collect(Collectors.toList());
-        for (int i = 0; i < num; i++) {
-            messageStore.putMessage(LiteTestUtil.buildMessage(parentTopic, liteTopics.get(i)));
-        }
-        await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
-
-        for (int i = 0; i < num; i++) {
-            String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
-            Assert.assertEquals(1, (long) messageStore.getQueueStore().getMaxOffset(lmqName, 0));
-            Assert.assertEquals(1, liteLifecycleManager.getMaxOffsetInQueue(lmqName));
-        }
-
-        liteLifecycleManager.cleanByParentTopic(parentTopic);
 
         for (int i = 0; i < num; i++) {
             String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));

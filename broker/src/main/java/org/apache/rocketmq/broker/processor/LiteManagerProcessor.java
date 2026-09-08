@@ -20,15 +20,14 @@ package org.apache.rocketmq.broker.processor;
 import com.google.common.annotations.VisibleForTesting;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager;
 import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.lite.LiteSharding;
-import org.apache.rocketmq.broker.lite.SubscriberWrapper;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
@@ -62,7 +61,6 @@ import org.apache.rocketmq.store.queue.CombineConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -254,8 +252,8 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         Set<String> returnSet = null;
         int liteTopicCount = 0;
         LiteSubscription liteSubscription = brokerController.getLiteSubscriptionRegistry().getLiteSubscription(clientId);
-        if (liteSubscription != null && liteSubscription.getLiteTopicSet() != null) {
-            Set<String> liteTopicSet = liteSubscription.getLiteTopicSet();
+        if (liteSubscription != null && liteSubscription.getLmqSet() != null) {
+            Set<String> liteTopicSet = liteSubscription.getLmqSet();
             liteTopicCount = liteTopicSet.size();
             if (maxCount >= liteTopicCount) {
                 returnSet = liteTopicSet;
@@ -393,12 +391,9 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
 
     @VisibleForTesting
     public Set<ClientGroup> getSubscriber(String lmqName) {
-        SubscriberWrapper.MapWrapper wrapper =
-            brokerController.getLiteSubscriptionRegistry().getAllSubscriber(null, lmqName).asMapWrapper();
-        if (null == wrapper) {
-            return Collections.emptySet();
-        }
-        return wrapper.getGroupMap().entrySet().stream()
+        Map<String, List<ClientGroup>> subscriberMap =
+            brokerController.getLiteSubscriptionRegistry().getAllSubscribers(null, lmqName);
+        return subscriberMap.entrySet().stream()
             .flatMap(entry -> {
                 String group = entry.getKey();
                 if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
