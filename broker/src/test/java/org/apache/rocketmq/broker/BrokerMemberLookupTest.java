@@ -195,6 +195,23 @@ public class BrokerMemberLookupTest {
     }
 
     @Test
+    public void missingBrokerAddressesKeepsBrokerOffline() throws Exception {
+        setup(false);
+        RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
+        response.setBody("{\"brokerMemberGroup\":{\"brokerAddrs\":null}}".getBytes(StandardCharsets.UTF_8));
+        respond(response);
+        try {
+            outerAPI.syncBrokerMemberGroup("test-cluster", "test-broker", false);
+            fail("Missing broker addresses must not be treated as a valid empty group");
+        } catch (MQBrokerException e) {
+            assertEquals(ResponseCode.SYSTEM_ERROR, e.getResponseCode());
+            assertEquals("Missing broker member group in response", e.getErrorMessage());
+        }
+        assertFalse(prepare());
+        verify(controller, never()).startService(anyLong(), anyString());
+    }
+
+    @Test
     public void missingBrokerRouteDataKeepsBrokerOffline() throws Exception {
         setup(true);
         for (String body : new String[] {"null", "{\"brokerDatas\":null}"}) {
