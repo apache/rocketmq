@@ -1104,6 +1104,10 @@ public class DefaultAuthorizationContextBuilderTest {
         Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
             remotingRequest(RequestCode.HEART_BEAT, new HeartbeatRequestHeader(),
                 JSON.toJSONBytes(heartbeatData))));
+        subscriptionData.setTopic(null);
+        Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.HEART_BEAT, new HeartbeatRequestHeader(),
+                JSON.toJSONBytes(heartbeatData))));
 
         RemotingCommand listRequest =
             RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
@@ -1444,6 +1448,46 @@ public class DefaultAuthorizationContextBuilderTest {
             new DeleteSubscriptionGroupListRequestBody(Arrays.asList("groupA", " "));
         Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
             remotingRequest(RequestCode.DELETE_SUBSCRIPTION_GROUP_LIST, null, invalidGroupList.encode())));
+    }
+
+    @Test
+    public void buildHeartbeatSkipsEmptyTopic() {
+        mockRemotingChannel();
+        ConsumerData consumerData = new ConsumerData();
+        consumerData.setGroupName("group");
+        consumerData.setSubscriptionDataSet(new LinkedHashSet<>(Arrays.asList(
+            new SubscriptionData("", "*"),
+            new SubscriptionData("topic", "*"),
+            new SubscriptionData("%RETRY%group", "*"))));
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setConsumerDataSet(Collections.singleton(consumerData));
+
+        List<DefaultAuthorizationContext> result = builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.HEART_BEAT, new HeartbeatRequestHeader(), heartbeatData.encode()));
+
+        assertResourceOrder(result, "Group:group", "Topic:topic");
+        assertActions(result, "Group:group", Action.SUB);
+        assertActions(result, "Topic:topic", Action.SUB);
+    }
+
+    @Test
+    public void buildHeartbeatWithOnlyEmptyTopicStillChecksGroup() {
+        mockRemotingChannel();
+        ConsumerData consumerData = new ConsumerData();
+        consumerData.setGroupName("group");
+        consumerData.setSubscriptionDataSet(Collections.singleton(new SubscriptionData("", "*")));
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setConsumerDataSet(Collections.singleton(consumerData));
+
+        List<DefaultAuthorizationContext> result = builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.HEART_BEAT, new HeartbeatRequestHeader(), heartbeatData.encode()));
+
+        assertResourceOrder(result, "Group:group");
+        assertActions(result, "Group:group", Action.SUB);
+
+        consumerData.setGroupName("");
+        Assert.assertThrows(AuthorizationException.class, () -> builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.HEART_BEAT, new HeartbeatRequestHeader(), heartbeatData.encode())));
     }
 
     @Test
