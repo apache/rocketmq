@@ -29,10 +29,13 @@ jobs:
             ${{ runner.os }}-maven-
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: java
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+      # Explicit build instead of autobuild: rocketmq-proto is generated from
+      # the rocketmq-apis submodule at compile time, which autobuild cannot
+      # handle reliably.
+      - name: Build with Maven
+        run: mvn -B compile -DskipTests -Dmaven.javadoc.skip=true
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
