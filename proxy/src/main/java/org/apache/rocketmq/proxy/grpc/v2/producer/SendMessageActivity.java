@@ -29,7 +29,6 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -146,6 +145,27 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         }
     }
 
+    protected int utf8Length(String value) {
+        int length = 0;
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            if (ch < 0x80) {
+                length++;
+            } else if (ch < 0x800) {
+                length += 2;
+            } else if (Character.isHighSurrogate(ch) && i + 1 < value.length()
+                && Character.isLowSurrogate(value.charAt(i + 1))) {
+                length += 4;
+                i++;
+            } else if (Character.isSurrogate(ch)) {
+                length++;
+            } else {
+                length += 3;
+            }
+        }
+        return length;
+    }
+
     protected void validateMessageKey(String key) {
         if (StringUtils.isNotEmpty(key)) {
             if (StringUtils.isBlank(key)) {
@@ -166,7 +186,7 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             if (maxSize <= 0) {
                 return;
             }
-            if (messageGroup.getBytes(StandardCharsets.UTF_8).length >= maxSize) {
+            if (utf8Length(messageGroup) >= maxSize) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group exceed the max size " + maxSize);
             }
             if (GrpcValidator.getInstance().containControlCharacter(messageGroup)) {
@@ -214,8 +234,8 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getValue())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the value of property cannot contain control character");
             }
-            userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
-            userPropertySize += userPropertiesEntry.getValue().getBytes(StandardCharsets.UTF_8).length;
+            userPropertySize += utf8Length(userPropertiesEntry.getKey());
+            userPropertySize += utf8Length(userPropertiesEntry.getValue());
         }
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
 
@@ -223,13 +243,13 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         String tag = message.getSystemProperties().getTag();
         GrpcValidator.getInstance().validateTag(tag);
         messageWithHeader.setTags(tag);
-        userPropertySize += tag.getBytes(StandardCharsets.UTF_8).length;
+        userPropertySize += utf8Length(tag);
 
         // set keys
         List<String> keysList = message.getSystemProperties().getKeysList();
         for (String key : keysList) {
             validateMessageKey(key);
-            userPropertySize += key.getBytes(StandardCharsets.UTF_8).length;
+            userPropertySize += utf8Length(key);
         }
         if (keysList.size() > 0) {
             messageWithHeader.setKeys(keysList);
