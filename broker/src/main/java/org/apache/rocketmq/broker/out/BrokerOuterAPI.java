@@ -257,13 +257,13 @@ public class BrokerOuterAPI {
     }
 
     public BrokerMemberGroup syncBrokerMemberGroup(String clusterName, String brokerName)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         return syncBrokerMemberGroup(clusterName, brokerName, false);
     }
 
     public BrokerMemberGroup syncBrokerMemberGroup(String clusterName, String brokerName,
         boolean isCompatibleWithOldNameSrv)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         if (isCompatibleWithOldNameSrv) {
             return getBrokerMemberGroupCompatible(clusterName, brokerName);
         } else {
@@ -272,7 +272,7 @@ public class BrokerOuterAPI {
     }
 
     public BrokerMemberGroup getBrokerMemberGroup(String clusterName, String brokerName)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         GetBrokerMemberGroupRequestHeader requestHeader = new GetBrokerMemberGroupRequestHeader();
         requestHeader.setClusterName(clusterName);
         requestHeader.setBrokerName(brokerName);
@@ -294,15 +294,15 @@ public class BrokerOuterAPI {
                         return memberGroup;
                     }
                 }
-                throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "Missing broker member group in response");
+                throw new IllegalStateException("Missing broker member group in response");
             }
             default:
-                throw new MQBrokerException(response.getCode(), response.getRemark());
+                throw new IllegalStateException(new MQBrokerException(response.getCode(), response.getRemark()));
         }
     }
 
     public BrokerMemberGroup getBrokerMemberGroupCompatible(String clusterName, String brokerName)
-        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         BrokerMemberGroup brokerMemberGroup = new BrokerMemberGroup(clusterName, brokerName);
 
         GetRouteInfoRequestHeader requestHeader = new GetRouteInfoRequestHeader();
@@ -320,7 +320,7 @@ public class BrokerOuterAPI {
                 if (body != null) {
                     TopicRouteData topicRouteData = TopicRouteData.decode(body, TopicRouteData.class);
                     if (topicRouteData == null || topicRouteData.getBrokerDatas() == null) {
-                        throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "Missing broker route data in response");
+                        throw new IllegalStateException("Missing broker route data in response");
                     }
                     for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
                         if (brokerData != null
@@ -332,12 +332,12 @@ public class BrokerOuterAPI {
                     }
                     return brokerMemberGroup;
                 }
-                throw new MQBrokerException(ResponseCode.SYSTEM_ERROR, "Missing broker route data in response");
+                throw new IllegalStateException("Missing broker route data in response");
             }
             case ResponseCode.TOPIC_NOT_EXIST:
                 return brokerMemberGroup;
             default:
-                throw new MQBrokerException(response.getCode(), response.getRemark());
+                throw new IllegalStateException(new MQBrokerException(response.getCode(), response.getRemark()));
         }
     }
 

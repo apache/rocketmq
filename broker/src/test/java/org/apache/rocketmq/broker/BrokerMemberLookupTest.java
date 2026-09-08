@@ -167,9 +167,11 @@ public class BrokerMemberLookupTest {
             try {
                 outerAPI.syncBrokerMemberGroup("test-cluster", "test-broker", compatible);
                 fail("A failed member query must throw instead of returning an empty group");
-            } catch (MQBrokerException e) {
-                assertEquals(ResponseCode.SYSTEM_ERROR, e.getResponseCode());
-                assertEquals("name server not ready", e.getErrorMessage());
+            } catch (IllegalStateException e) {
+                assertTrue(e.getCause() instanceof MQBrokerException);
+                MQBrokerException cause = (MQBrokerException) e.getCause();
+                assertEquals(ResponseCode.SYSTEM_ERROR, cause.getResponseCode());
+                assertEquals("name server not ready", cause.getErrorMessage());
             }
         }
     }
@@ -203,9 +205,8 @@ public class BrokerMemberLookupTest {
         try {
             outerAPI.syncBrokerMemberGroup("test-cluster", "test-broker", false);
             fail("Missing broker addresses must not be treated as a valid empty group");
-        } catch (MQBrokerException e) {
-            assertEquals(ResponseCode.SYSTEM_ERROR, e.getResponseCode());
-            assertEquals("Missing broker member group in response", e.getErrorMessage());
+        } catch (IllegalStateException e) {
+            assertEquals("Missing broker member group in response", e.getMessage());
         }
         assertFalse(prepare());
         verify(controller, never()).startService(anyLong(), anyString());
