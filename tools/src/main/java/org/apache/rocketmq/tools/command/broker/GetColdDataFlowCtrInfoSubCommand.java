@@ -119,7 +119,8 @@ public class GetColdDataFlowCtrInfoSubCommand implements SubCommand {
         });
 
         String formatStr = JSON.toJSONString(jsonObject, JSONWriter.Feature.PrettyFormat);
-        System.out.printf(formatStr);
+        // the payload contains consumer group and topic names, where '%' is a legal character
+        System.out.print(formatStr);
         System.out.printf("%n");
     }
 
