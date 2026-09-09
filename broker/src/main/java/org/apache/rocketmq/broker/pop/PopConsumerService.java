@@ -646,7 +646,7 @@ public class PopConsumerService extends ServiceThread {
         currentTime.set(consumerRecords.isEmpty() ?
             upperTime : consumerRecords.get(consumerRecords.size() - 1).getVisibilityTimeout());
 
-        if (brokerConfig.isEnablePopBufferMerge()) {
+        if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
             log.info("PopConsumerService, key size={}, cache size={}, revive count={}, failure count={}, " +
                     "behindInMillis={}, scanInMillis={}, costInMillis={}",
                 popConsumerCache.getCacheKeySize(), popConsumerCache.getCacheSize(),
