@@ -33,3 +33,11 @@ jobs:
         run: bazel build --config=remote //...
       - name: Run Tests
         run: bazel test --config=remote //...
+      - name: Upload Bazel test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bazel-test-results
+          path: bazel-testlogs/**/test.xml
+          if-no-files-found: ignore
+          retention-days: 7
