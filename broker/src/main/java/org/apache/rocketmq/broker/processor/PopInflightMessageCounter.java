@@ -24,7 +24,6 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -91,31 +90,35 @@ public class PopInflightMessageCounter {
     }
 
     public void clearInFlightMessageNumByGroupName(String group) {
-        Set<String> topicGroupKey = this.topicInFlightMessageNum.keySet();
-        for (String key : topicGroupKey) {
+        // Use removeIf for thread-safe removal from ConcurrentHashMap
+        this.topicInFlightMessageNum.entrySet().removeIf(entry -> {
+            String key = entry.getKey();
             if (key.contains(group)) {
                 Pair<String, String> topicAndGroup = splitKey(key);
                 if (topicAndGroup != null && topicAndGroup.getObject2().equals(group)) {
-                    this.topicInFlightMessageNum.remove(key);
                     log.info("PopInflightMessageCounter#clearInFlightMessageNumByGroupName: clean by group, topic={}, group={}",
                         topicAndGroup.getObject1(), topicAndGroup.getObject2());
+                    return true;
                 }
             }
-        }
+            return false;
+        });
     }
 
     public void clearInFlightMessageNumByTopicName(String topic) {
-        Set<String> topicGroupKey = this.topicInFlightMessageNum.keySet();
-        for (String key : topicGroupKey) {
+        // Use removeIf for thread-safe removal from ConcurrentHashMap
+        this.topicInFlightMessageNum.entrySet().removeIf(entry -> {
+            String key = entry.getKey();
             if (key.contains(topic)) {
                 Pair<String, String> topicAndGroup = splitKey(key);
                 if (topicAndGroup != null && topicAndGroup.getObject1().equals(topic)) {
-                    this.topicInFlightMessageNum.remove(key);
                     log.info("PopInflightMessageCounter#clearInFlightMessageNumByTopicName: clean by topic, topic={}, group={}",
                         topicAndGroup.getObject1(), topicAndGroup.getObject2());
+                    return true;
                 }
             }
-        }
+            return false;
+        });
     }
 
     public void clearInFlightMessageNum(String topic, String group, int queueId) {
