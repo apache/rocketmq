@@ -107,12 +107,9 @@ public class OffsetResetIT extends BaseConf {
 
                 Assert.assertEquals(messageQueue.getBrokerName(), controller.getBrokerConfig().getBrokerName());
                 long brokerOffset = controller.getMessageStore().getMaxOffsetInQueue(topic, messageQueue.getQueueId());
-                long consumerOffset = controller.getConsumerOffsetManager().queryOffset(
-                    consumer.getConsumerGroup(), topic, messageQueue.getQueueId());
                 Assert.assertEquals(brokerOffset, offsetWrapper.getBrokerOffset());
-                Assert.assertEquals(consumerOffset, offsetWrapper.getConsumerOffset());
-
-                consumerLag += brokerOffset - consumerOffset;
+                // Consumer offsets can advance after the RPC snapshot was taken.
+                consumerLag += offsetWrapper.getBrokerOffset() - offsetWrapper.getConsumerOffset();
             }
         }
         return consumerLag;
@@ -130,12 +127,13 @@ public class OffsetResetIT extends BaseConf {
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(
             () -> 0L == this.getConsumerLag(topic, consumer.getConsumerGroup()));
 
+        // Replayed messages may arrive as soon as the first broker is reset.
+        int hasConsumeBefore = listener.getMsgIndex().get();
         for (BrokerController controller : brokerControllerList) {
             defaultMQAdminExt.resetOffsetByQueueId(controller.getBrokerAddr(),
                 consumer.getConsumerGroup(), consumer.getTopic(), 3, 0);
         }
 
-        int hasConsumeBefore = listener.getMsgIndex().get();
         int expectAfterReset = brokerControllerList.size() * msgSize;
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(() -> {
             long receive = listener.getMsgIndex().get();
@@ -157,13 +155,14 @@ public class OffsetResetIT extends BaseConf {
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(
             () -> 0L == this.getConsumerLag(topic, consumer.getConsumerGroup()));
 
+        // Replayed messages may arrive as soon as the first broker is reset.
+        int hasConsumeBefore = listener.getMsgIndex().get();
         for (BrokerController controller : brokerControllerList) {
             defaultMQAdminExt.getDefaultMQAdminExtImpl().getMqClientInstance().getMQClientAPIImpl()
                 .invokeBrokerToResetOffset(controller.getBrokerAddr(),
                     consumer.getTopic(), consumer.getConsumerGroup(), start, true, 3 * 1000);
         }
 
-        int hasConsumeBefore = listener.getMsgIndex().get();
         int expectAfterReset = mqs.size() * msgSize;
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(() -> {
             long receive = listener.getMsgIndex().get();
