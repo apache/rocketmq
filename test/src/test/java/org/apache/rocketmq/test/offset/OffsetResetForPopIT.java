@@ -18,11 +18,9 @@
 package org.apache.rocketmq.test.offset;
 
 import com.google.common.collect.Lists;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -58,6 +56,7 @@ public class OffsetResetForPopIT extends BaseConf {
     private RMQNormalProducer producer = null;
     private RMQPopConsumer consumer = null;
     private DefaultMQAdminExt adminExt;
+    private boolean consumerStarted;
 
     @Before
     public void setUp() throws Exception {
@@ -77,7 +76,13 @@ public class OffsetResetForPopIT extends BaseConf {
 
     @After
     public void tearDown() {
-        shutdown();
+        try {
+            if (consumerStarted) {
+                consumer.shutdown();
+            }
+        } finally {
+            shutdown();
+        }
     }
 
     private void createAndWaitTopicRegister(String brokerName, String topic) throws Exception {
@@ -91,27 +96,26 @@ public class OffsetResetForPopIT extends BaseConf {
             () -> MQAdminTestUtils.checkTopicExist(adminExt, topic));
     }
 
-    private void resetOffsetInner(long resetOffset) {
-        try {
-            // reset offset by queue
-            adminExt.resetOffsetByQueueId(brokerController1.getBrokerAddr(),
-                consumer.getConsumerGroup(), consumer.getTopic(), 0, resetOffset);
-        } catch (Exception ignore) {
-        }
+    private void startConsumer() {
+        consumer.start();
+        consumerStarted = true;
     }
 
-    private void ackMessageSync(MessageExt messageExt) {
-        try {
-            consumer.ackAsync(brokerController1.getBrokerAddr(),
-                messageExt.getProperty(MessageConst.PROPERTY_POP_CK)).get();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private void resetOffsetInner(long resetOffset) throws Exception {
+        adminExt.resetOffsetByQueueId(brokerController1.getBrokerAddr(),
+            consumer.getConsumerGroup(), consumer.getTopic(), 0, resetOffset);
     }
 
-    private void ackMessageSync(List<MessageExt> messageExtList) {
+    private void ackMessageSync(MessageExt messageExt) throws Exception {
+        consumer.ackAsync(brokerController1.getBrokerAddr(),
+            messageExt.getProperty(MessageConst.PROPERTY_POP_CK)).get(10, TimeUnit.SECONDS);
+    }
+
+    private void ackMessageSync(List<MessageExt> messageExtList) throws Exception {
         if (messageExtList != null) {
-            messageExtList.forEach(this::ackMessageSync);
+            for (MessageExt messageExt : messageExtList) {
+                ackMessageSync(messageExt);
+            }
         }
     }
 
@@ -121,7 +125,7 @@ public class OffsetResetForPopIT extends BaseConf {
         int resetOffset = 4;
         producer.send(messageCount);
         consumer = new RMQPopConsumer(NAMESRV_ADDR, topic, "*", group, new RMQNormalListener());
-        consumer.start();
+        startConsumer();
 
         MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, 0);
         PopResult popResult = consumer.pop(brokerController1.getBrokerAddr(), mq);
@@ -139,7 +143,7 @@ public class OffsetResetForPopIT extends BaseConf {
         int resetOffset = 2;
         producer.send(messageCount);
         consumer = new RMQPopConsumer(NAMESRV_ADDR, topic, "*", group, new RMQNormalListener());
-        consumer.start();
+        startConsumer();
 
         MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, 0);
         PopResult popResult1 = consumer.popOrderly(brokerController1.getBrokerAddr(), mq);
@@ -171,7 +175,7 @@ public class OffsetResetForPopIT extends BaseConf {
         producer.send(messageCount);
         consumer = new RMQPopConsumer(NAMESRV_ADDR, topic, "*", group, new RMQNormalListener());
         resetOffsetInner(resetOffset);
-        consumer.start();
+        startConsumer();
 
         MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, 0);
         PopResult popResult = consumer.popOrderly(brokerController1.getBrokerAddr(), mq);
@@ -192,7 +196,7 @@ public class OffsetResetForPopIT extends BaseConf {
         brokerController1.getBrokerConfig().setEnablePopBufferMerge(true);
         producer.send(messageCount);
         consumer = new RMQPopConsumer(NAMESRV_ADDR, topic, "*", group, new RMQNormalListener());
-        consumer.start();
+        startConsumer();
 
         MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, 0);
         PopResult popResult = consumer.pop(brokerController1.getBrokerAddr(), mq);
@@ -242,38 +246,26 @@ public class OffsetResetForPopIT extends BaseConf {
 
         MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, 0);
         AtomicInteger counter = new AtomicInteger(0);
-        consumer.start();
-        Executors.newSingleThreadScheduledExecutor().execute(() -> {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start <= 30 * 1000L) {
-                try {
-                    PopResult popResult = consumer.pop(brokerController1.getBrokerAddr(), mq);
-                    if (popResult == null || popResult.getMsgFoundList() == null) {
-                        continue;
-                    }
-
-                    int count = counter.addAndGet(popResult.getMsgFoundList().size());
-                    if (needAck) {
-                        ackMessageSync(popResult.getMsgFoundList());
-                    }
-                    if (count == targetCount) {
-                        for (int offset : resetOffset) {
-                            resetOffsetInner(offset);
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
+        startConsumer();
+        // POP, ACK and reset are sequential; keep them within the test's lifetime.
+        await().pollInSameThread().pollInterval(10, TimeUnit.MILLISECONDS).atMost(10, TimeUnit.SECONDS).until(() -> {
+            PopResult popResult = consumer.pop(brokerController1.getBrokerAddr(), mq);
+            if (popResult == null || popResult.getMsgFoundList() == null) {
+                return false;
+            }
+            if (needAck) {
+                ackMessageSync(popResult.getMsgFoundList());
+            }
+            int count = counter.addAndGet(popResult.getMsgFoundList().size());
+            if (count == targetCount) {
+                for (int offset : resetOffset) {
+                    resetOffsetInner(offset);
                 }
             }
-        });
-
-        await().atMost(10, TimeUnit.SECONDS).until(() -> {
-            boolean result = true;
             if (resetFuture) {
-                result = counter.get() < 10;
+                Assert.assertTrue("Reset should skip messages", count < 10);
             }
-            result &= counter.get() >= targetCount + 10 - resetOffset[resetOffset.length - 1];
-            return result;
+            return count >= targetCount + 10 - resetOffset[resetOffset.length - 1];
         });
     }
 
@@ -312,46 +304,28 @@ public class OffsetResetForPopIT extends BaseConf {
         }
         consumer = new RMQPopConsumer(NAMESRV_ADDR, topic, "*", group, new RMQNormalListener(), 1);
         MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, 0);
-        Set<Integer> msgReceive = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        Set<Integer> msgReceive = new HashSet<>();
         AtomicInteger counter = new AtomicInteger(0);
-        consumer.start();
+        startConsumer();
 
-        Executors.newSingleThreadScheduledExecutor().execute(() -> {
-            long start = System.currentTimeMillis();
-            while (System.currentTimeMillis() - start <= 30 * 1000L) {
-                try {
-                    PopResult popResult = consumer.popOrderly(brokerController1.getBrokerAddr(), mq);
-                    if (popResult == null || popResult.getMsgFoundList() == null) {
-                        continue;
-                    }
-                    int count = counter.addAndGet(popResult.getMsgFoundList().size());
-                    for (MessageExt messageExt : popResult.getMsgFoundList()) {
-                        msgReceive.add(Integer.valueOf(new String(messageExt.getBody())));
-                        ackMessageSync(messageExt);
-                    }
-                    if (count == targetCount) {
-                        for (int offset : resetOffset) {
-                            resetOffsetInner(offset);
-                        }
-                    }
-                } catch (Exception e) {
-                    // do nothing;
+        await().pollInSameThread().pollInterval(10, TimeUnit.MILLISECONDS).atMost(10, TimeUnit.SECONDS).until(() -> {
+            PopResult popResult = consumer.popOrderly(brokerController1.getBrokerAddr(), mq);
+            if (popResult == null || popResult.getMsgFoundList() == null) {
+                return false;
+            }
+            for (MessageExt messageExt : popResult.getMsgFoundList()) {
+                msgReceive.add(Integer.valueOf(new String(messageExt.getBody())));
+                ackMessageSync(messageExt);
+            }
+            int count = counter.addAndGet(popResult.getMsgFoundList().size());
+            if (count == targetCount) {
+                for (int offset : resetOffset) {
+                    resetOffsetInner(offset);
                 }
             }
+            return count >= expectCount;
         });
-
-        await().atMost(10, TimeUnit.SECONDS).until(() -> {
-            boolean result = true;
-            if (expectMsgReceive.size() != msgReceive.size()) {
-                return false;
-            }
-            if (counter.get() != expectCount) {
-                return false;
-            }
-            for (Integer expectMsg : expectMsgReceive) {
-                result &= msgReceive.contains(expectMsg);
-            }
-            return result;
-        });
+        Assert.assertEquals(expectCount, counter.get());
+        Assert.assertEquals(new HashSet<>(expectMsgReceive), msgReceive);
     }
 }
