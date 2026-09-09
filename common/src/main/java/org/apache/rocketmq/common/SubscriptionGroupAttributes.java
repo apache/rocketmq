@@ -23,9 +23,10 @@ import java.util.Map;
 import org.apache.rocketmq.common.attribute.Attribute;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.common.attribute.EnumAttribute;
+import org.apache.rocketmq.common.attribute.LiteSubModel;
 import org.apache.rocketmq.common.attribute.LongRangeAttribute;
 import org.apache.rocketmq.common.attribute.StringAttribute;
-import org.apache.rocketmq.common.attribute.LiteSubModel;
+import org.apache.rocketmq.common.attribute.TopicNameAttribute;
 
 public class SubscriptionGroupAttributes {
 
@@ -38,7 +39,7 @@ public class SubscriptionGroupAttributes {
         100
     );
 
-    public static final StringAttribute LITE_BIND_TOPIC_ATTRIBUTE = new StringAttribute(
+    public static final StringAttribute LITE_BIND_TOPIC_ATTRIBUTE = new TopicNameAttribute(
         "lite.bind.topic",
         true
     );
