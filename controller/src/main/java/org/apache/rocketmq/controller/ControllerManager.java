@@ -28,12 +28,19 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
+import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
+import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
+import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
+import org.apache.rocketmq.controller.auth.pipeline.AuthenticationPipeline;
+import org.apache.rocketmq.controller.auth.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.controller.impl.JRaftController;
 import org.apache.rocketmq.controller.impl.heartbeat.RaftBrokerHeartBeatManager;
@@ -47,8 +54,10 @@ import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
@@ -62,6 +71,7 @@ public class ControllerManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
 
     private final ControllerConfig controllerConfig;
+    private final AuthConfig authConfig;
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     private final BrokerHousekeepingService brokerHousekeepingService;
@@ -73,16 +83,26 @@ public class ControllerManager {
     private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
     private final NotifyService notifyService;
     private ControllerMetricsManager controllerMetricsManager;
+    private AuthenticationMetadataManager authenticationMetadataManager;
+    private AuthorizationMetadataManager authorizationMetadataManager;
 
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
         NettyClientConfig nettyClientConfig) {
+        this(controllerConfig, nettyServerConfig, nettyClientConfig, new AuthConfig());
+    }
+
+    public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
+        NettyClientConfig nettyClientConfig, AuthConfig authConfig) {
         this.controllerConfig = controllerConfig;
+        this.authConfig = authConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.brokerHousekeepingService = new BrokerHousekeepingService(this);
         this.configuration = new Configuration(log, this.controllerConfig, this.nettyServerConfig);
         this.configuration.setStorePathFromConfig(this.controllerConfig, "configStorePath");
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
+        this.authorizationMetadataManager = AuthorizationFactory.getMetadataManager(this.authConfig);
         this.heartbeatManager = BrokerHeartbeatManager.newBrokerHeartbeatManager(controllerConfig);
         this.notifyService = new NotifyService();
     }
@@ -130,9 +150,19 @@ public class ControllerManager {
         // Register broker inactive listener
         this.heartbeatManager.registerBrokerLifecycleListener(this::onBrokerInactive);
         this.controller.registerBrokerLifecycleListener(this::onBrokerInactive);
+        initialRequestPipeline();
         registerProcessor();
         this.controllerMetricsManager = ControllerMetricsManager.getInstance(this);
         return true;
+    }
+
+    private void initialRequestPipeline() {
+        RequestHeaderRegistry.getInstance().initialize();
+        RequestPipeline pipeline = (ctx, request) -> {
+        };
+        pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig))
+            .pipe(new AuthenticationPipeline(authConfig));
+        this.controller.getRemotingServer().setRequestPipeline(pipeline);
     }
 
     /**
@@ -276,6 +306,12 @@ public class ControllerManager {
         this.notifyService.shutdown();
         this.controller.shutdown();
         this.remotingClient.shutdown();
+        if (this.authenticationMetadataManager != null) {
+            this.authenticationMetadataManager.shutdown();
+        }
+        if (this.authorizationMetadataManager != null) {
+            this.authorizationMetadataManager.shutdown();
+        }
     }
 
     public BrokerHeartbeatManager getHeartbeatManager() {
