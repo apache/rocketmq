@@ -102,11 +102,21 @@ public class Message implements Serializable {
         return this.getProperty(name);
     }
 
+    /**
+     * Returns the value of the named property, or {@code null} if the property is not set
+     * or the properties map has not been initialized.
+     * <p>
+     * Note: this method is read-only and does <b>not</b> lazily initialize the internal
+     * properties map. To add properties, use {@link #putProperty(String, String)} which
+     * creates the map on demand.
+     *
+     * @param name the property key
+     * @return the property value, or {@code null}
+     */
     public String getProperty(final String name) {
         if (null == this.properties) {
-            this.properties = new HashMap<>();
+            return null;
         }
-
         return this.properties.get(name);
     }
 
@@ -164,7 +174,11 @@ public class Message implements Serializable {
     }
 
     public int getPriority() {
-        return NumberUtils.toInt(this.getProperty(MessageConst.PROPERTY_PRIORITY), -1);
+        String value = this.getProperty(MessageConst.PROPERTY_PRIORITY);
+        if (value == null || value.isEmpty()) {
+            return -1;
+        }
+        return NumberUtils.toInt(value, -1);
     }
 
     public boolean isWaitStoreMsgOK() {
