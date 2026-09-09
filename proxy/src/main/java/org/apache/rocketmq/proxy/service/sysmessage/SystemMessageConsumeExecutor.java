@@ -43,7 +43,7 @@ public class SystemMessageConsumeExecutor {
         return executor;
     }
 
-    /** Discard the oldest queued task and complete its consumer-local lifecycle bookkeeping. */
+    /** Complete the evicted broadcast request as failed using the existing SDK result processing. */
     static class DiscardOldestPolicy extends ThreadPoolExecutor.DiscardOldestPolicy {
         @Override
         public void rejectedExecution(Runnable task, ThreadPoolExecutor executor) {

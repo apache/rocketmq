@@ -31,7 +31,6 @@ import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -162,7 +161,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private int consumeThreadMin = 20;
 
-    private volatile ExecutorService consumeExecutor;
+    private ExecutorService consumeExecutor;
 
     /**
      * Max consumer thread number
@@ -573,7 +572,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Sets an externally managed executor before starting this consumer. The executor may be shared
      * with other consumers and is never shut down or resized by this consumer. This also supports
      * virtual-thread executors supplied by applications running on a compatible JDK.
-     * The caller controls concurrency and must keep the executor alive until all consumers stop.
+     * The caller controls concurrency and owns the executor's lifecycle. Consumer shutdown does not
+     * await or cancel tasks submitted to an external executor; the caller must stop all consumers
+     * before shutting down and awaiting the shared executor.
      *
      * <p><strong>Do not silently discard consumption tasks.</strong> Discarded tasks leave messages
      * in the client's ProcessQueue without processing their consumption results. This can retain
@@ -584,16 +585,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * <p>Intentional task eviction requires the caller to provide the corresponding message cleanup
      * and consumption-offset handling, as the Proxy's internal broadcast-consumer policy does.
-     * Cancelling a Future alone only releases task-lifecycle tracking; it does not clean up the
-     * cached messages or advance their consumption offsets. Evicted futures must also be completed
-     * or cancelled so that consumer shutdown does not keep waiting for tasks that will never run.
+     * Cancelling a Future alone does not clean up cached messages or advance consumption offsets.
      *
      * @param consumeExecutor external executor, or null to use the default dedicated pool
      */
     public void setConsumeExecutor(ExecutorService consumeExecutor) {
-        if (this.defaultMQPushConsumerImpl.getServiceState() != ServiceState.CREATE_JUST) {
-            throw new IllegalStateException("Consume executor must be configured before the consumer starts");
-        }
         this.consumeExecutor = consumeExecutor;
     }
 

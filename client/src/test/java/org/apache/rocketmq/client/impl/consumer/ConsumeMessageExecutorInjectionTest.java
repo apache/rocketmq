@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +31,6 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.ServiceState;
 import org.junit.Assume;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
@@ -43,7 +43,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -76,6 +75,8 @@ public class ConsumeMessageExecutorInjectionTest {
         try {
             ExecutorService firstExecutor = (ExecutorService) FieldUtils.readDeclaredField(first, "consumeExecutor", true);
             ExecutorService secondExecutor = (ExecutorService) FieldUtils.readDeclaredField(second, "consumeExecutor", true);
+            assertSame(shared, firstExecutor);
+            assertSame(shared, secondExecutor);
             Thread worker = firstExecutor.submit(Thread::currentThread).get(5, TimeUnit.SECONDS);
             assertSame(worker, secondExecutor.submit(Thread::currentThread).get(5, TimeUnit.SECONDS));
             first.updateCorePoolSize(10);
@@ -137,14 +138,55 @@ public class ConsumeMessageExecutorInjectionTest {
     }
 
     @Test
-    public void testCannotReplaceExecutorAfterStartup() {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("executor-lifecycle-test");
-        consumer.getDefaultMQPushConsumerImpl().setServiceState(ServiceState.RUNNING);
+    public void testVirtualThreadExecutorIsUsedDirectly() throws Exception {
+        Method factory;
         try {
-            consumer.setConsumeExecutor(null);
-            fail("Changing a running consumer's executor must fail");
-        } catch (IllegalStateException expected) {
-            assertEquals(ServiceState.RUNNING, consumer.getDefaultMQPushConsumerImpl().getServiceState());
+            factory = Executors.class.getMethod("newVirtualThreadPerTaskExecutor");
+        } catch (NoSuchMethodException e) {
+            Assume.assumeNoException("Requires JDK 21 or later", e);
+            return;
+        }
+        ExecutorService shared = (ExecutorService) factory.invoke(null);
+        ConsumeMessageService service = createService(shared);
+        try {
+            ExecutorService actual = (ExecutorService) FieldUtils.readDeclaredField(service, "consumeExecutor", true);
+            assertSame(shared, actual);
+            Method isVirtual = Thread.class.getMethod("isVirtual");
+            assertTrue(actual.submit(() -> (Boolean) isVirtual.invoke(Thread.currentThread())).get(5, TimeUnit.SECONDS));
+            service.shutdown(5000);
+            assertFalse(shared.isShutdown());
+            assertTrue(shared.submit(() -> (Boolean) isVirtual.invoke(Thread.currentThread())).get(5, TimeUnit.SECONDS));
+        } finally {
+            service.shutdown(5000);
+            shared.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testExternalTasksAreLeftToTheOwnerOnShutdown() throws Exception {
+        ExecutorService shared = Executors.newSingleThreadExecutor();
+        ConsumeMessageService service = createService(shared);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            Future<?> running = shared.submit(() -> {
+                entered.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            service.shutdown(0);
+            assertFalse(shared.isShutdown());
+            assertFalse(running.isDone());
+            release.countDown();
+            running.get(5, TimeUnit.SECONDS);
+        } finally {
+            release.countDown();
+            service.shutdown(0);
+            shared.shutdownNow();
         }
     }
 

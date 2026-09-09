@@ -906,9 +906,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 break;
             case RUNNING:
                 this.consumeMessageService.shutdown(awaitTerminateMillis);
-                if (this.defaultMQPushConsumer.getConsumeExecutor() != null) {
-                    this.consumeMessagePopService.shutdown(awaitTerminateMillis);
-                }
                 this.persistConsumerOffset();
                 this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
                 this.mQClientFactory.shutdown();
@@ -992,9 +989,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
                     this.consumeMessageService.shutdown(defaultMQPushConsumer.getAwaitTerminationMillisWhenShutdown());
-                    if (this.defaultMQPushConsumer.getConsumeExecutor() != null) {
-                        this.consumeMessagePopService.shutdown(defaultMQPushConsumer.getAwaitTerminationMillisWhenShutdown());
-                    }
                     throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
                         + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
                         null);
@@ -1100,11 +1094,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 "messageListener must be instanceof MessageListenerOrderly or MessageListenerConcurrently"
                     + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
                 null);
-        }
-
-        if (this.defaultMQPushConsumer.getConsumeExecutor() != null
-            && this.defaultMQPushConsumer.getConsumeExecutor().isShutdown()) {
-            throw new MQClientException("Consume executor is already shut down", null);
         }
 
         // consumeThreadMin

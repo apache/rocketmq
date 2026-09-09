@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.impl.consumer;
 import io.netty.util.internal.ConcurrentSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -52,8 +53,10 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerOrderly messageListener;
+    private final BlockingQueue<Runnable> consumeRequestQueue;
     private final ConcurrentSet<ConsumeRequest> consumeRequestSet = new ConcurrentSet<>();
     private final ExecutorService consumeExecutor;
+    private final boolean ownsConsumeExecutor;
     private final String consumerGroup;
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
     private final MessageQueueLock consumeRequestLock = new MessageQueueLock();
@@ -67,15 +70,21 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
+        this.consumeRequestQueue = new LinkedBlockingQueue<>();
 
         ExecutorService externalExecutor = this.defaultMQPushConsumer.getConsumeExecutor();
-        this.consumeExecutor = externalExecutor == null ? new ThreadPoolExecutor(
-            this.defaultMQPushConsumer.getConsumeThreadMin(),
-            this.defaultMQPushConsumer.getConsumeThreadMax(),
-            1000 * 60,
-            TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<>(),
-            new ThreadFactoryImpl("ConsumeMessageThread_")) : new ConsumeMessageExecutor(externalExecutor);
+        this.ownsConsumeExecutor = externalExecutor == null;
+        if (this.ownsConsumeExecutor) {
+            this.consumeExecutor = new ThreadPoolExecutor(
+                this.defaultMQPushConsumer.getConsumeThreadMin(),
+                this.defaultMQPushConsumer.getConsumeThreadMax(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.consumeRequestQueue,
+                new ThreadFactoryImpl("ConsumeMessageThread_"));
+        } else {
+            this.consumeExecutor = externalExecutor;
+        }
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
     }
@@ -96,7 +105,9 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
     public void shutdown(long awaitTerminateMillis) {
         this.stopped = true;
         this.scheduledExecutorService.shutdown();
-        ThreadUtils.shutdownGracefully(this.consumeExecutor, awaitTerminateMillis, TimeUnit.MILLISECONDS);
+        if (this.ownsConsumeExecutor) {
+            ThreadUtils.shutdownGracefully(this.consumeExecutor, awaitTerminateMillis, TimeUnit.MILLISECONDS);
+        }
         if (MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             this.unlockAllMessageQueues();
         }
@@ -108,7 +119,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (this.consumeExecutor instanceof ThreadPoolExecutor
+        if (this.ownsConsumeExecutor
             && corePoolSize > 0
             && corePoolSize <= Short.MAX_VALUE
             && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
@@ -126,9 +137,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
     @Override
     public int getCorePoolSize() {
-        // External executors, including virtual-thread executors, have no consumer-owned core size.
-        return this.consumeExecutor instanceof ThreadPoolExecutor
-            ? ((ThreadPoolExecutor) this.consumeExecutor).getCorePoolSize() : -1;
+        return this.ownsConsumeExecutor ? ((ThreadPoolExecutor) this.consumeExecutor).getCorePoolSize() : -1;
     }
 
     @Override

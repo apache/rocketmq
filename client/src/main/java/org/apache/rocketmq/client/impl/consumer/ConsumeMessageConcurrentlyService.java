@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -43,17 +44,19 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.CMResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
     private static final Logger log = LoggerFactory.getLogger(ConsumeMessageConcurrentlyService.class);
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListener;
+    private final BlockingQueue<Runnable> consumeRequestQueue;
     private final ExecutorService consumeExecutor;
+    private final boolean ownsConsumeExecutor;
     private final String consumerGroup;
 
     private final ScheduledExecutorService scheduledExecutorService;
@@ -66,16 +69,22 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
+        this.consumeRequestQueue = new LinkedBlockingQueue<>();
 
         String consumerGroupTag = (consumerGroup.length() > 100 ? consumerGroup.substring(0, 100) : consumerGroup) + "_";
         ExecutorService externalExecutor = this.defaultMQPushConsumer.getConsumeExecutor();
-        this.consumeExecutor = externalExecutor == null ? new ThreadPoolExecutor(
-            this.defaultMQPushConsumer.getConsumeThreadMin(),
-            this.defaultMQPushConsumer.getConsumeThreadMax(),
-            1000 * 60,
-            TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<>(),
-            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag)) : new ConsumeMessageExecutor(externalExecutor);
+        this.ownsConsumeExecutor = externalExecutor == null;
+        if (this.ownsConsumeExecutor) {
+            this.consumeExecutor = new ThreadPoolExecutor(
+                this.defaultMQPushConsumer.getConsumeThreadMin(),
+                this.defaultMQPushConsumer.getConsumeThreadMax(),
+                1000 * 60,
+                TimeUnit.MILLISECONDS,
+                this.consumeRequestQueue,
+                new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag));
+        } else {
+            this.consumeExecutor = externalExecutor;
+        }
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_" + consumerGroupTag));
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanExpireMsgScheduledThread_" + consumerGroupTag));
@@ -98,13 +107,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     public void shutdown(long awaitTerminateMillis) {
         this.scheduledExecutorService.shutdown();
-        ThreadUtils.shutdownGracefully(this.consumeExecutor, awaitTerminateMillis, TimeUnit.MILLISECONDS);
+        if (this.ownsConsumeExecutor) {
+            ThreadUtils.shutdownGracefully(this.consumeExecutor, awaitTerminateMillis, TimeUnit.MILLISECONDS);
+        }
         this.cleanExpireMsgExecutors.shutdown();
     }
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (this.consumeExecutor instanceof ThreadPoolExecutor
+        if (this.ownsConsumeExecutor
             && corePoolSize > 0
             && corePoolSize <= Short.MAX_VALUE
             && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
@@ -124,9 +135,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public int getCorePoolSize() {
-        // External executors, including virtual-thread executors, have no consumer-owned core size.
-        return this.consumeExecutor instanceof ThreadPoolExecutor
-            ? ((ThreadPoolExecutor) this.consumeExecutor).getCorePoolSize() : -1;
+        return this.ownsConsumeExecutor ? ((ThreadPoolExecutor) this.consumeExecutor).getCorePoolSize() : -1;
     }
 
     @Override
