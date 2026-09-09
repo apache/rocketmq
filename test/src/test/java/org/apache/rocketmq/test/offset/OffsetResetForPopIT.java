@@ -57,15 +57,9 @@ public class OffsetResetForPopIT extends BaseConf {
     private RMQPopConsumer consumer = null;
     private DefaultMQAdminExt adminExt;
     private boolean consumerStarted;
-    private boolean useServerSideResetOffset;
-    private boolean popConsumerKVServiceEnable;
-    private boolean enablePopBufferMerge;
 
     @Before
     public void setUp() throws Exception {
-        useServerSideResetOffset = brokerController1.getBrokerConfig().isUseServerSideResetOffset();
-        popConsumerKVServiceEnable = brokerController1.getBrokerConfig().isPopConsumerKVServiceEnable();
-        enablePopBufferMerge = brokerController1.getBrokerConfig().isEnablePopBufferMerge();
         // reset pop offset rely on server side offset
         brokerController1.getBrokerConfig().setUseServerSideResetOffset(true);
         brokerController1.getBrokerConfig().setPopConsumerKVServiceEnable(false); // force disable before fifo resetOffset issue fixed
@@ -88,9 +82,6 @@ public class OffsetResetForPopIT extends BaseConf {
             }
         } finally {
             shutdown();
-            brokerController1.getBrokerConfig().setUseServerSideResetOffset(useServerSideResetOffset);
-            brokerController1.getBrokerConfig().setPopConsumerKVServiceEnable(popConsumerKVServiceEnable);
-            brokerController1.getBrokerConfig().setEnablePopBufferMerge(enablePopBufferMerge);
         }
     }
 
