@@ -1227,7 +1227,13 @@ public class ConsumeQueue implements ConsumeQueueInterface {
                         ConsumeQueueExt.CqExtUnit ext = null;
                         if (isExtWriteEnable()) {
                             ext = consumeQueueExt.get(tagCode);
-                            tagCode = ext.getTagsCode();
+                            // The stored code may be a raw tagsCode (entries written
+                            // before the ext was enabled, or persisted by the
+                            // "save tagsCode only" fallback), for which get() returns
+                            // null; keep the raw code and let the filter decide.
+                            if (ext != null) {
+                                tagCode = ext.getTagsCode();
+                            }
                         }
                         if (filter.isMatchedByConsumeQueue(tagCode, ext)) {
                             match++;
