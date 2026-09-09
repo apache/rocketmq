@@ -91,6 +91,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         SendMessageContext sendMessageContext;
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:
+                // send message to Dead-Letter-Queue
                 return this.consumerSendMsgBack(ctx, request);
             default:
                 // build send message context
