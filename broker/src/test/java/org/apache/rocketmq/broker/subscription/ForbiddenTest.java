@@ -18,6 +18,9 @@
 package org.apache.rocketmq.broker.subscription;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -58,6 +61,31 @@ public class ForbiddenTest {
         s.updateForbidden("g", "t", 2, false);
         assertEquals(0, s.getForbidden("g", "t"));
         assertEquals(false, s.getForbidden("g", "t", 2));
+    }
+
+    @Test
+    public void testClearOneTopicForbiddenKeepsOtherTopicsOfTheSameGroup() throws Exception {
+        SubscriptionGroupManager s = new SubscriptionGroupManager(
+            new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig()));
+        s.updateForbidden("g", "t1", 0, true);
+        s.updateForbidden("g", "t2", 0, true);
+        assertEquals(true, s.getForbidden("g", "t1", 0));
+        assertEquals(true, s.getForbidden("g", "t2", 0));
+        long counterBeforeClear = s.getDataVersion().getCounter().get();
+
+        s.updateForbidden("g", "t1", 0, false);
+
+        // Only t1's forbidden bit is cleared; t2 keeps its own state.
+        assertEquals(false, s.getForbidden("g", "t1", 0));
+        assertEquals(true, s.getForbidden("g", "t2", 0));
+        assertEquals(1, s.getForbiddenTable().get("g").size());
+        // Clearing a forbidden bit must bump the data version and persist, so
+        // brokers that sync or restart do not resurrect the stale bit.
+        assertThat(s.getDataVersion().getCounter().get(), greaterThan(counterBeforeClear));
+
+        s.updateForbidden("g", "t2", 0, false);
+        assertEquals(0, s.getForbidden("g", "t2"));
+        assertNull(s.getForbiddenTable().get("g"));
     }
 
 }
