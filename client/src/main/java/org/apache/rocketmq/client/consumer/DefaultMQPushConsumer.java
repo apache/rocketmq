@@ -31,6 +31,7 @@ import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -47,6 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 /**
  * In most scenarios, this is the mostly recommended class to consume messages.
@@ -159,6 +161,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Minimum consumer thread number
      */
     private int consumeThreadMin = 20;
+
+    private ExecutorService consumeExecutor;
 
     /**
      * Max consumer thread number
@@ -556,6 +560,31 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumerGroup(String consumerGroup) {
         this.consumerGroup = consumerGroup;
+    }
+
+    /**
+     * Returns the externally managed consumption executor, or null for a dedicated pool.
+     */
+    public ExecutorService getConsumeExecutor() {
+        return consumeExecutor;
+    }
+
+    /**
+     * Sets an externally managed executor before starting this consumer. The executor may be shared
+     * with other consumers and is never shut down or resized by this consumer. This also supports
+     * virtual-thread executors supplied by applications running on a compatible JDK.
+     * The caller controls concurrency and must keep the executor alive until all consumers stop.
+     * Rejection handlers must throw or cancel discarded Future tasks so shutdown can track completion.
+     *
+     * @param consumeExecutor external executor, or null to use the default dedicated pool
+     */
+    public void setConsumeExecutor(ExecutorService consumeExecutor) {
+        synchronized (this.defaultMQPushConsumerImpl) {
+            if (this.defaultMQPushConsumerImpl.getServiceState() != ServiceState.CREATE_JUST) {
+                throw new IllegalStateException("Consume executor must be configured before the consumer starts");
+            }
+            this.consumeExecutor = consumeExecutor;
+        }
     }
 
     public int getConsumeThreadMax() {

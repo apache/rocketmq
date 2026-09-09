@@ -19,7 +19,7 @@ package org.apache.rocketmq.client.impl.consumer;
 import io.netty.util.internal.ConcurrentSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -52,9 +52,8 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerOrderly messageListener;
-    private final BlockingQueue<Runnable> consumeRequestQueue;
     private final ConcurrentSet<ConsumeRequest> consumeRequestSet = new ConcurrentSet<>();
-    private final ThreadPoolExecutor consumeExecutor;
+    private final ExecutorService consumeExecutor;
     private final String consumerGroup;
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
     private final MessageQueueLock consumeRequestLock = new MessageQueueLock();
@@ -68,17 +67,21 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        this.consumeRequestQueue = new LinkedBlockingQueue<>();
 
-        this.consumeExecutor = new ThreadPoolExecutor(
+        ExecutorService externalExecutor = this.defaultMQPushConsumer.getConsumeExecutor();
+        this.consumeExecutor = externalExecutor == null ? new ThreadPoolExecutor(
             this.defaultMQPushConsumer.getConsumeThreadMin(),
             this.defaultMQPushConsumer.getConsumeThreadMax(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            this.consumeRequestQueue,
-            new ThreadFactoryImpl("ConsumeMessageThread_"));
+            new LinkedBlockingQueue<>(),
+            new ThreadFactoryImpl("ConsumeMessageThread_")) : new ConsumeMessageExecutor(externalExecutor, this::handleDiscardedRequest);
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
+    }
+
+    private void handleDiscardedRequest(Runnable task) {
+        submitConsumeRequestLater((ConsumeRequest) task, 5000);
     }
 
     @Override
@@ -109,10 +112,11 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0
+        if (this.consumeExecutor instanceof ThreadPoolExecutor
+            && corePoolSize > 0
             && corePoolSize <= Short.MAX_VALUE
             && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
-            this.consumeExecutor.setCorePoolSize(corePoolSize);
+            ((ThreadPoolExecutor) this.consumeExecutor).setCorePoolSize(corePoolSize);
         }
     }
 
@@ -126,7 +130,9 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
     @Override
     public int getCorePoolSize() {
-        return this.consumeExecutor.getCorePoolSize();
+        // External executors, including virtual-thread executors, have no consumer-owned core size.
+        return this.consumeExecutor instanceof ThreadPoolExecutor
+            ? ((ThreadPoolExecutor) this.consumeExecutor).getCorePoolSize() : -1;
     }
 
     @Override

@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -43,18 +43,18 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.remoting.protocol.body.CMResult;
-import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.body.CMResult;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
     private static final Logger log = LoggerFactory.getLogger(ConsumeMessageConcurrentlyService.class);
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerConcurrently messageListener;
-    private final BlockingQueue<Runnable> consumeRequestQueue;
-    private final ThreadPoolExecutor consumeExecutor;
+    private final ExecutorService consumeExecutor;
     private final String consumerGroup;
 
     private final ScheduledExecutorService scheduledExecutorService;
@@ -67,19 +67,34 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        this.consumeRequestQueue = new LinkedBlockingQueue<>();
 
         String consumerGroupTag = (consumerGroup.length() > 100 ? consumerGroup.substring(0, 100) : consumerGroup) + "_";
-        this.consumeExecutor = new ThreadPoolExecutor(
+        ExecutorService externalExecutor = this.defaultMQPushConsumer.getConsumeExecutor();
+        this.consumeExecutor = externalExecutor == null ? new ThreadPoolExecutor(
             this.defaultMQPushConsumer.getConsumeThreadMin(),
             this.defaultMQPushConsumer.getConsumeThreadMax(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            this.consumeRequestQueue,
-            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag));
+            new LinkedBlockingQueue<>(),
+            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag)) : new ConsumeMessageExecutor(externalExecutor, this::handleDiscardedRequest);
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_" + consumerGroupTag));
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanExpireMsgScheduledThread_" + consumerGroupTag));
+    }
+
+    private void handleDiscardedRequest(Runnable task) {
+        ConsumeRequest request = (ConsumeRequest) task;
+        if (request.getProcessQueue().isDropped()) {
+            return;
+        }
+        if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.BROADCASTING) {
+            // Broadcast failures are dropped. Also remove the messages from ProcessQueue so an
+            // evicted, never-started request cannot pin the offset or trigger pull flow control.
+            processConsumeResult(ConsumeConcurrentlyStatus.RECONSUME_LATER,
+                new ConsumeConcurrentlyContext(request.getMessageQueue()), request);
+        } else {
+            submitConsumeRequestLater(request);
+        }
     }
 
     public void start() {
@@ -105,10 +120,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0
+        if (this.consumeExecutor instanceof ThreadPoolExecutor
+            && corePoolSize > 0
             && corePoolSize <= Short.MAX_VALUE
             && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
-            this.consumeExecutor.setCorePoolSize(corePoolSize);
+            ((ThreadPoolExecutor) this.consumeExecutor).setCorePoolSize(corePoolSize);
         }
     }
 
@@ -124,7 +140,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     @Override
     public int getCorePoolSize() {
-        return this.consumeExecutor.getCorePoolSize();
+        // External executors, including virtual-thread executors, have no consumer-owned core size.
+        return this.consumeExecutor instanceof ThreadPoolExecutor
+            ? ((ThreadPoolExecutor) this.consumeExecutor).getCorePoolSize() : -1;
     }
 
     @Override

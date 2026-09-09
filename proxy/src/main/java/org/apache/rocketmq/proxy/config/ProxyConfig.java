@@ -63,6 +63,9 @@ public class ProxyConfig implements ConfigFile {
     private String heartbeatSyncerTopicClusterName = "";
     private int heartbeatSyncerThreadPoolNums = 4;
     private int heartbeatSyncerThreadPoolQueueCapacity = 100;
+    private int systemMessageConsumerThreadPoolCoreSize = PROCESSOR_NUMBER;
+    private int systemMessageConsumerThreadPoolMaxSize = PROCESSOR_NUMBER * 2;
+    private int systemMessageConsumerThreadPoolQueueCapacity = 10000;
 
     private String heartbeatSyncerTopicName = "DefaultHeartBeatSyncerTopic";
 
@@ -393,6 +396,30 @@ public class ProxyConfig implements ConfigFile {
 
     public void setHeartbeatSyncerTopicClusterName(String heartbeatSyncerTopicClusterName) {
         this.heartbeatSyncerTopicClusterName = heartbeatSyncerTopicClusterName;
+    }
+
+    public int getSystemMessageConsumerThreadPoolCoreSize() {
+        return systemMessageConsumerThreadPoolCoreSize;
+    }
+
+    public void setSystemMessageConsumerThreadPoolCoreSize(int systemMessageConsumerThreadPoolCoreSize) {
+        this.systemMessageConsumerThreadPoolCoreSize = systemMessageConsumerThreadPoolCoreSize;
+    }
+
+    public int getSystemMessageConsumerThreadPoolMaxSize() {
+        return systemMessageConsumerThreadPoolMaxSize;
+    }
+
+    public void setSystemMessageConsumerThreadPoolMaxSize(int systemMessageConsumerThreadPoolMaxSize) {
+        this.systemMessageConsumerThreadPoolMaxSize = systemMessageConsumerThreadPoolMaxSize;
+    }
+
+    public int getSystemMessageConsumerThreadPoolQueueCapacity() {
+        return systemMessageConsumerThreadPoolQueueCapacity;
+    }
+
+    public void setSystemMessageConsumerThreadPoolQueueCapacity(int systemMessageConsumerThreadPoolQueueCapacity) {
+        this.systemMessageConsumerThreadPoolQueueCapacity = systemMessageConsumerThreadPoolQueueCapacity;
     }
 
     public int getHeartbeatSyncerThreadPoolNums() {
