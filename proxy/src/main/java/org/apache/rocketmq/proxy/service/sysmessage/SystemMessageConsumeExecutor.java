@@ -20,8 +20,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService.ConsumeRequest;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -43,7 +41,7 @@ public class SystemMessageConsumeExecutor {
         return executor;
     }
 
-    /** Complete the evicted broadcast request as failed using the existing SDK result processing. */
+    /** Processes discarded consumption requests as failures on the submitting thread. */
     static class DiscardOldestPolicy extends ThreadPoolExecutor.DiscardOldestPolicy {
         @Override
         public void rejectedExecution(Runnable task, ThreadPoolExecutor executor) {
@@ -51,24 +49,12 @@ public class SystemMessageConsumeExecutor {
                 throw new RejectedExecutionException("System-message consumption executor has stopped");
             }
             Runnable discarded = executor.getQueue().poll();
-            try {
-                if (discarded instanceof FutureTaskExt<?>) {
-                    Runnable command = ((FutureTaskExt<?>) discarded).getRunnable();
-                    if (command instanceof ConsumeRequest) {
-                        ConsumeRequest request = (ConsumeRequest) command;
-                        if (!request.getProcessQueue().isDropped()) {
-                            // These consumers use BROADCASTING. Apply its existing failure cleanup
-                            // here, rather than changing rejection behavior for ordinary clients.
-                            request.getConsumeMessageService().processConsumeResult(
-                                ConsumeConcurrentlyStatus.RECONSUME_LATER,
-                                new ConsumeConcurrentlyContext(request.getMessageQueue()), request);
-                        }
-                    }
-                }
-            } finally {
-                if (discarded instanceof Future<?>) {
-                    ((Future<?>) discarded).cancel(false);
-                }
+            if (discarded instanceof Future<?>) {
+                ((Future<?>) discarded).cancel(false);
+            }
+            Runnable command = discarded instanceof FutureTaskExt<?> ? ((FutureTaskExt<?>) discarded).getRunnable() : null;
+            if (command instanceof ConsumeRequest) {
+                ((ConsumeRequest) command).consumeFailed();
             }
             executor.execute(task);
         }

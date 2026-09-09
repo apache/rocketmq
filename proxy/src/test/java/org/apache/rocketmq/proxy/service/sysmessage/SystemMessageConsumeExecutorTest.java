@@ -39,10 +39,12 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -136,6 +138,11 @@ public class SystemMessageConsumeExecutorTest {
             });
             assertTrue(entered.await(5, TimeUnit.SECONDS));
             MessageQueue queue = new MessageQueue("system-topic", "broker", 0);
+            Thread submittingThread = Thread.currentThread();
+            doAnswer(invocation -> {
+                assertSame(submittingThread, Thread.currentThread());
+                return null;
+            }).when(offsetStore).updateOffset(queue, 1L, true);
             MessageExt message = new MessageExt();
             message.setTopic(queue.getTopic());
             message.setQueueOffset(0);

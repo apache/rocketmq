@@ -326,8 +326,13 @@ public class ConsumeMessageConcurrentlyService extends AbstractConsumeMessageSer
             this.messageQueue = messageQueue;
         }
 
-        public ConsumeMessageConcurrentlyService getConsumeMessageService() {
-            return ConsumeMessageConcurrentlyService.this;
+        /** Processes a discarded request as a consumption failure on the calling thread. */
+        public void consumeFailed() {
+            if (!this.processQueue.isDropped()) {
+                ConsumeMessageConcurrentlyService.this.processConsumeResult(
+                    ConsumeConcurrentlyStatus.RECONSUME_LATER,
+                    new ConsumeConcurrentlyContext(this.messageQueue), this);
+            }
         }
 
         public List<MessageExt> getMsgs() {
