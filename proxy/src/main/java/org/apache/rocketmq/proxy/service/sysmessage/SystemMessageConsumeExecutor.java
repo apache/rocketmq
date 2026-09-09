@@ -28,13 +28,11 @@ public class SystemMessageConsumeExecutor {
 
     public static ThreadPoolExecutor create(ProxyConfig config) {
         int coreSize = config.getSystemMessageConsumerThreadPoolCoreSize();
-        ThreadPoolExecutor executor = ThreadPoolMonitor.createAndMonitor(
+        return ThreadPoolMonitor.createAndMonitor(
             coreSize, coreSize,
-            1, TimeUnit.MINUTES, "SystemMessageConsumer",
+            0, TimeUnit.MILLISECONDS, "SystemMessageConsumer",
             // LinkedBlockingQueue's default capacity preserves unbounded consumption queueing.
             Integer.MAX_VALUE,
             new ThreadPoolExecutor.AbortPolicy());
-        executor.allowCoreThreadTimeOut(true);
-        return executor;
     }
 }

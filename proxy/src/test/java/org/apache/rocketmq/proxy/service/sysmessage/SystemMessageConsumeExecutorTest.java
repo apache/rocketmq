@@ -41,7 +41,7 @@ public class SystemMessageConsumeExecutorTest {
             assertEquals(processors * 2, executor.getCorePoolSize());
             assertEquals(processors * 2, executor.getMaximumPoolSize());
             assertEquals(Integer.MAX_VALUE, executor.getQueue().remainingCapacity());
-            assertTrue(executor.allowsCoreThreadTimeOut());
+            assertFalse(executor.allowsCoreThreadTimeOut());
             assertTrue(executor.getRejectedExecutionHandler() instanceof ThreadPoolExecutor.AbortPolicy);
         } finally {
             executor.shutdownNow();
