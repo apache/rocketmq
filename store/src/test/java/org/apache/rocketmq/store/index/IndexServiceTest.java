@@ -81,4 +81,11 @@ public class IndexServiceTest {
         assertNotNull(result);
         assertEquals(Collections.emptyList(), result.getPhyOffsets());
     }
+
+    @Test
+    public void testQueryOffsetWithNegativeMaxNum() {
+        QueryOffsetResult result = indexService.queryOffset("test", "testKey", -1, 0, 100);
+        assertNotNull(result);
+        assertEquals(Collections.emptyList(), result.getPhyOffsets());
+    }
 }
