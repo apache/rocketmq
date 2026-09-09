@@ -315,7 +315,7 @@ public class ConsumeMessageConcurrentlyService extends AbstractConsumeMessageSer
         }, 5000, TimeUnit.MILLISECONDS);
     }
 
-    public class ConsumeRequest implements Runnable {
+    class ConsumeRequest implements Runnable {
         private final List<MessageExt> msgs;
         private final ProcessQueue processQueue;
         private final MessageQueue messageQueue;
@@ -324,15 +324,6 @@ public class ConsumeMessageConcurrentlyService extends AbstractConsumeMessageSer
             this.msgs = msgs;
             this.processQueue = processQueue;
             this.messageQueue = messageQueue;
-        }
-
-        /** Processes a discarded request as a consumption failure on the calling thread. */
-        public void consumeFailed() {
-            if (!this.processQueue.isDropped()) {
-                ConsumeMessageConcurrentlyService.this.processConsumeResult(
-                    ConsumeConcurrentlyStatus.RECONSUME_LATER,
-                    new ConsumeConcurrentlyContext(this.messageQueue), this);
-            }
         }
 
         public List<MessageExt> getMsgs() {

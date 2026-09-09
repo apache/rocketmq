@@ -583,9 +583,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * rejection remains observable to the client. Raw DiscardPolicy and DiscardOldestPolicy are
      * not suitable for ordinary consumers.
      *
-     * <p>Intentional task eviction requires the caller to provide the corresponding message cleanup
-     * and consumption-offset handling, as the Proxy's internal broadcast-consumer policy does.
-     * Cancelling a Future alone does not clean up cached messages or advance consumption offsets.
+     * <p>Cancelling a Future alone does not clean up cached messages or advance consumption offsets.
      *
      * @param consumeExecutor external executor, or null to use the default dedicated pool
      */

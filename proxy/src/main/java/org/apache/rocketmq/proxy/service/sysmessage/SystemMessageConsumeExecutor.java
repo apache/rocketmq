@@ -16,12 +16,8 @@
  */
 package org.apache.rocketmq.proxy.service.sysmessage;
 
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService.ConsumeRequest;
-import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 
@@ -31,32 +27,14 @@ public class SystemMessageConsumeExecutor {
     }
 
     public static ThreadPoolExecutor create(ProxyConfig config) {
+        int coreSize = config.getSystemMessageConsumerThreadPoolCoreSize();
         ThreadPoolExecutor executor = ThreadPoolMonitor.createAndMonitor(
-            config.getSystemMessageConsumerThreadPoolCoreSize(),
-            config.getSystemMessageConsumerThreadPoolMaxSize(),
+            coreSize, coreSize,
             1, TimeUnit.MINUTES, "SystemMessageConsumer",
-            config.getSystemMessageConsumerThreadPoolQueueCapacity(),
-            new DiscardOldestPolicy());
+            // LinkedBlockingQueue's default capacity preserves unbounded consumption queueing.
+            Integer.MAX_VALUE,
+            new ThreadPoolExecutor.AbortPolicy());
         executor.allowCoreThreadTimeOut(true);
         return executor;
-    }
-
-    /** Processes discarded consumption requests as failures on the submitting thread. */
-    static class DiscardOldestPolicy extends ThreadPoolExecutor.DiscardOldestPolicy {
-        @Override
-        public void rejectedExecution(Runnable task, ThreadPoolExecutor executor) {
-            if (executor.isShutdown()) {
-                throw new RejectedExecutionException("System-message consumption executor has stopped");
-            }
-            Runnable discarded = executor.getQueue().poll();
-            if (discarded instanceof Future<?>) {
-                ((Future<?>) discarded).cancel(false);
-            }
-            Runnable command = discarded instanceof FutureTaskExt<?> ? ((FutureTaskExt<?>) discarded).getRunnable() : null;
-            if (command instanceof ConsumeRequest) {
-                ((ConsumeRequest) command).consumeFailed();
-            }
-            executor.execute(task);
-        }
     }
 }
