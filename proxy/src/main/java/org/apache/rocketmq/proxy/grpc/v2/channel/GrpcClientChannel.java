@@ -51,6 +51,7 @@ import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionData;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
@@ -235,11 +236,15 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         if (Objects.isNull(header) || !header.isJstackEnable()) {
             return CompletableFuture.completedFuture(null);
         }
-        this.writeTelemetryCommand(TelemetryCommand.newBuilder()
+        String nonce = this.grpcChannelManager.addResponseFuture(responseFuture);
+        boolean written = this.tryWriteTelemetryCommand(TelemetryCommand.newBuilder()
             .setPrintThreadStackTraceCommand(PrintThreadStackTraceCommand.newBuilder()
-                .setNonce(this.grpcChannelManager.addResponseFuture(responseFuture))
+                .setNonce(nonce)
                 .build())
             .build());
+        if (!written) {
+            this.completeResponseFutureOnWriteFailure(nonce, responseFuture);
+        }
         return CompletableFuture.completedFuture(null);
     }
 
@@ -247,12 +252,16 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     protected CompletableFuture<Void> processConsumeMessageDirectly(RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header,
         MessageExt messageExt, CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture) {
-        this.writeTelemetryCommand(TelemetryCommand.newBuilder()
+        String nonce = this.grpcChannelManager.addResponseFuture(responseFuture);
+        boolean written = this.tryWriteTelemetryCommand(TelemetryCommand.newBuilder()
             .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
-                .setNonce(this.grpcChannelManager.addResponseFuture(responseFuture))
+                .setNonce(nonce)
                 .setMessage(GrpcConverter.getInstance().buildMessage(messageExt))
                 .build())
             .build());
+        if (!written) {
+            this.completeResponseFutureOnWriteFailure(nonce, responseFuture);
+        }
         return CompletableFuture.completedFuture(null);
     }
 
@@ -261,24 +270,39 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     }
 
     public void writeTelemetryCommand(TelemetryCommand command) {
+        this.tryWriteTelemetryCommand(command);
+    }
+
+    private boolean tryWriteTelemetryCommand(TelemetryCommand command) {
         StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
         if (observer == null) {
             log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
-            return;
+            return false;
         }
         synchronized (this.telemetryWriteLock) {
             observer = this.telemetryCommandRef.get();
             if (observer == null) {
                 log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
-                return;
+                return false;
             }
             try {
                 observer.onNext(command);
+                return true;
             } catch (StatusRuntimeException | IllegalStateException exception) {
                 log.warn("write telemetry failed. command:{}", command, exception);
                 this.clearClientObserver(observer);
+                return false;
             }
         }
+    }
+
+    private <T> void completeResponseFutureOnWriteFailure(String nonce,
+        CompletableFuture<ProxyRelayResult<T>> responseFuture) {
+        CompletableFuture<ProxyRelayResult<T>> registeredFuture =
+            this.grpcChannelManager.getAndRemoveResponseFuture(nonce);
+        CompletableFuture<ProxyRelayResult<T>> future =
+            registeredFuture == null ? responseFuture : registeredFuture;
+        future.complete(new ProxyRelayResult<>(ResponseCode.SYSTEM_BUSY, "write telemetry command failed", null));
     }
 
     @Override
