@@ -245,7 +245,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return response;
             }
             final String pgroupRead = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
-            if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
+            // The prepared message may lack the producer group property (messages
+            // written by old clients or restored stores); compare null-safely and
+            // reject instead of failing the request with an NPE.
+            if (!Objects.equals(pgroupRead, requestHeader.getProducerGroup())) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("The producer group wrong");
                 return response;
