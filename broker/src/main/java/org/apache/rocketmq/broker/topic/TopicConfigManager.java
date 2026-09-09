@@ -742,15 +742,15 @@ public class TopicConfigManager extends ConfigManager {
     public ConcurrentHashMap<String, TopicConfig> subTopicConfigTable(String dataVersion, int topicSeq,
         int maxTopicNum) {
         // [topicSeq, topicSeq + maxTopicNum)
-        int beginIndex = topicSeq;
-        if (beginIndex != 0 && (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), getDataVersion()))) {
+        int beginIndex = Math.max(topicSeq, 0);
+        if (beginIndex != 0 && (StringUtils.isBlank(dataVersion) || !Objects.equals(parseDataVersion(dataVersion), getDataVersion()))) {
             beginIndex = 0;
             log.info("get sub topic config table from {} due to {}", beginIndex,
                 StringUtils.isBlank(dataVersion) ? "DataVersion Empty" : "DataVersion Changed");
         }
 
         ConcurrentHashMap<String, TopicConfig> subTopicConfigTable = new ConcurrentHashMap<>();
-        if (beginIndex < topicConfigTable.size()) {
+        if (maxTopicNum > 0 && beginIndex < topicConfigTable.size()) {
             int endIndex = Math.min(beginIndex + maxTopicNum, topicConfigTable.size());
 
             ImmutableSortedMap<String, TopicConfig> sortedMap = ImmutableSortedMap.copyOf(topicConfigTable);
@@ -759,6 +759,22 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         return subTopicConfigTable;
+    }
+
+    /**
+     * Parses the data version a client sent along with its split-metadata request. An
+     * unparseable value means the client's version is unknown, which callers treat like
+     * a version change: fall back to a full page from index 0 instead of failing the
+     * request.
+     */
+    private DataVersion parseDataVersion(String dataVersion) {
+        try {
+            return DataVersion.fromJson(dataVersion, DataVersion.class);
+        } catch (Exception e) {
+            log.info("parse dataVersion failed, fall back to the full topic config table, dataVersion={}",
+                dataVersion);
+            return null;
+        }
     }
 
     private Map<String, String> request(TopicConfig topicConfig) {
