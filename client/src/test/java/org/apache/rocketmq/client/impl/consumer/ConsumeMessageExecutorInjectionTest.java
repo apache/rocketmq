@@ -73,8 +73,8 @@ public class ConsumeMessageExecutorInjectionTest {
         ConsumeMessageService first = createService(shared);
         ConsumeMessageService second = createService(shared);
         try {
-            ExecutorService firstExecutor = (ExecutorService) FieldUtils.readDeclaredField(first, "consumeExecutor", true);
-            ExecutorService secondExecutor = (ExecutorService) FieldUtils.readDeclaredField(second, "consumeExecutor", true);
+            ExecutorService firstExecutor = (ExecutorService) FieldUtils.readField(first, "consumeExecutor", true);
+            ExecutorService secondExecutor = (ExecutorService) FieldUtils.readField(second, "consumeExecutor", true);
             assertSame(shared, firstExecutor);
             assertSame(shared, secondExecutor);
             Thread worker = firstExecutor.submit(Thread::currentThread).get(5, TimeUnit.SECONDS);
@@ -149,7 +149,7 @@ public class ConsumeMessageExecutorInjectionTest {
         ExecutorService shared = (ExecutorService) factory.invoke(null);
         ConsumeMessageService service = createService(shared);
         try {
-            ExecutorService actual = (ExecutorService) FieldUtils.readDeclaredField(service, "consumeExecutor", true);
+            ExecutorService actual = (ExecutorService) FieldUtils.readField(service, "consumeExecutor", true);
             assertSame(shared, actual);
             Method isVirtual = Thread.class.getMethod("isVirtual");
             assertTrue(actual.submit(() -> (Boolean) isVirtual.invoke(Thread.currentThread())).get(5, TimeUnit.SECONDS));
