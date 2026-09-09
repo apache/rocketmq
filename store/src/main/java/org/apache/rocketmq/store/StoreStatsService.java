@@ -70,14 +70,10 @@ public class StoreStatsService extends ServiceThread {
     private volatile LongAdder[] putMessageDistributeTime;
     private volatile LongAdder[] lastPutMessageDistributeTime;
     private long messageStoreBootTimestamp = System.currentTimeMillis();
-    private volatile long putMessageEntireTimeMax = 0;
-    private volatile long getMessageEntireTimeMax = 0;
-    // for putMessageEntireTimeMax
-    private ReentrantLock putLock = new ReentrantLock();
-    // for getMessageEntireTimeMax
-    private ReentrantLock getLock = new ReentrantLock();
+    private final AtomicLong putMessageEntireTimeMax = new AtomicLong(0);
+    private final AtomicLong getMessageEntireTimeMax = new AtomicLong(0);
 
-    private volatile long dispatchMaxBuffer = 0;
+    private final AtomicLong dispatchMaxBuffer = new AtomicLong(0);
 
     private ReentrantLock samplingLock = new ReentrantLock();
     private long lastPrintTimestamp = System.currentTimeMillis();
@@ -164,7 +160,7 @@ public class StoreStatsService extends ServiceThread {
     }
 
     public long getPutMessageEntireTimeMax() {
-        return putMessageEntireTimeMax;
+        return putMessageEntireTimeMax.get();
     }
 
     public void setPutMessageEntireTimeMax(long value) {
@@ -213,33 +209,23 @@ public class StoreStatsService extends ServiceThread {
             times[12].add(1);
         }
 
-        if (value > this.putMessageEntireTimeMax) {
-            this.putLock.lock();
-            this.putMessageEntireTimeMax =
-                value > this.putMessageEntireTimeMax ? value : this.putMessageEntireTimeMax;
-            this.putLock.unlock();
-        }
+        this.putMessageEntireTimeMax.accumulateAndGet(value, Math::max);
     }
 
     public long getGetMessageEntireTimeMax() {
-        return getMessageEntireTimeMax;
+        return getMessageEntireTimeMax.get();
     }
 
     public void setGetMessageEntireTimeMax(long value) {
-        if (value > this.getMessageEntireTimeMax) {
-            this.getLock.lock();
-            this.getMessageEntireTimeMax =
-                value > this.getMessageEntireTimeMax ? value : this.getMessageEntireTimeMax;
-            this.getLock.unlock();
-        }
+        this.getMessageEntireTimeMax.accumulateAndGet(value, Math::max);
     }
 
     public long getDispatchMaxBuffer() {
-        return dispatchMaxBuffer;
+        return dispatchMaxBuffer.get();
     }
 
     public void setDispatchMaxBuffer(long value) {
-        this.dispatchMaxBuffer = value > this.dispatchMaxBuffer ? value : this.dispatchMaxBuffer;
+        this.dispatchMaxBuffer.accumulateAndGet(value, Math::max);
     }
 
     @Override
@@ -250,22 +236,22 @@ public class StoreStatsService extends ServiceThread {
             totalTimes = 1L;
         }
 
-        sb.append("\truntime: " + this.getFormatRuntime() + "\r\n");
-        sb.append("\tputMessageEntireTimeMax: " + this.putMessageEntireTimeMax + "\r\n");
-        sb.append("\tputMessageTimesTotal: " + totalTimes + "\r\n");
-        sb.append("\tgetPutMessageFailedTimes: " + this.getPutMessageFailedTimes() + "\r\n");
-        sb.append("\tputMessageSizeTotal: " + this.getPutMessageSizeTotal() + "\r\n");
-        sb.append("\tputMessageDistributeTime: " + this.getPutMessageDistributeTimeStringInfo(totalTimes)
-            + "\r\n");
-        sb.append("\tputMessageAverageSize: " + (this.getPutMessageSizeTotal() / totalTimes.doubleValue())
-            + "\r\n");
-        sb.append("\tdispatchMaxBuffer: " + this.dispatchMaxBuffer + "\r\n");
-        sb.append("\tgetMessageEntireTimeMax: " + this.getMessageEntireTimeMax + "\r\n");
-        sb.append("\tputTps: " + this.getPutTps() + "\r\n");
-        sb.append("\tgetFoundTps: " + this.getGetFoundTps() + "\r\n");
-        sb.append("\tgetMissTps: " + this.getGetMissTps() + "\r\n");
-        sb.append("\tgetTotalTps: " + this.getGetTotalTps() + "\r\n");
-        sb.append("\tgetTransferredTps: " + this.getGetTransferredTps() + "\r\n");
+        sb.append("\truntime: ").append(this.getFormatRuntime()).append("\r\n");
+        sb.append("\tputMessageEntireTimeMax: ").append(this.putMessageEntireTimeMax.get()).append("\r\n");
+        sb.append("\tputMessageTimesTotal: ").append(totalTimes).append("\r\n");
+        sb.append("\tgetPutMessageFailedTimes: ").append(this.getPutMessageFailedTimes()).append("\r\n");
+        sb.append("\tputMessageSizeTotal: ").append(this.getPutMessageSizeTotal()).append("\r\n");
+        sb.append("\tputMessageDistributeTime: ").append(this.getPutMessageDistributeTimeStringInfo(totalTimes))
+            .append("\r\n");
+        sb.append("\tputMessageAverageSize: ").append(this.getPutMessageSizeTotal() / totalTimes.doubleValue())
+            .append("\r\n");
+        sb.append("\tdispatchMaxBuffer: ").append(this.dispatchMaxBuffer.get()).append("\r\n");
+        sb.append("\tgetMessageEntireTimeMax: ").append(this.getMessageEntireTimeMax.get()).append("\r\n");
+        sb.append("\tputTps: ").append(this.getPutTps()).append("\r\n");
+        sb.append("\tgetFoundTps: ").append(this.getGetFoundTps()).append("\r\n");
+        sb.append("\tgetMissTps: ").append(this.getGetMissTps()).append("\r\n");
+        sb.append("\tgetTotalTps: ").append(this.getGetTotalTps()).append("\r\n");
+        sb.append("\tgetTransferredTps: ").append(this.getGetTransferredTps()).append("\r\n");
         return sb.toString();
     }
 
@@ -504,7 +490,7 @@ public class StoreStatsService extends ServiceThread {
 
         result.put("bootTimestamp", String.valueOf(this.messageStoreBootTimestamp));
         result.put("runtime", this.getFormatRuntime());
-        result.put("putMessageEntireTimeMax", String.valueOf(this.putMessageEntireTimeMax));
+        result.put("putMessageEntireTimeMax", String.valueOf(this.putMessageEntireTimeMax.get()));
         result.put("putMessageTimesTotal", String.valueOf(totalTimes));
         result.put("putMessageFailedTimes", String.valueOf(this.putMessageFailedTimes));
         result.put("putMessageSizeTotal", String.valueOf(this.getPutMessageSizeTotal()));
@@ -512,8 +498,8 @@ public class StoreStatsService extends ServiceThread {
             String.valueOf(this.getPutMessageDistributeTimeStringInfo(totalTimes)));
         result.put("putMessageAverageSize",
             String.valueOf(this.getPutMessageSizeTotal() / totalTimes.doubleValue()));
-        result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer));
-        result.put("getMessageEntireTimeMax", String.valueOf(this.getMessageEntireTimeMax));
+        result.put("dispatchMaxBuffer", String.valueOf(this.dispatchMaxBuffer.get()));
+        result.put("getMessageEntireTimeMax", String.valueOf(this.getMessageEntireTimeMax.get()));
         result.put("putTps", this.getPutTps());
         result.put("getFoundTps", this.getGetFoundTps());
         result.put("getMissTps", this.getGetMissTps());
