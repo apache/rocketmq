@@ -155,6 +155,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
 
         this.defaultMQPushConsumer.setConsumeExecutor(this.consumeExecutor);
         this.defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        // Failed system messages must not be retried; broadcasting drops them after result processing.
         this.defaultMQPushConsumer.setMessageModel(MessageModel.BROADCASTING);
         try {
             this.defaultMQPushConsumer.subscribe(this.getBroadcastTopicName(), this.getSubTag());

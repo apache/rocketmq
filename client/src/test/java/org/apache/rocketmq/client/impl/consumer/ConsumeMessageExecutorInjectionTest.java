@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
-import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.ServiceState;
@@ -45,7 +44,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -93,7 +92,7 @@ public class ConsumeMessageExecutorInjectionTest {
     }
 
     @Test
-    public void testDiscardedBroadcastRequestDoesNotPinProcessQueue() throws Exception {
+    public void testCancellationDoesNotChangeOrdinaryConsumerOffsets() throws Exception {
         Assume.assumeTrue(serviceClass == ConsumeMessageConcurrentlyService.class);
         ThreadPoolExecutor shared = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("broadcast-discard-test");
@@ -101,7 +100,6 @@ public class ConsumeMessageExecutorInjectionTest {
         consumer.setConsumeExecutor(shared);
         DefaultMQPushConsumerImpl impl = mock(DefaultMQPushConsumerImpl.class);
         when(impl.getDefaultMQPushConsumer()).thenReturn(consumer);
-        when(impl.getConsumerStatsManager()).thenReturn(mock(ConsumerStatsManager.class));
         OffsetStore offsetStore = mock(OffsetStore.class);
         when(impl.getOffsetStore()).thenReturn(offsetStore);
         ConsumeMessageConcurrentlyService service = new ConsumeMessageConcurrentlyService(impl,
@@ -127,8 +125,8 @@ public class ConsumeMessageExecutorInjectionTest {
             processQueue.putMessage(Collections.singletonList(message));
             service.submitConsumeRequest(Collections.singletonList(message), processQueue, queue, true);
             assertTrue(((Future<?>) shared.getQueue().poll()).cancel(false));
-            assertEquals(0, processQueue.getMsgCount().get());
-            verify(offsetStore).updateOffset(queue, 1L, true);
+            assertEquals(1, processQueue.getMsgCount().get());
+            verifyNoInteractions(offsetStore);
             service.shutdown(5000);
             assertFalse(shared.isShutdown());
         } finally {

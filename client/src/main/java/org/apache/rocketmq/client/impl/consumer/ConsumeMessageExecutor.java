@@ -23,12 +23,13 @@ import java.util.Set;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+import org.apache.rocketmq.common.future.FutureTaskExt;
 
 /**
  * A consumption service's task scope within an externally owned executor. Closing this scope
@@ -36,18 +37,14 @@ import java.util.function.Consumer;
  */
 class ConsumeMessageExecutor extends AbstractExecutorService {
     private final ExecutorService executor;
-    private final Consumer<Runnable> discardedTaskHandler;
     private final Set<Task<?>> tasks = new HashSet<>();
-    private boolean shutdown;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition termination = lock.newCondition();
+    private volatile boolean shutdown;
     private int runningTasks;
 
     ConsumeMessageExecutor(ExecutorService executor) {
-        this(executor, task -> { });
-    }
-
-    ConsumeMessageExecutor(ExecutorService executor, Consumer<Runnable> discardedTaskHandler) {
         this.executor = executor;
-        this.discardedTaskHandler = discardedTaskHandler;
     }
 
     @Override
@@ -64,42 +61,52 @@ class ConsumeMessageExecutor extends AbstractExecutorService {
     public void execute(Runnable command) {
         Task<?> task = command instanceof ConsumeMessageExecutor.Task
             ? (Task<?>) command : new Task<>(command, null);
-        synchronized (this) {
+        lock.lock();
+        try {
             if (shutdown) {
                 throw new RejectedExecutionException("Consumption service has stopped");
             }
             tasks.add(task);
+        } finally {
+            lock.unlock();
         }
         try {
             executor.execute(task);
         } catch (RuntimeException | Error e) {
-            task.rejected = true;
             task.cancel(false);
             throw e;
         }
     }
 
     @Override
-    public synchronized void shutdown() {
-        shutdown = true;
-        notifyAll();
+    public void shutdown() {
+        lock.lock();
+        try {
+            shutdown = true;
+            termination.signalAll();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public List<Runnable> shutdownNow() {
         List<Task<?>> snapshot;
-        synchronized (this) {
+        List<Runnable> pending = new ArrayList<>();
+        lock.lock();
+        try {
             shutdown = true;
             snapshot = new ArrayList<>(tasks);
-            notifyAll();
-        }
-        List<Runnable> pending = new ArrayList<>();
-        for (Task<?> task : snapshot) {
-            synchronized (this) {
+            for (Task<?> task : snapshot) {
                 if (!task.started) {
                     pending.add(task);
                 }
             }
+            termination.signalAll();
+        } finally {
+            lock.unlock();
+        }
+        for (Task<?> task : snapshot) {
             task.cancel(true);
             if (executor instanceof ThreadPoolExecutor) {
                 ((ThreadPoolExecutor) executor).remove(task);
@@ -109,78 +116,85 @@ class ConsumeMessageExecutor extends AbstractExecutorService {
     }
 
     @Override
-    public synchronized boolean isShutdown() {
+    public boolean isShutdown() {
         return shutdown;
     }
 
     @Override
-    public synchronized boolean isTerminated() {
+    public boolean isTerminated() {
+        lock.lock();
+        try {
+            return isTerminatedLocked();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private boolean isTerminatedLocked() {
         return shutdown && tasks.isEmpty() && runningTasks == 0;
     }
 
     @Override
-    public synchronized boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         long remaining = unit.toNanos(timeout);
-        long deadline = System.nanoTime() + remaining;
-        while (!isTerminated()) {
-            if (remaining <= 0) {
-                return false;
+        lock.lockInterruptibly();
+        try {
+            while (!isTerminatedLocked()) {
+                if (remaining <= 0) {
+                    return false;
+                }
+                remaining = termination.awaitNanos(remaining);
             }
-            TimeUnit.NANOSECONDS.timedWait(this, remaining);
-            remaining = deadline - System.nanoTime();
+            return true;
+        } finally {
+            lock.unlock();
         }
-        return true;
     }
 
-    private class Task<T> extends FutureTask<T> {
+    private class Task<T> extends FutureTaskExt<T> {
         private boolean started;
-        private volatile boolean rejected;
-        private final Runnable command;
 
         Task(Runnable runnable, T value) {
             super(runnable, value);
-            this.command = runnable;
         }
 
         Task(Callable<T> callable) {
             super(callable);
-            this.command = null;
         }
 
         @Override
         public void run() {
-            synchronized (ConsumeMessageExecutor.this) {
+            lock.lock();
+            try {
                 if (isCancelled()) {
                     return;
                 }
                 started = true;
                 runningTasks++;
+            } finally {
+                lock.unlock();
             }
             try {
                 super.run();
             } finally {
-                synchronized (ConsumeMessageExecutor.this) {
+                lock.lock();
+                try {
                     runningTasks--;
-                    ConsumeMessageExecutor.this.notifyAll();
+                    termination.signalAll();
+                } finally {
+                    lock.unlock();
                 }
             }
         }
 
         @Override
         protected void done() {
-            boolean discarded;
-            synchronized (ConsumeMessageExecutor.this) {
-                discarded = isCancelled() && !started && !shutdown && !rejected && command != null;
-            }
+            lock.lock();
             try {
-                if (discarded) {
-                    discardedTaskHandler.accept(command);
-                }
+                tasks.remove(this);
+                termination.signalAll();
             } finally {
-                synchronized (ConsumeMessageExecutor.this) {
-                    tasks.remove(this);
-                    ConsumeMessageExecutor.this.notifyAll();
-                }
+                lock.unlock();
             }
         }
     }

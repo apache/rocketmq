@@ -75,13 +75,9 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<>(),
-            new ThreadFactoryImpl("ConsumeMessageThread_")) : new ConsumeMessageExecutor(externalExecutor, this::handleDiscardedRequest);
+            new ThreadFactoryImpl("ConsumeMessageThread_")) : new ConsumeMessageExecutor(externalExecutor);
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
-    }
-
-    private void handleDiscardedRequest(Runnable task) {
-        submitConsumeRequestLater((ConsumeRequest) task, 5000);
     }
 
     @Override

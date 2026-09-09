@@ -79,14 +79,9 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<>(),
-            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag)) : new ConsumeMessageExecutor(externalExecutor, this::handleDiscardedRequest);
+            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag)) : new ConsumeMessageExecutor(externalExecutor);
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_" + consumerGroupTag));
-    }
-
-    private void handleDiscardedRequest(Runnable task) {
-        ConsumeRequest request = (ConsumeRequest) task;
-        submitConsumeRequestLater(request.getProcessQueue(), request.getMessageQueue(), 5000);
     }
 
     @Override

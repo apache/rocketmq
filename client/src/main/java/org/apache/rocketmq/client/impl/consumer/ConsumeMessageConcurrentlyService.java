@@ -47,7 +47,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.CMResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
-import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 public class ConsumeMessageConcurrentlyService implements ConsumeMessageService {
     private static final Logger log = LoggerFactory.getLogger(ConsumeMessageConcurrentlyService.class);
@@ -76,25 +75,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             1000 * 60,
             TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<>(),
-            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag)) : new ConsumeMessageExecutor(externalExecutor, this::handleDiscardedRequest);
+            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag)) : new ConsumeMessageExecutor(externalExecutor);
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_" + consumerGroupTag));
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanExpireMsgScheduledThread_" + consumerGroupTag));
-    }
-
-    private void handleDiscardedRequest(Runnable task) {
-        ConsumeRequest request = (ConsumeRequest) task;
-        if (request.getProcessQueue().isDropped()) {
-            return;
-        }
-        if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.BROADCASTING) {
-            // Broadcast failures are dropped. Also remove the messages from ProcessQueue so an
-            // evicted, never-started request cannot pin the offset or trigger pull flow control.
-            processConsumeResult(ConsumeConcurrentlyStatus.RECONSUME_LATER,
-                new ConsumeConcurrentlyContext(request.getMessageQueue()), request);
-        } else {
-            submitConsumeRequestLater(request);
-        }
     }
 
     public void start() {
@@ -373,7 +357,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }, 5000, TimeUnit.MILLISECONDS);
     }
 
-    class ConsumeRequest implements Runnable {
+    public class ConsumeRequest implements Runnable {
         private final List<MessageExt> msgs;
         private final ProcessQueue processQueue;
         private final MessageQueue messageQueue;
@@ -382,6 +366,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             this.msgs = msgs;
             this.processQueue = processQueue;
             this.messageQueue = messageQueue;
+        }
+
+        public ConsumeMessageConcurrentlyService getConsumeMessageService() {
+            return ConsumeMessageConcurrentlyService.this;
         }
 
         public List<MessageExt> getMsgs() {

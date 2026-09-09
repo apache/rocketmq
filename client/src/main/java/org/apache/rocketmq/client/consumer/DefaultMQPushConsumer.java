@@ -162,7 +162,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private int consumeThreadMin = 20;
 
-    private ExecutorService consumeExecutor;
+    private volatile ExecutorService consumeExecutor;
 
     /**
      * Max consumer thread number
@@ -574,17 +574,27 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * with other consumers and is never shut down or resized by this consumer. This also supports
      * virtual-thread executors supplied by applications running on a compatible JDK.
      * The caller controls concurrency and must keep the executor alive until all consumers stop.
-     * Rejection handlers must throw or cancel discarded Future tasks so shutdown can track completion.
+     *
+     * <p><strong>Do not silently discard consumption tasks.</strong> Discarded tasks leave messages
+     * in the client's ProcessQueue without processing their consumption results. This can retain
+     * messages and pin consumption offsets indefinitely, eventually stalling message pulling.
+     * Use a rejection handler that throws RejectedExecutionException, such as AbortPolicy, so the
+     * rejection remains observable to the client. Raw DiscardPolicy and DiscardOldestPolicy are
+     * not suitable for ordinary consumers.
+     *
+     * <p>Intentional task eviction requires the caller to provide the corresponding message cleanup
+     * and consumption-offset handling, as the Proxy's internal broadcast-consumer policy does.
+     * Cancelling a Future alone only releases task-lifecycle tracking; it does not clean up the
+     * cached messages or advance their consumption offsets. Evicted futures must also be completed
+     * or cancelled so that consumer shutdown does not keep waiting for tasks that will never run.
      *
      * @param consumeExecutor external executor, or null to use the default dedicated pool
      */
     public void setConsumeExecutor(ExecutorService consumeExecutor) {
-        synchronized (this.defaultMQPushConsumerImpl) {
-            if (this.defaultMQPushConsumerImpl.getServiceState() != ServiceState.CREATE_JUST) {
-                throw new IllegalStateException("Consume executor must be configured before the consumer starts");
-            }
-            this.consumeExecutor = consumeExecutor;
+        if (this.defaultMQPushConsumerImpl.getServiceState() != ServiceState.CREATE_JUST) {
+            throw new IllegalStateException("Consume executor must be configured before the consumer starts");
         }
+        this.consumeExecutor = consumeExecutor;
     }
 
     public int getConsumeThreadMax() {

@@ -25,7 +25,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -131,8 +130,7 @@ public class ConsumeMessageExecutorTest {
     public void testRejectedAndDiscardedTasksReleaseTracking() throws Exception {
         ThreadPoolExecutor shared = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES,
             new LinkedBlockingQueue<>(1));
-        AtomicInteger discarded = new AtomicInteger();
-        ConsumeMessageExecutor scope = new ConsumeMessageExecutor(shared, task -> discarded.incrementAndGet());
+        ConsumeMessageExecutor scope = new ConsumeMessageExecutor(shared);
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         try {
@@ -146,12 +144,11 @@ public class ConsumeMessageExecutorTest {
                 scope.submit(() -> { });
                 fail("Expected rejection");
             } catch (RejectedExecutionException expected) {
-                assertEquals(0, discarded.get());
+                assertFalse(scope.isShutdown());
             }
             Runnable oldest = shared.getQueue().poll();
             assertTrue(((Future<?>) oldest).cancel(false));
             assertTrue(queued.isCancelled());
-            assertEquals(1, discarded.get());
             scope.shutdown();
             release.countDown();
             assertTrue(scope.awaitTermination(5, TimeUnit.SECONDS));
@@ -184,6 +181,42 @@ public class ConsumeMessageExecutorTest {
         } finally {
             first.shutdownNow();
             second.shutdownNow();
+            shared.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testVirtualThreadCanAwaitConsumerTermination() throws Exception {
+        Method factory;
+        try {
+            factory = Executors.class.getMethod("newVirtualThreadPerTaskExecutor");
+        } catch (NoSuchMethodException e) {
+            Assume.assumeNoException("Requires JDK 21 or later", e);
+            return;
+        }
+        ExecutorService shared = (ExecutorService) factory.invoke(null);
+        ConsumeMessageExecutor scope = new ConsumeMessageExecutor(shared);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch waiting = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            scope.submit(() -> {
+                entered.countDown();
+                await(release);
+            });
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+            scope.shutdown();
+            Future<Boolean> terminated = shared.submit(() -> {
+                waiting.countDown();
+                return scope.awaitTermination(5, TimeUnit.SECONDS);
+            });
+            assertTrue(waiting.await(5, TimeUnit.SECONDS));
+            // Must also progress when the JVM is configured with a single virtual-thread carrier.
+            shared.submit(release::countDown).get(5, TimeUnit.SECONDS);
+            assertTrue(terminated.get(5, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            scope.shutdownNow();
             shared.shutdownNow();
         }
     }
