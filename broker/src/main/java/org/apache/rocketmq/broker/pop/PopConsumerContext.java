@@ -51,6 +51,8 @@ public class PopConsumerContext {
 
     private List<PopConsumerRecord> popConsumerRecordList;
 
+    private List<PendingCommit> pendingCommitList;
+
     public PopConsumerContext(String clientHost,
         long popTime, long invisibleTime, String groupId, boolean fifo, int initMode, String attemptId) {
 
@@ -162,6 +164,44 @@ public class PopConsumerContext {
 
     public List<PopConsumerRecord> getPopConsumerRecordList() {
         return popConsumerRecordList;
+    }
+
+    public void addPendingCommit(String topicId, int queueId, long commitOffset) {
+        if (this.pendingCommitList == null) {
+            this.pendingCommitList = new ArrayList<>();
+        }
+        this.pendingCommitList.add(new PendingCommit(topicId, queueId, commitOffset));
+    }
+
+    public List<PendingCommit> getPendingCommitList() {
+        return pendingCommitList;
+    }
+
+    public static class PendingCommit {
+
+        private final String topicId;
+
+        private final int queueId;
+
+        private final long commitOffset;
+
+        public PendingCommit(String topicId, int queueId, long commitOffset) {
+            this.topicId = topicId;
+            this.queueId = queueId;
+            this.commitOffset = commitOffset;
+        }
+
+        public String getTopicId() {
+            return topicId;
+        }
+
+        public int getQueueId() {
+            return queueId;
+        }
+
+        public long getCommitOffset() {
+            return commitOffset;
+        }
     }
 
     @Override
