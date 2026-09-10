@@ -2484,7 +2484,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             } catch (ConsumeQueueException e) {
                 throw new RemotingCommandException("Failed to get max offset in queue", e);
             }
-            long maxTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
+            // An empty queue has no last stored message; querying offset -1
+            // makes the store answer -1, which clients render as an epoch
+            // timestamp. getTopicStatsInfo guards the same lookup with max > 0.
+            long maxTime = 0;
+            if (max > 0) {
+                maxTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
+            }
             timeSpan.setMaxTimeStamp(maxTime);
 
             long consumeTime;
@@ -2503,7 +2509,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             } catch (ConsumeQueueException e) {
                 throw new RemotingCommandException("Failed to get max offset in queue", e);
             }
-            if (consumerOffset < maxBrokerOffset) {
+            // A group that never committed an offset gets -1 from queryOffset;
+            // without the lower bound the comparison below holds for an empty
+            // queue too and delayTime becomes now - (-1).
+            if (consumerOffset >= 0 && consumerOffset < maxBrokerOffset) {
                 long nextTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, consumerOffset);
                 timeSpan.setDelayTime(System.currentTimeMillis() - nextTime);
             }

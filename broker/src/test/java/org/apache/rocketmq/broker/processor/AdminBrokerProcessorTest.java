@@ -85,7 +85,9 @@ import org.apache.rocketmq.remoting.protocol.body.DeleteTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.QueryConsumeTimeSpanBody;
 import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
@@ -115,6 +117,7 @@ import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumeQueueRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumeTimeSpanRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.remoting.protocol.header.QuerySubscriptionByConsumerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicConsumeByWhoRequestHeader;
@@ -348,6 +351,30 @@ public class AdminBrokerProcessorTest {
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testQueryConsumeTimeSpanEmptyQueueReportsZeroMaxTimestamp() throws Exception {
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+        when(messageStore.getEarliestMessageTime(anyString(), anyInt())).thenReturn(0L);
+
+        QueryConsumeTimeSpanRequestHeader header = new QueryConsumeTimeSpanRequestHeader();
+        header.setTopic(topic);
+        header.setGroup("group");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUME_TIME_SPAN, header);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        QueryConsumeTimeSpanBody body = QueryConsumeTimeSpanBody.decode(response.getBody(), QueryConsumeTimeSpanBody.class);
+        assertThat(body.getConsumeTimeSpanSet()).isNotEmpty();
+        for (QueueTimeSpan timeSpan : body.getConsumeTimeSpanSet()) {
+            assertThat(timeSpan.getMaxTimeStamp()).isEqualTo(0L);
+            assertThat(timeSpan.getDelayTime()).isEqualTo(0L);
+        }
+        // an empty queue has no stored message, so no timestamp lookup must happen
+        verify(messageStore, never()).getMessageStoreTimeStamp(anyString(), anyInt(), anyLong());
     }
 
     @Test
