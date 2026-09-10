@@ -83,7 +83,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private volatile ColumnFamilyHandle timerCFHandle;
     private volatile ColumnFamilyHandle transCFHandle;
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private static final Cache<String, byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
         .maximumSize(10000)
         .expireAfterWrite(60, TimeUnit.MINUTES)
@@ -114,6 +114,9 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
             this.defaultCFHandle = cfHandles.get(0);
             this.timerCFHandle = cfHandles.get(1);
             this.transCFHandle = cfHandles.get(2);
+            if (scheduler.isShutdown()) {
+                scheduler = Executors.newScheduledThreadPool(1);
+            }
             scheduler.scheduleAtFixedRate(() -> {
                 try {
                     db.flush(flushOptions, timerCFHandle);
@@ -142,6 +145,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
 
     @Override
     protected void preShutdown() {
+        scheduler.shutdownNow();
         log.info("MessageRocksDBStorage pre shutdown success, dbPath: {}", this.dbPath);
     }
 
