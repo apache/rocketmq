@@ -2676,8 +2676,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
             }
 
+            // In the blank-topic mode the loop iterates over every topic the
+            // source group consumes, so the offset must be cloned per loop
+            // variable, not for the (blank) header topic.
             this.brokerController.getConsumerOffsetManager().cloneOffset(requestHeader.getSrcGroup(), requestHeader.getDestGroup(),
-                requestHeader.getTopic());
+                topic);
         }
 
         response.setCode(ResponseCode.SUCCESS);
