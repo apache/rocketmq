@@ -252,6 +252,18 @@ public class MQClientInstanceTest {
     }
 
     @Test
+    public void testTopicRouteData2TopicPublishInfoWithMalformedOrderTopicConf() {
+        TopicRouteData topicRouteData = createTopicRouteData();
+        topicRouteData.setOrderTopicConf("broker-a:8;broker-b;broker-c:eight;broker-d:2");
+        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
+        assertTrue(actual.isOrderTopic());
+        assertEquals(10, actual.getMessageQueueList().size());
+        assertTrue(actual.getMessageQueueList().contains(new MessageQueue(topic, "broker-a", 7)));
+        assertTrue(actual.getMessageQueueList().contains(new MessageQueue(topic, "broker-d", 1)));
+        assertFalse(actual.getMessageQueueList().contains(new MessageQueue(topic, "broker-b", 0)));
+    }
+
+    @Test
     public void testTopicRouteData2TopicPublishInfoWithTopicQueueMappingByBroker() {
         TopicRouteData topicRouteData = createTopicRouteData();
         topicRouteData.setTopicQueueMappingByBroker(Collections.singletonMap(topic, new TopicQueueMappingInfo()));

@@ -266,7 +266,20 @@ public class MQClientInstance {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
                 String[] item = broker.split(":");
-                int nums = Integer.parseInt(item[1]);
+                // The order topic conf is a manually maintained name server kv config;
+                // a malformed segment must be skipped instead of letting an unchecked
+                // exception abort the route conversion for the whole topic.
+                if (item.length != 2) {
+                    log.warn("skip malformed order topic conf segment. segment={}, orderTopicConf={}", broker, route.getOrderTopicConf());
+                    continue;
+                }
+                int nums;
+                try {
+                    nums = Integer.parseInt(item[1]);
+                } catch (NumberFormatException e) {
+                    log.warn("skip malformed order topic conf segment. segment={}, orderTopicConf={}", broker, route.getOrderTopicConf());
+                    continue;
+                }
                 for (int i = 0; i < nums; i++) {
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
                     info.getMessageQueueList().add(mq);
