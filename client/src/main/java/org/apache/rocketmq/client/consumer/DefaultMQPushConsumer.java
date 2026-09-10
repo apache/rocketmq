@@ -569,21 +569,22 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     }
 
     /**
-     * Sets an externally managed executor before starting this consumer. The executor may be shared
-     * with other consumers and is never shut down or resized by this consumer. This also supports
-     * virtual-thread executors supplied by applications running on a compatible JDK.
-     * The caller controls concurrency and owns the executor's lifecycle. Consumer shutdown does not
-     * await or cancel tasks submitted to an external executor; the caller must stop all consumers
-     * before shutting down and awaiting the shared executor.
+     * Sets an externally managed executor before starting this consumer.
      *
-     * <p><strong>Do not silently discard consumption tasks.</strong> Discarded tasks leave messages
-     * in the client's ProcessQueue without processing their consumption results. This can retain
-     * messages and pin consumption offsets indefinitely, eventually stalling message pulling.
-     * Use a rejection handler that throws RejectedExecutionException, such as AbortPolicy, so the
-     * rejection remains observable to the client. Raw DiscardPolicy and DiscardOldestPolicy are
-     * not suitable for ordinary consumers.
+     * <p>This is an advanced API intended for controlled integrations such as Proxy. Ordinary
+     * applications should use the default consumption pool instead of injecting an executor.
+     * The executor may be shared with other consumers. Virtual-thread executors are also supported
+     * when supplied by applications running on a compatible JDK.
      *
-     * <p>Cancelling a Future alone does not clean up cached messages or advance consumption offsets.
+     * <p>While consumers are running, the external executor must avoid capacity-based rejection
+     * and must not discard or cancel pending consumption tasks. The client does not guarantee
+     * automatic recovery from rejected tasks. Discarding or cancelling tasks can retain cached
+     * messages and pin consumption offsets, eventually stalling consumption.
+     *
+     * <p>The caller controls concurrency and owns the executor's lifecycle. This consumer never
+     * shuts down or resizes an external executor. Consumer shutdown does not await or cancel tasks
+     * submitted to it; the caller must stop all consumers using the executor before shutting it
+     * down and awaiting its termination.
      *
      * @param consumeExecutor external executor, or null to use the default dedicated pool
      */
