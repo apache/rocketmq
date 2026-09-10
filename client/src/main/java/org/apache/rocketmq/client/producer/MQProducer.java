@@ -84,6 +84,24 @@ public interface MQProducer extends MQAdmin {
     TransactionSendResult sendMessageInTransaction(final Message msg,
         final Object arg) throws MQClientException;
 
+    /**
+     * Send a transactional message with a message queue selector.
+     *
+     * <p>The {@code selectorArg} is passed only to {@link MessageQueueSelector#select(List, Message, Object)}.
+     * The {@code transactionArg} is passed only to {@link TransactionListener#executeLocalTransaction(Message, Object)}.
+     * This method follows the existing selector send semantics and does not perform the broker or queue reselection
+     * retry used by the default send path.</p>
+     *
+     * @param msg transactional message to send.
+     * @param selector message queue selector.
+     * @param selectorArg argument used by the selector.
+     * @param transactionArg argument used by the local transaction executor.
+     * @return transaction result.
+     * @throws MQClientException if the message cannot be sent.
+     */
+    TransactionSendResult sendMessageInTransaction(final Message msg,
+                                                   final MessageQueueSelector selector, final Object selectorArg, final Object transactionArg) throws MQClientException;
+
     //for batch
     SendResult send(final Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException,
         InterruptedException;
