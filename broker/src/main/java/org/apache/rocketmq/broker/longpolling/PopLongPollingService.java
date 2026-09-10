@@ -180,6 +180,12 @@ public class PopLongPollingService extends ServiceThread {
 
     private void notifyMessageArrivingFromRetry(String topic, int queueId, Long tagsCode, long msgStoreTime, byte[] filterBitMap,
         Map<String, String> properties) {
+        if (properties == null) {
+            // A retry topic message without properties can't be mapped back to its origin group,
+            // so there is no long polling request to wake up. Throwing here would poison the
+            // reput thread for every following message.
+            return;
+        }
         String prefix = MixAll.RETRY_GROUP_TOPIC_PREFIX;
         String originGroup = properties.get(MessageConst.PROPERTY_ORIGIN_GROUP);
         // In the case of pop consumption, there is no long polling hanging on the retry topic, so the wake-up is skipped.
