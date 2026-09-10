@@ -354,6 +354,23 @@ public class EscapeBridgeTest {
     }
 
     @Test
+    public void decodeMsgListTest_messageOffsetMissing() throws Exception {
+        MessageExt msg = new MessageExt();
+        msg.setBody("HW".getBytes());
+        msg.setTopic("topic");
+        msg.setBornHost(new InetSocketAddress("127.0.0.1", 9000));
+        msg.setStoreHost(new InetSocketAddress("127.0.0.1", 9000));
+        ByteBuffer byteBuffer = ByteBuffer.wrap(MessageDecoder.encode(msg, false));
+        SelectMappedBufferResult result = new SelectMappedBufferResult(0, byteBuffer, 10, new DefaultMappedFile());
+
+        getMessageResult.addMessage(result);
+
+        List<MessageExt> list = escapeBridge.decodeMsgList(getMessageResult, false);
+        Assert.assertEquals(1, list.size());
+        Assert.assertTrue(Arrays.equals(msg.getBody(), list.get(0).getBody()));
+    }
+
+    @Test
     public void testPutMessageToRemoteBroker_noSpecificBrokerName_hasRemoteBroker() throws Exception {
         MessageExtBrokerInner message = new MessageExtBrokerInner();
         message.setTopic(TEST_TOPIC);
