@@ -57,7 +57,8 @@ public class ClusterTransactionService extends AbstractTransactionService {
 
     private ThreadPoolExecutor heartbeatExecutors;
     private final Map<String /* group */, Set<ClusterData>/* cluster list */> groupClusterData = new ConcurrentHashMap<>();
-    private final AtomicReference<Map<String /* brokerAddr */, String /* brokerName */>> brokerAddrNameMapRef = new AtomicReference<>();
+    private final AtomicReference<Map<String /* brokerAddr */, String /* brokerName */>> brokerAddrNameMapRef =
+        new AtomicReference<>(Collections.emptyMap());
     private TxHeartbeatServiceThread txHeartbeatServiceThread;
 
     public ClusterTransactionService(TopicRouteService topicRouteService, ProducerManager producerManager,
