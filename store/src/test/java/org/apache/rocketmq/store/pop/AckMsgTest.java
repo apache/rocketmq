@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store.pop;
 
 import com.alibaba.fastjson2.JSON;
+import java.nio.charset.StandardCharsets;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -47,5 +48,25 @@ public class AckMsgTest {
         Assert.assertEquals(ackMsg1.getStartOffset(), ackMsg2.getStartOffset());
         Assert.assertEquals(ackMsg1.getAckOffset(), ackMsg2.getAckOffset());
         Assert.assertEquals(ackMsg1.getPopTime(), ackMsg2.getPopTime());
+    }
+
+    @Test
+    public void testToJsonBytesMatchesJsonStringBytes() {
+        AckMsg ackMsg = new AckMsg();
+        ackMsg.setBrokerName("broker-a");
+        ackMsg.setTopic("topic-\u4e2d\u6587");
+        ackMsg.setConsumerGroup("group");
+        ackMsg.setQueueId(3);
+        ackMsg.setStartOffset(200L);
+        ackMsg.setAckOffset(100L);
+        ackMsg.setPopTime(1670212915531L);
+
+        byte[] direct = JSON.toJSONBytes(ackMsg);
+        Assert.assertArrayEquals(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8), direct);
+
+        AckMsg decoded = JSON.parseObject(direct, AckMsg.class);
+        Assert.assertEquals(ackMsg.getTopic(), decoded.getTopic());
+        Assert.assertEquals(ackMsg.getAckOffset(), decoded.getAckOffset());
+        Assert.assertEquals(ackMsg.getPopTime(), decoded.getPopTime());
     }
 }
