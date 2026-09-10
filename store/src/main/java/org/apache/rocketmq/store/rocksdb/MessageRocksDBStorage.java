@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -83,7 +84,8 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private volatile ColumnFamilyHandle timerCFHandle;
     private volatile ColumnFamilyHandle transCFHandle;
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private ScheduledExecutorService scheduler;
+    private ScheduledFuture<?> timerWalFlushTask;
     private static final Cache<String, byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
         .maximumSize(10000)
         .expireAfterWrite(60, TimeUnit.MINUTES)
@@ -114,14 +116,8 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
             this.defaultCFHandle = cfHandles.get(0);
             this.timerCFHandle = cfHandles.get(1);
             this.transCFHandle = cfHandles.get(2);
-            scheduler.scheduleAtFixedRate(() -> {
-                try {
-                    db.flush(flushOptions, timerCFHandle);
-                    log.info("MessageRocksDBStorage flush timer wal success");
-                } catch (Exception e) {
-                    logError.error("MessageRocksDBStorage flush timer wal failed, error: {}", e.getMessage());
-                }
-            }, 5, 5, TimeUnit.MINUTES);
+            scheduler = Executors.newScheduledThreadPool(1);
+            timerWalFlushTask = scheduler.scheduleAtFixedRate(this::flushTimerWal, 5, 5, TimeUnit.MINUTES);
 
             log.info("MessageRocksDBStorage init success, dbPath: {}", this.dbPath);
         } catch (final Exception e) {
@@ -141,8 +137,28 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     }
 
     @Override
-    protected void preShutdown() {
+    protected synchronized void preShutdown() {
+        if (timerWalFlushTask != null) {
+            timerWalFlushTask.cancel(false);
+            timerWalFlushTask = null;
+        }
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+            scheduler = null;
+        }
         log.info("MessageRocksDBStorage pre shutdown success, dbPath: {}", this.dbPath);
+    }
+
+    private synchronized void flushTimerWal() {
+        try {
+            if (!hold()) {
+                return;
+            }
+            db.flush(flushOptions, timerCFHandle);
+            log.info("MessageRocksDBStorage flush timer wal success");
+        } catch (Exception e) {
+            logError.error("MessageRocksDBStorage flush timer wal failed, error: {}", e.getMessage());
+        }
     }
 
     public List<Long> queryOffsetForIndex(byte[] columnFamily, String topic, String indexType, String key, long beginTime, long endTime, int maxNum, String lastKey) {
