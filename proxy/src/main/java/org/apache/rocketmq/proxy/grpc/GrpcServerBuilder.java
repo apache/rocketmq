@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import io.grpc.BindableService;
+import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
@@ -141,6 +142,13 @@ public class GrpcServerBuilder {
         return this;
     }
 
+    /**
+     * Registers an interceptor that runs <em>before</em> the pipeline installed by
+     * {@link #configInterceptor(ServerInterceptor...)}, because gRPC invokes server interceptors in
+     * reverse registration order. An interceptor that needs the normalized headers (the
+     * transport-derived channel id, the cleared authorization subject) must NOT be appended here;
+     * pass it to {@link #configInterceptor(ServerInterceptor...)} instead.
+     */
     public GrpcServerBuilder appendInterceptor(ServerInterceptor interceptor) {
         this.serverBuilder.intercept(interceptor);
         return this;
@@ -174,11 +182,36 @@ public class GrpcServerBuilder {
         return enableEpoll ? new EpollEventLoopGroup(threads) : new NioEventLoopGroup(threads);
     }
 
-    public GrpcServerBuilder configInterceptor() {
-        this.serverBuilder
-            .intercept(new GlobalExceptionInterceptor())
-            .intercept(new ContextInterceptor())
-            .intercept(new HeaderInterceptor());
+    /**
+     * Installs the standard pipeline, optionally with interceptors that must observe its normalized
+     * headers.
+     *
+     * @param postHeaderInterceptors interceptors to run after {@link HeaderInterceptor}, typically
+     *                               authentication
+     */
+    public GrpcServerBuilder configInterceptor(ServerInterceptor... postHeaderInterceptors) {
+        configureInterceptors(this.serverBuilder, postHeaderInterceptors);
         return this;
+    }
+
+    /**
+     * Orders the standard pipeline and the interceptors that depend on it. gRPC invokes server
+     * interceptors in reverse registration order, so {@code postHeaderInterceptors} are registered
+     * first precisely so that they run last.
+     *
+     * <p>Authentication depends on this order. {@link HeaderInterceptor} replaces the inbound
+     * {@code x-mq-channel-id} with the channel id derived from the transport and clears the
+     * authorization subject. Authentication results are cached per channel id, so authenticating on
+     * the client-supplied value would let a request on one connection reuse the cached success of
+     * another connection and skip signature verification.
+     */
+    static void configureInterceptors(ServerBuilder<?> serverBuilder,
+        ServerInterceptor... postHeaderInterceptors) {
+        for (ServerInterceptor interceptor : postHeaderInterceptors) {
+            serverBuilder.intercept(interceptor);
+        }
+        serverBuilder.intercept(new GlobalExceptionInterceptor());
+        serverBuilder.intercept(new ContextInterceptor());
+        serverBuilder.intercept(new HeaderInterceptor());
     }
 }

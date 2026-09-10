@@ -24,7 +24,7 @@
 # this workspace as the external repository @rocketmq_apis through a minimal
 # build file instead.
 #
-# The proto set is a glob over the whole v2 directory, so admin.proto (RIP-2) is
+# The proto set is a glob over the whole v2 directory, so admin.proto is
 # included alongside definition.proto and service.proto.
 filegroup(
     name = "v2_protos",

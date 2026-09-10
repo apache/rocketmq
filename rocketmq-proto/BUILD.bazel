@@ -17,7 +17,7 @@
 
 # Protocol classes generated at build time from the rocketmq-apis git submodule.
 #
-# The RIP-2 admin contract (admin.proto) is not part of any rocketmq-proto
+# The admin contract (admin.proto) is not part of any rocketmq-proto
 # artifact published to Maven Central, so the Java + gRPC classes are generated
 # here from the submodule's .proto sources rather than resolved as a Maven
 # artifact. This mirrors what the rocketmq-proto Maven module does for the Maven

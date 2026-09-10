@@ -183,19 +183,13 @@ public class OffsetResetIT extends BaseConf {
         await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).until(
             () -> 0L == this.getConsumerLag(topic, consumer.getConsumerGroup()));
 
-        // In-flight messages decay to zero as the client acks them; this is
-        // asynchronous with the consumer offset reaching the broker max offset
-        // above, so poll instead of asserting immediately.
-        await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofMinutes(3)).untilAsserted(
-            () -> {
-                long expectInflight = 0L;
-                for (BrokerController controller : brokerControllerList) {
-                    ConsumeStats consumeStats = defaultMQAdminExt.getDefaultMQAdminExtImpl().getMqClientInstance()
-                        .getMQClientAPIImpl().getConsumeStats(controller.getBrokerAddr(),
-                            consumer.getConsumerGroup(), consumer.getTopic(), 3 * 1000);
-                    expectInflight += consumeStats.computeInflightTotalDiff();
-                }
-                Assert.assertEquals(0L, expectInflight);
-            });
+        long expectInflight = 0L;
+        for (BrokerController controller : brokerControllerList) {
+            ConsumeStats consumeStats = defaultMQAdminExt.getDefaultMQAdminExtImpl().getMqClientInstance()
+                .getMQClientAPIImpl().getConsumeStats(controller.getBrokerAddr(),
+                    consumer.getConsumerGroup(), consumer.getTopic(), 3 * 1000);
+            expectInflight += consumeStats.computeInflightTotalDiff();
+        }
+        Assert.assertEquals(0L, expectInflight);
     }
 }

@@ -30,7 +30,7 @@
     <artifactId>rocketmq-proto</artifactId>
     <name>rocketmq-proto ${project.version}</name>
     <description>Apache RocketMQ protocol APIs. Generated at build time from the rocketmq-apis
-        git submodule (apache/rocketmq/v2/*.proto), so the RIP-2 admin surface is consumed from
+        git submodule (apache/rocketmq/v2/*.proto), so the admin surface is consumed from
         source rather than from a published rocketmq-proto artifact.</description>
 
     <properties>
@@ -101,6 +101,18 @@
             </extension>
         </extensions>
         <plugins>
+            <!-- Generated at build time from the rocketmq-apis submodule. This module only
+                 participates in the reactor build and is NOT published to Maven Central:
+                 the org.apache.rocketmq:rocketmq-proto coordinate is owned by the
+                 rocketmq-apis repository (2.x versions), and deploying it here under
+                 ${revision} (e.g. 5.5.1) would collide with that coordinate. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.xolstice.maven.plugins</groupId>
                 <artifactId>protobuf-maven-plugin</artifactId>

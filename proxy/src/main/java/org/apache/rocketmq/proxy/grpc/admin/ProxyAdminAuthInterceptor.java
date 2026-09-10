@@ -49,7 +49,7 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 /**
- * RIP-2 D2 authorization interceptor for the dedicated Proxy Admin gRPC server.
+ * authorization interceptor for the dedicated Proxy Admin gRPC server.
  *
  * <p>Every admin RPC is bound to a dedicated ACL 2.0 resource under the
  * {@code proxy.admin.*} namespace with a distinct action, giving true
@@ -74,15 +74,20 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
  *
  * <p>Behavior modes:
  * <ul>
- *   <li>Cluster auth disabled and {@code proxyAdminRequireAuth=false}: the
+ *   <li>Cluster auth disabled and {@code grpcAdminServerAuthEnable=false}: the
  *       admin surface is open (same semantics as the data plane).</li>
  *   <li>Cluster auth enabled: requests are authenticated from the standard
  *       {@code Authorization} gRPC metadata and authorized against the
  *       per-method {@code proxy.admin.*} resource, exactly like the data
  *       plane does for topic/group resources.</li>
- *   <li>{@code proxyAdminRequireAuth=true}: fail-closed mode. Requests
- *       without verifiable credentials are rejected even if the cluster-wide
- *       authentication switch is off.</li>
+ *   <li>{@code grpcAdminServerAuthEnable=true}: fail-closed mode. The admin
+ *       surface must be able to both authenticate the caller and enforce the
+ *       per-method {@code proxy.admin.*} ACL, so it requires the cluster-wide
+ *       authentication AND authorization switches to be on. If either is off
+ *       every request is refused rather than served without a real permission
+ *       check: the authorization evaluator is itself gated by the cluster
+ *       authorization switch, so with authorization off it would silently pass
+ *       every call (including the destructive ones).</li>
  * </ul>
  */
 public class ProxyAdminAuthInterceptor implements ServerInterceptor {
@@ -135,10 +140,9 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
     public <R, W> ServerCall.Listener<R> interceptCall(ServerCall<R, W> call, Metadata headers,
         ServerCallHandler<R, W> next) {
         String method = call.getMethodDescriptor().getBareMethodName();
-        long startNanos = System.nanoTime();
         try {
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-            boolean requireAuth = proxyConfig != null && proxyConfig.isProxyAdminRequireAuth();
+            boolean requireAuth = proxyConfig != null && proxyConfig.isGrpcAdminServerAuthEnable();
             boolean authnEnabled = authConfig != null && authConfig.isAuthenticationEnabled();
             boolean authzEnabled = authConfig != null && authConfig.isAuthorizationEnabled();
 
@@ -150,8 +154,22 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
             // Fail-closed: credentials are demanded but cannot be verified at all.
             if (requireAuth && !authnEnabled) {
                 call.close(Status.UNAUTHENTICATED.withDescription(
-                    "proxyAdminRequireAuth is on but cluster authenticationEnabled is off; "
+                    "grpcAdminServerAuthEnable is on but cluster authenticationEnabled is off; "
                         + "enable authentication before using the admin surface in fail-closed mode"), new Metadata());
+                return noopListener();
+            }
+
+            // Fail-closed: the admin surface is locked down, but the ACL engine that enforces the
+            // per-method proxy.admin.* permission is gated by the cluster authorization switch.
+            // With that switch off the authorization evaluator returns without checking anything,
+            // so requiring auth here without authorization on would let any authenticated identity
+            // reach every admin RPC, including the destructive ones. Refuse instead of serving
+            // an unauthorized call.
+            if (requireAuth && !authzEnabled) {
+                call.close(Status.FAILED_PRECONDITION.withDescription(
+                    "grpcAdminServerAuthEnable is on but cluster authorizationEnabled is off; "
+                        + "enable authorization so the proxy.admin.* ACL can be enforced before "
+                        + "using the admin surface in fail-closed mode"), new Metadata());
                 return noopListener();
             }
 
@@ -172,7 +190,10 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
             }
 
             ResourceAction resourceAction = METHOD_PERMISSIONS.get(method);
-            if (resourceAction != null && (authzEnabled || requireAuth)) {
+            // After the fail-closed guards above, requireAuth implies authzEnabled, so the ACL is
+            // enforced exactly when the cluster authorization switch is on; there is no path where
+            // requireAuth alone would ask the (globally gated) evaluator to enforce and be ignored.
+            if (resourceAction != null && authzEnabled) {
                 if (StringUtils.isBlank(username)) {
                     call.close(Status.UNAUTHENTICATED.withDescription("missing credentials for proxy admin"),
                         new Metadata());
@@ -194,18 +215,15 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
                 resolveSourceIp(call));
             return next.startCall(call, headers);
         } catch (AuthenticationException e) {
-            ProxyAdminMetricsManager.recordError(method, (System.nanoTime() - startNanos) / 1_000_000L, e);
-            log.warn("RIP-2 admin authentication failed. method:{}, cause:{}", method, e.getMessage());
+            log.warn("admin authentication failed. method:{}, cause:{}", method, e.getMessage());
             call.close(Status.UNAUTHENTICATED.withDescription(e.getMessage()), new Metadata());
             return noopListener();
         } catch (AuthorizationException e) {
-            ProxyAdminMetricsManager.recordError(method, (System.nanoTime() - startNanos) / 1_000_000L, e);
-            log.warn("RIP-2 admin authorization denied. method:{}, cause:{}", method, e.getMessage());
+            log.warn("admin authorization denied. method:{}, cause:{}", method, e.getMessage());
             call.close(Status.PERMISSION_DENIED.withDescription(e.getMessage()), new Metadata());
             return noopListener();
         } catch (Throwable t) {
-            ProxyAdminMetricsManager.recordError(method, (System.nanoTime() - startNanos) / 1_000_000L, t);
-            log.error("RIP-2 admin auth interceptor error. method:{}", method, t);
+            log.error("admin auth interceptor error. method:{}", method, t);
             call.close(Status.INTERNAL.withDescription(t.getMessage()), new Metadata());
             return noopListener();
         }

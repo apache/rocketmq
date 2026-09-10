@@ -179,7 +179,7 @@ http_file(
 )
 
 # The rocketmq-apis git submodule (apache main), which supplies
-# apache/rocketmq/v2/*.proto including the RIP-2 admin.proto.
+# apache/rocketmq/v2/*.proto including the admin.proto.
 #
 # The submodule ships its own BUILD files, but they pull in toolchains this
 # workspace does not declare (graknlabs_bazel_distribution, googleapis), so the

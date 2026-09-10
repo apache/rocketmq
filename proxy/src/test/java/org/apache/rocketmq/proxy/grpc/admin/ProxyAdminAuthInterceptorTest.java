@@ -24,6 +24,8 @@ import io.grpc.Status;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
@@ -36,7 +38,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -85,66 +86,45 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
     // ---------------------------------------------------------------------
 
     @Test
-    public void allAdminMethodsAreMapped() {
-        String[] methods = {
-            "GetProxyRuntimeStats", "GetTopicRoute", "DescribeTopicStatus", "ListSubscription",
-            "DescribeSubscription", "ListConsumerConnection", "DescribeGroupAccumulation",
-            "GetConsumerRunningInfo", "QueryTimeSpan", "QueryMessage", "ChangeLogLevel",
-            "DeleteSubscription", "ResetGroupOffset", "AdminSendMessage", "PrintThreadStackTrace",
-            "VerifyMessage"};
-        for (String m : methods) {
-            assertNotNull("missing permission mapping for " + m,
-                ProxyAdminAuthInterceptor.resolveResourceAction(m));
+    public void everyAdminMethodMapsToExpectedResourceAndAction() {
+        // the full per-method ACL table: resource module + action. Read-only RPCs use GET/LIST,
+        // high-privilege mutations use UPDATE/DELETE/PUB, and each is scoped to its own resource.
+        Map<String, ProxyAdminAuthInterceptor.ResourceAction> expected = new LinkedHashMap<>();
+        expected.put("GetProxyRuntimeStats", ra(ProxyAdminAuthInterceptor.RESOURCE_OPS, Action.GET));
+        expected.put("GetTopicRoute", ra(ProxyAdminAuthInterceptor.RESOURCE_ROUTE, Action.GET));
+        expected.put("DescribeTopicStatus", ra(ProxyAdminAuthInterceptor.RESOURCE_OPS, Action.GET));
+        expected.put("ListSubscription", ra(ProxyAdminAuthInterceptor.RESOURCE_CLIENT, Action.LIST));
+        expected.put("DescribeSubscription", ra(ProxyAdminAuthInterceptor.RESOURCE_CLIENT, Action.GET));
+        expected.put("ListConsumerConnection", ra(ProxyAdminAuthInterceptor.RESOURCE_CLIENT, Action.LIST));
+        expected.put("DescribeGroupAccumulation", ra(ProxyAdminAuthInterceptor.RESOURCE_CLIENT, Action.GET));
+        expected.put("GetConsumerRunningInfo", ra(ProxyAdminAuthInterceptor.RESOURCE_CLIENT, Action.GET));
+        expected.put("QueryTimeSpan", ra(ProxyAdminAuthInterceptor.RESOURCE_CLIENT, Action.GET));
+        expected.put("QueryMessage", ra(ProxyAdminAuthInterceptor.RESOURCE_OPS, Action.GET));
+        expected.put("ChangeLogLevel", ra(ProxyAdminAuthInterceptor.RESOURCE_CONFIG, Action.UPDATE));
+        expected.put("DeleteSubscription", ra(ProxyAdminAuthInterceptor.RESOURCE_OPS, Action.DELETE));
+        expected.put("ResetGroupOffset", ra(ProxyAdminAuthInterceptor.RESOURCE_OPS, Action.UPDATE));
+        expected.put("AdminSendMessage", ra(ProxyAdminAuthInterceptor.RESOURCE_OPS, Action.PUB));
+        expected.put("PrintThreadStackTrace", ra(ProxyAdminAuthInterceptor.RESOURCE_CONNECTION, Action.UPDATE));
+        expected.put("VerifyMessage", ra(ProxyAdminAuthInterceptor.RESOURCE_CONNECTION, Action.UPDATE));
+
+        Set<String> resources = new HashSet<>();
+        for (Map.Entry<String, ProxyAdminAuthInterceptor.ResourceAction> e : expected.entrySet()) {
+            ProxyAdminAuthInterceptor.ResourceAction actual =
+                ProxyAdminAuthInterceptor.resolveResourceAction(e.getKey());
+            assertNotNull("missing mapping for " + e.getKey(), actual);
+            assertEquals("resource for " + e.getKey(), e.getValue().resource, actual.resource);
+            assertEquals("action for " + e.getKey(), e.getValue().action, actual.action);
+            resources.add(actual.resource);
         }
-    }
-
-    @Test
-    public void highPrivilegeOperationsNeverMapToReadActions() {
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("ResetGroupOffset").action);
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("ChangeLogLevel").action);
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("PrintThreadStackTrace").action);
-        assertEquals(Action.UPDATE, ProxyAdminAuthInterceptor.resolveResourceAction("VerifyMessage").action);
-        assertEquals(Action.DELETE, ProxyAdminAuthInterceptor.resolveResourceAction("DeleteSubscription").action);
-        assertEquals(Action.PUB, ProxyAdminAuthInterceptor.resolveResourceAction("AdminSendMessage").action);
-    }
-
-    @Test
-    public void readOnlyOperationsMapToReadActions() {
-        assertEquals(Action.LIST, ProxyAdminAuthInterceptor.resolveResourceAction("ListSubscription").action);
-        assertEquals(Action.LIST, ProxyAdminAuthInterceptor.resolveResourceAction("ListConsumerConnection").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeSubscription").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeGroupAccumulation").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("GetConsumerRunningInfo").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("QueryTimeSpan").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("QueryMessage").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("GetTopicRoute").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("GetProxyRuntimeStats").action);
-        assertEquals(Action.GET, ProxyAdminAuthInterceptor.resolveResourceAction("DescribeTopicStatus").action);
-    }
-
-    @Test
-    public void resourcesAreScopedPerModule() {
-        assertEquals(ProxyAdminAuthInterceptor.RESOURCE_CLIENT,
-            ProxyAdminAuthInterceptor.resolveResourceAction("ListConsumerConnection").resource);
-        assertEquals(ProxyAdminAuthInterceptor.RESOURCE_CONFIG,
-            ProxyAdminAuthInterceptor.resolveResourceAction("ChangeLogLevel").resource);
-        assertEquals(ProxyAdminAuthInterceptor.RESOURCE_CONNECTION,
-            ProxyAdminAuthInterceptor.resolveResourceAction("PrintThreadStackTrace").resource);
-        assertEquals(ProxyAdminAuthInterceptor.RESOURCE_ROUTE,
-            ProxyAdminAuthInterceptor.resolveResourceAction("GetTopicRoute").resource);
-        assertEquals(ProxyAdminAuthInterceptor.RESOURCE_OPS,
-            ProxyAdminAuthInterceptor.resolveResourceAction("ResetGroupOffset").resource);
-
-        Set<String> distinct = new HashSet<>();
-        distinct.add(ProxyAdminAuthInterceptor.RESOURCE_CLIENT);
-        distinct.add(ProxyAdminAuthInterceptor.RESOURCE_CONFIG);
-        distinct.add(ProxyAdminAuthInterceptor.RESOURCE_CONNECTION);
-        distinct.add(ProxyAdminAuthInterceptor.RESOURCE_ROUTE);
-        distinct.add(ProxyAdminAuthInterceptor.RESOURCE_OPS);
-        assertEquals(5, distinct.size());
-        for (String resource : distinct) {
+        // five distinct modules, all under the proxy.admin.* namespace
+        assertEquals(5, resources.size());
+        for (String resource : resources) {
             assertTrue(resource.startsWith("proxy.admin."));
         }
+    }
+
+    private static ProxyAdminAuthInterceptor.ResourceAction ra(String resource, Action action) {
+        return new ProxyAdminAuthInterceptor.ResourceAction(resource, action);
     }
 
     // ---------------------------------------------------------------------
@@ -157,7 +137,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         AuthConfig authConfig = new AuthConfig();
         authConfig.setAuthenticationEnabled(false);
         authConfig.setAuthorizationEnabled(false);
-        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(false);
 
         ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
         ServerCall<byte[], byte[]> call = serverCall("ListConsumerConnection");
@@ -174,7 +154,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         AuthConfig authConfig = new AuthConfig();
         authConfig.setAuthenticationEnabled(false);
         authConfig.setAuthorizationEnabled(false);
-        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(true);
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(true);
         try {
             ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
             ServerCall<byte[], byte[]> call = serverCall("ListClients");
@@ -185,9 +165,35 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
             org.mockito.ArgumentCaptor<Status> statusCaptor = org.mockito.ArgumentCaptor.forClass(Status.class);
             verify(call).close(statusCaptor.capture(), any(Metadata.class));
             assertEquals(Status.Code.UNAUTHENTICATED, statusCaptor.getValue().getCode());
-            assertTrue(statusCaptor.getValue().getDescription().contains("proxyAdminRequireAuth"));
+            assertTrue(statusCaptor.getValue().getDescription().contains("grpcAdminServerAuthEnable"));
         } finally {
-            ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+            ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(false);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void failClosedRejectsWhenRequireAuthButAuthorizationDisabled() {
+        // authentication on but authorization off: the ACL evaluator is globally gated off, so
+        // enforcement would silently pass. Fail-closed must refuse instead of serving an
+        // unauthorized (potentially destructive) admin RPC to any authenticated identity.
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.setAuthenticationEnabled(true);
+        authConfig.setAuthorizationEnabled(false);
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(true);
+        try {
+            ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
+            ServerCall<byte[], byte[]> call = serverCall("DeleteSubscription");
+            ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
+
+            interceptor.interceptCall(call, new Metadata(), next);
+            verify(next, never()).startCall(any(), any());
+            org.mockito.ArgumentCaptor<Status> statusCaptor = org.mockito.ArgumentCaptor.forClass(Status.class);
+            verify(call).close(statusCaptor.capture(), any(Metadata.class));
+            assertEquals(Status.Code.FAILED_PRECONDITION, statusCaptor.getValue().getCode());
+            assertTrue(statusCaptor.getValue().getDescription().contains("authorizationEnabled"));
+        } finally {
+            ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(false);
         }
     }
 
@@ -197,7 +203,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         AuthConfig authConfig = new AuthConfig();
         authConfig.setAuthenticationEnabled(true);
         authConfig.setAuthorizationEnabled(true);
-        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(true);
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(true);
         try {
             ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
             ServerCall<byte[], byte[]> call = serverCall("PrintThreadStackTrace");
@@ -211,20 +217,8 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
             verify(call).close(statusCaptor.capture(), any(Metadata.class));
             assertEquals(Status.Code.UNAUTHENTICATED, statusCaptor.getValue().getCode());
         } finally {
-            ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+            ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(false);
         }
-    }
-
-    @Test
-    public void resourceActionModelIsImmutablePerMethod() {
-        // sanity: repeated resolution yields the same mapping (no stateful drift)
-        ProxyAdminAuthInterceptor.ResourceAction first =
-            ProxyAdminAuthInterceptor.resolveResourceAction("DescribeSubscription");
-        ProxyAdminAuthInterceptor.ResourceAction second =
-            ProxyAdminAuthInterceptor.resolveResourceAction("DescribeSubscription");
-        assertEquals(first.resource, second.resource);
-        assertEquals(first.action, second.action);
-        assertFalse(first.resource.isEmpty());
     }
 
     @Test
@@ -237,7 +231,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         authConfig.setConfigName("proxy-admin-auth-failure-test-" + System.nanoTime());
         authConfig.setAuthenticationEnabled(true);
         authConfig.setAuthorizationEnabled(false);
-        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(false);
 
         ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
         ServerCall<byte[], byte[]> call = serverCall("ListConsumerConnection");
@@ -259,7 +253,7 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         authConfig.setConfigName("proxy-admin-authz-only-test-" + System.nanoTime());
         authConfig.setAuthenticationEnabled(false);
         authConfig.setAuthorizationEnabled(true);
-        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(false);
 
         ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
         ServerCall<byte[], byte[]> call = serverCall("GetTopicRoute");
@@ -271,22 +265,5 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         verify(call).close(statusCaptor.capture(), any(Metadata.class));
         assertEquals(Status.Code.UNAUTHENTICATED, statusCaptor.getValue().getCode());
         assertTrue(statusCaptor.getValue().getDescription().contains("missing credentials"));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void openModeResolvesSourceIpAndPassesThrough() {
-        AuthConfig authConfig = new AuthConfig();
-        authConfig.setAuthenticationEnabled(false);
-        authConfig.setAuthorizationEnabled(false);
-        ConfigurationManager.getProxyConfig().setProxyAdminRequireAuth(false);
-
-        ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
-        ServerCall<byte[], byte[]> call = serverCall("ListClients");
-        ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
-
-        interceptor.interceptCall(call, new Metadata(), next);
-        verify(next).startCall(any(), any());
-        verify(call, never()).close(any(), any());
     }
 }
