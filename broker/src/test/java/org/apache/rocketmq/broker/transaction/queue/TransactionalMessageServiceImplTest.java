@@ -57,6 +57,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -126,6 +127,34 @@ public class TransactionalMessageServiceImplTest {
         }).when(listener).resolveDiscardMsg(any(MessageExt.class));
         queueTransactionMsgService.check(timeOut, checkMax, listener);
         assertThat(checkMessage.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void testCheck_whenHalfMessagePullFails() {
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC)).thenReturn(createMessageQueueSet(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC));
+        when(bridge.getHalfMessage(0, 0, 1)).thenReturn(createDiscardPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 5, "hellp", 1));
+        // the store cannot serve the read for the next offset, so the bridge
+        // answers a null pull result
+        when(bridge.getHalfMessage(0, 1, 1)).thenReturn(null);
+        when(bridge.getOpMessage(anyInt(), anyLong(), anyInt())).thenReturn(createOpPulResult(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 1, "10", 1));
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        final AtomicInteger discardMessage = new AtomicInteger(0);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) {
+                discardMessage.addAndGet(1);
+                return null;
+            }
+        }).when(listener).resolveDiscardMsg(any(MessageExt.class));
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        assertThat(discardMessage.get()).isEqualTo(1);
+        // the offset of the already-checked message must still be committed,
+        // while the unread offset is retried on the next check round; before
+        // the fix the null pull result aborted the whole check with an NPE
+        // before the offset update
+        verify(bridge).updateConsumeOffset(any(MessageQueue.class), eq(1L));
     }
 
     @Test
