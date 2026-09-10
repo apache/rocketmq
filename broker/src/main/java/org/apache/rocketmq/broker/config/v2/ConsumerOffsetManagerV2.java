@@ -405,6 +405,23 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
     }
 
     @Override
+    public boolean hasOffsetRecord(final String group, final String topic) {
+        if (!MixAll.isLmq(topic)) {
+            return super.hasOffsetRecord(group, topic);
+        }
+
+        ByteBuf keyBuf = keyOfConsumerOffset(group, topic, 0);
+        try {
+            byte[] slice = configStorage.get(keyBuf.nioBuffer());
+            return slice != null;
+        } catch (RocksDBException e) {
+            throw new RuntimeException(e);
+        } finally {
+            keyBuf.release();
+        }
+    }
+
+    @Override
     public void commitPullOffset(String clientHost, String group, String topic, int queueId, long offset) {
         if (!MixAll.isLmq(topic)) {
             super.commitPullOffset(clientHost, group, topic, queueId, offset);
