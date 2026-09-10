@@ -60,6 +60,7 @@ import org.mockito.stubbing.Answer;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
@@ -452,6 +453,37 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
         Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
                 Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getInvisibleTimeMillisWhenClear()));
+    }
+
+    @Test
+    public void testClearGroupRetainsHandleWhenRenewalFails() {
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        ReceiptHandleGroupKey key = new ReceiptHandleGroupKey(channel, GROUP);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        CompletableFuture<AckResult> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new MQClientException(0, "renew failed"));
+        Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class),
+                Mockito.eq(MESSAGE_ID), Mockito.eq(GROUP), Mockito.eq(TOPIC),
+                Mockito.eq(ConfigurationManager.getProxyConfig().getInvisibleTimeMillisWhenClear())))
+            .thenReturn(failedFuture);
+
+        receiptHandleManager.clearGroup(key);
+
+        await().atMost(Duration.ofSeconds(1)).until(() ->
+            receiptHandleManager.receiptHandleGroupMap.containsKey(key));
+        assertFalse(receiptHandleManager.receiptHandleGroupMap.get(key).isEmpty());
+    }
+
+    @Test
+    public void testClearGroupRetainsHandlesWhenCleanupSubmissionIsRejected() {
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        ReceiptHandleGroupKey key = new ReceiptHandleGroupKey(channel, GROUP);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.returnHandleGroupWorkerService.shutdownNow();
+
+        receiptHandleManager.clearGroup(key);
+
+        assertTrue(receiptHandleManager.receiptHandleGroupMap.containsKey(key));
     }
 
     @Test
