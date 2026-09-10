@@ -381,6 +381,13 @@ public class ConsumerManager {
                     "SCAN: remove expired channel from ConsumerManager consumerTable, all clear, consumerGroup={}",
                     group);
                 it.remove();
+                // The group is gone for good, so leave the same traces as the
+                // other removal paths (unregisterConsumer/doChannelCloseEvent):
+                // release its consumer filters and clean the topicGroupTable,
+                // otherwise queryTopicConsumeByWho keeps reporting the dead
+                // group forever.
+                callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, group);
+                clearTopicGroupTable(consumerGroupInfo);
             }
         }
         removeExpireConsumerGroupInfo();
