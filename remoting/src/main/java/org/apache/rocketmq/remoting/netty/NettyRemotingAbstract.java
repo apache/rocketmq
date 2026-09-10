@@ -646,8 +646,9 @@ public abstract class NettyRemotingAbstract {
                         responseFuture.setSendRequestOK(true);
                         return;
                     }
-                    requestFail(opaque);
-                    log.warn("send a request command to channel <{}>, channelId={}, failed.", RemotingHelper.parseChannelRemoteAddr(channel), channel.id());
+                    requestFail(opaque, f.cause());
+                    log.warn("send a request command to channel <{}>, channelId={}, failed.",
+                        RemotingHelper.parseChannelRemoteAddr(channel), channel.id(), f.cause());
                 });
                 return future;
             } catch (Exception e) {
@@ -694,9 +695,14 @@ public abstract class NettyRemotingAbstract {
     }
 
     private void requestFail(final int opaque) {
+        requestFail(opaque, null);
+    }
+
+    private void requestFail(final int opaque, final Throwable cause) {
         ResponseFuture responseFuture = responseTable.remove(opaque);
         if (responseFuture != null) {
             responseFuture.setSendRequestOK(false);
+            responseFuture.setCause(cause);
             responseFuture.putResponse(null);
             try {
                 executeInvokeCallback(responseFuture);
@@ -734,12 +740,12 @@ public abstract class NettyRemotingAbstract {
                 channel.writeAndFlush(request).addListener((ChannelFutureListener) f -> {
                     once.release();
                     if (!f.isSuccess()) {
-                        log.warn("send a request command to channel <" + channel.remoteAddress() + "> failed.");
+                        log.warn("send a request command to channel <" + channel.remoteAddress() + "> failed.", f.cause());
                     }
                 });
             } catch (Exception e) {
                 once.release();
-                log.warn("write send a request command to channel <" + channel.remoteAddress() + "> failed.");
+                log.warn("write send a request command to channel <" + channel.remoteAddress() + "> failed.", e);
                 throw new RemotingSendRequestException(RemotingHelper.parseChannelRemoteAddr(channel), e);
             }
         } else {
