@@ -24,6 +24,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -52,7 +53,6 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
-import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -79,7 +79,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -121,7 +120,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Lock namesrvChannelLock = new ReentrantLock();
 
     private final ExecutorService publicExecutor;
-    private final ExecutorService scanExecutor;
 
     /**
      * Invoke the callback methods in this executor when process response.
@@ -155,9 +153,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactoryImpl("NettyClientPublicExecutor_"));
-
-        this.scanExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("NettyClientScan_thread_"));
 
         if (eventLoopGroup != null) {
             this.eventLoopGroupWorker = eventLoopGroup;
@@ -404,14 +399,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (this.publicExecutor != null) {
             try {
                 this.publicExecutor.shutdown();
-            } catch (Exception e) {
-                LOGGER.error("NettyRemotingServer shutdown exception, ", e);
-            }
-        }
-
-        if (this.scanExecutor != null) {
-            try {
-                this.scanExecutor.shutdown();
             } catch (Exception e) {
                 LOGGER.error("NettyRemotingServer shutdown exception, ", e);
             }
@@ -972,24 +959,40 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         for (final String namesrvAddr : nameServerList) {
-            scanExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Channel channel = NettyRemotingClient.this.getAndCreateChannel(namesrvAddr);
-                        if (channel != null) {
-                            NettyRemotingClient.this.availableNamesrvAddrMap.putIfAbsent(namesrvAddr, true);
-                        } else {
-                            Boolean value = NettyRemotingClient.this.availableNamesrvAddrMap.remove(namesrvAddr);
-                            if (value != null) {
-                                LOGGER.warn("scanAvailableNameSrv remove unconnected address {}", namesrvAddr);
-                            }
-                        }
-                    } catch (Exception e) {
-                        LOGGER.error("scanAvailableNameSrv get channel of {} failed, ", namesrvAddr, e);
-                    }
+            // Probe from the housekeeping timer without waiting for another channel operation.
+            if (eventLoopGroupWorker.isShuttingDown() || !lockChannelTables.tryLock()) {
+                continue;
+            }
+            try {
+                ChannelFuture channelFuture = getAndCreateChannelAsync(namesrvAddr);
+                if (channelFuture == null) {
+                    availableNamesrvAddrMap.remove(namesrvAddr);
+                    continue;
                 }
-            });
+                channelFuture.addListener((ChannelFutureListener) future -> {
+                    List<String> currentNameServers = namesrvAddrList.get();
+                    if (eventLoopGroupWorker.isShuttingDown() || currentNameServers == null
+                        || !currentNameServers.contains(namesrvAddr)) {
+                        return;
+                    }
+                    ChannelWrapper currentChannel = channelTables.get(namesrvAddr);
+                    if (currentChannel != null && currentChannel.getChannelFuture() != future) {
+                        return;
+                    }
+                    if (future.isSuccess() && future.channel().isActive()) {
+                        availableNamesrvAddrMap.putIfAbsent(namesrvAddr, true);
+                    } else if (availableNamesrvAddrMap.remove(namesrvAddr) != null) {
+                        LOGGER.warn("scanAvailableNameSrv remove unconnected address {}", namesrvAddr);
+                    }
+                });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                LOGGER.error("scanAvailableNameSrv get channel of {} failed, ", namesrvAddr, e);
+            } finally {
+                lockChannelTables.unlock();
+            }
         }
     }
 
