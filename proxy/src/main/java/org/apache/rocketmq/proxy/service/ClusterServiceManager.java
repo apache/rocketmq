@@ -158,6 +158,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendShutdown(scheduledExecutorService::shutdown);
         this.appendStartAndShutdown(this.messagingClientAPIFactory);
         this.appendStartAndShutdown(this.operationClientAPIFactory);
+        this.appendStartAndShutdown(this.adminService);
         this.appendStartAndShutdown(this.transactionClientAPIFactory);
         this.appendStartAndShutdown(this.liteSubscriptionAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
