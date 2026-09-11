@@ -103,4 +103,16 @@ public class StoreStatsServiceTest {
         method.invoke(storeStatsService);
     }
 
+    @Test
+    public void toStringAndRuntimeInfoBeforeFirstSampleShouldNotThrow() {
+        // The TPS snapshot lists are only filled by the sampling thread after
+        // start(); before that every TPS getter used by toString/getRuntimeInfo
+        // must return an empty value instead of throwing NoSuchElementException
+        // from LinkedList.getLast().
+        final StoreStatsService storeStatsService = new StoreStatsService();
+
+        org.junit.Assert.assertNotNull(storeStatsService.toString());
+        org.junit.Assert.assertFalse(storeStatsService.getRuntimeInfo().isEmpty());
+    }
+
 }
