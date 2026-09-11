@@ -20,6 +20,7 @@ package org.apache.rocketmq.store.queue;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -31,9 +32,12 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import org.apache.rocketmq.store.MessageFilter;
 
 import static java.lang.String.format;
 
@@ -248,6 +252,41 @@ public class BatchConsumeQueueTest extends StoreTestBase {
         Assert.assertEquals(801, batchConsumeQueue.getMaxOffsetInQueue());
         Assert.assertEquals(301, batchConsumeQueue.getMinOffsetInQueue());
 
+    }
+
+    @Test(timeout = 20000)
+    public void testEstimateMessageCount() {
+        BatchConsumeQueue batchConsumeQueue = createBatchConsume(null);
+        batchConsumeQueue.load();
+        short batchSize = 10;
+        int unitNum = 100;
+        for (int i = 0; i < unitNum; i++) {
+            batchConsumeQueue.putBatchMessagePositionInfo(i, 100, 0, i * batchSize, i * batchSize + 1, batchSize);
+        }
+        Assert.assertEquals(1001, batchConsumeQueue.getMaxOffsetInQueue());
+        Assert.assertEquals(1, batchConsumeQueue.getMinOffsetInQueue());
+
+        MessageFilter matchAllFilter = new MessageFilter() {
+            @Override
+            public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                return true;
+            }
+
+            @Override
+            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                return true;
+            }
+        };
+
+        // interior range
+        Assert.assertEquals(500, batchConsumeQueue.estimateMessageCount(1, 501, matchAllFilter));
+
+        // ranges ending at maxOffsetInQueue must be estimated instead of returning -1
+        Assert.assertEquals(1000, batchConsumeQueue.estimateMessageCount(1, 1001, matchAllFilter));
+        Assert.assertEquals(200, batchConsumeQueue.estimateMessageCount(801, 1001, matchAllFilter));
+
+        // out-of-range upper bound still reports -1
+        Assert.assertEquals(-1, batchConsumeQueue.estimateMessageCount(1, 1002, matchAllFilter));
     }
 
     @After
