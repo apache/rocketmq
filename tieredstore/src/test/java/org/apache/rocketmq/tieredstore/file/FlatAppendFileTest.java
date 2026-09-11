@@ -199,6 +199,30 @@ public class FlatAppendFileTest {
     }
 
     @Test
+    public void testReadAcrossMultipleFileSegments() {
+        storeConfig.setTieredStoreConsumeQueueMaxSize(100L);
+        FlatAppendFile flatFile = flatFileFactory.createFlatFileForConsumeQueue(MessageStoreUtil.toFilePath(queue));
+        flatFile.rollingNewFile(0L);
+
+        for (byte value = 1; value <= 3; value++) {
+            byte[] data = new byte[100];
+            Arrays.fill(data, value);
+            flatFile.append(ByteBuffer.wrap(data), 1L);
+        }
+        flatFile.commitAsync().join();
+
+        ByteBuffer result = flatFile.readAsync(50L, 250).join();
+        byte[] actual = new byte[result.remaining()];
+        result.get(actual);
+        byte[] expected = new byte[250];
+        Arrays.fill(expected, 0, 50, (byte) 1);
+        Arrays.fill(expected, 50, 150, (byte) 2);
+        Arrays.fill(expected, 150, 250, (byte) 3);
+        Assert.assertArrayEquals(expected, actual);
+        flatFile.destroy();
+    }
+
+    @Test
     public void testCleanExpiredFile() {
         FlatAppendFile flatFile = flatFileFactory.createFlatFileForConsumeQueue(MessageStoreUtil.toFilePath(queue));
         flatFile.destroyExpiredFile(1);
