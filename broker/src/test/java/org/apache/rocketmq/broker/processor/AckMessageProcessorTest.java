@@ -49,9 +49,11 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
@@ -366,4 +368,51 @@ public class AckMessageProcessorTest {
         }
     }
 
+    @Test
+    public void testBatchAck_appendAck_BatchUniqKeyKept() throws RemotingCommandException {
+        PopBufferMergeService popBufferMergeService = mock(PopBufferMergeService.class);
+        when(popBufferMergeService.addAk(anyInt(), any())).thenReturn(false);
+        when(popMessageProcessor.getPopBufferMergeService()).thenReturn(popBufferMergeService);
+        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, null);
+        ArgumentCaptor<MessageExtBrokerInner> msgCaptor = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        when(messageStore.putMessage(msgCaptor.capture())).thenReturn(putMessageResult);
+
+        long popTime = 1666860736757L;
+        String brokerName = "broker-a";
+        BatchAck bAck1 = new BatchAck();
+        bAck1.setConsumerGroup(MixAll.DEFAULT_CONSUMER_GROUP);
+        bAck1.setTopic(topic);
+        bAck1.setQueueId(0);
+        bAck1.setReviveQueueId(0);
+        bAck1.setStartOffset(MIN_OFFSET_IN_QUEUE);
+        bAck1.setBitSet(new BitSet());
+        bAck1.getBitSet().set(1);
+        bAck1.setRetry("0");
+        bAck1.setPopTime(popTime);
+        bAck1.setInvisibleTime(60000L);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BATCH_ACK_MESSAGE, null);
+        BatchAckMessageRequestBody reqBody = new BatchAckMessageRequestBody();
+        reqBody.setAcks(Collections.singletonList(bAck1));
+        reqBody.setBrokerName(brokerName);
+        request.setBody(reqBody.encode());
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = ackMessageProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        MessageExtBrokerInner ackMessage = msgCaptor.getValue();
+        assertThat(ackMessage).isNotNull();
+
+        BatchAckMsg expected = new BatchAckMsg();
+        expected.setConsumerGroup(MixAll.DEFAULT_CONSUMER_GROUP);
+        expected.setTopic(topic);
+        expected.setQueueId(0);
+        expected.setStartOffset(MIN_OFFSET_IN_QUEUE);
+        expected.setPopTime(popTime);
+        expected.setBrokerName(brokerName);
+        expected.getAckOffsetList().add(MIN_OFFSET_IN_QUEUE + 1);
+
+        assertThat(ackMessage.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX))
+            .isEqualTo(PopMessageProcessor.genBatchAckUniqueId(expected));
+    }
 }

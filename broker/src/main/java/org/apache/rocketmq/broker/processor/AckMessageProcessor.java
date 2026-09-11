@@ -298,7 +298,6 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         msgInner.setBornHost(this.brokerController.getStoreHost());
         msgInner.setStoreHost(this.brokerController.getStoreHost());
         msgInner.setDeliverTimeMs(popTime + invisibleTime);
-        msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         if (brokerController.getBrokerConfig().isAppendAckAsync()) {
             int finalAckCount = ackCount;
