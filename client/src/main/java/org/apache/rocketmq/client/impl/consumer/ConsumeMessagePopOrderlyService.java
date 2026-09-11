@@ -256,7 +256,7 @@ public class ConsumeMessagePopOrderlyService extends AbstractConsumeMessageServi
         try {
             // max reconsume times exceeded then send to dead letter queue.
             Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
-            MessageAccessor.setProperties(newMsg, msg.getProperties());
+            MessageAccessor.setProperties(newMsg, MessageAccessor.deepCopyProperties(msg.getProperties()));
             String originMsgId = MessageAccessor.getOriginMessageId(msg);
             MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
             newMsg.setFlag(msg.getFlag());
@@ -265,7 +265,7 @@ public class ConsumeMessagePopOrderlyService extends AbstractConsumeMessageServi
             MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
-            this.defaultMQPushConsumerImpl.getmQClientFactory().getDefaultMQProducer().send(newMsg);
+            OrderlyRetryMessageSender.send(this.defaultMQPushConsumerImpl, msg, newMsg);
             return true;
         } catch (Exception e) {
             log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
