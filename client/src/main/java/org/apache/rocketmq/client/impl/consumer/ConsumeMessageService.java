@@ -32,6 +32,7 @@ public interface ConsumeMessageService {
 
     void decCorePoolSize();
 
+    /** Returns the owned pool core size, or -1 when execution is managed externally. */
     int getCorePoolSize();
 
     ConsumeMessageDirectlyResult consumeMessageDirectly(final MessageExt msg, final String brokerName);
