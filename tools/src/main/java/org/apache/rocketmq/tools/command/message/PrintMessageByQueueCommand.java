@@ -252,5 +252,22 @@ public class PrintMessageByQueueCommand implements SubCommand {
         public int compareTo(final TagCountBean o) {
             return (int) (o.getCount().get() - this.count.get());
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof TagCountBean)) {
+                return false;
+            }
+            TagCountBean that = (TagCountBean) o;
+            return this.count.get() == that.count.get();
+        }
+
+        @Override
+        public int hashCode() {
+            return Long.hashCode(count.get());
+        }
     }
 }

@@ -132,6 +132,23 @@ public class TraceContext implements Comparable<TraceContext> {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TraceContext)) {
+            return false;
+        }
+        TraceContext that = (TraceContext) o;
+        return this.timeStamp == that.timeStamp;
+    }
+
+    @Override
+    public int hashCode() {
+        return Long.hashCode(timeStamp);
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("TraceContext{").append(traceType).append("_").append(groupName).append("_")

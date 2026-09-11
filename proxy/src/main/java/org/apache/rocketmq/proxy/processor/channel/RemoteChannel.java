@@ -60,6 +60,23 @@ public class RemoteChannel extends SimpleChannel implements ChannelExtendAttribu
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof RemoteChannelId)) {
+                return false;
+            }
+            RemoteChannelId that = (RemoteChannelId) o;
+            return this.id.equals(that.id);
+        }
+
+        @Override
+        public int hashCode() {
+            return this.id.hashCode();
+        }
+
+        @Override
         public String toString() {
             return MoreObjects.toStringHelper(this)
                 .add("id", id)
