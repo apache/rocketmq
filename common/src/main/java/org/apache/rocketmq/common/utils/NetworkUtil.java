@@ -193,6 +193,9 @@ public class NetworkUtil {
 
     public static SocketAddress string2SocketAddress(final String addr) {
         int split = addr.lastIndexOf(":");
+        if (split < 0) {
+            throw new IllegalArgumentException("Invalid socket address, missing ':': " + addr);
+        }
         String host = addr.substring(0, split);
         String port = addr.substring(split + 1);
         return new InetSocketAddress(host, Integer.parseInt(port));
@@ -201,7 +204,9 @@ public class NetworkUtil {
     public static String socketAddress2String(final SocketAddress addr) {
         StringBuilder sb = new StringBuilder();
         InetSocketAddress inetSocketAddress = (InetSocketAddress) addr;
-        sb.append(inetSocketAddress.getAddress().getHostAddress());
+        // getAddress() returns null when the hostname could not be resolved; fall back to the host string.
+        InetAddress address = inetSocketAddress.getAddress();
+        sb.append(address != null ? address.getHostAddress() : inetSocketAddress.getHostString());
         sb.append(":");
         sb.append(inetSocketAddress.getPort());
         return sb.toString();
