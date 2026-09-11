@@ -462,6 +462,48 @@ public class ConsumeQueueTest {
     }
 
     @Test
+    public void testEstimateMessageCountWhenExtUnitMissing() {
+        String topic = "T1";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "test_estimate_message_count_ext_missing");
+        tmpDir.deleteOnExit();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        // Construct the queue with the ext enabled so consumeQueueExt exists, then
+        // write one entry with the ext disabled: the stored tagsCode stays a raw
+        // (positive) value, which is exactly what the "save tagsCode only"
+        // fallback of putMessagePositionInfoWrapper persists. Re-enabling the
+        // ext afterwards must not make estimateMessageCount fail with an NPE.
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+        storeConfig.setEnableConsumeQueueExt(false);
+        int messageSize = 100;
+        DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, messageSize, messageSize, 0, 0, 0, null, null, 0, 0, null);
+        consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
+        Assert.assertEquals(1, consumeQueue.getMaxOffsetInQueue());
+
+        storeConfig.setEnableConsumeQueueExt(true);
+        MessageFilter filter = Mockito.mock(MessageFilter.class);
+        Mockito.when(filter.isMatchedByConsumeQueue(Mockito.anyLong(), Mockito.any())).thenReturn(false);
+
+        long count = consumeQueue.estimateMessageCount(0, 1, filter);
+
+        Assert.assertEquals(0, count);
+        consumeQueue.destroy();
+    }
+
+    @Test
     public void testCorrectMinOffset() {
         String topic = "T1";
         int queueId = 0;
