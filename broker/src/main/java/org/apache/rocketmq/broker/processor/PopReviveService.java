@@ -54,6 +54,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -592,12 +593,16 @@ public class PopReviveService extends ServiceThread {
                 if (inflightReviveRequestMap.containsKey(popCheckPoint)) {
                     inflightReviveRequestMap.get(popCheckPoint).setObject2(true);
                 }
-                for (Map.Entry<PopCheckPoint, Pair<Long, Boolean>> entry : inflightReviveRequestMap.entrySet()) {
+                // Use the iterator to remove entries: directly calling map.remove() while
+                // iterating over the fail-fast TreeMap iterator throws ConcurrentModificationException.
+                Iterator<Map.Entry<PopCheckPoint, Pair<Long, Boolean>>> iterator = inflightReviveRequestMap.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<PopCheckPoint, Pair<Long, Boolean>> entry = iterator.next();
                     PopCheckPoint oldCK = entry.getKey();
                     Pair<Long, Boolean> pair = entry.getValue();
                     if (pair.getObject2()) {
                         brokerController.getConsumerOffsetManager().commitOffset(PopAckConstants.LOCAL_HOST, PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, oldCK.getReviveOffset());
-                        inflightReviveRequestMap.remove(oldCK);
+                        iterator.remove();
                     } else {
                         break;
                     }
