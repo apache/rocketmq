@@ -228,6 +228,7 @@ public class RequestCode {
 
     public static final int LITE_PULL_MESSAGE = 361;
     public static final int RECALL_MESSAGE = 370;
+    public static final int DELETE_CONSUMER_OFFSET = 380;
 
     public static final int QUERY_ASSIGNMENT = 400;
     public static final int SET_MESSAGE_REQUEST_MODE = 401;
