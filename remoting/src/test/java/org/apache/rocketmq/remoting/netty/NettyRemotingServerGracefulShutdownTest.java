@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import io.netty.channel.Channel;
 import java.io.DataInputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -30,6 +31,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -92,7 +94,8 @@ public class NettyRemotingServerGracefulShutdownTest {
         Future<?> shutdown = shutdownExecutor.submit(child::shutdown);
         awaitDraining(child);
         Future<?> duplicate = shutdownExecutor.submit(child::shutdown);
-        assertWaiting(duplicate);
+        duplicate.get(1, TimeUnit.SECONDS);
+        assertWaiting(shutdown);
         assertThat(request(existing)).isEqualTo(ResponseCode.GO_AWAY);
         assertThat(request(connect(child))).isEqualTo(ResponseCode.GO_AWAY);
         // Retain the existing protocol-version condition for older clients.
@@ -102,7 +105,6 @@ public class NettyRemotingServerGracefulShutdownTest {
         assertThat(server.eventLoopGroupSelector.isShuttingDown()).isFalse();
 
         shutdown.get(GRACE_SECONDS + 3, TimeUnit.SECONDS);
-        duplicate.get(3, TimeUnit.SECONDS);
         assertListenerClosed(child);
         assertThat(request(connect(server))).isEqualTo(ResponseCode.SUCCESS);
         assertThat(request(connect(sibling))).isEqualTo(ResponseCode.SUCCESS);
@@ -120,7 +122,8 @@ public class NettyRemotingServerGracefulShutdownTest {
         awaitDraining(third);
         Future<?> duplicate = shutdownExecutor.submit(server::shutdown);
         Future<?> childShutdown = shutdownExecutor.submit(first::shutdown);
-        assertWaiting(duplicate);
+        duplicate.get(1, TimeUnit.SECONDS);
+        assertWaiting(shutdown);
         assertWaiting(childShutdown);
         assertThat(request(existing)).isEqualTo(ResponseCode.GO_AWAY);
         for (RemotingServer target : new RemotingServer[] {server, first, second, third}) {
@@ -129,7 +132,6 @@ public class NettyRemotingServerGracefulShutdownTest {
         assertThat(server.eventLoopGroupSelector.isShuttingDown()).isFalse();
         // Three children must not add three separate grace periods to the parent shutdown.
         shutdown.get(GRACE_SECONDS + 3, TimeUnit.SECONDS);
-        duplicate.get(3, TimeUnit.SECONDS);
         childShutdown.get(3, TimeUnit.SECONDS);
         assertListenerClosed(first);
         assertListenerClosed(second);
@@ -264,7 +266,10 @@ public class NettyRemotingServerGracefulShutdownTest {
         assertThatThrownBy(() -> shutdown.get(100, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
     }
 
-    private void assertListenerClosed(RemotingServer target) {
-        assertThatThrownBy(() -> connect(target)).isInstanceOf(java.net.ConnectException.class);
+    private void assertListenerClosed(RemotingServer target) throws Exception {
+        // A closed port can report either refusal or connect timeout on different platforms.
+        Channel listener = (Channel) FieldUtils.readDeclaredField(target, "serverChannel", true);
+        assertThat(listener.closeFuture().await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(listener.isOpen()).isFalse();
     }
 }

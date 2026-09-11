@@ -82,7 +82,6 @@ import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -91,7 +90,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
@@ -110,10 +109,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
-    // Only protects the transition to draining; never held while waiting or closing channels.
-    private final ReentrantLock shutdownLock = new ReentrantLock();
     private final AtomicBoolean shutdownStarted = new AtomicBoolean();
-    private final CompletableFuture<Void> shutdownComplete = new CompletableFuture<>();
 
     /**
      * NettyRemotingServer may hold multiple SubRemotingServer, each server will be stored in this container with a
@@ -338,28 +334,20 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @Override
     public void shutdown() {
         if (!shutdownStarted.compareAndSet(false, true)) {
-            shutdownComplete.join();
             return;
         }
         try {
-            long deadlineNanos;
-            shutdownLock.lock();
-            try {
-                deadlineNanos = shutdownDeadlineNanos();
-                if (nettyServerConfig.isEnableShutdownGracefully()) {
-                    isShuttingDown.set(true);
-                }
-                for (NettyRemotingAbstract server : remotingServerTable.values()) {
-                    if (server instanceof SubRemotingServer) {
-                        SubRemotingServer subServer = (SubRemotingServer) server;
-                        subServer.beginShutdown();
-                        if (subServer.shutdownDeadlineNanos - deadlineNanos > 0) {
-                            deadlineNanos = subServer.shutdownDeadlineNanos;
-                        }
+            long deadlineNanos = shutdownDeadlineNanos();
+            if (nettyServerConfig.isEnableShutdownGracefully()) {
+                isShuttingDown.set(true);
+            }
+            for (NettyRemotingAbstract server : remotingServerTable.values()) {
+                if (server instanceof SubRemotingServer) {
+                    long childDeadlineNanos = ((SubRemotingServer) server).beginShutdown();
+                    if (childDeadlineNanos - deadlineNanos > 0) {
+                        deadlineNanos = childDeadlineNanos;
                     }
                 }
-            } finally {
-                shutdownLock.unlock();
             }
             awaitShutdownDeadline(deadlineNanos);
 
@@ -392,8 +380,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
         } catch (Exception e) {
             log.error("NettyRemotingServer shutdown exception, ", e);
-        } finally {
-            shutdownComplete.complete(null);
         }
     }
 
@@ -737,9 +723,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         private volatile int listenPort;
         private volatile Channel serverChannel;
         private final AtomicBoolean shutdownStarted = new AtomicBoolean();
-        private final CompletableFuture<Void> shutdownComplete = new CompletableFuture<>();
-        // Guarded by the parent's shutdownLock, like the transition of isShuttingDown.
-        private long shutdownDeadlineNanos;
+        private final AtomicReference<Long> shutdownDeadlineNanos = new AtomicReference<>();
 
         SubRemotingServer(final int port, final int permitsOnway, final int permitsAsync) {
             super(permitsOnway, permitsAsync);
@@ -827,34 +811,20 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public void shutdown() {
             if (!shutdownStarted.compareAndSet(false, true)) {
-                shutdownComplete.join();
                 return;
             }
-            try {
-                long deadlineNanos;
-                shutdownLock.lock();
-                try {
-                    beginShutdown();
-                    deadlineNanos = shutdownDeadlineNanos;
-                } finally {
-                    shutdownLock.unlock();
-                }
-                awaitShutdownDeadline(deadlineNanos);
-                ChannelFuture closeFuture = closeListener();
-                if (closeFuture != null) {
-                    closeFuture.awaitUninterruptibly(5, TimeUnit.SECONDS);
-                }
-            } finally {
-                shutdownComplete.complete(null);
+            awaitShutdownDeadline(beginShutdown());
+            ChannelFuture closeFuture = closeListener();
+            if (closeFuture != null) {
+                closeFuture.awaitUninterruptibly(5, TimeUnit.SECONDS);
             }
         }
 
-        // Called under shutdownLock. A child already draining keeps its original deadline.
-        private void beginShutdown() {
-            if (!isShuttingDown.get()) {
-                shutdownDeadlineNanos = NettyRemotingServer.this.shutdownDeadlineNanos();
-                isShuttingDown.set(true);
-            }
+        private long beginShutdown() {
+            // Keep the first deadline. Either caller can publish the draining flag after it.
+            shutdownDeadlineNanos.compareAndSet(null, NettyRemotingServer.this.shutdownDeadlineNanos());
+            isShuttingDown.set(true);
+            return shutdownDeadlineNanos.get();
         }
 
         private ChannelFuture closeListener() {
