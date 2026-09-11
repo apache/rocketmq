@@ -46,6 +46,14 @@ public class NameServerAddressUtilsTest {
     }
 
     @Test
+    public void testParseInstanceIdFromEndpointWithoutDot() {
+        // an endpoint without a dot is not an instance endpoint; the utility must
+        // not throw StringIndexOutOfBoundsException on it
+        assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint("MQ_INST_123456789_BXXUzaee:80")).isNull();
+        assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint("localhost")).isNull();
+    }
+
+    @Test
     public void testGetNameSrvAddrFromNamesrvEndpoint() {
         assertThat(NameServerAddressUtils.getNameSrvAddrFromNamesrvEndpoint(endpoint1))
             .isEqualTo("127.0.0.1:9876");
