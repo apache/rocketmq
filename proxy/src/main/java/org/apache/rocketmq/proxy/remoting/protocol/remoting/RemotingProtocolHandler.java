@@ -52,8 +52,7 @@ public class RemotingProtocolHandler implements ProtocolHandler {
     public void config(ChannelHandlerContext ctx, ByteBuf msg) {
         ctx.pipeline().addLast(
             this.encoderSupplier.get(),
-            new NettyDecoder(),
-            this.remotingCodeDistributionHandlerSupplier.get(),
+            new NettyDecoder(this.remotingCodeDistributionHandlerSupplier.get()),
             this.connectionManageHandlerSupplier.get(),
             this.serverHandlerSupplier.get()
         );

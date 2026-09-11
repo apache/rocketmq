@@ -30,14 +30,29 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class NettyEncoder extends MessageToByteEncoder<RemotingCommand> {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
+    private final RemotingCodeDistributionHandler distributionHandler;
+
+    public NettyEncoder() {
+        this(null);
+    }
+
+    public NettyEncoder(RemotingCodeDistributionHandler distributionHandler) {
+        this.distributionHandler = distributionHandler;
+    }
+
     @Override
     public void encode(ChannelHandlerContext ctx, RemotingCommand remotingCommand, ByteBuf out)
         throws Exception {
         try {
+            int beginIndex = out.writerIndex();
             remotingCommand.fastEncodeHeader(out);
             byte[] body = remotingCommand.getBody();
             if (body != null) {
                 out.writeBytes(body);
+            }
+            if (distributionHandler != null) {
+                distributionHandler.recordOutbound(
+                    remotingCommand.getCode(), out.writerIndex() - beginIndex);
             }
         } catch (Exception e) {
             log.error("encode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
