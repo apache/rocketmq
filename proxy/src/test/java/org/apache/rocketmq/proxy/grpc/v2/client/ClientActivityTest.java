@@ -81,6 +81,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -414,6 +415,30 @@ public class ClientActivityTest extends BaseActivityTest {
         ProxyRelayResult<ConsumeMessageDirectlyResult> result = resultArgumentCaptor.getValue();
         assertThat(result.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(result.getResult().getConsumeResult()).isEqualTo(CMResult.CR_SUCCESS);
+    }
+
+    @Test
+    public void testTelemetryOnErrorBeforeAnyMessage() {
+        this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManagerMock);
+        ContextStreamObserver<TelemetryCommand> streamObserver = clientActivity.telemetry(new StreamObserver<TelemetryCommand>() {
+            @Override
+            public void onNext(TelemetryCommand value) {
+            }
+
+            @Override
+            public void onError(Throwable t) {
+            }
+
+            @Override
+            public void onCompleted() {
+            }
+        });
+
+        // the client cancelled the stream before sending any telemetry command,
+        // so the observer's proxyCtx is still null
+        streamObserver.onError(io.grpc.Status.CANCELLED.asRuntimeException());
+
+        verify(this.grpcClientSettingsManager, never()).offlineClientLiteSubscription(any(), anyString(), any());
     }
 
     protected CompletableFuture<TelemetryCommand> sendClientTelemetry(ProxyContext ctx, Settings settings) {
