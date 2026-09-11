@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.pop;
 import com.alibaba.fastjson2.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -68,6 +70,11 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
 public class PopConsumerService extends ServiceThread {
 
@@ -177,6 +184,10 @@ public class PopConsumerService extends ServiceThread {
             }
             // build response header here
             context.addGetMessageResult(result, topicId, queueId, retryType, offset);
+            String requestTopic = retryType == PopConsumerRecord.RetryType.NORMAL_TOPIC ?
+                topicId : KeyBuilder.parseNormalTopic(topicId, context.getGroupId());
+            this.recordPopMessageOut(result, requestTopic, topicId, context.getGroupId(),
+                retryType != PopConsumerRecord.RetryType.NORMAL_TOPIC);
             if (brokerConfig.isPopConsumerKVServiceLog()) {
                 log.info("PopConsumerService pop, time={}, invisible={}, " +
                         "groupId={}, topic={}, queueId={}, offset={}, attemptId={}",
@@ -203,6 +214,25 @@ public class PopConsumerService extends ServiceThread {
         this.brokerController.getConsumerOffsetManager().commitOffset(
             context.getClientHost(), context.getGroupId(), topicId, queueId, commitOffset);
         return context;
+    }
+
+    private void recordPopMessageOut(GetMessageResult getMessageResult, String requestTopic, String storeTopic,
+        String groupId, boolean isRetry) {
+        int messageCount = getMessageResult.getMessageCount();
+        int messageSize = getMessageResult.getBufferTotalSize();
+        this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestTopic, messageCount);
+        this.brokerController.getBrokerStatsManager().incGroupGetNums(groupId, storeTopic, messageCount);
+        this.brokerController.getBrokerStatsManager().incGroupGetSize(groupId, storeTopic, messageSize);
+
+        Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
+            .put(LABEL_TOPIC, requestTopic)
+            .put(LABEL_CONSUMER_GROUP, groupId)
+            .put(LABEL_IS_SYSTEM,
+                TopicValidator.isSystemTopic(requestTopic) || MixAll.isSysConsumerGroup(groupId))
+            .put(LABEL_IS_RETRY, isRetry)
+            .build();
+        this.brokerController.getBrokerMetricsManager().getMessagesOutTotal().add(messageCount, attributes);
+        this.brokerController.getBrokerMetricsManager().getThroughputOutTotal().add(messageSize, attributes);
     }
 
     public long getPopOffset(String groupId, String topicId, int queueId, int initMode, boolean fifo) {
