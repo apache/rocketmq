@@ -21,6 +21,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -178,10 +179,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }, serviceDetector);
     }
     private Optional<String> pickTopic() {
-        if (topicPublishInfoTable.isEmpty()) {
+        Iterator<String> iterator = topicPublishInfoTable.keySet().iterator();
+        if (!iterator.hasNext()) {
             return Optional.empty();
         }
-        return Optional.of(topicPublishInfoTable.keySet().iterator().next());
+        return Optional.of(iterator.next());
     }
     public void registerCheckForbiddenHook(CheckForbiddenHook checkForbiddenHook) {
         this.checkForbiddenHookList.add(checkForbiddenHook);

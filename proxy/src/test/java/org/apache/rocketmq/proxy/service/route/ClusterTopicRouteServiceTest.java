@@ -22,8 +22,12 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.net.HostAndPort;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,6 +54,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ClusterTopicRouteServiceTest extends BaseServiceTest {
@@ -127,6 +132,22 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
     }
 
     @Test
+    public void testPickTopicToleratesConcurrentCacheEviction() throws Exception {
+        LoadingCache<String, MessageQueueView> topicCache = mock(LoadingCache.class);
+        ClearingConcurrentMap<String, MessageQueueView> topicCacheMap = new ClearingConcurrentMap<>();
+        topicCacheMap.put(TOPIC, mock(MessageQueueView.class));
+        when(topicCache.asMap()).thenReturn(topicCacheMap);
+        setField(topicRouteService, "topicCache", topicCache);
+
+        Method method = TopicRouteService.class.getDeclaredMethod("pickTopic");
+        method.setAccessible(true);
+
+        Optional<String> topic = (Optional<String>) method.invoke(topicRouteService);
+
+        assertNotNull(topic);
+    }
+
+    @Test
     public void testTopicRouteCaffeineCache() throws InterruptedException {
         String key = "abc";
         String value = key;
@@ -163,5 +184,25 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
         assertThat(value).isEqualTo(topicCache.get(key));
         TimeUnit.SECONDS.sleep(5);
         assertThat(value).isEqualTo(topicCache.get(key));
+    }
+
+    private static void setField(Object target, String fieldName, Object value) throws Exception {
+        Field field = TopicRouteService.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
+
+    private static class ClearingConcurrentMap<K, V> extends ConcurrentHashMap<K, V> {
+        private boolean clearOnFirstIsEmpty = true;
+
+        @Override
+        public boolean isEmpty() {
+            boolean empty = super.isEmpty();
+            if (clearOnFirstIsEmpty) {
+                clearOnFirstIsEmpty = false;
+                super.clear();
+            }
+            return empty;
+        }
     }
 }
