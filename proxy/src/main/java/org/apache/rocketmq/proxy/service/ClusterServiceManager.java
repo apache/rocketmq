@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service;
 
+import java.util.Arrays;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -76,6 +77,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     protected MQClientAPIFactory operationClientAPIFactory;
     protected MQClientAPIFactory transactionClientAPIFactory;
     protected MQClientAPIFactory liteSubscriptionAPIFactory;
+    protected ProxyBrokerHeartbeatService proxyBrokerHeartbeatService;
 
     public ClusterServiceManager(RPCHook rpcHook) {
         this(rpcHook, null);
@@ -140,6 +142,11 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             scheduledExecutorService);
         this.liteSubscriptionService = new LiteSubscriptionService(this.topicRouteService, this.liteSubscriptionAPIFactory);
 
+        this.proxyBrokerHeartbeatService = new ProxyBrokerHeartbeatService(
+            Arrays.asList(this.messagingClientAPIFactory, this.operationClientAPIFactory,
+                this.transactionClientAPIFactory, this.liteSubscriptionAPIFactory),
+            this.scheduledExecutorService, proxyConfig);
+
         this.init();
     }
 
@@ -161,6 +168,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendStartAndShutdown(this.adminService);
         this.appendStartAndShutdown(this.transactionClientAPIFactory);
         this.appendStartAndShutdown(this.liteSubscriptionAPIFactory);
+        this.appendStartAndShutdown(this.proxyBrokerHeartbeatService);
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
         this.appendStartAndShutdown(this.metadataService);
