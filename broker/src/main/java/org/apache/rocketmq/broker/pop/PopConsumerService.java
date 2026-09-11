@@ -613,13 +613,41 @@ public class PopConsumerService extends ServiceThread {
 
         // could merge read operation here
         for (PopConsumerRecord record : consumerRecords) {
+            while (true) {
+                try {
+                    semaphore.acquire();
+                    break;
+                } catch (InterruptedException e) {
+                    // Shutdown stops this service with the stopped flag and wakeup() rather than
+                    // thread interruption, and ServiceThread.waitForRunning preserves the interrupt
+                    // status. Restoring the flag here would make every later acquire() throw again
+                    // and leave the revive service in a permanent busy loop, so consume incidental
+                    // interrupts and retry. If the service is being stopped (e.g. shutdown(true)),
+                    // abort the batch cleanly: the records are not yet deleted from the store and
+                    // will be reprocessed after the next start.
+                    if (this.isStopped()) {
+                        throw new RuntimeException("PopConsumerService stopped while acquiring the revive semaphore", e);
+                    }
+                    log.warn("PopConsumerService interrupted while acquiring the revive semaphore, retry");
+                }
+            }
             CompletableFuture<Boolean> future;
             try {
-                semaphore.acquire();
-                future = this.revive(record);
+                // Attach the exception-to-false conversion at this call site only: here a false
+                // result is consumed below and turned into a failureList backoff retry. Other
+                // callers of revive(record) (e.g. the PopConsumerCache callback) do not consume
+                // the result and must keep the original exception semantics.
+                future = this.revive(record).exceptionally(throwable -> {
+                    log.error("PopConsumerService revive failed, will retry, record={}", record, throwable);
+                    return false;
+                });
             } catch (Exception e) {
-                semaphore.release();
-                throw new RuntimeException(e);
+                // A synchronous failure from revive(record) (e.g. getMessageAsync throwing before it
+                // returns a future) must not abort the whole batch; treat it as a failed revive so the
+                // record goes through the failureList backoff-retry path below. The semaphore permit is
+                // released by the whenComplete stage attached to this future.
+                log.error("PopConsumerService revive threw synchronously, will retry, record={}", record, e);
+                future = CompletableFuture.completedFuture(false);
             }
             futureList.add(future.thenAccept(result -> {
                 if (!result) {
@@ -628,8 +656,8 @@ public class PopConsumerService extends ServiceThread {
                             Math.min(REWRITE_INTERVALS_IN_SECONDS.length - 1, record.getAttemptTimes())];
                         long nextInvisibleTime = record.getInvisibleTime() + backoffInterval;
                         PopConsumerRecord retryRecord = new PopConsumerRecord(System.currentTimeMillis(),
-                            record.getGroupId(), record.getTopicId(), record.getQueueId(),
-                            record.getRetryFlag(), nextInvisibleTime, record.getOffset(), record.getAttemptId());
+                            record.getGroupId(), record.getTopicId(), record.getQueueId(), record.getRetryFlag(),
+                            nextInvisibleTime, record.getOffset(), record.getAttemptId(), record.isSuspend());
                         retryRecord.setAttemptTimes(record.getAttemptTimes() + 1);
                         failureList.add(retryRecord);
                         log.warn("PopConsumerService revive backoff retry, record={}", retryRecord);
