@@ -62,6 +62,9 @@ public class ExpressionForRetryMessageFilter extends ExpressionMessageFilter {
                 decoded = true;
                 tempProperties = MessageDecoder.decodeProperties(msgBuffer);
             }
+            if (tempProperties == null) {
+                return false;
+            }
             String realTopic = tempProperties.get(MessageConst.PROPERTY_RETRY_TOPIC);
             String group = KeyBuilder.parseGroup(subscriptionData.getTopic());
             realFilterData = this.consumerFilterManager.get(realTopic, group);
