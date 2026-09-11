@@ -73,4 +73,12 @@ public class GrpcConstants {
 
     public static final Metadata.Key<String> CHANNEL_ID
         = Metadata.Key.of("x-mq-channel-id", Metadata.ASCII_STRING_MARSHALLER);
+
+    /**
+     * Loop-prevention marker for proxy admin RPCs: set to {@code "true"} by a proxy that forwards
+     * an admin call to the peer proxy owning the target client, so the peer never forwards it
+     * again.
+     */
+    public static final Metadata.Key<String> ADMIN_FORWARDED
+        = Metadata.Key.of("x-mq-admin-forwarded", Metadata.ASCII_STRING_MARSHALLER);
 }

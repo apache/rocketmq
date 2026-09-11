@@ -265,7 +265,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             @Override
             public void run(Timeout timeout) {
                 try {
-                    NettyRemotingServer.this.scanResponseTable();
+                    for (NettyRemotingAbstract server : remotingServerTable.values()) {
+                        server.scanResponseTable();
+                    }
                 } catch (Throwable e) {
                     log.error("scanResponseTable exception", e);
                 } finally {
@@ -334,6 +336,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             }
 
             this.timer.stop();
+            this.scheduledExecutorService.shutdown();
 
             this.eventLoopGroupBoss.shutdownGracefully();
 

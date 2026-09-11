@@ -46,6 +46,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.ExecutorService;
 
 public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, MessageListenerConcurrently {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -53,9 +54,16 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     protected final AdminService adminService;
     protected final MQClientAPIFactory mqClientAPIFactory;
     protected final RPCHook rpcHook;
+    protected final ExecutorService consumeExecutor;
     protected DefaultMQPushConsumer defaultMQPushConsumer;
 
     public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
+        this(topicRouteService, adminService, mqClientAPIFactory, rpcHook, null);
+    }
+
+    public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService,
+        MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook, ExecutorService consumeExecutor) {
+        this.consumeExecutor = consumeExecutor;
         this.topicRouteService = topicRouteService;
         this.adminService = adminService;
         this.mqClientAPIFactory = mqClientAPIFactory;
@@ -145,6 +153,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         RPCHook rpcHook = this.getRpcHook();
         this.defaultMQPushConsumer = new DefaultMQPushConsumer(this.getSystemMessageConsumerId(), rpcHook);
 
+        this.defaultMQPushConsumer.setConsumeExecutor(this.consumeExecutor);
         this.defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         this.defaultMQPushConsumer.setMessageModel(MessageModel.BROADCASTING);
         try {

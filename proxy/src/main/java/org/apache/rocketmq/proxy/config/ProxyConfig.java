@@ -63,6 +63,7 @@ public class ProxyConfig implements ConfigFile {
     private String heartbeatSyncerTopicClusterName = "";
     private int heartbeatSyncerThreadPoolNums = 4;
     private int heartbeatSyncerThreadPoolQueueCapacity = 100;
+    private int systemMessageConsumerThreadPoolCoreSize = PROCESSOR_NUMBER * 2;
 
     private String heartbeatSyncerTopicName = "DefaultHeartBeatSyncerTopic";
 
@@ -89,6 +90,33 @@ public class ProxyConfig implements ConfigFile {
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
     private Integer grpcServerPort = 8081;
+
+    /**
+     * Dedicated gRPC port for the Proxy Admin service. When &gt; 0 the proxy
+     * starts an independent admin gRPC server (separate ACL scope, isolated
+     * traffic) in addition to the data-plane gRPC server.
+     */
+    private Integer grpcAdminServerPort = 8088;
+    /**
+     * global kill switch for the Proxy Admin surface. When false the
+     * admin gRPC server is not started at all, regardless of {@link #grpcAdminServerPort}.
+     * Defaults to false: the admin surface is opt-in and must be explicitly enabled.
+     */
+    private boolean grpcAdminServerEnable = false;
+    /**
+     * When true the admin server enforces credential checks even if the cluster-wide
+     * authentication switch is off; requests without verifiable credentials are rejected
+     * (fail-closed mode). When false the admin server follows the cluster-wide
+     * authenticationEnabled/authorizationEnabled switches (same behavior as the data plane).
+     */
+    private boolean grpcAdminServerAuthEnable = false;
+    /**
+     * Per-request timeout in milliseconds for the broker calls an admin RPC fans out to.
+     * A single RPC may query several brokers concurrently, so this bounds each hop rather
+     * than the whole call.
+     */
+    private long grpcAdminServerRequestTimeoutMillis = 3000L;
+
     private long grpcShutdownTimeSeconds = 30;
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
@@ -424,6 +452,14 @@ public class ProxyConfig implements ConfigFile {
         this.heartbeatSyncerTopicClusterName = heartbeatSyncerTopicClusterName;
     }
 
+    public int getSystemMessageConsumerThreadPoolCoreSize() {
+        return systemMessageConsumerThreadPoolCoreSize;
+    }
+
+    public void setSystemMessageConsumerThreadPoolCoreSize(int systemMessageConsumerThreadPoolCoreSize) {
+        this.systemMessageConsumerThreadPoolCoreSize = systemMessageConsumerThreadPoolCoreSize;
+    }
+
     public int getHeartbeatSyncerThreadPoolNums() {
         return heartbeatSyncerThreadPoolNums;
     }
@@ -510,6 +546,38 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public Integer getGrpcAdminServerPort() {
+        return grpcAdminServerPort;
+    }
+
+    public void setGrpcAdminServerPort(Integer grpcAdminServerPort) {
+        this.grpcAdminServerPort = grpcAdminServerPort;
+    }
+
+    public boolean isGrpcAdminServerEnable() {
+        return grpcAdminServerEnable;
+    }
+
+    public void setGrpcAdminServerEnable(boolean grpcAdminServerEnable) {
+        this.grpcAdminServerEnable = grpcAdminServerEnable;
+    }
+
+    public boolean isGrpcAdminServerAuthEnable() {
+        return grpcAdminServerAuthEnable;
+    }
+
+    public void setGrpcAdminServerAuthEnable(boolean grpcAdminServerAuthEnable) {
+        this.grpcAdminServerAuthEnable = grpcAdminServerAuthEnable;
+    }
+
+    public long getGrpcAdminServerRequestTimeoutMillis() {
+        return grpcAdminServerRequestTimeoutMillis;
+    }
+
+    public void setGrpcAdminServerRequestTimeoutMillis(long grpcAdminServerRequestTimeoutMillis) {
+        this.grpcAdminServerRequestTimeoutMillis = grpcAdminServerRequestTimeoutMillis;
     }
 
     public long getGrpcShutdownTimeSeconds() {

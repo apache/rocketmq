@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.grpc.Server;
+import io.grpc.netty.shaded.io.netty.channel.EventLoopGroup;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -33,6 +34,8 @@ public class GrpcServer implements StartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final Server server;
+    private final EventLoopGroup ownedBossGroup;
+    private final EventLoopGroup ownedWorkerGroup;
 
     private final long timeout;
 
@@ -43,7 +46,14 @@ public class GrpcServer implements StartAndShutdown {
 
     protected GrpcServer(Server server, long timeout, TimeUnit unit,
         TlsCertificateManager tlsCertificateManager) throws Exception {
+        this(server, timeout, unit, tlsCertificateManager, null, null);
+    }
+
+    GrpcServer(Server server, long timeout, TimeUnit unit, TlsCertificateManager tlsCertificateManager,
+        EventLoopGroup ownedBossGroup, EventLoopGroup ownedWorkerGroup) throws Exception {
         this.server = server;
+        this.ownedBossGroup = ownedBossGroup;
+        this.ownedWorkerGroup = ownedWorkerGroup;
         this.timeout = timeout;
         this.unit = unit;
         this.tlsCertificateManager = tlsCertificateManager;
@@ -51,11 +61,15 @@ public class GrpcServer implements StartAndShutdown {
     }
 
     public void start() throws Exception {
-        // Register the TLS context reload handler
-        tlsCertificateManager.registerReloadListener(this.tlsReloadHandler);
-
-        this.server.start();
-        log.info("grpc server start successfully.");
+        try {
+            // Register the TLS context reload handler
+            tlsCertificateManager.registerReloadListener(this.tlsReloadHandler);
+            this.server.start();
+            log.info("grpc server start successfully.");
+        } catch (Exception | Error e) {
+            shutdown();
+            throw e;
+        }
     }
 
     public void shutdown() {
@@ -63,12 +77,25 @@ public class GrpcServer implements StartAndShutdown {
             // Unregister the TLS context reload handler
             tlsCertificateManager.unregisterReloadListener(this.tlsReloadHandler);
 
-            this.server.shutdown().awaitTermination(timeout, unit);
+            if (!this.server.shutdown().awaitTermination(timeout, unit)) {
+                this.server.shutdownNow().awaitTermination(timeout, unit);
+            }
 
             log.info("grpc server shutdown successfully.");
+        } catch (InterruptedException e) {
+            this.server.shutdownNow();
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while shutting down grpc server", e);
         } catch (Exception e) {
-            e.printStackTrace();
+            this.server.shutdownNow();
             log.error("Failed to shutdown grpc server", e);
+        } finally {
+            if (ownedBossGroup != null) {
+                ownedBossGroup.shutdownGracefully();
+            }
+            if (ownedWorkerGroup != null) {
+                ownedWorkerGroup.shutdownGracefully();
+            }
         }
     }
 

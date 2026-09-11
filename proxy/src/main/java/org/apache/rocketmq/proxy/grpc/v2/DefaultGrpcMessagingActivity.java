@@ -97,6 +97,14 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.appendStartAndShutdown(this.grpcClientSettingsManager);
     }
 
+    public GrpcChannelManager getGrpcChannelManager() {
+        return this.grpcChannelManager;
+    }
+
+    public GrpcClientSettingsManager getGrpcClientSettingsManager() {
+        return this.grpcClientSettingsManager;
+    }
+
     @Override
     public CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request) {
         return this.routeActivity.queryRoute(ctx, request);

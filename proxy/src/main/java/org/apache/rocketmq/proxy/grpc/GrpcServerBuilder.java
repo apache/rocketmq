@@ -17,13 +17,16 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import io.grpc.BindableService;
+import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.netty.shaded.io.netty.channel.EventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
+import java.util.Objects;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -39,6 +42,11 @@ import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 public class GrpcServerBuilder {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected NettyServerBuilder serverBuilder;
+    private final int bossLoopNum;
+    private final int workerLoopNum;
+    private final boolean enableEpoll;
+    private final EventLoopGroup bossGroup;
+    private final EventLoopGroup workerGroup;
 
     protected long time = 30;
 
@@ -51,8 +59,50 @@ public class GrpcServerBuilder {
         return new GrpcServerBuilder(executor, port, tlsCertificateManager);
     }
 
+    /**
+     * Creates a server with internally owned event loops. Zero selects Netty's default thread count.
+     */
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+        TlsCertificateManager tlsCertificateManager, int bossLoopNum, int workerLoopNum) {
+        return new GrpcServerBuilder(executor, port, tlsCertificateManager, bossLoopNum, workerLoopNum);
+    }
+
+    /**
+     * Creates a server using caller-owned event loops. Both groups must match enableGrpcEpoll.
+     * The caller must close them after all servers using them have terminated.
+     */
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+        TlsCertificateManager tlsCertificateManager, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+        return new GrpcServerBuilder(executor, port, tlsCertificateManager, bossGroup, workerGroup);
+    }
+
     protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
+        this(executor, port, tlsCertificateManager, ConfigurationManager.getProxyConfig().getGrpcBossLoopNum(),
+            ConfigurationManager.getProxyConfig().getGrpcWorkerLoopNum());
+    }
+
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager,
+        int bossLoopNum, int workerLoopNum) {
+        this(executor, port, tlsCertificateManager, bossLoopNum, workerLoopNum, null, null);
+    }
+
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager,
+        EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+        this(executor, port, tlsCertificateManager, 0, 0,
+            Objects.requireNonNull(bossGroup, "bossGroup"), Objects.requireNonNull(workerGroup, "workerGroup"));
+    }
+
+    private GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager,
+        int bossLoopNum, int workerLoopNum, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+        if (bossLoopNum < 0 || workerLoopNum < 0) {
+            throw new IllegalArgumentException("Event loop thread counts must not be negative");
+        }
         ProxyConfig config = ConfigurationManager.getProxyConfig();
+        this.bossLoopNum = bossLoopNum;
+        this.workerLoopNum = workerLoopNum;
+        this.enableEpoll = config.isEnableGrpcEpoll();
+        this.bossGroup = bossGroup;
+        this.workerGroup = workerGroup;
         this.tlsCertificateManager = tlsCertificateManager;
         serverBuilder = NettyServerBuilder.forPort(port)
             .maxConcurrentCallsPerConnection(config.getGrpcMaxConcurrentCallsPerConnection());
@@ -60,30 +110,20 @@ public class GrpcServerBuilder {
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
 
         // build server
-        int bossLoopNum = config.getGrpcBossLoopNum();
-        int workerLoopNum = config.getGrpcWorkerLoopNum();
         int maxInboundMessageSize = config.getGrpcMaxInboundMessageSize();
         long idleTimeMills = config.getGrpcClientIdleTimeMills();
 
-        if (config.isEnableGrpcEpoll()) {
-            serverBuilder.bossEventLoopGroup(new EpollEventLoopGroup(bossLoopNum))
-                .workerEventLoopGroup(new EpollEventLoopGroup(workerLoopNum))
-                .channelType(EpollServerSocketChannel.class)
-                .executor(executor);
-        } else {
-            serverBuilder.bossEventLoopGroup(new NioEventLoopGroup(bossLoopNum))
-                .workerEventLoopGroup(new NioEventLoopGroup(workerLoopNum))
-                .channelType(NioServerSocketChannel.class)
-                .executor(executor);
-        }
+        serverBuilder.channelType(enableEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
+            .executor(executor);
 
         serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
             .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS)
             .permitKeepAliveTime(config.getGrpcServerPermitKeepAliveTimeMillis(), TimeUnit.MILLISECONDS)
             .permitKeepAliveWithoutCalls(config.isGrpcServerPermitKeepAliveWithoutCalls());
 
-        log.info("grpc server has built. port: {}, bossLoopNum: {}, workerLoopNum: {}, maxInboundMessageSize: {}",
-            port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
+        log.info("grpc server builder initialized. port: {}, bossLoopNum: {}, workerLoopNum: {}, "
+                + "callerOwnedEventLoops: {}, maxInboundMessageSize: {}",
+            port, bossLoopNum, workerLoopNum, bossGroup != null, maxInboundMessageSize);
     }
 
     public GrpcServerBuilder shutdownTime(long time, TimeUnit unit) {
@@ -102,20 +142,76 @@ public class GrpcServerBuilder {
         return this;
     }
 
+    /**
+     * Registers an interceptor that runs <em>before</em> the pipeline installed by
+     * {@link #configInterceptor(ServerInterceptor...)}, because gRPC invokes server interceptors in
+     * reverse registration order. An interceptor that needs the normalized headers (the
+     * transport-derived channel id, the cleared authorization subject) must NOT be appended here;
+     * pass it to {@link #configInterceptor(ServerInterceptor...)} instead.
+     */
     public GrpcServerBuilder appendInterceptor(ServerInterceptor interceptor) {
         this.serverBuilder.intercept(interceptor);
         return this;
     }
 
     public GrpcServer build() throws Exception {
-        return new GrpcServer(this.serverBuilder.build(), time, unit, tlsCertificateManager);
+        EventLoopGroup boss = bossGroup;
+        EventLoopGroup worker = workerGroup;
+        boolean ownsEventLoops = boss == null;
+        try {
+            if (ownsEventLoops) {
+                boss = newEventLoopGroup(bossLoopNum);
+                worker = newEventLoopGroup(workerLoopNum);
+            }
+            return new GrpcServer(serverBuilder.bossEventLoopGroup(boss).workerEventLoopGroup(worker).build(),
+                time, unit, tlsCertificateManager, ownsEventLoops ? boss : null, ownsEventLoops ? worker : null);
+        } catch (Exception | Error e) {
+            if (ownsEventLoops) {
+                if (boss != null) {
+                    boss.shutdownGracefully();
+                }
+                if (worker != null) {
+                    worker.shutdownGracefully();
+                }
+            }
+            throw e;
+        }
     }
 
-    public GrpcServerBuilder configInterceptor() {
-        this.serverBuilder
-            .intercept(new GlobalExceptionInterceptor())
-            .intercept(new ContextInterceptor())
-            .intercept(new HeaderInterceptor());
+    private EventLoopGroup newEventLoopGroup(int threads) {
+        return enableEpoll ? new EpollEventLoopGroup(threads) : new NioEventLoopGroup(threads);
+    }
+
+    /**
+     * Installs the standard pipeline, optionally with interceptors that must observe its normalized
+     * headers.
+     *
+     * @param postHeaderInterceptors interceptors to run after {@link HeaderInterceptor}, typically
+     *                               authentication
+     */
+    public GrpcServerBuilder configInterceptor(ServerInterceptor... postHeaderInterceptors) {
+        configureInterceptors(this.serverBuilder, postHeaderInterceptors);
         return this;
+    }
+
+    /**
+     * Orders the standard pipeline and the interceptors that depend on it. gRPC invokes server
+     * interceptors in reverse registration order, so {@code postHeaderInterceptors} are registered
+     * first precisely so that they run last.
+     *
+     * <p>Authentication depends on this order. {@link HeaderInterceptor} replaces the inbound
+     * {@code x-mq-channel-id} with the channel id derived from the transport and clears the
+     * authorization subject. Authentication results are cached per channel id, so authenticating on
+     * the client-supplied value would let a request on one connection reuse the cached success of
+     * another connection and skip signature verification.
+     */
+    static void configureInterceptors(ServerBuilder<?> serverBuilder,
+        ServerInterceptor... postHeaderInterceptors) {
+        for (ServerInterceptor interceptor : postHeaderInterceptors) {
+            serverBuilder.intercept(interceptor);
+        }
+        serverBuilder.intercept(new GlobalExceptionInterceptor());
+        serverBuilder.intercept(new ContextInterceptor());
+        serverBuilder.intercept(new HeaderInterceptor());
     }
 }

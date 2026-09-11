@@ -88,6 +88,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     protected void init() {
         this.appendStartAndShutdown(this.mqClientAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
+        this.appendStartAndShutdown(this.adminService);
         this.appendStartAndShutdown(new LocalServiceManagerStartAndShutdown());
     }
 

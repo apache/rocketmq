@@ -39,7 +39,13 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminAuthInterceptor;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminForwarder;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -91,16 +97,54 @@ public class ProxyStartup {
             TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
-            // create grpcServer
+            // create grpcServer (data plane). Capture the application reference so the
+            // admin server can reuse the SAME GrpcChannelManager / GrpcClientSettingsManager
+            // that the data plane uses to track online clients.
+            GrpcMessagingApplication dataPlaneApplication = createServiceProcessor(messagingProcessor);
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
                     ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
-                .addService(createServiceProcessor(messagingProcessor))
+                .addService(dataPlaneApplication)
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
                 .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
+
+            // Dedicated admin gRPC server (control plane), gated by grpcAdminServerEnable. Reuses
+            // the data plane's GrpcChannelManager so admin queries can see the data-plane clients.
+            Integer adminPort = ConfigurationManager.getProxyConfig().getGrpcAdminServerPort();
+            if (ConfigurationManager.getProxyConfig().isGrpcAdminServerEnable()
+                && adminPort != null && adminPort > 0) {
+                DefaultGrpcMessagingActivity dataPlaneActivity =
+                    (DefaultGrpcMessagingActivity) dataPlaneApplication.getGrpcMessagingActivity();
+                GrpcChannelManager sharedChannelManager = dataPlaneActivity.getGrpcChannelManager();
+                GrpcClientSettingsManager sharedSettingsManager = dataPlaneActivity.getGrpcClientSettingsManager();
+                DefaultMessagingProcessor defaultProcessor = (DefaultMessagingProcessor) messagingProcessor;
+
+                // Forwards client-targeted admin RPCs to the proxy that owns the client channel.
+                ProxyAdminForwarder adminForwarder =
+                    new ProxyAdminForwarder(defaultProcessor.getServiceManager());
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminForwarder);
+
+                ProxyAdminGrpcService adminService = new ProxyAdminGrpcService(
+                    defaultProcessor.getServiceManager(),
+                    messagingProcessor,
+                    sharedChannelManager,
+                    sharedSettingsManager,
+                    adminForwarder);
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminService);
+                GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
+                    .addService(adminService)
+                    // authentication has to see the channel id HeaderInterceptor derives from the
+                    // transport, so it is ordered after the standard pipeline rather than appended
+                    .configInterceptor(new ProxyAdminAuthInterceptor(
+                        ConfigurationManager.getAuthConfig(), messagingProcessor))
+                    .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
+                    .build();
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminGrpcServer);
+                log.info("admin gRPC server will start on port {}", adminPort);
+            }
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
