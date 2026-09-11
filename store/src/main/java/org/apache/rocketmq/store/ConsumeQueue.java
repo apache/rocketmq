@@ -1227,7 +1227,9 @@ public class ConsumeQueue implements ConsumeQueueInterface {
                         ConsumeQueueExt.CqExtUnit ext = null;
                         if (isExtWriteEnable()) {
                             ext = consumeQueueExt.get(tagCode);
-                            tagCode = ext.getTagsCode();
+                            if (ext != null) {
+                                tagCode = ext.getTagsCode();
+                            }
                         }
                         if (filter.isMatchedByConsumeQueue(tagCode, ext)) {
                             match++;
