@@ -322,15 +322,15 @@ public class SubscriptionGroupManager extends ConfigManager {
     public ConcurrentHashMap<String, SubscriptionGroupConfig> subGroupTable(String dataVersion, int groupSeq,
         int maxGroupNum) {
         // [groupSeq, groupSeq + maxGroupNum)
-        int beginIndex = groupSeq;
-        if (beginIndex != 0 && (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), getDataVersion()))) {
+        int beginIndex = Math.max(groupSeq, 0);
+        if (beginIndex != 0 && (StringUtils.isBlank(dataVersion) || !Objects.equals(parseDataVersion(dataVersion), getDataVersion()))) {
             beginIndex = 0;
             log.info("get sub subscription group table from {} due to {}", beginIndex,
                 StringUtils.isBlank(dataVersion) ? "DataVersion Empty" : "DataVersion Changed");
         }
 
         ConcurrentHashMap<String, SubscriptionGroupConfig> subGroupTable = new ConcurrentHashMap<>();
-        if (beginIndex < subscriptionGroupTable.size()) {
+        if (maxGroupNum > 0 && beginIndex < subscriptionGroupTable.size()) {
             int endIndex = Math.min(beginIndex + maxGroupNum, subscriptionGroupTable.size());
 
             ImmutableSortedMap<String, SubscriptionGroupConfig> sortedMap = ImmutableSortedMap.copyOf(subscriptionGroupTable);
@@ -339,6 +339,22 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
 
         return subGroupTable;
+    }
+
+    /**
+     * Parses the data version a client sent along with its split-metadata request. An
+     * unparseable value means the client's version is unknown, which callers treat like
+     * a version change: fall back to a full page from index 0 instead of failing the
+     * request.
+     */
+    private DataVersion parseDataVersion(String dataVersion) {
+        try {
+            return DataVersion.fromJson(dataVersion, DataVersion.class);
+        } catch (Exception e) {
+            log.info("parse dataVersion failed, fall back to the full subscription group table, dataVersion={}",
+                dataVersion);
+            return null;
+        }
     }
 
     public ConcurrentMap<String, ConcurrentMap<String, Integer>> getForbiddenTable() {
