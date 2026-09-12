@@ -27,6 +27,10 @@ import org.apache.rocketmq.common.utils.MessageUtils;
 public class MessageExtBrokerInner extends MessageExt {
     private static final long serialVersionUID = 7256001576878700634L;
     private String propertiesString;
+    /** Pre-encoded UTF-8 bytes for {@link #propertiesString}. Either set directly via
+     *  {@link #setPropertiesData} on the broker write hot path (skipping the
+     *  String round-trip), or lazily computed from {@link #propertiesString}. */
+    private transient byte[] propertiesData;
     private long tagsCode;
 
     private ByteBuffer encodedBuff;
@@ -59,13 +63,44 @@ public class MessageExtBrokerInner extends MessageExt {
 
     public void setPropertiesString(String propertiesString) {
         this.propertiesString = propertiesString;
+        this.propertiesData = null;
+    }
+
+    public byte[] getPropertiesData() {
+        // Defensive copy: callers must not be able to mutate the cached encoded bytes,
+        // which are reused as-is by the encoder. The encode hot path should call
+        // {@link #getEffectivePropertiesData()} (package-private) to avoid this copy.
+        return propertiesData == null ? null : propertiesData.clone();
+    }
+
+    public void setPropertiesData(byte[] propertiesData) {
+        this.propertiesData = propertiesData;
+    }
+
+    /** Encoder-side accessor: returns cached {@link #propertiesData} when set,
+     *  otherwise lazily encodes {@link #propertiesString} and caches the result.
+     *  Returns null if neither is set.
+     *  <p>Package-private and intended for the broker encode hot path only. The returned
+     *  array is the internal buffer (no defensive copy) and must not be mutated by callers. */
+    byte[] getEffectivePropertiesData() {
+        if (propertiesData != null) {
+            return propertiesData;
+        }
+        if (propertiesString != null) {
+            propertiesData = propertiesString.getBytes(MessageDecoder.CHARSET_UTF8);
+            return propertiesData;
+        }
+        return null;
     }
 
 
     public void deleteProperty(String name) {
         super.clearProperty(name);
         if (propertiesString != null) {
-            this.setPropertiesString(MessageUtils.deleteProperty(propertiesString, name));
+            this.propertiesString = MessageUtils.deleteProperty(propertiesString, name);
+        }
+        if (propertiesData != null) {
+            this.propertiesData = MessageDecoder.messageProperties2Bytes(getProperties());
         }
     }
 
