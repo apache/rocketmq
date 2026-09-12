@@ -170,6 +170,47 @@ public class RouteInfoManagerNewTest {
     }
 
     @Test
+    public void testStaleChannelDestroyDoesNotWipeFreshReRegistration() {
+        Channel oldChannel = mock(Channel.class);
+        Channel newChannel = mock(Channel.class);
+        registerBroker(BrokerBasicInfo.defaultBroker(), oldChannel, null, "TestTopic");
+        // the broker reconnects and re-registers with a new channel before the queued
+        // channel-destroy request is executed
+        registerBroker(BrokerBasicInfo.defaultBroker(), newChannel, null, "TestTopic");
+
+        // execute the destroy request derived from the OLD registration exactly as the service would
+        routeInfoManager.doUnRegisterBroker(Sets.newHashSet(
+            new RouteInfoManager.BrokerUnregistration(BrokerBasicInfo.defaultBroker().unRegisterRequest(), oldChannel)));
+
+        assertThat(routeInfoManager.pickupTopicRouteData("TestTopic")).isNotNull();
+    }
+
+    @Test
+    public void testChannelDestroyRemovesRegistrationWhenChannelMatches() {
+        Channel channel = mock(Channel.class);
+        registerBroker(BrokerBasicInfo.defaultBroker(), channel, null, "TestTopic");
+
+        routeInfoManager.doUnRegisterBroker(Sets.newHashSet(
+            new RouteInfoManager.BrokerUnregistration(BrokerBasicInfo.defaultBroker().unRegisterRequest(), channel)));
+
+        assertThat(routeInfoManager.pickupTopicRouteData("TestTopic")).isNull();
+    }
+
+    @Test
+    public void testBrokerInitiatedUnregisterIsUnconditional() {
+        Channel oldChannel = mock(Channel.class);
+        Channel newChannel = mock(Channel.class);
+        registerBroker(BrokerBasicInfo.defaultBroker(), oldChannel, null, "TestTopic");
+        registerBroker(BrokerBasicInfo.defaultBroker(), newChannel, null, "TestTopic");
+
+        // an explicitly initiated unregister (null expected channel) removes the current registration
+        routeInfoManager.doUnRegisterBroker(Sets.newHashSet(
+            new RouteInfoManager.BrokerUnregistration(BrokerBasicInfo.defaultBroker().unRegisterRequest(), null)));
+
+        assertThat(routeInfoManager.pickupTopicRouteData("TestTopic")).isNull();
+    }
+
+    @Test
     public void registerSlaveBroker() {
         registerBrokerWithNormalTopic(BrokerBasicInfo.defaultBroker(), "TestTopic");
 
