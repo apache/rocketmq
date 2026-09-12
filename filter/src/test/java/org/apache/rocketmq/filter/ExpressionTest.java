@@ -889,6 +889,12 @@ public class ExpressionTest {
         eval(expression, context, Boolean.FALSE);
     }
 
+    @Test
+    public void testBooleanLeftComparedWithStringProperty() throws Exception {
+        EvaluationContext context = genContext(KeyValue.c("a", "true"));
+        eval(genExp("TRUE = a"), context, Boolean.TRUE);
+    }
+
     protected void eval(Expression expression, EvaluationContext context, Boolean result) throws Exception {
         Object ret = expression.evaluate(context);
         if (ret == null || !(ret instanceof Boolean)) {
