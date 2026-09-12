@@ -42,25 +42,25 @@ public class ExtraInfoUtil {
         return extraInfo.split(MessageConst.KEY_SEPARATOR);
     }
 
-    public static Long getCkQueueOffset(String[] extraInfoStrs) {
+    public static long getCkQueueOffset(String[] extraInfoStrs) {
         if (extraInfoStrs == null || extraInfoStrs.length < 1) {
             throw new IllegalArgumentException("getCkQueueOffset fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Long.valueOf(extraInfoStrs[0]);
+        return Long.parseLong(extraInfoStrs[0]);
     }
 
-    public static Long getPopTime(String[] extraInfoStrs) {
+    public static long getPopTime(String[] extraInfoStrs) {
         if (extraInfoStrs == null || extraInfoStrs.length < 2) {
             throw new IllegalArgumentException("getPopTime fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Long.valueOf(extraInfoStrs[1]);
+        return Long.parseLong(extraInfoStrs[1]);
     }
 
-    public static Long getInvisibleTime(String[] extraInfoStrs) {
+    public static long getInvisibleTime(String[] extraInfoStrs) {
         if (extraInfoStrs == null || extraInfoStrs.length < 3) {
             throw new IllegalArgumentException("getInvisibleTime fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Long.valueOf(extraInfoStrs[2]);
+        return Long.parseLong(extraInfoStrs[2]);
     }
 
     public static int getReviveQid(String[] extraInfoStrs) {
@@ -202,90 +202,98 @@ public class ExtraInfoUtil {
         }
     }
 
-    public static Map<String, List<Long>> parseMsgOffsetInfo(String msgOffsetInfo) {
-        if (msgOffsetInfo == null || msgOffsetInfo.length() == 0) {
+    public static Map<String, List<Long>> parseMsgOffsetInfo(String info) {
+        if (StringUtils.isEmpty(info)) {
             return null;
         }
-
-        Map<String, List<Long>> msgOffsetMap = new HashMap<>(4);
-        String[] array;
-        if (msgOffsetInfo.indexOf(";") < 0) {
-            array = new String[]{msgOffsetInfo};
-        } else {
-            array = msgOffsetInfo.split(";");
+        Map<String, List<Long>> result = new HashMap<>(4);
+        int start = 0;
+        while (start < info.length()) {
+            int end = nextEntryEnd(info, start);
+            int first = info.indexOf(MessageConst.KEY_SEPARATOR, start);
+            int second = first < 0 ? -1 : info.indexOf(MessageConst.KEY_SEPARATOR, first + 1);
+            validateEntry(info, start, end, first, second, "parse msgOffsetMap error");
+            String key = buildKey(info, start, first, second);
+            if (result.containsKey(key)) {
+                throw new IllegalArgumentException("parse msgOffsetMap error, duplicate, " + result);
+            }
+            List<Long> offsets = new ArrayList<>(8);
+            int valueStart = second + 1;
+            while (valueStart < end) {
+                int comma = info.indexOf(',', valueStart);
+                int valueEnd = comma < 0 || comma > end ? end : comma;
+                if (valueEnd == valueStart) {
+                    throw new IllegalArgumentException("parse msgOffsetMap error, " + result);
+                }
+                offsets.add(Long.parseLong(info.substring(valueStart, valueEnd)));
+                valueStart = valueEnd + 1;
+            }
+            result.put(key, offsets);
+            start = end + 1;
         }
-
-        for (String one : array) {
-            String[] split = one.split(MessageConst.KEY_SEPARATOR);
-            if (split.length != 3) {
-                throw new IllegalArgumentException("parse msgOffsetMap error, " + msgOffsetMap);
-            }
-            String key = split[0] + "@" + split[1];
-            if (msgOffsetMap.containsKey(key)) {
-                throw new IllegalArgumentException("parse msgOffsetMap error, duplicate, " + msgOffsetMap);
-            }
-            msgOffsetMap.put(key, new ArrayList<>(8));
-            String[] msgOffsets = split[2].split(",");
-            for (String msgOffset : msgOffsets) {
-                msgOffsetMap.get(key).add(Long.valueOf(msgOffset));
-            }
-        }
-
-        return msgOffsetMap;
+        return result;
     }
 
-    public static Map<String, Long> parseStartOffsetInfo(String startOffsetInfo) {
-        if (startOffsetInfo == null || startOffsetInfo.length() == 0) {
-            return null;
-        }
-        Map<String, Long> startOffsetMap = new HashMap<>(4);
-        String[] array;
-        if (startOffsetInfo.indexOf(";") < 0) {
-            array = new String[]{startOffsetInfo};
-        } else {
-            array = startOffsetInfo.split(";");
-        }
-
-        for (String one : array) {
-            String[] split = one.split(MessageConst.KEY_SEPARATOR);
-            if (split.length != 3) {
-                throw new IllegalArgumentException("parse startOffsetInfo error, " + startOffsetInfo);
-            }
-            String key = split[0] + "@" + split[1];
-            if (startOffsetMap.containsKey(key)) {
-                throw new IllegalArgumentException("parse startOffsetInfo error, duplicate, " + startOffsetInfo);
-            }
-            startOffsetMap.put(key, Long.valueOf(split[2]));
-        }
-
-        return startOffsetMap;
+    public static Map<String, Long> parseStartOffsetInfo(String info) {
+        return parseLongInfo(info, "parse startOffsetInfo error");
     }
 
-    public static Map<String, Integer> parseOrderCountInfo(String orderCountInfo) {
-        if (orderCountInfo == null || orderCountInfo.length() == 0) {
+    public static Map<String, Integer> parseOrderCountInfo(String info) {
+        if (StringUtils.isEmpty(info)) {
             return null;
         }
-        Map<String, Integer> startOffsetMap = new HashMap<>(4);
-        String[] array;
-        if (orderCountInfo.indexOf(";") < 0) {
-            array = new String[]{orderCountInfo};
-        } else {
-            array = orderCountInfo.split(";");
-        }
-
-        for (String one : array) {
-            String[] split = one.split(MessageConst.KEY_SEPARATOR);
-            if (split.length != 3) {
-                throw new IllegalArgumentException("parse orderCountInfo error, " + orderCountInfo);
+        Map<String, Integer> result = new HashMap<>(4);
+        int start = 0;
+        while (start < info.length()) {
+            int end = nextEntryEnd(info, start);
+            int first = info.indexOf(MessageConst.KEY_SEPARATOR, start);
+            int second = first < 0 ? -1 : info.indexOf(MessageConst.KEY_SEPARATOR, first + 1);
+            validateEntry(info, start, end, first, second, "parse orderCountInfo error");
+            String key = buildKey(info, start, first, second);
+            if (result.put(key, Integer.parseInt(info.substring(second + 1, end))) != null) {
+                throw new IllegalArgumentException("parse orderCountInfo error, duplicate, " + info);
             }
-            String key = split[0] + "@" + split[1];
-            if (startOffsetMap.containsKey(key)) {
-                throw new IllegalArgumentException("parse orderCountInfo error, duplicate, " + orderCountInfo);
-            }
-            startOffsetMap.put(key, Integer.valueOf(split[2]));
+            start = end + 1;
         }
+        return result;
+    }
 
-        return startOffsetMap;
+    private static Map<String, Long> parseLongInfo(String info, String error) {
+        if (StringUtils.isEmpty(info)) {
+            return null;
+        }
+        Map<String, Long> result = new HashMap<>(4);
+        int start = 0;
+        while (start < info.length()) {
+            int end = nextEntryEnd(info, start);
+            int first = info.indexOf(MessageConst.KEY_SEPARATOR, start);
+            int second = first < 0 ? -1 : info.indexOf(MessageConst.KEY_SEPARATOR, first + 1);
+            validateEntry(info, start, end, first, second, error);
+            String key = buildKey(info, start, first, second);
+            if (result.put(key, Long.parseLong(info.substring(second + 1, end))) != null) {
+                throw new IllegalArgumentException(error + ", duplicate, " + info);
+            }
+            start = end + 1;
+        }
+        return result;
+    }
+
+    private static int nextEntryEnd(String info, int start) {
+        int end = info.indexOf(';', start);
+        return end < 0 ? info.length() : end;
+    }
+
+    private static void validateEntry(String info, int start, int end, int first, int second, String error) {
+        if (first <= start || second <= first + 1 || second >= end - 1
+            || info.indexOf(MessageConst.KEY_SEPARATOR, second + 1) >= 0
+                && info.indexOf(MessageConst.KEY_SEPARATOR, second + 1) < end) {
+            throw new IllegalArgumentException(error + ", " + info);
+        }
+    }
+
+    private static String buildKey(String info, int start, int first, int second) {
+        return new StringBuilder(second - start)
+            .append(info, start, first).append('@').append(info, first + 1, second).toString();
     }
 
     public static List<Integer> parseLiteOrderCountInfo(String orderCountInfo, int msgCount) {
