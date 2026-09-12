@@ -29,6 +29,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMELINE_ROLL_CHECK_POINT;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMER_COLUMN_FAMILY;
 
 public class MessageRocksDBStorageTest {
@@ -138,6 +139,50 @@ public class MessageRocksDBStorageTest {
 
         int recordCount = null == resultAfterDeleteUpdate ? 0 : resultAfterDeleteUpdate.size();
         Assert.assertEquals(0, recordCount);
+    }
+
+    @Test
+    public void testWriteAndGetRollCheckpoint() {
+        Assert.assertEquals(0L, storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
+
+        long checkpoint = System.currentTimeMillis() + 3600000L;
+        storage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT, checkpoint);
+        Assert.assertEquals(checkpoint, storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
+
+        long nextCheckpoint = checkpoint + 3600000L;
+        storage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT, nextCheckpoint);
+        Assert.assertEquals(nextCheckpoint, storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
+    }
+
+    @Test
+    public void testScanAdjacentWindowsNoOverlap() {
+        long window = 3600000L;
+        long begin = (System.currentTimeMillis() / window) * window;
+
+        writeTimerRecord(begin + 1, "roll-window-first", 11L, 111);
+        writeTimerRecord(begin + window, "roll-window-boundary", 22L, 222);
+        writeTimerRecord(begin + window + 1, "roll-window-second", 33L, 333);
+
+        List<TimerRocksDBRecord> firstWindow = storage.scanRecordsForTimer(
+            TIMER_COLUMN_FAMILY, begin, begin + window, 10, null);
+        Assert.assertNotNull(firstWindow);
+        Assert.assertEquals(1, firstWindow.size());
+        Assert.assertEquals("roll-window-first", firstWindow.get(0).getUniqKey());
+
+        List<TimerRocksDBRecord> secondWindow = storage.scanRecordsForTimer(
+            TIMER_COLUMN_FAMILY, begin + window, begin + 2 * window, 10, null);
+        Assert.assertNotNull(secondWindow);
+        Assert.assertEquals(2, secondWindow.size());
+        Assert.assertEquals("roll-window-boundary", secondWindow.get(0).getUniqKey());
+        Assert.assertEquals("roll-window-second", secondWindow.get(1).getUniqKey());
+    }
+
+    private void writeTimerRecord(long delayTime, String uniqKey, long offsetPy, int sizePy) {
+        TimerRocksDBRecord record = new TimerRocksDBRecord(delayTime, uniqKey, offsetPy, sizePy, 0L, null);
+        record.setActionFlag(TimerRocksDBRecord.TIMER_ROCKSDB_PUT);
+        List<TimerRocksDBRecord> list = new ArrayList<>();
+        list.add(record);
+        storage.writeRecordsForTimer(TIMER_COLUMN_FAMILY, list);
     }
 
 }
