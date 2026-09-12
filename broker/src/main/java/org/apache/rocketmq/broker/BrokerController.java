@@ -1700,6 +1700,7 @@ public class BrokerController {
             if (this.popLiteMessageProcessor.getPopLiteLongPollingService() != null) {
                 this.popLiteMessageProcessor.getPopLiteLongPollingService().shutdown();
             }
+            this.popLiteMessageProcessor.getConsumerOrderInfoManager().shutdown();
         }
 
         if (this.popMessageProcessor.getQueueLockManager() != null) {
