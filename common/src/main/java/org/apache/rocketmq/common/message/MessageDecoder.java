@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public class MessageDecoder {
+    private static final byte[] CRC32_PROPERTY_BYTES = MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8);
 //    public final static int MSG_ID_LENGTH = 8 + 8;
 
     public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
@@ -154,7 +155,7 @@ public class MessageDecoder {
     }
 
     public static void createCrc32(final ByteBuffer input, int crc32) {
-        input.put(MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8));
+        input.put(CRC32_PROPERTY_BYTES);
         input.put((byte) NAME_VALUE_SEPARATOR);
         for (int i = 0; i < 10; i++) {
             byte b = '0';
@@ -168,7 +169,7 @@ public class MessageDecoder {
     }
 
     public static void createCrc32(final ByteBuf input, int crc32) {
-        input.writeBytes(MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8));
+        input.writeBytes(CRC32_PROPERTY_BYTES);
         input.writeByte((byte) NAME_VALUE_SEPARATOR);
         for (int i = 0; i < 10; i++) {
             byte b = '0';
