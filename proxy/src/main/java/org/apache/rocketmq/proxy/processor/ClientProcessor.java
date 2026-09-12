@@ -116,7 +116,9 @@ public class ClientProcessor extends AbstractProcessor {
     ) {
         try {
             validateLiteBindTopic(ctx, liteSubscriptionDTO.getGroup(), liteSubscriptionDTO.getTopic());
-            if (CollectionUtils.isNotEmpty(liteSubscriptionDTO.getLiteTopicSet())) {
+            if (CollectionUtils.isNotEmpty(liteSubscriptionDTO.getLiteTopicSet())
+                && (LiteSubscriptionAction.PARTIAL_ADD == liteSubscriptionDTO.getAction()
+                || LiteSubscriptionAction.COMPLETE_ADD == liteSubscriptionDTO.getAction())) {
                 validateLiteSubscriptionQuota(ctx, liteSubscriptionDTO.getGroup(), liteSubscriptionDTO.getLiteTopicSet().size());
             }
 
