@@ -225,8 +225,15 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     protected void updateForbiddenValue(String group, String topic, Integer forbidden) {
         if (forbidden == null || forbidden <= 0) {
-            this.forbiddenTable.remove(group);
-            log.info("clear group forbidden, {}@{} ", group, topic);
+            ConcurrentMap<String, Integer> topicForbiddens = this.forbiddenTable.get(group);
+            if (topicForbiddens != null && topicForbiddens.remove(topic) != null) {
+                if (topicForbiddens.isEmpty()) {
+                    this.forbiddenTable.remove(group, topicForbiddens);
+                }
+                log.info("clear topic forbidden, {}@{} ", group, topic);
+                updateDataVersion();
+                this.persist();
+            }
             return;
         }
 
