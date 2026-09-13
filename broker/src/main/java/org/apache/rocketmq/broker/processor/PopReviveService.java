@@ -568,7 +568,12 @@ public class PopReviveService extends ServiceThread {
             // retry msg
             long msgOffset = popCheckPoint.ackOffsetByIndex((byte) j);
             CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint, msgOffset)
-                .thenApply(rst -> {
+                .handle((rst, throwable) -> {
+                    if (throwable != null) {
+                        POP_LOGGER.warn("reviveQueueId={}, failed to read biz msg for topic={}, qid={}, offset={}",
+                            queueId, popCheckPoint.getTopic(), popCheckPoint.getQueueId(), msgOffset, throwable);
+                        return new Pair<>(msgOffset, false);
+                    }
                     MessageExt message = rst.getLeft();
                     if (message == null) {
                         POP_LOGGER.info("reviveQueueId={}, can not get biz msg, topic:{}, qid:{}, offset:{}, brokerName:{}, info:{}, retry:{}, then continue",
