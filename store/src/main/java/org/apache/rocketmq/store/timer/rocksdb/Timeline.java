@@ -387,17 +387,15 @@ public class Timeline {
             while (!this.isStopped()) {
                 try {
                     long maxDelayMs = TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec());
-                    int rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours() > 0 ? storeConfig.getTimerRocksDBRollRangeHours() : 2;
-                    long rangeMs = TimeUnit.HOURS.toMillis(rollRangeHour);
-                    long nextDueMs = checkpoint + rangeMs - maxDelayMs;
-                    long triggerAt = nextDueMs - ROLL_TRIGGER_EARLY_MS;
+                    long rangeMs = TimeUnit.HOURS.toMillis(storeConfig.getTimerRocksDBRollRangeHours() > 0 ? storeConfig.getTimerRocksDBRollRangeHours() : 2);
+                    long triggerAt = checkpoint + rangeMs - maxDelayMs - ROLL_TRIGGER_EARLY_MS;
                     long now = System.currentTimeMillis();
                     if (now < triggerAt) {
-                        this.waitForRunning(Math.min(triggerAt - now, ROLL_POLL_WHEN_NOT_DUE_MS));
+                        this.waitForRunning(ROLL_POLL_WHEN_NOT_DUE_MS);
                         continue;
                     }
 
-                    log.info("Timeline TimelineRollService start roll checkpoint: {}, rangeMs: {}, nextDueMs: {}, delayMs: {}", checkpoint, rangeMs, nextDueMs, now - nextDueMs);
+                    log.info("Timeline TimelineRollService start roll checkpoint: {}, rangeMs: {}, triggerAt: {}, delayMs: {}", checkpoint, rangeMs, triggerAt, now - triggerAt);
                     if (!scanRecordsToQueue(checkpoint, rangeMs, timerMessageRocksDBStore.getRollMessageQueue())) {
                         logError.error("Timeline TimelineRollService scanRecordsToQueue error, checkpoint: {}", checkpoint);
                         this.waitForRunning(200L);
