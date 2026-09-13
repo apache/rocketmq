@@ -376,16 +376,19 @@ public class Timeline {
         @Override
         public void run() {
             long checkpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_ROLL_CHECK_POINT);
+            if (checkpoint <= 0L) {
+                long now = System.currentTimeMillis();
+                long forwardCheckpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT);
+                int rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours() > 0 ? storeConfig.getTimerRocksDBRollRangeHours() : 2;
+                checkpoint = (forwardCheckpoint > 0L ? Math.min(forwardCheckpoint, now) : now)
+                    + TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec()) - TimeUnit.HOURS.toMillis(rollRangeHour);
+            }
             log.info(this.getServiceName() + " service start, checkpoint: {}", checkpoint);
             while (!this.isStopped()) {
                 try {
                     long maxDelayMs = TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec());
                     int rollIntervalHour = storeConfig.getTimerRocksDBRollIntervalHours() > 0 ? storeConfig.getTimerRocksDBRollIntervalHours() : 1;
-                    int rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours() > 0 ? storeConfig.getTimerRocksDBRollRangeHours() : 2;
                     long rangeMs = TimeUnit.HOURS.toMillis(rollIntervalHour);
-                    if (checkpoint <= 0L) {
-                        checkpoint = System.currentTimeMillis() + maxDelayMs - TimeUnit.HOURS.toMillis(rollRangeHour);
-                    }
                     long nextDueMs = checkpoint + rangeMs - maxDelayMs;
                     long triggerAt = nextDueMs - ROLL_TRIGGER_EARLY_MS;
                     long now = System.currentTimeMillis();
@@ -401,7 +404,6 @@ public class Timeline {
                         continue;
                     }
                     checkpoint += rangeMs;
-                    messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_ROLL_CHECK_POINT, checkpoint);
                     log.info("Timeline TimelineRollService roll records success, checkpoint: {}, cost: {}", checkpoint, System.currentTimeMillis() - now);
                 } catch (Exception e) {
                     logError.error("Timeline TimelineRollService failed error: {}", e.getMessage());

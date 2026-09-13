@@ -29,10 +29,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMELINE_CHECK_POINT;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMELINE_ROLL_CHECK_POINT;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMER_COLUMN_FAMILY;
 
 public class MessageRocksDBStorageTest {
+
+    /** Fixed delay time so window assertions never depend on the wall clock. */
+    private static final long FIXED_DELAY_TIME_BASE = 2000000000000L;
+    private static final long WINDOW = 3600000L;
 
     private MessageRocksDBStorage storage;
     private String storePath;
@@ -145,32 +150,42 @@ public class MessageRocksDBStorageTest {
     public void testWriteAndGetRollCheckpoint() {
         Assert.assertEquals(0L, storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
 
-        long checkpoint = System.currentTimeMillis() + 3600000L;
+        long checkpoint = FIXED_DELAY_TIME_BASE;
         storage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT, checkpoint);
         Assert.assertEquals(checkpoint, storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
 
-        long nextCheckpoint = checkpoint + 3600000L;
+        long nextCheckpoint = checkpoint + WINDOW;
         storage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT, nextCheckpoint);
         Assert.assertEquals(nextCheckpoint, storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
     }
 
     @Test
+    public void testRollCheckpointIsIndependentOfForwardCheckpoint() {
+        storage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_CHECK_POINT, FIXED_DELAY_TIME_BASE);
+        storage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT, FIXED_DELAY_TIME_BASE + WINDOW);
+
+        Assert.assertEquals(FIXED_DELAY_TIME_BASE,
+            storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_CHECK_POINT));
+        Assert.assertEquals(FIXED_DELAY_TIME_BASE + WINDOW,
+            storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
+    }
+
+    @Test
     public void testScanAdjacentWindowsNoOverlap() {
-        long window = 3600000L;
-        long begin = (System.currentTimeMillis() / window) * window;
+        long begin = FIXED_DELAY_TIME_BASE;
 
         writeTimerRecord(begin + 1, "roll-window-first", 11L, 111);
-        writeTimerRecord(begin + window, "roll-window-boundary", 22L, 222);
-        writeTimerRecord(begin + window + 1, "roll-window-second", 33L, 333);
+        writeTimerRecord(begin + WINDOW, "roll-window-boundary", 22L, 222);
+        writeTimerRecord(begin + WINDOW + 1, "roll-window-second", 33L, 333);
 
         List<TimerRocksDBRecord> firstWindow = storage.scanRecordsForTimer(
-            TIMER_COLUMN_FAMILY, begin, begin + window, 10, null);
+            TIMER_COLUMN_FAMILY, begin, begin + WINDOW, 10, null);
         Assert.assertNotNull(firstWindow);
         Assert.assertEquals(1, firstWindow.size());
         Assert.assertEquals("roll-window-first", firstWindow.get(0).getUniqKey());
 
         List<TimerRocksDBRecord> secondWindow = storage.scanRecordsForTimer(
-            TIMER_COLUMN_FAMILY, begin + window, begin + 2 * window, 10, null);
+            TIMER_COLUMN_FAMILY, begin + WINDOW, begin + 2 * WINDOW, 10, null);
         Assert.assertNotNull(secondWindow);
         Assert.assertEquals(2, secondWindow.size());
         Assert.assertEquals("roll-window-boundary", secondWindow.get(0).getUniqKey());
