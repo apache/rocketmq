@@ -253,13 +253,16 @@ public class Broker2Client {
                 requestHeader);
 
         Map<String, Map<MessageQueue, Long>> consumerStatusTable = new HashMap<>();
-        ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
-            this.brokerController.getConsumerManager().getConsumerGroupInfo(group).getChannelInfoTable();
-        if (null == channelInfoTable || channelInfoTable.isEmpty()) {
+        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
+        // The group info is absent exactly when no consumer of this group is
+        // registered on this broker; the error branch below was written for that
+        // case, so it must not be reached through an NPE.
+        if (null == consumerGroupInfo || consumerGroupInfo.getChannelInfoTable().isEmpty()) {
             result.setCode(ResponseCode.SYSTEM_ERROR);
             result.setRemark(String.format("No Any Consumer online in the consumer group: [%s]", group));
             return result;
         }
+        ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable = consumerGroupInfo.getChannelInfoTable();
 
         for (Map.Entry<Channel, ClientChannelInfo> entry : channelInfoTable.entrySet()) {
             int version = entry.getValue().getVersion();
