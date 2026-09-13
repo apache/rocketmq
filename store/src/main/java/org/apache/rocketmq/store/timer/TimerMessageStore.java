@@ -76,6 +76,27 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.util.PerfCounter;
 
+/**
+ * Precise delayed-message engine based on a fixed-resolution timer wheel.
+ *
+ * <p>Unlike the legacy {@code ScheduleMessageService} which supports only 18 fixed delay levels,
+ * this store supports arbitrary millisecond-precision delays (default 1s resolution).
+ *  - A delayed message is first written to the system topic {@value #TIMER_TOPIC};
+ *  - the enqueue pipeline then reads it from the ConsumeQueue,
+ *    writes its metadata (offset/size/delay) into the {@link TimerLog},
+ *    and registers it in the {@link TimerWheel} slot indexed by its delivery time.
+ *  - When the delivery time arrives, the dequeue pipeline reads the original message back
+ *    from the CommitLog and re-publishes it to the real business topic.
+ * </p>
+ *
+ * <p>The wheel covers {@value #TIMER_WHEEL_TTL_DAY} days of slots;
+ * a message scheduled beyond the roll window ({@code timerRollWindowSlots}) is "rolled"
+ * — delivered early and re-enqueued with {@code TIMER_ROLL_TIMES} incremented
+ * — so the wheel never needs to grow unbounded.
+ * Crash recovery replays the {@link TimerLog} to rebuild the wheel
+ * and revises offsets against the ConsumeQueue.
+ * and if enabled, the RocksDB-backed timer store.
+ */
 public class TimerMessageStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -298,6 +319,19 @@ public class TimerMessageStore {
         LOGGER.debug("Total cost Time: {}", endTime - startTime);
     }
 
+    /**
+     * Rebuild the timer wheel from the {@link TimerLog} after a crash restart.
+     *
+     * <p>The recovery flow:
+     * <ol>
+     *   <li>Replay the TimerLog from the checkpoint flush position, revising
+     *       each wheel slot and truncating any dirty trailing files</li>
+     *   <li>Revise the queue offset against the ConsumeQueue and (if enabled)
+     *       the RocksDB timer store's committed offset</li>
+     *   <li>Correct {@code currReadTimeMs} so it never rewinds past the wheel
+     *       TTL boundary, preventing message loss after a long outage</li>
+     * </ol>
+     */
     @SuppressWarnings("NonAtomicOperationOnVolatileField")
     public void recover() {
         //recover timerLog
@@ -751,6 +785,18 @@ public class TimerMessageStore {
         holdMomentForUnknownError(50);
     }
 
+    /**
+     * Read delayed messages from the given timer ConsumeQueue
+     * and enqueue them into the {@link #enqueuePutQueue} for the enqueue-put pipeline.
+     *
+     * <p>Iterates the ConsumeQueue of the system topic {@value #TIMER_TOPIC} from {@code currQueueOffset},
+     * resolves each entry back to its original message via {@link #getMessageByCommitOffset},
+     * and wraps it as a {@link TimerRequest} carrying the delivery time read from {@link #TIMER_OUT_MS}.
+     * The queue offset is advanced after each entry.
+     *
+     * @param queueId the timer topic queue id (always 0)
+     * @return {@code true} if at least one message was enqueued
+     */
     public boolean enqueue(int queueId) {
         if (storeConfig.isTimerStopEnqueue()) {
             return false;
@@ -838,6 +884,23 @@ public class TimerMessageStore {
         return false;
     }
 
+    /**
+     * Write one delayed message's metadata into the {@link TimerLog}
+     * and register it in the {@link TimerWheel} slot of its delivery time.
+     *
+     * <p>If the delivery time lies beyond the roll window ({@code timerRollWindowSlots}),
+     * the message is marked with {@link #MAGIC_ROLL} and its delivery time is truncated into the window,
+     * so it is delivered early and re-enqueued later with an incremented {@code TIMER_ROLL_TIMES}.
+     * If the message carries a delete key ({@link #TIMER_DELETE_UNIQUE_KEY}),
+     * it is marked with {@link #MAGIC_DELETE} and (unless from a timeline) recalled via {@code recallToTimeline}.
+     *
+     * @param offsetPy      physical offset of the original message in the CommitLog
+     * @param sizePy        size of the original message
+     * @param delayedTime   the scheduled delivery time (ms)
+     * @param messageExt    the original delayed message
+     * @param isFromTimeline whether the record originates from the RocksDB timeline
+     * @return {@code true} if the metadata was appended to the TimerLog
+     */
     public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime, MessageExt messageExt, boolean isFromTimeline) {
         LOGGER.debug("Do enqueue [{}] [{}]", new Timestamp(delayedTime), messageExt);
         //copy the value first, avoid concurrent problem
@@ -884,6 +947,15 @@ public class TimerMessageStore {
         return -1 != ret;
     }
 
+    /**
+     * Pre-fault the pages of soon-to-be-delivered messages into the OS page
+     * cache, so the dequeue pipeline reads from memory instead of disk.
+     *
+     * <p>Only warms slots slightly ahead of {@code currReadTimeMs} (up to
+     * {@code 3 * precisionMs}), and only when {@code timerWarmEnable} is set.
+     *
+     * @return 1 if a slot was warmed, 0 if skipped, -1 if not running or disabled
+     */
     @SuppressWarnings("NonAtomicOperationOnVolatileField")
     public int warmDequeue() {
         if (!isRunningDequeue()) {
@@ -1015,6 +1087,24 @@ public class TimerMessageStore {
         }
     }
 
+    /**
+     * Deliver all messages whose time slot matches {@code currReadTimeMs}
+     * back to their real business topics.
+     *
+     * <p>Reads the slot's linked list from the {@link TimerLog},
+     * separates delete-marker requests from normal requests,
+     * then dispatches them in batches through the {@code dequeueGetQueue}.
+     *
+     * <p> The delete markers are processed first
+     * so a deletion is honoured before the corresponding normal message is re-published.
+     * Uses {@link CountDownLatch} to wait until all batches are consumed
+     * before advancing {@code currReadTimeMs}.
+     *
+     * @return 1 if messages were delivered,
+     *         0 if the slot was empty,
+     *        -1 if dequeue is not running or the wheel is fully drained
+     * @throws Exception if interrupted while waiting for the dequeue latch
+     */
     public int dequeue() throws Exception {
         if (storeConfig.isTimerStopDequeue()) {
             return -1;
@@ -1188,6 +1278,22 @@ public class TimerMessageStore {
     }
 
     //0 succ; 1 fail, need retry; 2 fail, do not retry;
+    /**
+     * Re-publish a delayed message to its real business topic.
+     *
+     * <p>The message is routed through the {@code escapeBridgeHook}
+     * when it is registered (failover scenario),
+     * otherwise written directly to the local message store.
+     * The return value encodes the retry policy:
+     *  - {@link #PUT_OK} (success),
+     *  - {@link #PUT_NEED_RETRY} (transient failure, should retry),
+     *  - {@link #PUT_NO_RETRY} (permanent failure, drop).
+     *
+     * @param message the converted message to publish
+     * @param roll    whether this is a rolled (early) delivery
+     * @return one of {@link #PUT_OK}, {@link #PUT_NEED_RETRY}, {@link #PUT_NO_RETRY}
+     * @throws Exception if the store throws during the put
+     */
     public int doPut(MessageExtBrokerInner message, boolean roll) throws Exception {
 
         if (!roll && null != message.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)) {
