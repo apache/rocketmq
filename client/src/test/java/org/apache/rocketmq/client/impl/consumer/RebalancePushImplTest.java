@@ -40,9 +40,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -212,6 +215,21 @@ public class RebalancePushImplTest {
         assertEquals(12345L, rebalanceImpl.computePullFromWhereWithException(mq));
 
         assertEquals(23456L, rebalanceImpl.computePullFromWhereWithException(retryMq));
+    }
+
+    @Test
+    public void testMessageQueueChanged_SubscriptionRemovedConcurrently() {
+        RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
+            new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
+
+        // The topic is deliberately absent from subscriptionInner: this emulates an
+        // unsubscribe() from another thread removing the subscription after the
+        // rebalance loop snapshot but before messageQueueChanged runs.
+        Set<MessageQueue> allocateResultSet = new HashSet<>();
+        allocateResultSet.add(new MessageQueue(topic, "BrokerA", 0));
+        rebalancePush.messageQueueChanged(topic, allocateResultSet, allocateResultSet);
+
+        verify(mqClientInstance, never()).sendHeartbeatToAllBrokerWithLockV2(anyBoolean());
     }
 
 }
