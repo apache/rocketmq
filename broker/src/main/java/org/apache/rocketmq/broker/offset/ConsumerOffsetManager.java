@@ -203,16 +203,13 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
-        ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
-        if (null == map) {
-            map = new ConcurrentHashMap<>(2);
-            map.put(queueId, offset);
-            this.offsetTable.put(key, map);
-        } else {
-            Long storeOffset = map.put(queueId, offset);
-            if (storeOffset != null && offset < storeOffset) {
-                LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
-            }
+        // computeIfAbsent, so concurrent commits for different queues of a new topic@group
+        // all land in the same map instead of overwriting each other's entries.
+        ConcurrentMap<Integer, Long> map = this.offsetTable.computeIfAbsent(key,
+            k -> new ConcurrentHashMap<>(2));
+        Long storeOffset = map.put(queueId, offset);
+        if (storeOffset != null && offset < storeOffset) {
+            LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
         }
         if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
             updateDataVersion();
