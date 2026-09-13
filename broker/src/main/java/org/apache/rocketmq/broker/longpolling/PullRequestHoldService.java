@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -44,17 +45,16 @@ public class PullRequestHoldService extends ServiceThread {
 
     public void suspendPullRequest(final String topic, final int queueId, final PullRequest pullRequest) {
         String key = this.buildKey(topic, queueId);
-        ManyPullRequest mpr = this.pullRequestTable.get(key);
-        if (null == mpr) {
-            mpr = new ManyPullRequest();
-            ManyPullRequest prev = this.pullRequestTable.putIfAbsent(key, mpr);
-            if (prev != null) {
-                mpr = prev;
-            }
-        }
-
         pullRequest.getRequestCommand().setSuspended(true);
-        mpr.addPullRequest(pullRequest);
+        this.addPullRequest(key, mpr -> mpr.addPullRequest(pullRequest));
+    }
+
+    private void addPullRequest(final String key, final Consumer<ManyPullRequest> addOperation) {
+        this.pullRequestTable.compute(key, (k, current) -> {
+            ManyPullRequest mpr = current == null ? new ManyPullRequest() : current;
+            addOperation.accept(mpr);
+            return mpr;
+        });
     }
 
     private String buildKey(final String topic, final int queueId) {
@@ -177,7 +177,7 @@ public class PullRequestHoldService extends ServiceThread {
                 }
 
                 if (!replayList.isEmpty()) {
-                    mpr.addPullRequest(replayList);
+                    this.addPullRequest(key, current -> current.addPullRequest(replayList));
                 }
             }
         }
