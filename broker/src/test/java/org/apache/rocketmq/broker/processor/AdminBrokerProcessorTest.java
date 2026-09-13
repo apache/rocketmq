@@ -121,6 +121,7 @@ import org.apache.rocketmq.remoting.protocol.header.QueryTopicConsumeByWhoReques
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicsByConsumerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetMasterFlushOffsetHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
@@ -378,6 +379,29 @@ public class AdminBrokerProcessorTest {
         verify(messageStore).putMessage(messageCaptor.capture());
         assertThat(messageCaptor.getValue().getProperty(MessageConst.PROPERTY_REAL_TOPIC)).isEqualTo("topic");
         assertThat(messageCaptor.getValue().getProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES)).isEqualTo("0");
+    }
+
+    @Test
+    public void testConsumeMessageDirectlyMessageNotFound() throws Exception {
+        RemotingCommand request = createConsumeMessageDirectlyCommand();
+        when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(null);
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains("can not find message");
+        verify(brokerController, never()).getBroker2Client();
+    }
+
+    private RemotingCommand createConsumeMessageDirectlyCommand() {
+        ConsumeMessageDirectlyResultRequestHeader header = new ConsumeMessageDirectlyResultRequestHeader();
+        header.setConsumerGroup("group");
+        header.setClientId("client");
+        // hex of ip 127.0.0.1 + port 10911 + offset 0, the format MessageDecoder.decodeMessageId expects
+        header.setMsgId("7F00000100002A9F0000000000000000");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, header);
+        request.makeCustomHeaderToNet();
+        return request;
     }
 
     @Test
