@@ -205,6 +205,31 @@ public class TimerMessageStoreTest {
     }
 
     @Test
+    public void testConvertMessageWithMalformedDestination() throws Exception {
+        final TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+
+        // A timer message whose destination properties are missing or
+        // malformed can never be delivered; it must be discarded instead of
+        // aborting the conversion with a raw exception.
+        MessageExtBrokerInner msgExt = buildMessage(3000, "TimerTest_testConvertMessageMalformed", false);
+        msgExt.setTopic(TimerMessageStore.TIMER_TOPIC);
+
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_TOPIC, "TimerTest_testConvertMessageMalformed");
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "notANumber");
+        assertNull(timerMessageStore.convertMessage(msgExt, false));
+
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        assertNotNull(timerMessageStore.convertMessage(msgExt, false));
+
+        msgExt.getProperties().remove(MessageConst.PROPERTY_REAL_QUEUE_ID);
+        assertNull(timerMessageStore.convertMessage(msgExt, false));
+
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        msgExt.getProperties().remove(MessageConst.PROPERTY_REAL_TOPIC);
+        assertNull(timerMessageStore.convertMessage(msgExt, false));
+    }
+
+    @Test
     public void testPutTimerMessage() throws Exception {
         Assume.assumeFalse(MixAll.isWindows());
         String topic = "TimerTest_testPutTimerMessage";
