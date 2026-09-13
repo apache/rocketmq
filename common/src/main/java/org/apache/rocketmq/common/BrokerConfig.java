@@ -463,6 +463,14 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enableRequestMetrics = true;
     private boolean enableLagAndDlqMetrics = true;
 
+    /**
+     * Whether to suppress exporting data points whose value is not greater than a minimal
+     * threshold (minValue). Set true to reduce metrics cardinality and export payload.
+     * Suppressed series disappear from the export instead of reporting minValue, so alert rules
+     * based on absent()/absent_over_time() will fire once value drops to minValue.
+     */
+    private boolean suppressMinValueMetrics = false;
+
     private long channelExpiredTimeout = 1000 * 120;
     private long subscriptionExpiredTimeout = 1000 * 60 * 10;
 
@@ -2016,6 +2024,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableLagAndDlqMetrics(boolean enableLagAndDlqMetrics) {
         this.enableLagAndDlqMetrics = enableLagAndDlqMetrics;
+    }
+
+    public boolean isSuppressMinValueMetrics() {
+        return suppressMinValueMetrics;
+    }
+
+    public void setSuppressMinValueMetrics(boolean suppressMinValueMetrics) {
+        this.suppressMinValueMetrics = suppressMinValueMetrics;
     }
 
     public boolean isEnableRemotingMetrics() {
