@@ -192,26 +192,44 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
             map = MixAll.isLmq(topic) ? new ConcurrentHashMap<>(1, 1.0F) : new ConcurrentHashMap<>();
-            map.put(queueId, offset);
-            this.offsetTable.put(key, map);
-        } else {
-            Long storeOffset = map.put(queueId, offset);
-            if (storeOffset != null && offset < storeOffset) {
-                LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+            ConcurrentMap<Integer, Long> previous = this.offsetTable.putIfAbsent(key, map);
+            if (null != previous) {
+                map = previous;
             }
         }
-        if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
-            updateDataVersion();
-        }
+
         if (!brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+            updateOffset(clientHost, key, queueId, offset, map);
+            updateDataVersionIfNeeded();
             return;
         }
 
-        try (WriteBatch writeBatch = new WriteBatch()) {
-            putWriteBatch(writeBatch, key, map);
-            this.rocksDBConfigManager.batchPutWithWal(writeBatch);
-        } catch (Exception e) {
-            log.error("consumer offset persist Failed", e);
+        // Keep the in-memory update, whole-map snapshot, and WAL write ordered for the same RocksDB key.
+        // Otherwise, an older concurrent snapshot can be persisted after a newer one and overwrite offsets.
+        synchronized (map) {
+            updateOffset(clientHost, key, queueId, offset, map);
+            updateDataVersionIfNeeded();
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                putWriteBatch(writeBatch, key, map);
+                this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+            } catch (Exception e) {
+                log.error("consumer offset persist Failed", e);
+            }
+        }
+    }
+
+    private void updateOffset(String clientHost, String key, int queueId, long offset,
+        ConcurrentMap<Integer, Long> map) {
+        Long storeOffset = map.put(queueId, offset);
+        if (storeOffset != null && offset < storeOffset) {
+            LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+        }
+    }
+
+    private void updateDataVersionIfNeeded() {
+        if (versionChangeCounter.incrementAndGet()
+            % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
+            updateDataVersion();
         }
     }
 
