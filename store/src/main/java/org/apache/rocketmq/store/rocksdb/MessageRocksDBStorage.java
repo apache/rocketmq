@@ -73,9 +73,11 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private static final Set<byte[]> COMMON_CHECK_POINT_KEY_SET_FOR_TIMER = new HashSet<>();
     public static final byte[] SYS_TOPIC_SCAN_OFFSET_CHECK_POINT = "sys_topic_scan_offset_checkpoint".getBytes(StandardCharsets.UTF_8);
     public static final byte[] TIMELINE_CHECK_POINT = "timeline_checkpoint".getBytes(StandardCharsets.UTF_8);
+    public static final byte[] TIMELINE_ROLL_CHECK_POINT = "timeline_roll_checkpoint".getBytes(StandardCharsets.UTF_8);
     static {
         COMMON_CHECK_POINT_KEY_SET_FOR_TIMER.add(SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
         COMMON_CHECK_POINT_KEY_SET_FOR_TIMER.add(TIMELINE_CHECK_POINT);
+        COMMON_CHECK_POINT_KEY_SET_FOR_TIMER.add(TIMELINE_ROLL_CHECK_POINT);
     }
     private static final byte[] DELETE_VAL_FLAG = new byte[] {(byte)0xFF};
     private static final int LAST_OFFSET_PY_LENGTH = LAST_OFFSET_PY.length;

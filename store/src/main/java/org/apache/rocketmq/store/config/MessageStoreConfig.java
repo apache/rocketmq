@@ -112,7 +112,6 @@ public class MessageStoreConfig {
     private long timerRocksDBPrecisionMs = 1000L;
     private double timerRocksDBRollMaxTps = 8000.0;
     private double timerRocksDBTimeExpiredMaxTps = 200000.0;
-    private int timerRocksDBRollIntervalHours = 1;
     private int timerRocksDBRollRangeHours = 2;
     private boolean timerRecallToTimeWheelEnable = true;
     private boolean timerRecallToTimelineEnable = true;
@@ -2396,14 +2395,6 @@ public class MessageStoreConfig {
 
     public int getTimerReputServiceQueueCapacity() {
         return timerReputServiceQueueCapacity;
-    }
-
-    public int getTimerRocksDBRollIntervalHours() {
-        return timerRocksDBRollIntervalHours;
-    }
-
-    public void setTimerRocksDBRollIntervalHours(int timerRocksDBRollIntervalHours) {
-        this.timerRocksDBRollIntervalHours = timerRocksDBRollIntervalHours;
     }
 
     public int getTimerRocksDBRollRangeHours() {
