@@ -17,6 +17,15 @@
 
 package org.apache.rocketmq.common.config;
 
+/**
+ * Version identifier for the persistent config file format used by {@code ConfigManager}.
+ *
+ * <p>{@link #V1} is the legacy JSON format where the config is encoded directly as a
+ * JSON string ({@code JSON.toJSONString(obj)}).
+ *
+ * <p>{@link #V2} stores additional metadata (version, encoding) alongside the serialized config,
+ * enabling forward-compatible config migration.
+ */
 public enum ConfigManagerVersion {
     V1("v1"),
     V2("v2"),

@@ -27,6 +27,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
@@ -52,6 +53,23 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
+/**
+ * Processes the nack {@code ChangeInvisibleTime} request from consumers.
+ *
+ * <p>When a consumer needs more time to process a message (or wants to
+ * suspend/nack it), this processor updates the message's visibility
+ * timeout. The implementation varies by the ack mode:
+ * <ul>
+ *   <li><b>KVStore path</b> — delegates to
+ *       {@link PopConsumerService#changeInvisibilityDuration}</li>
+ *   <li><b>File-based path</b> — writes a new CK to the revive topic with
+ *       the updated invisible time, then acks the original CK so that
+ *       the message will not be revived until the new timeout expires</li>
+ * </ul>
+ *
+ * <p>For orderly consumption, the next visible time is updated directly in
+ * the {@link ConsumerOrderInfoManager} without writing to the revive topic.
+ */
 public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
@@ -71,8 +89,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
 
+        // process request async
         CompletableFuture<RemotingCommand> responseFuture = processRequestAsync(channel, request, brokerAllowSuspend);
 
+        // process response sync or a sync
+        // default value of appendCkAsync is false
+        // default value of appendAckAsync is false
         if (brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
             responseFuture.thenAccept(response -> doResponse(channel, request, response)).exceptionally(throwable -> {
                 RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
@@ -97,8 +119,27 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    /**
+     * Asynchronously process a ChangeInvisibleTime request.
+     *
+     * <p>Routes to the appropriate handler based on message type:
+     * <ul>
+     *   <li><b>Lite message</b> — {@link #processChangeInvisibleTimeForLite}</li>
+     *   <li><b>KVStore path + orderly</b> — {@link #processChangeInvisibleTimeForOrderNew}</li>
+     *   <li><b>KVStore path + non-orderly</b> — {@link PopConsumerService#changeInvisibilityDuration}</li>
+     *   <li><b>File-based path + orderly</b> — {@link #processChangeInvisibleTimeForOrder}</li>
+     *   <li><b>File-based path + non-orderly</b> — {@link #appendCheckPointThenAckOrigin}</li>
+     * </ul>
+     *
+     * @param channel           the Netty channel
+     * @param request           the incoming request
+     * @param brokerAllowSuspend whether the broker may suspend
+     * @return a future that completes with the response
+     * @throws RemotingCommandException if the request cannot be decoded
+     */
     public CompletableFuture<RemotingCommand> processRequestAsync(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
+        // decode and validate request
         final ChangeInvisibleTimeRequestHeader requestHeader = (ChangeInvisibleTimeRequestHeader) request.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class);
         RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
@@ -121,11 +162,13 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             return CompletableFuture.completedFuture(response);
         }
 
+        // lite topic process
         CompletableFuture<RemotingCommand> future = processChangeInvisibleTimeForLite(requestHeader, response, responseHeader);
         if (future != null) {
             return future;
         }
 
+        // offset check
         long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
         long maxOffset;
         try {
@@ -139,6 +182,9 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
 
         String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
+
+        // default value of popConsumerKVServiceEnable is false
+        // kv based ack service
         if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
             if (ExtraInfoUtil.isOrder(extraInfo)) {
                 return this.processChangeInvisibleTimeForOrderNew(
@@ -159,16 +205,20 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             return CompletableFuture.completedFuture(response);
         }
 
+        // file merge based ack service
+
+        // orderly topic
         if (ExtraInfoUtil.isOrder(extraInfo)) {
             return CompletableFuture.completedFuture(
                 processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader));
         }
 
-        // add new ck
+        // add new checkpoint then ack origin checkpoint
         long now = System.currentTimeMillis();
         CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader,
             ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
 
+        // format response
         return futureResult.thenCompose(result -> {
             if (result) {
                 responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
@@ -255,8 +305,25 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * Ack the original checkpoint after created a new checkpoint successfully.
+     *
+     * <p>Called after the new checkpoint has been written successfully. This method
+     * writes an {@link PopAckConstants#ACK_TAG} message that matches the
+     * original checkpoint's merge key. When {@link PopReviveService} processes this
+     * ack, it sets the corresponding bit in the old CK's bitMap, causing
+     * the old CK to be treated as fully acked and skipped during revive.
+     *
+     * <p>If {@link PopBufferMergeService#addAk} accepts the ack (buffer
+     * merge enabled), it is merged in memory without writing to the store.
+     *
+     * @param requestHeader the original request header
+     * @param extraInfo     the extra info from the original pop request
+     * @return a future that completes with {@code true} on success
+     */
     private CompletableFuture<Boolean> ackOrigin(final ChangeInvisibleTimeRequestHeader requestHeader,
         String[] extraInfo) {
+        // create ackMsg and related message
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         AckMsg ackMsg = new AckMsg();
 
@@ -273,10 +340,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
         this.brokerController.getBrokerStatsManager().incGroupAckNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
 
+        // add ackMsg
         if (brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
             return CompletableFuture.completedFuture(true);
         }
 
+        // init message
         msgInner.setTopic(reviveTopic);
         msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(rqId);
@@ -287,6 +356,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         msgInner.setDeliverTimeMs(ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        // store message
         return this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenCompose(putMessageResult -> {
             if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
@@ -302,6 +373,27 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         });
     }
 
+    /**
+     * Extend the visibility timeout by writing a new checkpoint and ack the old one.
+     *
+     * <p>This is the core of the <b>file-based non-orderly</b> ChangeInvisibleTime path:
+     * <ol>
+     *   <li>Writes a <b>new CK</b> ({@link PopAckConstants#CK_TAG}) to the revive
+     *       topic with the updated {@code invisibleTime}. This CK will trigger a
+     *       revive at the new timeout if not acked.</li>
+     *   <li>If the CK is stored successfully, calls {@link #ackOrigin} to write
+     *       an <b>Ack</b> ({@link PopAckConstants#ACK_TAG}) for the original CK,
+     *       preventing the old CK from triggering a premature revive.</li>
+     * </ol>
+     *
+     * @param requestHeader the original request header
+     * @param reviveQid     the revive queue to write to
+     * @param queueId       the original queue id
+     * @param offset        the message offset being extended
+     * @param popTime       the new pop time (current time)
+     * @param extraInfo     the extra info from the original pop request
+     * @return a future that completes with {@code true} on success
+     */
     private CompletableFuture<Boolean> appendCheckPointThenAckOrigin(
         final ChangeInvisibleTimeRequestHeader requestHeader,
         int reviveQid,
@@ -309,6 +401,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         // add check point msg to revive log
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
+
+        // create checkpoint
         PopCheckPoint ck = new PopCheckPoint();
         ck.setBitMap(0);
         ck.setNum((byte) 1);
@@ -322,6 +416,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
         ck.setSuspend(requestHeader.isSuspend());
 
+        // init message with checkpoint
         msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(reviveQid);
         msgInner.setTags(PopAckConstants.CK_TAG);
@@ -331,6 +426,9 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         msgInner.setDeliverTimeMs(ck.getReviveTime() - PopAckConstants.ackTimeInterval);
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genCkUniqueId(ck));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        // store new checkpoint to extend invisible time
+        // then ack origin checkpoint
         return this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenCompose(putMessageResult -> {
             if (brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("change Invisible, appendCheckPoint, topic {}, queueId {},reviveId {}, cid {}, startOffset {}, rt {}, result {}", requestHeader.getTopic(), queueId, reviveQid, requestHeader.getConsumerGroup(), offset,
@@ -344,6 +442,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
                 }
             }
+
+            // if success, ack origin checkpoint
             if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
@@ -362,6 +462,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     protected CompletableFuture<RemotingCommand> processChangeInvisibleTimeForLite(
         ChangeInvisibleTimeRequestHeader requestHeader,
         RemotingCommand response, ChangeInvisibleTimeResponseHeader responseHeader) {
+        // validation
         if (StringUtils.isBlank(requestHeader.getLiteTopic())) {
             return null;
         }

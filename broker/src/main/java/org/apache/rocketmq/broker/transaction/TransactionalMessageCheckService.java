@@ -22,6 +22,16 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+/**
+ * Background service that periodically triggers transaction status checks.
+ * only one public method: run, and calls TransactionalMessageService.check()
+ *
+ * <p>Runs at a configurable interval ({@code transactionCheckInterval}). Each
+ * iteration calls
+ * {@link TransactionalMessageService#check(long, int, AbstractTransactionalMessageCheckListener)}
+ * which scans the half-message topic for unresolved transactions and either
+ * initiates a broker-side check-back or discards expired messages.
+ */
 public class TransactionalMessageCheckService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 

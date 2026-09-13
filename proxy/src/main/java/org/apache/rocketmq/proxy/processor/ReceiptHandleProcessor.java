@@ -29,17 +29,50 @@ import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.receipt.DefaultReceiptHandleManager;
 
+/**
+ * Bridges receipt handle renewal events to the messaging processor.
+ *
+ * <p>Owns a {@link DefaultReceiptHandleManager} and wires its
+ * {@link RenewEvent} listener to {@link MessagingProcessor#changeInvisibleTime}.
+ * When a receipt handle is about to expire, the manager fires a {@code RENEW}
+ * event which this processor translates into a
+ * {@code ChangeInvisibleTime} call.
+ *
+ * <p>When the renewal limit is reached, a {@code STOP_RENEW} event fires
+ * which nacks the message via {@code changeInvisibleTime} with the group's
+ * retry policy delay.
+ */
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected DefaultReceiptHandleManager receiptHandleManager;
 
+    /**
+     * Wire the receipt handle manager to the messaging processor.
+     *
+     * <p>pass StateEventListener to DefaultReceiptHandleManager
+     * so that when DefaultReceiptHandleManager find the message is expired,
+     * call StateEventListener to change the invisible time of the message.
+     *
+     * <p>Creates an event listener that translates all {@link RenewEvent}
+     * types ({@code RENEW}, {@code STOP_RENEW}, {@code CLEAR_GROUP}) into
+     * {@link MessagingProcessor#changeInvisibleTime} calls, which update
+     * the message's visibility timeout on the broker.
+     *
+     * @param messagingProcessor the core messaging processor
+     * @param serviceManager     the service manager providing metadata and consumer services
+     */
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
+
+        // create event listener
         StateEventListener<RenewEvent> eventListener = event -> {
+            // convert event to ReceiptHandle
             ProxyContext context = createContext(event.getEventType().name())
                 .setChannel(event.getKey().getChannel());
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
+
+            // change invisible time
             messagingProcessor
                 .changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
                     messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(),
@@ -52,6 +85,8 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
                     event.getFuture().complete(v);
                 });
         };
+
+        // pass event listener to DefaultReceiptHandleManager
         this.receiptHandleManager = new DefaultReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
         this.appendStartAndShutdown(receiptHandleManager);
     }

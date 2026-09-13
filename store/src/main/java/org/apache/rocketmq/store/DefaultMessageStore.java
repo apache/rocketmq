@@ -209,6 +209,13 @@ public class DefaultMessageStore implements MessageStore {
 
     private final AtomicInteger mappedPageHoldCount = new AtomicInteger(0);
 
+    /**
+     * BatchDispatchRequest queue
+     * offer by ConcurrentReputMessageService.createBatchDispatchRequest()
+     * poll by MainBatchDispatchRequestService.pollBatchDispatchRequest()
+     *
+     * <p>if enableBuildConsumeQueueConcurrently is false, It is useless
+     */
     private final ConcurrentLinkedQueue<BatchDispatchRequest> batchDispatchRequestQueue = new ConcurrentLinkedQueue<>();
 
     private final int dispatchRequestOrderlyQueueSize = 16;
@@ -281,6 +288,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public ConsumeQueueStoreInterface createConsumeQueueStore() {
+        // default value of rocksdbCQDoubleWriteEnable is false
         if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
             return new CombineConsumeQueueStore(this);
         }
@@ -641,9 +649,20 @@ public class DefaultMessageStore implements MessageStore {
         return commitLogSize + consumeQueueSize + indexFileSize;
     }
 
+    /**
+     * Asynchronously write a message to the commit log.
+     *
+     * <p>Before writing, any registered {@link PutMessageHook} instances are
+     * invoked — a non-null result from a hook short-circuits the process.
+     * Inner-batch message flags are validated
+     * then the actual write is delegated to {@link CommitLog#asyncPutMessage}.
+     *
+     * @param msg the message to write
+     * @return a future that completes with the put result
+     */
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
-
+        // execute beforePutMessage hooks
         for (PutMessageHook putMessageHook : putMessageHookList) {
             PutMessageResult handleResult = putMessageHook.executeBeforePutMessage(msg);
             if (handleResult != null) {
@@ -651,12 +670,14 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        // check inner batch message num
         if (msg.getProperties().containsKey(MessageConst.PROPERTY_INNER_NUM)
             && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
             LOGGER.warn("[BUG]The message had property {} but is not an inner batch", MessageConst.PROPERTY_INNER_NUM);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
 
+        // check inner batch message topic
         if (MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
             Optional<TopicConfig> topicConfig = this.getTopicConfig(msg.getTopic());
             if (!QueueTypeUtils.isBatchCq(topicConfig)) {
@@ -665,9 +686,11 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        // put message
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
 
+        // metrics
         putResultFuture.thenAccept(result -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
@@ -861,6 +884,33 @@ public class DefaultMessageStore implements MessageStore {
         return CompletableFuture.completedFuture(getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter));
     }
 
+    /**
+     * Pull messages from the consume queue, applying filters and reading bodies
+     * from the commit log.
+     *
+     * <p>The method:
+     * <ol>
+     *   <li>Validates the store state and finds the consume queue for the
+     *       topic</li>
+     *   <li>Checks the offset against the queue bounds and sets the
+     *       appropriate status if out of range</li>
+     *   <li>Iterates through the consume queue entries, applies both
+     *       consume-queue-level and commit-log-level message filters</li>
+     *   <li>Reads message bodies from the commit log and appends them to the
+     *       result until the size or count limit is reached</li>
+     *   <li>Reports disk-fall-behind metrics and suggests pulling from a
+     *       slave if the data is too far behind in physical offset</li>
+     * </ol>
+     *
+     * @param group          consumer group
+     * @param topic          topic name
+     * @param queueId        queue id
+     * @param offset         starting offset in the consume queue
+     * @param maxMsgNums     maximum number of messages to return
+     * @param maxTotalMsgSize maximum total message body size
+     * @param messageFilter  message filter (maybe null)
+     * @return the pull result with status, messages, and next offset
+     */
     @Override
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter) {
@@ -874,6 +924,7 @@ public class DefaultMessageStore implements MessageStore {
             return null;
         }
 
+        // try to get from compaction store
         Optional<TopicConfig> topicConfig = getTopicConfig(topic);
         CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(topicConfig);
         //check request topic flag
@@ -881,6 +932,7 @@ public class DefaultMessageStore implements MessageStore {
             return compactionStore.getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize);
         } // else skip
 
+        // init context vars
         long beginTime = this.getSystemClock().now();
 
         GetMessageStatus status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
@@ -898,19 +950,20 @@ public class DefaultMessageStore implements MessageStore {
             minOffset = consumeQueue.getMinOffsetInQueue();
             maxOffset = consumeQueue.getMaxOffsetInQueue();
 
-            if (maxOffset == 0) {
+            if (maxOffset == 0) { // empty queue
                 status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
                 nextBeginOffset = nextOffsetCorrection(offset, 0);
-            } else if (offset < minOffset) {
+            } else if (offset < minOffset) { // offset too small
                 status = GetMessageStatus.OFFSET_TOO_SMALL;
                 nextBeginOffset = nextOffsetCorrection(offset, minOffset);
-            } else if (offset == maxOffset) {
+            } else if (offset == maxOffset) { // offset overflow one
                 status = GetMessageStatus.OFFSET_OVERFLOW_ONE;
                 nextBeginOffset = nextOffsetCorrection(offset, offset);
-            } else if (offset > maxOffset) {
+            } else if (offset > maxOffset) { // offset too big
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
                 nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
-            } else {
+            } else { // offset is ok
+                // init context vars
                 final int maxFilterMessageSize = Math.max(this.messageStoreConfig.getMaxFilterMessageSize(), maxMsgNums * consumeQueue.getUnitSize());
                 final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
 
@@ -923,6 +976,14 @@ public class DefaultMessageStore implements MessageStore {
                 long maxPhyOffsetPulling = 0;
                 int cqFileNum = 0;
 
+                /*
+                 * bufferTotalSize is the total message size
+                 * bufferTotalSize less than 0 means
+                 * the while loop will break after getting more than one messages
+                 *
+                 * travelCqFileNumWhenGetMessage limits the max file nums to travel when get message
+                 * default is 1
+                 */
                 while (getResult.getBufferTotalSize() <= 0
                     && nextBeginOffset < maxOffset
                     && cqFileNum++ < this.messageStoreConfig.getTravelCqFileNumWhenGetMessage()) {
@@ -942,6 +1003,7 @@ public class DefaultMessageStore implements MessageStore {
                         long nextPhyFileStartOffset = Long.MIN_VALUE;
                         while (bufferConsumeQueue.hasNext()
                             && nextBeginOffset < maxOffset) {
+                            // init context params and validate
                             CqUnit cqUnit = bufferConsumeQueue.next();
                             long offsetPy = cqUnit.getPos();
                             int sizePy = cqUnit.getSize();
@@ -980,6 +1042,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            // get message, roll to next file if needed
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
                             if (null == selectResult) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -990,6 +1053,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            // handle result
                             if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupPullMessage(group) && !selectResult.isInCache()) {
                                 getResult.setColdDataSum(getResult.getColdDataSum() + sizePy);
                             }
@@ -1004,6 +1068,7 @@ public class DefaultMessageStore implements MessageStore {
                                 filterMessageCount++;
                                 continue;
                             }
+
                             this.storeStatsService.getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
                             getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
                             status = GetMessageStatus.FOUND;
@@ -1019,6 +1084,7 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
 
+                // ...
                 if (diskFallRecorded) {
                     long fallBehind = maxOffsetPy - maxPhyOffsetPulling;
                     brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, fallBehind);
@@ -1034,6 +1100,7 @@ public class DefaultMessageStore implements MessageStore {
             nextBeginOffset = nextOffsetCorrection(offset, 0);
         }
 
+        // metrics
         if (GetMessageStatus.FOUND == status) {
             this.storeStatsService.getGetMessageTimesTotalFound().add(1);
         } else {
@@ -1048,6 +1115,7 @@ public class DefaultMessageStore implements MessageStore {
         long elapsedTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
 
+        // format result
         // lazy init no data found.
         if (getResult == null) {
             getResult = new GetMessageResult(0);
@@ -2235,10 +2303,19 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * Commits the message to the ConsumeQueue, but only after the half message's
+     * transaction state has been resolved. Prepared and rolled-back half
+     * messages are intentionally skipped — they should not be visible to
+     * consumers until the transaction commits.
+     */
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
         public void dispatch(DispatchRequest request) throws RocksDBException {
+            // Only non-transactional and committed-transactional messages
+            // become visible to consumers via the ConsumeQueue. Half messages
+            // that are still prepared (or rolled back) are filtered out here.
             final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
@@ -2709,15 +2786,19 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public void doReput() {
+            // init reput start offset
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 LOGGER.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
                     this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
                 this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             }
+
+            // check if reputFromOffset < maxReputOffset
             boolean isCommitLogAvailable = isCommitLogAvailable();
             if (!isCommitLogAvailable) {
                 currentReputTimestamp = System.currentTimeMillis();
             }
+            // Outer loop: drain all available data from the commitlog, one mapped file at a time.
             for (boolean doNext = true; isCommitLogAvailable() && doNext; ) {
 
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
@@ -2729,19 +2810,25 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     this.reputFromOffset = result.getStartOffset();
 
+                    // Inner loop: walk through the messages in the current mapped buffer.
                     for (int readSize = 0; readSize < result.getSize() && reputFromOffset < getReputEndOffset() && doNext; ) {
+                        // get one message and some related info
                         DispatchRequest dispatchRequest =
                             DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
                         int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 
+                        // Stop if the end of the file.
                         if (reputFromOffset + size > getReputEndOffset()) {
                             doNext = false;
                             break;
                         }
 
-                        if (dispatchRequest.isSuccess()) {
+                        if (dispatchRequest.isSuccess()) { // dispatch and increase reput offset
                             if (size > 0) {
                                 currentReputTimestamp = dispatchRequest.getStoreTimestamp();
+                                // Hand the message off to all registered CommitLogDispatchStore
+                                // instances (ConsumeQueueStore, IndexService, IndexRocksDBStore,
+                                // TransMessageRocksDBStore, etc.).
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                 if (isNotifyMessageArriveWhenReput()) {
@@ -2759,10 +2846,11 @@ public class DefaultMessageStore implements MessageStore {
                                         .add(dispatchRequest.getMsgSize());
                                 }
                             } else if (size == 0) {
+                                // size==0 is a blank file trailer (BLANK_MAGIC_CODE) - skip to next file.
                                 this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
                                 readSize = result.getSize();
                             }
-                        } else {
+                        } else { // increase reput offset
                             if (size > 0) {
                                 LOGGER.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
                                 this.reputFromOffset += size;

@@ -30,12 +30,54 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 
+/**
+ * Topic route data register to name server
+ * with the header: RegisterTopicRequestHeader{topic, ...}
+ */
 public class TopicRouteData extends RemotingSerializable {
     private String orderTopicConf;
+    /**
+     * Queue data list
+     *  - brokerName
+     *  - perm
+     *  - topicSysFlag
+     *  - readQueueNums
+     *  - writeQueueNums
+     */
     private List<QueueData> queueDatas;
+    /**
+     * Broker data list
+     *  - cluster
+     *  - brokerName
+     *  - brokerAddrs
+     *      - brokerId
+     *      - brokerAddr
+     *  - zoneName
+     *  - random
+     *  - enableActingMaster
+     */
     private List<BrokerData> brokerDatas;
+    /**
+     * Filter server table
+     *  - brokerAddr
+     *  - Filter Server
+     */
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
-    //It could be null or empty
+    /**
+     * It could be null or empty
+     * Topic queue mapping info:
+     *  - brokerName
+     *  - TopicQueueMappingInfo
+     *      - topic
+     *      - scope
+     *      - totalQueues
+     *      - brokerName
+     *      - epoch
+     *      - dirty(isDirty)
+     *      - currIdMap
+     *          - logicalId
+     *          - physicalId
+     */
     private Map<String/*brokerName*/, TopicQueueMappingInfo> topicQueueMappingByBroker;
 
     public TopicRouteData() {

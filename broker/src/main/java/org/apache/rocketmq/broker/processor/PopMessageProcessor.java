@@ -33,6 +33,7 @@ import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.broker.pop.PopConsumerContext;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
@@ -99,6 +100,24 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESPONSE_CODE;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESULT;
 
+/**
+ * Processes PopMessage requests from consumers.
+ *
+ * <p>This is the core processor for the Pop consumption mode. It handles:
+ * <ul>
+ *   <li>Validating the request (topic, group, queue, subscription, permissions)</li>
+ *   <li>Routing to the {@link PopConsumerService} (KVStore path) or the
+ *       inline file-based path</li>
+ *   <li>Popping messages from normal and retry topics (V1/V2)</li>
+ *   <li>Creating checkpoints and writing them to the revive topic</li>
+ *   <li>Long-polling suspension via {@link PopLongPollingService}</li>
+ *   <li>Transferring messages to the client (heap copy or zero-copy)</li>
+ * </ul>
+ *
+ * <p>This class also owns the {@link PopLongPollingService},
+ * {@link PopBufferMergeService}, and {@link QueueLockManager} instances
+ * used by the file-based ack path.
+ */
 public class PopMessageProcessor implements NettyRequestProcessor {
 
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -217,13 +236,36 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             topic, queueId, cid, false, null, 0L, null, null);
     }
 
+    /**
+     * Process a PopMessage request.
+     *
+     * <p>This method handles the full Pop lifecycle:
+     * <ol>
+     *   <li>Validates the request (topic, group, permissions, subscription)</li>
+     *   <li>Routes to the <b>KVStore path</b> (via {@link PopConsumerService#popAsync})
+     *       or the <b>file-based path</b> (inline CompletableFuture chain)</li>
+     *   <li>Pops messages from normal and retry topics (V1/V2)</li>
+     *   <li>Creates checkpoints and appends them to the revive topic</li>
+     *   <li>Suspends the request via {@link PopLongPollingService#polling} if
+     *       no messages are available</li>
+     *   <li>Transfers messages via heap copy or zero-copy ({@code FileRegion})</li>
+     * </ol>
+     *
+     * @param ctx     the Netty channel handler context
+     * @param request the incoming PopMessage request
+     * @return the response, or {@code null} if the response is sent asynchronously
+     *         (zero-copy path or long-polling suspension)
+     * @throws RemotingCommandException if the request cannot be decoded
+     */
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
 
+        // init request and response
         final long beginTimeMills = this.brokerController.getMessageStore().now();
 
         Channel channel = ctx.channel();
+
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         response.setOpaque(request.getOpaque());
 
@@ -235,6 +277,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
 
+        // validation
         // Pop mode only supports consumption in cluster load balancing mode
         brokerController.getConsumerManager().compensateBasicConsumerInfo(
             requestHeader.getConsumerGroup(), ConsumeType.CONSUME_POP, MessageModel.CLUSTERING);
@@ -314,6 +357,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // init filter
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
         SubscriptionData subscriptionData = null;
         ExpressionMessageFilter messageFilter = null;
@@ -377,6 +421,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         ExpressionMessageFilter finalMessageFilter = messageFilter;
         SubscriptionData finalSubscriptionData = subscriptionData;
 
+        // There are two type of ack mode:
+        // 1. ack by KV service
+        // 2. ack by file merge service, default mode
         if (brokerConfig.isPopConsumerKVServiceEnable()) {
 
             CompletableFuture<PopConsumerContext> popAsyncFuture = brokerController.getPopConsumerService().popAsync(
@@ -386,6 +433,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getAttemptId(), requestHeader.getInitMode(), messageFilter);
 
             popAsyncFuture.thenApply(result -> {
+                // callback
                 try {
                     if (request.getCallbackList() != null) {
                         request.getCallbackList().forEach(CommandCallback::accept);
@@ -395,6 +443,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     POP_LOGGER.error("PopProcessor execute callback error", t);
                 }
 
+                // long polling process, useless in rocketmq 5.*
                 if (result.isFound()) {
                     response.setCode(ResponseCode.SUCCESS);
                     getMessageResult.setStatus(GetMessageStatus.FOUND);
@@ -427,6 +476,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
                 }
 
+                // format response
                 responseHeader.setPopTime(result.getPopTime());
                 responseHeader.setInvisibleTime(result.getInvisibleTime());
                 responseHeader.setReviveQid(
@@ -487,8 +537,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 return response;
             }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager()));
             return null;
-        }
+        } // end of ack by kv service
 
+        // start of ack by file merge service mode
+        // init pop parameters
         int randomQ = random.nextInt(100);
         int reviveQid;
         if (requestHeader.isOrder()) {
@@ -518,7 +570,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
         randomQ = usePriorityMode ? 0 : randomQ; // reset randomQ
         long popTime = System.currentTimeMillis();
+
+        // pop message
         CompletableFuture<Long> getMessageFuture = CompletableFuture.completedFuture(0L);
+        // pop message from retry topic
         if (needRetry && !requestHeader.isOrder()) {
             if (needRetryV1) {
                 String retryTopic = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
@@ -530,6 +585,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     popTime, finalMessageFilter, startOffsetInfo, msgOffsetInfo, orderCountInfo, randomQ, getMessageFuture);
             }
         }
+
         if (requestHeader.getQueueId() < 0) {
             // read all queue
             getMessageFuture = popMsgFromTopic(topicConfig, false, getMessageResult, requestHeader, reviveQid, channel,
@@ -541,6 +597,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
                     startOffsetInfo, msgOffsetInfo, orderCountInfo));
         }
+
         // if not full , fetch retry again
         if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
             if (needRetryV1) {
@@ -554,8 +611,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
         }
 
+        // async result handle
         final RemotingCommand finalResponse = response;
         getMessageFuture.thenApply(restNum -> {
+            // execute callback
             try {
                 if (request.getCallbackList() != null) {
                     request.getCallbackList().forEach(CommandCallback::accept);
@@ -565,6 +624,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 POP_LOGGER.error("PopProcessor execute callback error", t);
             }
 
+            // long polling used in version 4.*, useless in 5.*
             if (!getMessageResult.getMessageBufferList().isEmpty()) {
                 finalResponse.setCode(ResponseCode.SUCCESS);
                 getMessageResult.setStatus(GetMessageStatus.FOUND);
@@ -591,6 +651,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 }
                 getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
             }
+
+            // format response
             responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
             responseHeader.setPopTime(popTime);
             responseHeader.setReviveQid(reviveQid);
@@ -601,6 +663,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 responseHeader.setOrderCountInfo(orderCountInfo.toString());
             }
             finalResponse.setRemark(getMessageResult.getStatus().name());
+
+            // transfer msg by heap or zero copy,
+            // zero copy used in 4.*, useless in 5.*
             switch (finalResponse.getCode()) {
                 case ResponseCode.SUCCESS:
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
@@ -610,7 +675,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                             requestHeader.getTopic(), requestHeader.getQueueId(),
                             (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
                         finalResponse.setBody(r);
-                    } else {
+                    } else { // zero copy
                         final GetMessageResult tmpGetMessageResult = getMessageResult;
                         try {
                             FileRegion fileRegion =
@@ -647,6 +712,37 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    /**
+     * Pop messages from every read queue of the given topic.
+     *
+     * <p>Queues are visited sequentially (respecting {@code priorityOrderAsc}).
+     * For each queue a {@link #popMsgFromQueue} call is chained via
+     * {@code CompletableFuture#thenCompose}. The chained future carries the
+     * <em>remaining</em> number of messages still needed ({@code restNum}).
+     *
+     * <p>Early termination can occur inside {@link #popMsgFromQueue} when:
+     * <ul>
+     *   <li>the queue lock cannot be acquired</li>
+     *   <li>too many in-flight (un-acked) messages exist</li>
+     *   <li>an order queue is blocked</li>
+     *   <li>the accumulated message count already reaches {@code maxMsgNums}</li>
+     * </ul>
+     *
+     * @param topicConfig   topic configuration; {@code null} skips all queues
+     * @param isRetry       whether the topic is a retry topic
+     * @param getMessageResult accumulator for the messages popped so far
+     * @param requestHeader pop request parameters
+     * @param reviveQid     revive queue id
+     * @param channel       netty channel of the requesting client
+     * @param popTime       pop timestamp
+     * @param messageFilter expression filter applied to each message
+     * @param startOffsetInfo buffer for offset tracing info
+     * @param msgOffsetInfo   buffer for per-message offset tracing info
+     * @param orderCountInfo  buffer for order-consume count info
+     * @param randomQ       random queue offset for round-robin load balancing
+     * @param getMessageFuture future that carries the remaining message count
+     * @return a future completing with the remaining number of messages needed
+     */
     private CompletableFuture<Long> popMsgFromTopic(TopicConfig topicConfig, boolean isRetry, GetMessageResult getMessageResult,
         PopMessageRequestHeader requestHeader, int reviveQid, Channel channel, long popTime,
         ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
@@ -674,12 +770,52 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             messageFilter, startOffsetInfo, msgOffsetInfo, orderCountInfo, randomQ, getMessageFuture);
     }
 
+    /**
+     * Pop messages from a specific queue of a topic.
+     *
+     * <p>This method is called as a step in a {@link CompletableFuture} chain
+     * (see {@link #popMsgFromTopic}). The {@code restNum} argument is the
+     * number of messages still needed — when it drops to {@code 0} or below,
+     * subsequent calls in the chain may short-circuit early.
+     *
+     * <p>The method has several <b>early-termination</b> paths (all return
+     * immediately with the current {@code restNum}):
+     * <ul>
+     *   <li>Queue lock cannot be acquired — skips this queue</li>
+     *   <li>Too many in-flight (un-acked) messages for this
+     *       {@code topic@group@queueId}</li>
+     *   <li>Order queue is blocked by a previous un-acked message</li>
+     *   <li>Already accumulated {@code >= maxMsgNums} messages</li>
+     * </ul>
+     *
+     * <p>Otherwise, it asynchronously fetches messages from the store, handles
+     * offset correction, updates order-consume tracking / checkpoint data, and
+     * merges the results into {@code getMessageResult}.
+     *
+     * @param topic            topic name
+     * @param attemptId        attempt id for idempotent consumption
+     * @param isRetry          whether this is a retry topic
+     * @param getMessageResult accumulator for messages popped so far
+     * @param requestHeader    pop request parameters
+     * @param queueId          target queue id
+     * @param restNum          number of messages still needed before the batch
+     *                         size is satisfied
+     * @param reviveQid        revive queue id for checkpoint
+     * @param channel          netty channel of the requesting client
+     * @param popTime          pop invocation timestamp
+     * @param messageFilter    expression filter applied to each message
+     * @param startOffsetInfo  buffer for offset tracing info
+     * @param msgOffsetInfo    buffer for per-message offset tracing info
+     * @param orderCountInfo   buffer for order-consume count info
+     * @return a future completing with the remaining number of messages needed
+     */
     private CompletableFuture<Long> popMsgFromQueue(String topic, String attemptId, boolean isRetry,
         GetMessageResult getMessageResult,
         PopMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid,
         Channel channel, long popTime, ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
         StringBuilder msgOffsetInfo, StringBuilder orderCountInfo) {
 
+        // get pop offset
         String lockKey =
             topic + PopAckConstants.SPLIT + requestHeader.getConsumerGroup() + PopAckConstants.SPLIT + queueId;
         boolean isOrder = requestHeader.isOrder();
@@ -693,6 +829,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return failure;
         }
 
+        // try lock
         CompletableFuture<Long> future = new CompletableFuture<>();
         if (!queueLockManager.tryLock(lockKey)) {
             try {
@@ -705,8 +842,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
             return future;
         }
-
         future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
+
+        // check inflight message number
         if (isPopShouldStop(topic, requestHeader.getConsumerGroup(), queueId)) {
             POP_LOGGER.warn("Too much msgs unacked, then stop popping. topic={}, group={}, queueId={}",
                 topic, requestHeader.getConsumerGroup(), queueId);
@@ -719,6 +857,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return future;
         }
 
+        // check orderly lock and max message number
         try {
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
                 true, lockKey, true);
@@ -759,6 +898,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return this.brokerController.getMessageStore()
             .getMessageAsync(requestHeader.getConsumerGroup(), topic, queueId, offset,
                 requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter)
+            // result check and retry if offset is not correct
             .thenCompose(result -> {
                 if (result == null) {
                     return CompletableFuture.completedFuture(null);
@@ -779,7 +919,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
                 }
                 return CompletableFuture.completedFuture(result);
-            }).thenApply(result -> {
+            })
+            // update order info or append checkpoint then format result
+            .thenApply(result -> {
                 if (result == null) {
                     try {
                         atomicRestNum.set(brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - atomicOffset.get() + atomicRestNum.get());
@@ -871,7 +1013,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     result.getMessageCount()
                 );
                 return atomicRestNum.get();
-            }).whenComplete((result, throwable) -> {
+            })
+            // unlock queueLock
+            .whenComplete((result, throwable) -> {
                 if (throwable != null) {
                     POP_LOGGER.error("Pop message error, {}", lockKey, throwable);
                 }
@@ -884,14 +1028,37 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             brokerController.getPopInflightMessageCounter().getGroupPopInFlightMessageNum(topic, group, queueId) > brokerController.getBrokerConfig().getPopInflightMessageThreshold();
     }
 
+    /**
+     * get consume offset for pop mode
+     * called by:
+     *  - this.popMsgFromQueue()
+     * functionality:
+     *  - return resetOffset if exists
+     *  - get offset if exists
+     *  - init offset if not exists
+     *  - get offset from popBufferMergeService
+     *
+     * @param topic topic
+     * @param group group
+     * @param queueId queueId
+     * @param initMode initMode ConsumeInitMode.MAX for pop mode
+     * @param init flag of whether commit offset the first time pop message
+     * @param lockKey lockKey
+     * @param checkResetOffset flag of whether resetPopOffset
+     * @return offset
+     */
     private long getPopOffset(String topic, String group, int queueId, int initMode, boolean init, String lockKey,
         boolean checkResetOffset) throws ConsumeQueueException {
 
         long offset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         if (offset < 0) {
+            //the first time consume, init offset by initMode
             offset = this.getInitOffset(topic, group, queueId, initMode, init);
         }
 
+        // before lock checkResetOffset is false
+        // after lock checkResetOffset is true
+        // This is an admin related feature
         if (checkResetOffset) {
             Long resetOffset = resetPopOffset(topic, group, queueId);
             if (resetOffset != null) {
@@ -907,6 +1074,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
     }
 
+    /**
+     * get offset from consume queue
+     * If consume from min offset:
+     *      - return min offset.
+     * If consume from max offset:
+     *      - get max offset
+     *      - commit max offset if init is true.
+     */
     public long getInitOffset(String topic, String group, int queueId, int initMode, boolean init)
         throws ConsumeQueueException {
         long offset;

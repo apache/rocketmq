@@ -33,6 +33,27 @@ import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+/**
+ * Schedules lock-release notifications for queue-level ordered Pop
+ * consumption.
+ *
+ * <p>When a consumer Pop s a batch of ordered messages from a queue, the
+ * queue is effectively "locked" until the consumer ACKs or the invisible
+ * time expires. This class uses a {@link HashedWheelTimer} to fire a
+ * notification at the predicted lock-free time, so that other consumers
+ * blocked in long-polling for the same queue can be woken up immediately
+ * rather than waiting for the polling timeout.
+ *
+ * <p>Two notification paths are supported:
+ * <ul>
+ *   <li>{@link org.apache.rocketmq.broker.processor.PopMessageProcessor#notifyLongPollingRequestIfNeed}
+ *   for regular topics</li>
+ *   <li>{@code LiteEventDispatcher.dispatch} for Lite topics</li>
+ * </ul>
+ *
+ * <p>Functionally gated by
+ * {@code BrokerConfig#isEnableNotifyAfterPopOrderLockRelease}.
+ */
 public class QueueLevelConsumerOrderInfoLockManager {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
 

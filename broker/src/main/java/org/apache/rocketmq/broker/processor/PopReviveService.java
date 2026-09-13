@@ -64,6 +64,25 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CON
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
+/**
+ * Per-queue service that reads the revive topic, matches checkpoints with AckMsgs, and
+ * revives timed-out messages by re-publishing them to the retry topic.
+ *
+ * <p>There is only one public method for business: run</p>
+ *
+ * <p>Each revive queue has its own dedicated {@code PopReviveService} instance.
+ * The service periodically:
+ * <ol>
+ *   <li>Scans the revive topic ({@link #consumeReviveMessage}) to collect CK
+ *       (checkpoint) and Ack messages, merging Acks into CK's bitMap</li>
+ *   <li>Processes expired checkpoints ({@link #mergeAndRevive}) by re-publishing any
+ *       un-acked sub-messages back to the retry topic via {@link #reviveRetry}</li>
+ * </ol>
+ *
+ * <p>This is the <b>file-based</b> revive path (CK + Ack messages are stored in
+ * the system revive topic). It is complemented by the KVStore-based path in
+ * {@code PopConsumerService} which handles the {@code PopConsumerKVStore} flow.
+ */
 public class PopReviveService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final int[] ckRewriteIntervalsInSeconds = new int[] { 10, 20, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 1200, 1800, 3600, 7200 };
@@ -74,6 +93,25 @@ public class PopReviveService extends ServiceThread {
     private long currentReviveMessageTimestamp = -1;
     private volatile boolean shouldRunPopRevive = false;
 
+    /**
+     * Tracks checkpoints that are currently being revived.
+     *
+     * <p>Key — the checkpoint being processed.
+     * Value — a pair of (startTime, completed), where:
+     * <ul>
+     *   <li>{@code startTime} is the timestamp when revival began</li>
+     *   <li>{@code completed} is {@code true} once all sub-messages have been
+     *       processed (success or failure)</li>
+     * </ul>
+     *
+     * <p>The map is sorted by {@link PopCheckPoint#compareTo} (by startOffset).
+     * This ordering is used to drain completed entries from the head, ensuring
+     * the revive topic offset is committed strictly in sequence.
+     *
+     * <p>Concurrency is limited to at most 3 entries at a time (see
+     * {@link #mergeAndRevive}). If an entry stays incomplete for over 30
+     * seconds, it is considered hung and is skipped via {@link #rePutCK}.
+     */
     private final NavigableMap<PopCheckPoint/* oldCK */, Pair<Long/* timestamp */, Boolean/* result */>> inflightReviveRequestMap = Collections.synchronizedNavigableMap(new TreeMap<>());
     private long reviveOffset;
 
@@ -104,7 +142,23 @@ public class PopReviveService extends ServiceThread {
         return shouldRunPopRevive;
     }
 
+    /**
+     * Re-publish a timed-out message to the retry topic.
+     *
+     * <p>Constructs a new {@link MessageExtBrokerInner} from the original
+     * message, increments the reconsume count (unless suspended), sets the
+     * first-pop time and origin group properties, and writes it to the
+     * appropriate retry topic (V1 or V2 depending on configuration).
+     *
+     * <p>If the retry topic does not exist, it is created automatically
+     * via {@link #addRetryTopicIfNotExist}.
+     *
+     * @param popCheckPoint the checkpoint that triggered the revive
+     * @param messageExt    the original message to re-publish
+     * @return {@code true} if the message was written successfully
+     */
     private boolean reviveRetry(PopCheckPoint popCheckPoint, MessageExt messageExt) {
+        // convert checkpoint to inner message
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         if (!popCheckPoint.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             msgInner.setTopic(KeyBuilder.buildPopRetryTopic(popCheckPoint.getTopic(), popCheckPoint.getCId(), brokerController.getBrokerConfig().isEnableRetryTopicV2()));
@@ -133,9 +187,15 @@ public class PopReviveService extends ServiceThread {
         }
         msgInner.getProperties().put(MessageConst.PROPERTY_ORIGIN_GROUP, popCheckPoint.getCId());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        // set topic and queueId
         addRetryTopicIfNotExist(msgInner.getTopic(), popCheckPoint.getCId());
         msgInner.setQueueId(getRetryQueueId(msgInner.getTopic(), messageExt));
+
+        // store message
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
+
+        // logging and metric
         brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveRetryMessageCount(popCheckPoint, putMessageResult.getPutMessageStatus());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("reviveQueueId={},retry msg, ck={}, msg queueId {}, offset {}, reviveDelay={}, result is {} ",
@@ -205,6 +265,17 @@ public class PopReviveService extends ServiceThread {
         return oriQueueId;
     }
 
+    /**
+     * Pull a batch of messages from the revive topic at the given offset.
+     *
+     * <p>If the offset becomes illegal (e.g. the revive topic was truncated),
+     * the revive offset is corrected to {@code nextBeginOffset - 1} so that
+     * the next scan starts from a valid position.
+     *
+     * @param offset  the queue offset to start reading from
+     * @param queueId the revive queue id
+     * @return a list of decoded messages, or {@code null} if at the tail
+     */
     protected List<MessageExt> getReviveMessage(long offset, int queueId) {
         PullResult pullResult = getMessage(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, offset, 32, true);
         if (pullResult == null) {
@@ -333,7 +404,39 @@ public class PopReviveService extends ServiceThread {
         return foundList;
     }
 
+    /**
+     * Pull Message from revive topic then transfer to checkpoint and ack messages.
+     *
+     * <p>This method reads messages from the revive topic starting from the
+     * current offset. Each message is classified by its tag:
+     * <ul>
+     *   <li>{@link PopAckConstants#CK_TAG} — a checkpoint, deserialized from
+     *       JSON and stored in the map by its merge key</li>
+     *   <li>{@link PopAckConstants#ACK_TAG} or
+     *       {@link PopAckConstants#BATCH_ACK_TAG} — an ack, matched to its
+     *       corresponding checkpoint via the merge key. The ack offset is translated
+     *       to a sub-message index ({@link PopCheckPoint#indexOfAck}) and
+     *       the checkpoint's bitMap is updated via {@link DataConverter#setBit}</li>
+     * </ul>
+     *
+     * <p>AckMsg that arrive after their checkpoint has already been processed
+     * ({@code enableSkipLongAwaitingAck}) are handled by creating a mock CK
+     * via {@link #mockCkForAck} so that the revive offset can still be
+     * committed correctly.
+     *
+     * <p>The scan stops when any of:
+     * <ul>
+     *   <li>No more messages in the revive topic (tail reached)</li>
+     *   <li>Scan time exceeds {@code reviveScanTime}</li>
+     *   <li>The elapsed time since the first CK's revive time exceeds
+     *       {@code ackTimeInterval + 1s}</li>
+     * </ul>
+     *
+     * @param consumeReviveObj the mutable container that receives the collected
+     *                         CKs and the computed {@code endTime}
+     */
     protected void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
+        // init context parameters
         HashMap<String, PopCheckPoint> map = consumeReviveObj.map;
         HashMap<String, PopCheckPoint> mockPointMap = new HashMap<>();
         long startScanTime = System.currentTimeMillis();
@@ -346,11 +449,14 @@ public class PopReviveService extends ServiceThread {
         int noMsgCount = 0;
         long firstRt = 0;
         // offset self amend
+
         while (true) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip scan, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 break;
             }
+
+            // pull revive messages
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
             if (messageExts == null || messageExts.isEmpty()) {
                 long old = endTime;
@@ -379,10 +485,13 @@ public class PopReviveService extends ServiceThread {
             } else {
                 noMsgCount = 0;
             }
+
             if (System.currentTimeMillis() - startScanTime > brokerController.getBrokerConfig().getReviveScanTime()) {
                 POP_LOGGER.info("reviveQueueId={}, scan timeout ", queueId);
                 break;
             }
+
+            // convert message to PopCheckPoint and AckMsg
             for (MessageExt messageExt : messageExts) {
                 if (PopAckConstants.CK_TAG.equals(messageExt.getTags())) {
                     String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
@@ -411,6 +520,7 @@ public class PopReviveService extends ServiceThread {
                     String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime() + brokerName;
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
+                        // default value of enableSkipLongAwaitingAck is false
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
                             continue;
                         }
@@ -418,6 +528,7 @@ public class PopReviveService extends ServiceThread {
                             firstRt = mockPointMap.get(mergeKey).getReviveTime();
                         }
                     } else {
+                        // merge ackMsg into checkpoint
                         int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
                         if (indexOfAck > -1) {
                             point.setBitMap(DataConverter.setBit(point.getBitMap(), indexOfAck, true));
@@ -438,6 +549,7 @@ public class PopReviveService extends ServiceThread {
                     String mergeKey = bAckMsg.getTopic() + bAckMsg.getConsumerGroup() + bAckMsg.getQueueId() + bAckMsg.getStartOffset() + bAckMsg.getPopTime() + brokerName;
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
+                        // default value of enableSkipLongAwaitingAck is false
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
                             continue;
                         }
@@ -445,6 +557,7 @@ public class PopReviveService extends ServiceThread {
                             firstRt = mockPointMap.get(mergeKey).getReviveTime();
                         }
                     } else {
+                        // merge ackMsgs into checkpoint
                         List<Long> ackOffsetList = bAckMsg.getAckOffsetList();
                         for (Long ackOffset : ackOffsetList) {
                             int indexOfAck = point.indexOfAck(ackOffset);
@@ -467,6 +580,20 @@ public class PopReviveService extends ServiceThread {
         consumeReviveObj.endTime = endTime;
     }
 
+    /**
+     * Create a mock CK for an ack whose original CK has already been processed.
+     *
+     * <p>When an ack arrives long after its CK has been consumed (e.g. network
+     * delay), the CK is no longer in the scan map. If {@code enableSkipLongAwaitingAck}
+     * is enabled, this method creates a synthetic CK so that the revive offset
+     * can still be advanced correctly in {@link #mergeAndRevive}.
+     *
+     * @param messageExt   the revive topic message that carried the ack
+     * @param ackMsg       the decoded ack
+     * @param mergeKey     the merge key for the CK lookup
+     * @param mockPointMap map to collect the mock CKs
+     * @return {@code true} if a mock CK was created
+     */
     private boolean mockCkForAck(MessageExt messageExt, AckMsg ackMsg, String mergeKey, HashMap<String, PopCheckPoint> mockPointMap) {
         long ackWaitTime = System.currentTimeMillis() - messageExt.getDeliverTimeMs();
         long reviveAckWaitMs = brokerController.getBrokerConfig().getReviveAckWaitMs();
@@ -482,6 +609,17 @@ public class PopReviveService extends ServiceThread {
         return false;
     }
 
+    /**
+     * Build a synthetic checkpoint from an ack message.
+     *
+     * <p>The mock CK has {@code num = 0} and empty bitMap, meaning no actual
+     * messages to revive. Its only purpose is to carry the {@code reviveOffset}
+     * so that the revive consumer offset can be committed past this ack.
+     *
+     * @param ackMsg       the ack message
+     * @param reviveOffset the queue offset of the ack message in the revive topic
+     * @return a mock checkpoint with no sub-messages
+     */
     private PopCheckPoint createMockCkForAck(AckMsg ackMsg, long reviveOffset) {
         PopCheckPoint point = new PopCheckPoint();
         point.setStartOffset(ackMsg.getStartOffset());
@@ -496,7 +634,26 @@ public class PopReviveService extends ServiceThread {
         return point;
     }
 
+    /**
+     * Process collected checkpoints and revive all un-acked sub-messages.
+     *
+     * <p>Checkpoints are sorted by revive offset. For each one:
+     * <ul>
+     *   <li>Skip if the revive time has not yet elapsed (within
+     *       {@code ackTimeInterval + 1s} of {@code endTime})</li>
+     *   <li>Skip if the normal topic or consumer group no longer exists</li>
+     *   <li>Wait if too many revives are already in-flight (max 3)</li>
+     *   <li>Call {@link #reviveMsgFromCk} to re-publish un-acked messages</li>
+     * </ul>
+     *
+     * <p>After processing, the revive topic offset is advanced past all
+     * processed checkpoints.
+     *
+     * @param consumeReviveObj the container with collected CKs and scan state
+     * @throws Throwable if any revive operation fails
+     */
     protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
+        // sort checkpoints and init newOffset
         ArrayList<PopCheckPoint> sortList = consumeReviveObj.genSortList();
         POP_LOGGER.info("reviveQueueId={}, ck listSize={}", queueId, sortList.size());
         if (sortList.size() != 0) {
@@ -504,6 +661,7 @@ public class PopReviveService extends ServiceThread {
                 sortList.get(0).getReviveOffset(), sortList.get(sortList.size() - 1).getStartOffset(), sortList.get(sortList.size() - 1).getReviveOffset());
         }
         long newOffset = consumeReviveObj.oldOffset;
+
         for (PopCheckPoint popCheckPoint : sortList) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip ck process, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
@@ -526,11 +684,14 @@ public class PopReviveService extends ServiceThread {
                 continue;
             }
 
+            // Concurrency control for revive: skip first long-running revive task.
             while (inflightReviveRequestMap.size() > 3) {
                 waitForRunning(100);
                 Pair<Long, Boolean> pair = inflightReviveRequestMap.firstEntry().getValue();
+                // if first revive task is timeout, reput it to revive topic, then skip
                 if (!pair.getObject2() && System.currentTimeMillis() - pair.getObject1() > 1000 * 30) {
                     PopCheckPoint oldCK = inflightReviveRequestMap.firstKey();
+                    // reput checkpoint to revive topic
                     rePutCK(oldCK, pair);
                     inflightReviveRequestMap.remove(oldCK);
                     POP_LOGGER.warn("stay too long, remove from reviveRequestMap, {}, {}, {}, {}", popCheckPoint.getTopic(),
@@ -538,10 +699,12 @@ public class PopReviveService extends ServiceThread {
                 }
             }
 
+            // revive message
             reviveMsgFromCk(popCheckPoint);
-
             newOffset = popCheckPoint.getReviveOffset();
         }
+
+        // commit offset
         if (newOffset > consumeReviveObj.oldOffset) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip commit, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
@@ -553,22 +716,46 @@ public class PopReviveService extends ServiceThread {
         consumeReviveObj.newOffset = newOffset;
     }
 
+    /**
+     * Revive all un-acked sub-messages in a checkpoint:
+     * - reput message to revive topic
+     * - put message to retry topic
+     *
+     * <p>For each sub-message whose bit is not set in the bitMap, the original
+     * message is fetched via {@link #getBizMessage} and re-published to the
+     * retry topic via {@link #reviveRetry}. All revive attempts run
+     * concurrently via {@link CompletableFuture#allOf}.
+     *
+     * <p>After all attempts complete:
+     * <ul>
+     *   <li>Failed offsets are re-queued via {@link #rePutCK}</li>
+     *   <li>The {@link #inflightReviveRequestMap} is updated and completed
+     *       entries are removed in order, advancing the revive offset</li>
+     * </ul>
+     *
+     * @param popCheckPoint the checkpoint whose un-acked messages should be revived
+     */
     private void reviveMsgFromCk(PopCheckPoint popCheckPoint) {
+        // env check and init
         if (!shouldRunPopRevive) {
             POP_LOGGER.info("slave skip retry, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
             return;
         }
         inflightReviveRequestMap.put(popCheckPoint, new Pair<>(System.currentTimeMillis(), false));
         List<CompletableFuture<Pair<Long, Boolean>>> futureList = new ArrayList<>(popCheckPoint.getNum());
+
+        // put message to retry topic if checkpoint was not acked
         for (int j = 0; j < popCheckPoint.getNum(); j++) {
+            // if checkpoint was acked, skip
             if (DataConverter.getBit(popCheckPoint.getBitMap(), j)) {
                 continue;
             }
 
-            // retry msg
+            // get message by checkpoint, then put message to retry topic
             long msgOffset = popCheckPoint.ackOffsetByIndex((byte) j);
             CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint, msgOffset)
                 .thenApply(rst -> {
+                    // validate message
                     MessageExt message = rst.getLeft();
                     if (message == null) {
                         POP_LOGGER.info("reviveQueueId={}, can not get biz msg, topic:{}, qid:{}, offset:{}, brokerName:{}, info:{}, retry:{}, then continue",
@@ -580,8 +767,11 @@ public class PopReviveService extends ServiceThread {
                 });
             futureList.add(future);
         }
+
+        // reput checkpoint to revive topic if retry failed
         CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]))
             .whenComplete((v, e) -> {
+                // reput checkpoint
                 for (CompletableFuture<Pair<Long, Boolean>> future : futureList) {
                     Pair<Long, Boolean> pair = future.getNow(new Pair<>(0L, false));
                     if (!pair.getObject2()) {
@@ -589,9 +779,12 @@ public class PopReviveService extends ServiceThread {
                     }
                 }
 
+                // update ack status of inflight checkpoint
                 if (inflightReviveRequestMap.containsKey(popCheckPoint)) {
                     inflightReviveRequestMap.get(popCheckPoint).setObject2(true);
                 }
+
+                // commit offset and remove inflight checkpoint
                 for (Map.Entry<PopCheckPoint, Pair<Long, Boolean>> entry : inflightReviveRequestMap.entrySet()) {
                     PopCheckPoint oldCK = entry.getKey();
                     Pair<Long, Boolean> pair = entry.getValue();
@@ -605,6 +798,24 @@ public class PopReviveService extends ServiceThread {
             });
     }
 
+    /**
+     * Re-write a checkpoint to the revive topic after a failed revive attempt.
+     *
+     * <p>When a sub-message cannot be revived (e.g. the original message is
+     * temporarily unavailable), the CK is re-published with:
+     * <ul>
+     *   <li>A single sub-message targeting the failed offset</li>
+     *   <li>An increased {@code rePutTimes} and an extended invisible time
+     *       based on the backoff interval</li>
+     *   <li>A cleared bitMap, so the next revive cycle will retry it</li>
+     * </ul>
+     *
+     * <p>If {@code rePutTimes} exceeds the backoff table length and
+     * {@code skipWhenCKRePutReachMaxTimes} is set, the CK is dropped.
+     *
+     * @param oldCK the original checkpoint that failed to revive
+     * @param pair   the failed offset and result (object1 = offset, object2 = result)
+     */
     private void rePutCK(PopCheckPoint oldCK, Pair<Long, Boolean> pair) {
         int rePutTimes = oldCK.parseRePutTimes();
         if (rePutTimes >= ckRewriteIntervalsInSeconds.length && brokerController.getBrokerConfig().isSkipWhenCKRePutReachMaxTimes()) {
@@ -654,11 +865,27 @@ public class PopReviveService extends ServiceThread {
         return Math.max(0, diff);
     }
 
+    /**
+     * Main loop: periodically consume revive messages and revive timed-out CKs.
+     *
+     * <p>Each iteration:
+     * <ol>
+     *   <li>Waits for {@code reviveInterval} (configurable)</li>
+     *   <li>Calls {@link #consumeReviveMessage} to scan the revive topic and
+     *       merge checkpoints with their corresponding AckMsg</li>
+     *   <li>Calls {@link #mergeAndRevive} to re-publish all un-acked
+     *       sub-messages whose revive time has elapsed</li>
+     *   <li>If no checkpoints were processed, increases a {@code slow} counter and
+     *       sleeps longer — the idle interval ramps up to
+     *       {@code reviveMaxSlow * reviveInterval}</li>
+     * </ol>
+     */
     @Override
     public void run() {
         int slow = 1;
         while (!this.isStopped()) {
             try {
+                // env check
                 if (System.currentTimeMillis() < brokerController.getShouldStartTime()) {
                     POP_LOGGER.info("PopReviveService Ready to run after {}", brokerController.getShouldStartTime());
                     this.waitForRunning(1000);
@@ -676,6 +903,8 @@ public class PopReviveService extends ServiceThread {
                 }
 
                 POP_LOGGER.info("start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+
+                // consume revive message
                 ConsumeReviveObj consumeReviveObj = new ConsumeReviveObj();
                 consumeReviveMessage(consumeReviveObj);
 
@@ -684,8 +913,10 @@ public class PopReviveService extends ServiceThread {
                     continue;
                 }
 
+                // merge checkpoint and ackMsg then revive
                 mergeAndRevive(consumeReviveObj);
 
+                // wait and logging
                 ArrayList<PopCheckPoint> sortList = consumeReviveObj.sortList;
                 long delay = 0;
                 if (sortList != null && !sortList.isEmpty()) {
