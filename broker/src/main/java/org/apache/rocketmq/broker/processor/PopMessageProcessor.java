@@ -264,6 +264,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        if (requestHeader.getMaxMsgNums() <= 0) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark(String.format("the broker[%s] pop message's num must be positive",
+                this.brokerController.getBrokerConfig().getBrokerIP1()));
+            return response;
+        }
+
         if (!brokerController.getMessageStore().getMessageStoreConfig().isTimerWheelEnable()) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(String.format("the broker[%s] pop message is forbidden because timerWheelEnable is false",
