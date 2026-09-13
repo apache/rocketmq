@@ -464,6 +464,20 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateTopicListWithNullBody() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testLockBatchMQWithNullBody() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
     public void testDeleteTopicInRocksdb() throws Exception {
         if (notToBeExecuted()) {
             return;
