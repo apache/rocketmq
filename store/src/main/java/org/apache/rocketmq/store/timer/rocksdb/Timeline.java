@@ -387,8 +387,8 @@ public class Timeline {
             while (!this.isStopped()) {
                 try {
                     long maxDelayMs = TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec());
-                    int rollIntervalHour = storeConfig.getTimerRocksDBRollIntervalHours() > 0 ? storeConfig.getTimerRocksDBRollIntervalHours() : 1;
-                    long rangeMs = TimeUnit.HOURS.toMillis(rollIntervalHour);
+                    int rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours() > 0 ? storeConfig.getTimerRocksDBRollRangeHours() : 2;
+                    long rangeMs = TimeUnit.HOURS.toMillis(rollRangeHour);
                     long nextDueMs = checkpoint + rangeMs - maxDelayMs;
                     long triggerAt = nextDueMs - ROLL_TRIGGER_EARLY_MS;
                     long now = System.currentTimeMillis();
@@ -407,6 +407,7 @@ public class Timeline {
                     log.info("Timeline TimelineRollService roll records success, checkpoint: {}, cost: {}", checkpoint, System.currentTimeMillis() - now);
                 } catch (Exception e) {
                     logError.error("Timeline TimelineRollService failed error: {}", e.getMessage());
+                    this.waitForRunning(200L);
                 }
             }
             log.info(this.getServiceName() + " service end");
