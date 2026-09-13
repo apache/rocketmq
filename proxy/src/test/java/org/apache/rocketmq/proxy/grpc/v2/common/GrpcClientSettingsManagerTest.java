@@ -201,4 +201,45 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
         verify(messagingProcessor, times(1)).syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong());
     }
+
+    @Test
+    public void testOfflineClientLiteSubscription_MultipleTopics_AllSubscriptionsRemoved() {
+        Subscription subscription = Subscription.newBuilder()
+            .setGroup(Resource.newBuilder().setName("testGroup").build())
+            .addSubscriptions(SubscriptionEntry.newBuilder()
+                .setTopic(Resource.newBuilder().setName("testTopic0").build())
+                .build())
+            .addSubscriptions(SubscriptionEntry.newBuilder()
+                .setTopic(Resource.newBuilder().setName("testTopic1").build())
+                .build())
+            .build();
+
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.LITE_PUSH_CONSUMER)
+            .setSubscription(subscription)
+            .build();
+
+        when(messagingProcessor.syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(null));
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+
+        verify(messagingProcessor, times(2)).syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong());
+    }
+
+    @Test
+    public void testOfflineClientLiteSubscription_EmptySubscriptions_NoException() {
+        Subscription subscription = Subscription.newBuilder()
+            .setGroup(Resource.newBuilder().setName("testGroup").build())
+            .build();
+
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.LITE_SIMPLE_CONSUMER)
+            .setSubscription(subscription)
+            .build();
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+
+        verify(messagingProcessor, never()).syncLiteSubscription(any(), any(), anyLong());
+    }
 }
