@@ -21,16 +21,20 @@ import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.TlsDomainConfig;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class TlsCertificateManager implements StartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final FileWatchService fileWatchService;
+    private final List<FileWatchService> domainWatchServices = new ArrayList<>();
     private final List<TlsContextReloadListener> reloadListeners = new ArrayList<>();
+    private final List<DomainTlsContextReloadListener> domainReloadListeners = new ArrayList<>();
 
     public TlsCertificateManager() {
         try {
@@ -42,6 +46,20 @@ public class TlsCertificateManager implements StartAndShutdown {
                 new CertKeyFileWatchListener(),
                 ConfigurationManager.getProxyConfig().getTlsCertWatchIntervalMs()
             );
+
+            Map<String, TlsDomainConfig> domainConfigs = ConfigurationManager.getProxyConfig().getTlsDomainConfigs();
+            if (domainConfigs != null) {
+                for (Map.Entry<String, TlsDomainConfig> entry : domainConfigs.entrySet()) {
+                    String pattern = entry.getKey();
+                    TlsDomainConfig config = entry.getValue();
+                    FileWatchService domainWatch = new FileWatchService(
+                        new String[] { config.getCertPath(), config.getKeyPath() },
+                        new DomainCertKeyFileWatchListener(pattern, config.getCertPath(), config.getKeyPath()),
+                        ConfigurationManager.getProxyConfig().getTlsCertWatchIntervalMs()
+                    );
+                    domainWatchServices.add(domainWatch);
+                }
+            }
         } catch (Exception e) {
             log.error("Failed to initialize TLS certificate watch service", e);
             throw new RuntimeException("Failed to initialize TLS certificate manager", e);
@@ -64,6 +82,18 @@ public class TlsCertificateManager implements StartAndShutdown {
         }
     }
 
+    public void registerDomainReloadListener(DomainTlsContextReloadListener listener) {
+        if (listener != null) {
+            this.domainReloadListeners.add(listener);
+        }
+    }
+
+    public void unregisterDomainReloadListener(DomainTlsContextReloadListener listener) {
+        if (listener != null) {
+            this.domainReloadListeners.remove(listener);
+        }
+    }
+
     public List<TlsContextReloadListener> getReloadListeners() {
         return this.reloadListeners;
     }
@@ -75,11 +105,20 @@ public class TlsCertificateManager implements StartAndShutdown {
             ConfigurationManager.getProxyConfig().getTlsCertPath(),
             ConfigurationManager.getProxyConfig().getTlsKeyPath()
         );
+        for (FileWatchService domainWatch : domainWatchServices) {
+            domainWatch.start();
+        }
+        if (!domainWatchServices.isEmpty()) {
+            log.info("Started {} domain certificate watch services", domainWatchServices.size());
+        }
     }
 
     @Override
     public void shutdown() throws Exception {
         this.fileWatchService.shutdown();
+        for (FileWatchService domainWatch : domainWatchServices) {
+            domainWatch.shutdown();
+        }
         log.info("TLS certificate manager shutdown successfully");
     }
 
@@ -115,8 +154,52 @@ public class TlsCertificateManager implements StartAndShutdown {
         }
     }
 
-    // Interface for listeners interested in TLS context reload events
+    private class DomainCertKeyFileWatchListener implements FileWatchService.Listener {
+        private final String pattern;
+        private final String certPath;
+        private final String keyPath;
+        private boolean certChanged = false;
+        private boolean keyChanged = false;
+
+        DomainCertKeyFileWatchListener(String pattern, String certPath, String keyPath) {
+            this.pattern = pattern;
+            this.certPath = certPath;
+            this.keyPath = keyPath;
+        }
+
+        @Override
+        public void onChanged(String path) {
+            log.info("Domain cert file changed: {} for pattern: {}", path, pattern);
+            if (path.equals(certPath)) {
+                certChanged = true;
+            } else if (path.equals(keyPath)) {
+                keyChanged = true;
+            }
+
+            if (certChanged && keyChanged) {
+                log.info("Domain cert and key both changed for pattern: {}, triggering reload", pattern);
+                notifyDomainContextReload();
+                certChanged = false;
+                keyChanged = false;
+            }
+        }
+
+        private void notifyDomainContextReload() {
+            for (DomainTlsContextReloadListener listener : domainReloadListeners) {
+                try {
+                    listener.onDomainTlsContextReload(pattern);
+                } catch (Throwable e) {
+                    log.error("Failed to notify domain TLS context reload for pattern: " + pattern, e);
+                }
+            }
+        }
+    }
+
     public interface TlsContextReloadListener {
         void onTlsContextReload();
+    }
+
+    public interface DomainTlsContextReloadListener {
+        void onDomainTlsContextReload(String domainPattern);
     }
 }
