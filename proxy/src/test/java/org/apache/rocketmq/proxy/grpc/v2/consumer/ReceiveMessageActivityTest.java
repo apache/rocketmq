@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -420,6 +421,43 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             receiveStreamObserver
         );
         assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
+    @Test
+    public void testReceiveMessageWithoutDeadline() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+        ArgumentCaptor<Long> pollingTimeCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> timeoutCaptor = ArgumentCaptor.forClass(Long.class);
+        when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
+            pollingTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), isNull(), timeoutCaptor.capture()))
+            .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, new ArrayList<>())));
+
+        ProxyContext context = ProxyContext.create()
+            .withVal(ContextVariable.CLIENT_ID, CLIENT_ID)
+            .withVal(ContextVariable.LANGUAGE, JAVA);
+        this.receiveMessageActivity.receiveMessage(
+            context,
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+        assertEquals(ConfigurationManager.getProxyConfig().getGrpcClientConsumerMaxLongPollingTimeoutMillis(),
+            pollingTimeCaptor.getValue().longValue());
+        assertEquals(ConfigurationManager.getProxyConfig().getGrpcClientConsumerMaxLongPollingTimeoutMillis(),
+            timeoutCaptor.getValue().longValue());
     }
 
     private Code getResponseCodeFromReceiveMessageResponseList(List<ReceiveMessageResponse> responseList) {
