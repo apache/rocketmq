@@ -91,6 +91,7 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
@@ -340,6 +341,27 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = createUpdateBrokerConfigCommand();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testCloneGroupOffsetWithoutTopicClonesEveryTopicOfSourceGroup() throws Exception {
+        brokerController.setConsumerOffsetManager(consumerOffsetManager);
+        when(consumerOffsetManager.whichTopicByConsumer("srcGroup")).thenReturn(Sets.newHashSet("cloneTopic1", "cloneTopic2"));
+        brokerController.getTopicConfigManager().getTopicConfigTable().put("cloneTopic1", new TopicConfig("cloneTopic1"));
+        brokerController.getTopicConfigManager().getTopicConfigTable().put("cloneTopic2", new TopicConfig("cloneTopic2"));
+
+        CloneGroupOffsetRequestHeader requestHeader = new CloneGroupOffsetRequestHeader();
+        requestHeader.setSrcGroup("srcGroup");
+        requestHeader.setDestGroup("destGroup");
+        // topic left blank: clone the offsets of every topic the source group consumes
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CLONE_GROUP_OFFSET, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(consumerOffsetManager).cloneOffset("srcGroup", "destGroup", "cloneTopic1");
+        verify(consumerOffsetManager).cloneOffset("srcGroup", "destGroup", "cloneTopic2");
     }
 
     @Test
