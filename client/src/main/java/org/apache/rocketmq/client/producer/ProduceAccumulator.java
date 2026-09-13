@@ -231,7 +231,7 @@ public class ProduceAccumulator {
 
     SendResult send(Message msg,
         DefaultMQProducer defaultMQProducer) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg);
+        AggregateKey partitionKey = new AggregateKey(msg, defaultMQProducer);
         while (true) {
             MessageAccumulation batch = getOrCreateSyncSendBatch(partitionKey, defaultMQProducer);
             int index = batch.add(msg);
@@ -245,7 +245,7 @@ public class ProduceAccumulator {
 
     SendResult send(Message msg, MessageQueue mq,
         DefaultMQProducer defaultMQProducer) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg, mq);
+        AggregateKey partitionKey = new AggregateKey(msg, mq, defaultMQProducer);
         while (true) {
             MessageAccumulation batch = getOrCreateSyncSendBatch(partitionKey, defaultMQProducer);
             int index = batch.add(msg);
@@ -259,7 +259,7 @@ public class ProduceAccumulator {
 
     void send(Message msg, SendCallback sendCallback,
         DefaultMQProducer defaultMQProducer) throws InterruptedException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg);
+        AggregateKey partitionKey = new AggregateKey(msg, defaultMQProducer);
         while (true) {
             MessageAccumulation batch = getOrCreateAsyncSendBatch(partitionKey, defaultMQProducer);
             if (!batch.add(msg, sendCallback)) {
@@ -273,7 +273,7 @@ public class ProduceAccumulator {
     void send(Message msg, MessageQueue mq,
         SendCallback sendCallback,
         DefaultMQProducer defaultMQProducer) throws InterruptedException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg, mq);
+        AggregateKey partitionKey = new AggregateKey(msg, mq, defaultMQProducer);
         while (true) {
             MessageAccumulation batch = getOrCreateAsyncSendBatch(partitionKey, defaultMQProducer);
             if (!batch.add(msg, sendCallback)) {
@@ -303,20 +303,24 @@ public class ProduceAccumulator {
         public MessageQueue mq = null;
         public boolean waitStoreMsgOK = false;
         public String tag = null;
+        // Batches retain their creator's executor, hooks and lifecycle; groups alone are not enough.
+        public final DefaultMQProducer defaultMQProducer;
 
-        public AggregateKey(Message message) {
-            this(message.getTopic(), null, message.isWaitStoreMsgOK(), message.getTags());
+        public AggregateKey(Message message, DefaultMQProducer defaultMQProducer) {
+            this(message.getTopic(), null, message.isWaitStoreMsgOK(), message.getTags(), defaultMQProducer);
         }
 
-        public AggregateKey(Message message, MessageQueue mq) {
-            this(message.getTopic(), mq, message.isWaitStoreMsgOK(), message.getTags());
+        public AggregateKey(Message message, MessageQueue mq, DefaultMQProducer defaultMQProducer) {
+            this(message.getTopic(), mq, message.isWaitStoreMsgOK(), message.getTags(), defaultMQProducer);
         }
 
-        public AggregateKey(String topic, MessageQueue mq, boolean waitStoreMsgOK, String tag) {
+        public AggregateKey(String topic, MessageQueue mq, boolean waitStoreMsgOK, String tag,
+            DefaultMQProducer defaultMQProducer) {
             this.topic = topic;
             this.mq = mq;
             this.waitStoreMsgOK = waitStoreMsgOK;
             this.tag = tag;
+            this.defaultMQProducer = defaultMQProducer;
         }
 
         @Override
@@ -326,12 +330,15 @@ public class ProduceAccumulator {
             if (o == null || getClass() != o.getClass())
                 return false;
             AggregateKey key = (AggregateKey) o;
-            return waitStoreMsgOK == key.waitStoreMsgOK && topic.equals(key.topic) && Objects.equals(mq, key.mq) && Objects.equals(tag, key.tag);
+            return waitStoreMsgOK == key.waitStoreMsgOK && topic.equals(key.topic)
+                && Objects.equals(mq, key.mq) && Objects.equals(tag, key.tag)
+                && defaultMQProducer == key.defaultMQProducer;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(topic, mq, waitStoreMsgOK, tag);
+            return 31 * Objects.hash(topic, mq, waitStoreMsgOK, tag)
+                + System.identityHashCode(defaultMQProducer);
         }
     }
 
@@ -341,6 +348,7 @@ public class ProduceAccumulator {
         private LinkedList<SendCallback> sendCallbacks;
         private Set<String> keys;
         private final AtomicBoolean closed;
+        private final AtomicBoolean holdSizeReleased;
         private SendResult[] sendResults;
         private AggregateKey aggregateKey;
         private AtomicInteger messagesSize;
@@ -353,6 +361,7 @@ public class ProduceAccumulator {
             this.sendCallbacks = new LinkedList<SendCallback>();
             this.keys = new HashSet<String>();
             this.closed = new AtomicBoolean(false);
+            this.holdSizeReleased = new AtomicBoolean(false);
             this.messagesSize = new AtomicInteger(0);
             this.aggregateKey = aggregateKey;
             this.count = 0;
@@ -460,6 +469,15 @@ public class ProduceAccumulator {
             }
         }
 
+        private void releaseHoldSize() {
+            if (holdSizeReleased.compareAndSet(false, true)) {
+                currentlyHoldSize.addAndGet(-messagesSize.get());
+                // Do not retain a completed batch (and its producer) in the shared accumulator.
+                syncSendBatchs.remove(aggregateKey, this);
+                asyncSendBatchs.remove(aggregateKey, this);
+            }
+        }
+
         private void send() throws InterruptedException, MQClientException, MQBrokerException, RemotingException {
             synchronized (this.closed) {
                 if (this.closed.getAndSet(true)) {
@@ -476,7 +494,7 @@ public class ProduceAccumulator {
                     throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
                 }
             } finally {
-                currentlyHoldSize.addAndGet(-messagesSize.get());
+                releaseHoldSize();
                 this.notifyAll();
             }
         }
@@ -491,7 +509,6 @@ public class ProduceAccumulator {
             SendResult sendResult = null;
             try {
                 if (defaultMQProducer != null) {
-                    final int size = messagesSize.get();
                     defaultMQProducer.sendDirect(messageBatch, aggregateKey.mq, new SendCallback() {
                         @Override
                         public void onSuccess(SendResult sendResult) {
@@ -506,26 +523,34 @@ public class ProduceAccumulator {
                                 if (i != count) {
                                     throw new IllegalArgumentException("sendResult is illegal");
                                 }
-                                currentlyHoldSize.addAndGet(-size);
                             } catch (Exception e) {
                                 onException(e);
+                            } finally {
+                                releaseHoldSize();
                             }
                         }
 
                         @Override
                         public void onException(Throwable e) {
-                            for (SendCallback v : sendCallbacks) {
-                                v.onException(e);
+                            try {
+                                for (SendCallback v : sendCallbacks) {
+                                    v.onException(e);
+                                }
+                            } finally {
+                                releaseHoldSize();
                             }
-                            currentlyHoldSize.addAndGet(-size);
                         }
                     });
                 } else {
                     throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
                 }
             } catch (Exception e) {
-                for (SendCallback v : sendCallbacks) {
-                    v.onException(e);
+                try {
+                    for (SendCallback v : sendCallbacks) {
+                        v.onException(e);
+                    }
+                } finally {
+                    releaseHoldSize();
                 }
             }
         }
