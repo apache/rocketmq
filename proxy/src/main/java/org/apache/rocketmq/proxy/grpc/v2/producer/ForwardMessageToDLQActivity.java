@@ -50,12 +50,15 @@ public class ForwardMessageToDLQActivity extends AbstractMessagingActivity {
             }
             ReceiptHandle receiptHandle = ReceiptHandle.decode(handleString);
 
+            String liteTopic = request.hasLiteTopic() ? request.getLiteTopic() : null;
+
             return this.messagingProcessor.forwardMessageToDeadLetterQueue(
                 ctx,
                 receiptHandle,
                 request.getMessageId(),
                 request.getGroup().getName(),
-                request.getTopic().getName()
+                request.getTopic().getName(),
+                liteTopic
             ).thenApply(result -> convertToForwardMessageToDeadLetterQueueResponse(ctx, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);

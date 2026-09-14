@@ -43,13 +43,13 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.util.Arrays;
 import java.util.LinkedList;
-import java.util.Random;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
@@ -197,7 +197,7 @@ public class Producer {
                                     msg.getProperties().clear();
                                 }
                                 int i = 0;
-                                int startValue = (new Random(System.currentTimeMillis())).nextInt(100);
+                                int startValue = ThreadLocalRandom.current().nextInt(100);
                                 int size = 0;
                                 while (true) {
                                     String prop1 = "prop" + i, prop1V = "hello" + startValue;

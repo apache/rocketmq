@@ -59,12 +59,12 @@ public class FlatFileStore {
         try {
             this.flatFileConcurrentMap.clear();
             this.recover();
-            log.info("FlatFileStore recover finished, total cost={}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            log.info("FlatFileStore#load, recover finished, totalCost={}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } catch (Exception e) {
             long costTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-            log.info("FlatFileStore recover error, total cost={}ms", costTime);
+            log.error("FlatFileStore#load, recover error, totalCost={}ms", costTime, e);
             LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME)
-                .error("FlatFileStore recover error, total cost={}ms", costTime, e);
+                .error("FlatFileStore#load, recover error, totalCost={}ms", costTime, e);
             return false;
         }
         return true;
@@ -78,7 +78,7 @@ public class FlatFileStore {
             futures.add(this.recoverAsync(topicMetadata)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        log.error("FlatFileStore recover file error, topic={}", topicMetadata.getTopic(), throwable);
+                        log.error("FlatFileStore#recoverAsync, recover file error, topic={}", topicMetadata.getTopic(), throwable);
                     }
                     semaphore.release();
                 }));
@@ -100,7 +100,7 @@ public class FlatFileStore {
             });
             log.info("FlatFileStore recover file, topic={}, total={}, cost={}ms",
                 topicMetadata.getTopic(), queueCount.get(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        }, executor.bufferCommitExecutor);
+        }, executor.getBufferCommitExecutor());
     }
 
     public void scheduleDeleteExpireFile() {
@@ -115,7 +115,7 @@ public class FlatFileStore {
                 flatFile.destroyExpiredFile(System.currentTimeMillis() -
                     TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours()));
             } catch (Exception e) {
-                log.error("FlatFileStore delete expire file error", e);
+                log.error("FlatFileStore#scheduleDeleteExpireFile, delete expire file error", e);
             } finally {
                 flatFile.getFileLock().unlock();
             }

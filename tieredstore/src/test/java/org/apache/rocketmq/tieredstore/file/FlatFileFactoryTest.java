@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.file;
 
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
@@ -30,7 +31,8 @@ public class FlatFileFactoryTest {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setTieredStoreFilePath(MessageStoreUtilTest.getRandomStorePath());
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FlatFileFactory factory = new FlatFileFactory(metadataStore, storeConfig);
+        MessageStoreExecutor executor = new MessageStoreExecutor();
+        FlatFileFactory factory = new FlatFileFactory(metadataStore, storeConfig, executor);
         Assert.assertEquals(storeConfig, factory.getStoreConfig());
         Assert.assertEquals(metadataStore, factory.getMetadataStore());
 
@@ -45,5 +47,6 @@ public class FlatFileFactoryTest {
         flatFile1.destroy();
         flatFile2.destroy();
         flatFile3.destroy();
+        executor.shutdown();
     }
 }

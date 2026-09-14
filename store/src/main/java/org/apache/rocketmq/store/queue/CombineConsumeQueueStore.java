@@ -22,12 +22,16 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.Pair;
@@ -116,8 +120,25 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             throw new IllegalArgumentException("CombineConsumeQueue choosePreferCQ fail");
         }
 
-        log.info("CombineConsumeQueueStore init, consumeQueueStoreList={}, currentReadStore={}, assignOffsetStore={}",
-            innerConsumeQueueStoreList, currentReadStore.getClass().getSimpleName(), assignOffsetStore.getClass().getSimpleName());
+        if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && null == rocksDBConsumeQueueStore) {
+            throw new IllegalArgumentException("CombineConsumeQueueStore rocksdbCQ is not ready for LMQ");
+        }
+
+        if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && assignOffsetStore != consumeQueueStore) {
+            throw new IllegalArgumentException("CombineConsumeQueueStore maybe incorrect config");
+        }
+
+        if (messageStoreConfig.isRocksdbCQSelectiveDoubleWriteEnable() && assignOffsetStore != consumeQueueStore) {
+            throw new IllegalArgumentException("CombineConsumeQueueStore maybe incorrect config");
+        }
+
+        if (messageStoreConfig.isRocksdbCQSelectiveDoubleWriteEnable() && currentReadStore != consumeQueueStore) {
+            throw new IllegalArgumentException("CombineConsumeQueueStore maybe incorrect config");
+        }
+
+        log.info("CombineConsumeQueueStore init, consumeQueueStoreList={}, currentReadStore={}, assignOffsetStore={}, combineCQUseRocksdbForLmq={}",
+            innerConsumeQueueStoreList, currentReadStore.getClass().getSimpleName(),
+            assignOffsetStore.getClass().getSimpleName(), messageStoreConfig.isCombineCQUseRocksdbForLmq());
     }
 
     @Override
@@ -149,8 +170,20 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
         }
 
         for (AbstractConsumeQueueStore store : innerConsumeQueueStoreList) {
-            if (store == assignOffsetStore || store.isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally)) {
+            if (store == assignOffsetStore) {
                 continue;
+            }
+            if (store.getMaxPhyOffsetInConsumeQueue() <= 0) {
+                log.warn("CombineConsumeQueueStore, the store hasn't started before, skip it, store={}",
+                    store.getClass().getSimpleName());
+                continue;
+            }
+            if (store.isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally)) {
+                continue;
+            }
+            if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && store instanceof RocksDBConsumeQueueStore) {
+                // rocksDBConsumeQueueStore acts as 'assignOffsetStore' for lmq, make sure it can be fully recovered
+                return false;
             }
             // if other store is not matched for fully recovery, extraSearchCommitLogFilesForRecovery will minus 1
             if (extraSearchCommitLogFilesForRecovery.getAndDecrement() <= 0) {
@@ -160,7 +193,7 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
                         assignOffsetStore.getClass().getSimpleName(), currentReadStore.getClass().getSimpleName());
                     throw new IllegalArgumentException(store.getClass().getSimpleName() + " not satisfied readable conditions, only can read from " + assignOffsetStore.getClass().getSimpleName());
                 }
-                log.warn("CombineConsumeQueueStore can not recover all inner store, maybe some inner store start haven’t started before, store={}",
+                log.warn("CombineConsumeQueueStore can not recover all inner store, maybe some inner stores haven’t started before, store={}",
                     store.getClass().getSimpleName());
                 return true;
             } else {
@@ -171,14 +204,15 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     }
 
     @Override
-    public long getDispatchFromPhyOffset() {
-        long dispatchFromPhyOffset = assignOffsetStore.getDispatchFromPhyOffset();
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
+        Long dispatchFromPhyOffset = assignOffsetStore.getDispatchFromPhyOffset(recoverNormally);
         for (AbstractConsumeQueueStore store : innerConsumeQueueStoreList) {
             if (store == assignOffsetStore) {
                 continue;
             }
-            if (store.getDispatchFromPhyOffset() < dispatchFromPhyOffset) {
-                dispatchFromPhyOffset = store.getDispatchFromPhyOffset();
+            Long storeOffset = store.getDispatchFromPhyOffset(recoverNormally);
+            if (storeOffset != null && dispatchFromPhyOffset != null && storeOffset < dispatchFromPhyOffset) {
+                dispatchFromPhyOffset = storeOffset;
             }
         }
         return dispatchFromPhyOffset;
@@ -225,6 +259,10 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
                         continue;
                     }
 
+                    if (abstractConsumeQueueStore == rocksDBConsumeQueueStore && !shouldDoubleWriteForTopic(topic)) {
+                        continue;
+                    }
+
                     ConsumeQueueInterface queue = abstractConsumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
                     long maxOffset0 = queue.getMaxOffsetInQueue();
 
@@ -233,6 +271,11 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
                     }
 
                     if (maxOffset0 > 0) {
+                        if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && MixAll.isLmq(topic)) {
+                            log.warn("CombineConsumeQueueStore checkAssignOffsetStore, LMQ offset not match. topic={}, maxOffsetInAssign={}, otherCQ={}, maxOffset0={}",
+                                topic, maxOffsetInAssign, abstractConsumeQueueStore.getClass().getSimpleName(), maxOffset0);
+                            continue;
+                        }
                         log.error("CombineConsumeQueueStore checkAssignOffsetStore fail, topic={}, queueId={}, maxOffsetInAssign={}, otherCQ={}, maxOffset0={}",
                             topic, queueId, maxOffsetInAssign, abstractConsumeQueueStore.getClass().getSimpleName(), maxOffset0);
                         result = false;
@@ -319,6 +362,10 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) throws RocksDBException {
         for (AbstractConsumeQueueStore store : innerConsumeQueueStoreList) {
+            // Not all topics are double-written
+            if (store == rocksDBConsumeQueueStore && !shouldDoubleWriteForTopic(request.getTopic())) {
+                continue;
+            }
             store.putMessagePositionInfoWrapper(request);
         }
     }
@@ -340,12 +387,12 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
 
     @Override
     public void increaseLmqOffset(String topic, int queueId, short delta) throws ConsumeQueueException {
-        assignOffsetStore.increaseLmqOffset(topic, queueId, delta);
+        getAssignOffsetStoreForTopic(topic).increaseLmqOffset(topic, queueId, delta);
     }
 
     @Override
     public long getLmqQueueOffset(String topic, int queueId) throws ConsumeQueueException {
-        return assignOffsetStore.getLmqQueueOffset(topic, queueId);
+        return getAssignOffsetStoreForTopic(topic).getLmqQueueOffset(topic, queueId);
     }
 
     @Override
@@ -357,28 +404,28 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
 
     @Override
     public Long getMaxOffset(String topic, int queueId) throws ConsumeQueueException {
-        return currentReadStore.getMaxOffset(topic, queueId);
+        return getCurrentReadStoreForTopic(topic).getMaxOffset(topic, queueId);
     }
 
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) throws RocksDBException {
-        return currentReadStore.getMinOffsetInQueue(topic, queueId);
+        return getCurrentReadStoreForTopic(topic).getMinOffsetInQueue(topic, queueId);
     }
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp,
         BoundaryType boundaryType) throws RocksDBException {
-        return currentReadStore.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
+        return getCurrentReadStoreForTopic(topic).getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
     }
 
     @Override
     public ConsumeQueueInterface findOrCreateConsumeQueue(String topic, int queueId) {
-        return currentReadStore.findOrCreateConsumeQueue(topic, queueId);
+        return getCurrentReadStoreForTopic(topic).findOrCreateConsumeQueue(topic, queueId);
     }
 
     @Override
     public ConsumeQueueInterface getConsumeQueue(String topic, int queueId) {
-        return currentReadStore.getConsumeQueue(topic, queueId);
+        return getCurrentReadStoreForTopic(topic).getConsumeQueue(topic, queueId);
     }
 
     @Override
@@ -388,6 +435,22 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             result += store.getTotalSize();
         }
         return result;
+    }
+
+    @Override
+    public int getLmqNum() {
+        if (messageStoreConfig.isCombineCQUseRocksdbForLmq()) {
+            return rocksDBConsumeQueueStore.getLmqNum();
+        }
+        return currentReadStore.getLmqNum();
+    }
+
+    @Override
+    public boolean isLmqExist(String lmqTopic) {
+        if (messageStoreConfig.isCombineCQUseRocksdbForLmq()) {
+            return rocksDBConsumeQueueStore.isLmqExist(lmqTopic);
+        }
+        return currentReadStore.isLmqExist(lmqTopic);
     }
 
     public RocksDBConsumeQueueStore getRocksDBConsumeQueueStore() {
@@ -456,6 +519,11 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic,
         AbstractConsumeQueueStore abstractConsumeQueueStore, StringBuilder diffResult, boolean printDetail,
         long checkpointByStoreTime) {
+
+        if (abstractConsumeQueueStore == rocksDBConsumeQueueStore && !shouldDoubleWriteForTopic(topic)) {
+            return true;
+        }
+
         boolean processResult = true;
         for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
             Integer queueId = queueEntry.getKey();
@@ -542,5 +610,33 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             default:
                 return null;
         }
+    }
+
+    private AbstractConsumeQueueStore getAssignOffsetStoreForTopic(String topic) {
+        if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && MixAll.isLmq(topic)) {
+            return rocksDBConsumeQueueStore;
+        }
+        return assignOffsetStore;
+    }
+
+    private AbstractConsumeQueueStore getCurrentReadStoreForTopic(String topic) {
+        if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && MixAll.isLmq(topic)) {
+            return rocksDBConsumeQueueStore;
+        }
+        return currentReadStore;
+    }
+
+    /**
+     * Determines whether RocksDB CQ should be written for the given topic under selective double-write mode.
+     * The file-based ConsumeQueueStore is treated as the base store.
+     * @param topic the topic name
+     * @return true if RocksDB CQ should be written for this topic
+     */
+    protected boolean shouldDoubleWriteForTopic(String topic) {
+        if (!messageStoreConfig.isRocksdbCQSelectiveDoubleWriteEnable()) {
+            return true;
+        }
+        Optional<TopicConfig> tc = messageStore.getTopicConfig(topic);
+        return tc.isPresent() && tc.get().getTopicMessageType() == TopicMessageType.LITE;
     }
 }

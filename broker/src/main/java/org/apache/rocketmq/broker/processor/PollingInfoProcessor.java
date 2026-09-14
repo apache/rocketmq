@@ -51,11 +51,6 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request);
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PollingInfoResponseHeader.class);

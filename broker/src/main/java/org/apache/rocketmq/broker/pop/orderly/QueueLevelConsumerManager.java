@@ -42,7 +42,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 
 public class QueueLevelConsumerManager extends ConfigManager implements ConsumerOrderInfoManager {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private static final long CLEAN_SPAN_FROM_LAST = 24 * 3600 * 1000;
 
@@ -76,7 +76,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         return key.split(TOPIC_GROUP_SEPARATOR);
     }
 
-    private void updateLockFreeTimestamp(String topic, String group, int queueId, OrderInfo orderInfo) {
+    protected void updateLockFreeTimestamp(String topic, String group, int queueId, OrderInfo orderInfo) {
         if (queueLevelConsumerOrderInfoLockManager != null) {
             queueLevelConsumerOrderInfoLockManager.updateLockFreeTimestamp(topic, group, queueId, orderInfo);
         }
@@ -172,11 +172,35 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     @Override
+    public boolean isAttemptIdMatched(String attemptId, String topic, String group) {
+        ConcurrentHashMap<Integer/*queueId*/, OrderInfo> qs = table.get(buildKey(topic, group));
+        if (qs == null || attemptId == null) {
+            return false;
+        }
+        for (OrderInfo orderInfo : qs.values()) {
+            if (orderInfo != null && attemptId.equals(orderInfo.getAttemptId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public void clearBlock(String topic, String group, int queueId) {
         table.computeIfPresent(buildKey(topic, group), (key, val) -> {
             val.remove(queueId);
             return val;
         });
+    }
+
+    @Override
+    public void remove(String topic, String group) {
+        table.remove(buildKey(topic, group));
+    }
+
+    @Override
+    public int getOrderInfoCount() {
+        return table.size();
     }
 
     @Override
@@ -281,8 +305,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         updateLockFreeTimestamp(topic, group, queueId, orderInfo);
     }
 
-    @VisibleForTesting
-    protected void autoClean() {
+    public void autoClean() {
         if (brokerController == null) {
             return;
         }
@@ -383,7 +406,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     @VisibleForTesting
-    QueueLevelConsumerOrderInfoLockManager getConsumerOrderInfoLockManager() {
+    protected QueueLevelConsumerOrderInfoLockManager getConsumerOrderInfoLockManager() {
         return queueLevelConsumerOrderInfoLockManager;
     }
 
@@ -575,6 +598,33 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
                 }
             }
             return currentTime;
+        }
+
+        @JSONField(serialize = false, deserialize = false)
+        public Long getMaxLockFreeTimestamp() {
+            if (offsetList == null || offsetList.isEmpty()) {
+                return null;
+            }
+            int num = offsetList.size();
+            long maxTime = System.currentTimeMillis();
+            for (int i = 0; i < num; i++) {
+                if (isNotAck(i)) {
+                    if (invisibleTime == null || invisibleTime <= 0) {
+                        return null;
+                    }
+                    long nextVisibleTime = popTime + invisibleTime;
+                    if (offsetNextVisibleTime != null) {
+                        Long time = offsetNextVisibleTime.get(this.getQueueOffset(i));
+                        if (time != null) {
+                            nextVisibleTime = time;
+                        }
+                    }
+                    if (maxTime < nextVisibleTime) {
+                        maxTime = nextVisibleTime;
+                    }
+                }
+            }
+            return maxTime;
         }
 
         @JSONField(serialize = false, deserialize = false)

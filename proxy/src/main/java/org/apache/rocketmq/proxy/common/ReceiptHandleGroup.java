@@ -208,6 +208,10 @@ public class ReceiptHandleGroup {
         return handleNum;
     }
 
+    public int getMsgCount() {
+        return this.receiptHandleMap.size();
+    }
+
     public MessageReceiptHandle get(String msgID, String handle) {
         Map<HandleKey, HandleData> handleMap = this.receiptHandleMap.get(msgID);
         if (handleMap == null) {

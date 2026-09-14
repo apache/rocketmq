@@ -25,6 +25,10 @@ import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelMetadata;
+import java.time.Duration;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.utils.ExceptionUtils;
@@ -53,11 +57,8 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
-
-import java.time.Duration;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 public class RemotingChannel extends ProxyChannel implements RemoteChannelConverter, ChannelExtendAttributeGetter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -176,6 +177,11 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
             responseFuture.completeExceptionally(t);
             return FutureUtils.completeExceptionally(t);
         }
+    }
+
+    @Override
+    protected CompletableFuture<Void> processNotifyUnsubscribeLite(NotifyUnsubscribeLiteRequestHeader header) {
+        throw new NotImplementedException();
     }
 
     @Override

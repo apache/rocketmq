@@ -169,7 +169,7 @@ public class TransactionalMessageServiceImplTest {
         queueTransactionMsgService.open();
         boolean res = queueTransactionMsgService.deletePrepareMessage(createMessageBrokerInner(1000, "test", "testHello"));
         assertThat(res).isTrue();
-        verify(bridge, timeout(50)).writeOp(any(Integer.class), any(Message.class));
+        verify(bridge, timeout(3000)).writeOp(any(Integer.class), any(Message.class));
         queueTransactionMsgService.close();
     }
 

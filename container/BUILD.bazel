@@ -34,7 +34,7 @@ java_library(
         "@maven//:commons_collections_commons_collections",
         "@maven//:commons_codec_commons_codec",
         "@maven//:com_github_luben_zstd_jni",
-        "@maven//:org_lz4_lz4_java",
+        "@maven//:at_yawk_lz4_lz4_java",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
         "@maven//:org_slf4j_slf4j_api",

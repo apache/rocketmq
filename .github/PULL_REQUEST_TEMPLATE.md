@@ -4,7 +4,7 @@
 
 <!-- Please ensure that the related issue has already been created, and [link this pull request to that issue using keywords](<https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword>) to ensure automatic closure. -->
 
-Fixes #issue_id
+- Fixes #issue_id
 
 ### Brief Description
 

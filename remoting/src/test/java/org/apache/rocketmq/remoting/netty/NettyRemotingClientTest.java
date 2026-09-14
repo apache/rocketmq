@@ -27,6 +27,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
@@ -54,6 +56,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -63,6 +66,40 @@ public class NettyRemotingClientTest {
     private NettyRemotingClient remotingClient = new NettyRemotingClient(new NettyClientConfig());
     @Mock
     private RPCHook rpcHookMock;
+
+    @Test
+    public void testStartWithoutChannelEventListener() throws Exception {
+        Field threadField = ServiceThread.class.getDeclaredField("thread");
+        threadField.setAccessible(true);
+        try {
+            remotingClient.start();
+            assertThat(threadField.get(remotingClient.nettyEventExecutor)).isNull();
+        } finally {
+            remotingClient.shutdown();
+        }
+        assertThat(threadField.get(remotingClient.nettyEventExecutor)).isNull();
+    }
+
+    @Test
+    public void testStartWithChannelEventListener() throws Exception {
+        ChannelEventListener listener = mock(ChannelEventListener.class);
+        NettyRemotingClient client = new NettyRemotingClient(new NettyClientConfig(), listener);
+        Channel channel = mock(Channel.class);
+        Field threadField = ServiceThread.class.getDeclaredField("thread");
+        threadField.setAccessible(true);
+        Thread eventThread;
+        try {
+            client.start();
+            eventThread = (Thread) threadField.get(client.nettyEventExecutor);
+            assertThat(eventThread).isNotNull();
+            assertThat(eventThread.isAlive()).isTrue();
+            client.putNettyEvent(new NettyEvent(NettyEventType.ACTIVE, "127.0.0.1:10911", channel));
+            verify(listener, timeout(3000)).onChannelActive("127.0.0.1:10911", channel);
+        } finally {
+            client.shutdown();
+        }
+        assertThat(eventThread.isAlive()).isFalse();
+    }
 
     @Test
     public void testSetCallbackExecutor() {

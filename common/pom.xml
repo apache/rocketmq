@@ -33,10 +33,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
         </dependency>
@@ -57,7 +53,7 @@
             <artifactId>zstd-jni</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.lz4</groupId>
+            <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
         </dependency>
         <dependency>
@@ -113,8 +109,8 @@
             <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-rocksdb</artifactId>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
         </dependency>
     </dependencies>
 </project>

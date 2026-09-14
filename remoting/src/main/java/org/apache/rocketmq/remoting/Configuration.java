@@ -278,24 +278,39 @@ public class Configuration {
         return null;
     }
 
-    private String getAllConfigsInternal() {
-        StringBuilder stringBuilder = new StringBuilder();
+    public Properties getAllConfigsSnapshot() {
+        try {
+            readWriteLock.readLock().lockInterruptibly();
 
-        // reload from config object ?
+            try {
+                refreshAllConfigs();
+                Properties snapshot = new Properties();
+                snapshot.putAll(this.allConfigs);
+                return snapshot;
+            } finally {
+                readWriteLock.readLock().unlock();
+            }
+        } catch (InterruptedException e) {
+            log.error("getAllConfigsSnapshot lock error");
+        }
+
+        return null;
+    }
+
+    private String getAllConfigsInternal() {
+        refreshAllConfigs();
+        return MixAll.properties2String(this.allConfigs, true);
+    }
+
+    private void refreshAllConfigs() {
         for (Object configObject : this.configObjectList) {
             Properties properties = MixAll.object2Properties(configObject);
             if (properties != null) {
                 merge(properties, this.allConfigs);
             } else {
-                log.warn("getAllConfigsInternal object2Properties is null, {}", configObject.getClass());
+                log.warn("refreshAllConfigs object2Properties is null, {}", configObject.getClass());
             }
         }
-
-        {
-            stringBuilder.append(MixAll.properties2String(this.allConfigs, true));
-        }
-
-        return stringBuilder.toString();
     }
 
     private String getClientConfigsInternal(List<String> clientConigKeys) {

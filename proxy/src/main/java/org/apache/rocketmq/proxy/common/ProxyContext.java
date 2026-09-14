@@ -17,13 +17,15 @@
 
 package org.apache.rocketmq.proxy.common;
 
+import apache.rocketmq.v2.ClientType;
 import io.netty.channel.Channel;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ProxyContext {
     public static final String INNER_ACTION_PREFIX = "Inner";
-    private final Map<String, Object> value = new HashMap<>();
+    private static final int DEFAULT_INITIAL_CAPACITY = 64;
+    private final Map<String, Object> value = new HashMap<>(DEFAULT_INITIAL_CAPACITY);
 
     public static ProxyContext create() {
         return new ProxyContext();
@@ -138,6 +140,20 @@ public class ProxyContext {
 
     public String getNamespace() {
         return this.getVal(ContextVariable.NAMESPACE);
+    }
+
+    public void setClientType(String clientType) {
+        this.withVal(ContextVariable.CLIENT_TYPE, clientType);
+    }
+
+    public String getClientType() {
+        return this.getVal(ContextVariable.CLIENT_TYPE);
+    }
+
+    public boolean isLiteConsumer() {
+        String clientType = this.getClientType();
+        return ClientType.LITE_PUSH_CONSUMER.name().equals(clientType)
+            || ClientType.LITE_SIMPLE_CONSUMER.name().equals(clientType);
     }
 
 }

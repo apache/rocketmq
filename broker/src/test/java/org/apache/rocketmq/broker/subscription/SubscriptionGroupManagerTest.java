@@ -164,6 +164,23 @@ public class SubscriptionGroupManagerTest {
     }
 
     @Test
+    public void testDeleteSubscriptionGroupConfigWithDeferredPersist() {
+        Mockito.doNothing().when(subscriptionGroupManager).persist();
+
+        SubscriptionGroupConfig deferredGroup = new SubscriptionGroupConfig();
+        deferredGroup.setGroupName("deferred-group");
+        subscriptionGroupManager.getSubscriptionGroupTable().put(deferredGroup.getGroupName(), deferredGroup);
+        subscriptionGroupManager.deleteSubscriptionGroupConfig(deferredGroup.getGroupName(), false);
+        verify(subscriptionGroupManager, never()).persist();
+
+        SubscriptionGroupConfig persistedGroup = new SubscriptionGroupConfig();
+        persistedGroup.setGroupName("persisted-group");
+        subscriptionGroupManager.getSubscriptionGroupTable().put(persistedGroup.getGroupName(), persistedGroup);
+        subscriptionGroupManager.deleteSubscriptionGroupConfig(persistedGroup.getGroupName(), true);
+        verify(subscriptionGroupManager).persist();
+    }
+
+    @Test
     public void testSubGroupTable() {
         // Empty SubscriptionGroupManager
         subscriptionGroupManager.getSubscriptionGroupTable().clear();

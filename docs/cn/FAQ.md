@@ -6,7 +6,7 @@
 
 1. **为什么我们要使用RocketMQ而不是选择其他的产品？**
 
-   请参考[为什么要选择RocketMQ](http://rocketmq.apache.org/docs/motivation/)
+   请参考[为什么要选择RocketMQ](https://rocketmq.apache.org/docs/motivation/)
 
 2. **我是否需要安装其他的软件才能使用RocketMQ，例如zookeeper？**
 

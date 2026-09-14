@@ -168,6 +168,18 @@ public class TransactionMQProducerWithTraceTest {
         assertThat(ctx.getMessage().getTopic()).isEqualTo(topic);
     }
 
+    @Test(expected = MQClientException.class)
+    public void testSendMessageInTransaction_NoListener_ThrowsException() throws MQClientException {
+        producer.setTransactionListener(null);
+        producer.sendMessageInTransaction(message, null);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testSendMessageInTransaction_DelayMsg_ThrowsException() throws MQClientException {
+        message.setDelayTimeLevel(3);
+        producer.sendMessageInTransaction(message, null);
+    }
+
     @After
     public void terminate() {
         producer.shutdown();

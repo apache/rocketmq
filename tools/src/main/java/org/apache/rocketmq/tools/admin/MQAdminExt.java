@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.tools.admin;
 
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -43,6 +48,11 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
+import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
@@ -65,12 +75,6 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.tools.admin.api.BrokerOperatorResult;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
-
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 public interface MQAdminExt extends MQAdmin {
     void start() throws MQClientException;
@@ -518,4 +522,25 @@ public interface MQAdminExt extends MQAdmin {
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
     void switchTimerEngine(String brokerAddr, String desTimerEngine) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    GetBrokerLiteInfoResponseBody getBrokerLiteInfo(final String brokerAddr)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetParentTopicInfoResponseBody getParentTopicInfo(final String brokerAddr, final String topic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetLiteTopicInfoResponseBody getLiteTopicInfo(final String brokerAddr, final String parentTopic,
+        final String liteTopic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetLiteClientInfoResponseBody getLiteClientInfo(final String brokerAddr, final String parentTopic,
+        final String group, final String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetLiteGroupInfoResponseBody getLiteGroupInfo(final String brokerAddr, final String group,
+        final String liteTopic, final int topK)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    void triggerLiteDispatch(final String brokerAddr, final String group, final String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 }

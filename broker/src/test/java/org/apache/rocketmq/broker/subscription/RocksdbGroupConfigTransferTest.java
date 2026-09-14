@@ -17,6 +17,15 @@
 
 package org.apache.rocketmq.broker.subscription;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -33,15 +42,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 
@@ -78,23 +78,27 @@ public class RocksdbGroupConfigTransferTest {
         if (notToBeExecuted()) {
             return;
         }
-        Path pathToBeDeleted = Paths.get(basePath);
 
-        try {
-            Files.walk(pathToBeDeleted)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                        } catch (IOException e) {
-                            // ignore
-                        }
-                    });
-        } catch (IOException e) {
-            // ignore
-        }
         if (rocksDBSubscriptionGroupManager != null) {
             rocksDBSubscriptionGroupManager.stop();
+        }
+
+        Path root = Paths.get(basePath);
+        if (Files.notExists(root)) {
+            return;
+        }
+
+        try (Stream<Path> walk = Files.walk(root)) {
+            walk.sorted(Comparator.reverseOrder())
+                .forEach(p -> {
+                    try {
+                        Files.deleteIfExists(p);
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                });
+        } catch (IOException e) {
+                // ignore
         }
     }
 

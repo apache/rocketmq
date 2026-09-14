@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.junit.Before;
@@ -88,6 +90,17 @@ public class ClusterMetadataServiceTest extends BaseServiceTest {
         ProxyContext ctx = ProxyContext.create();
         assertNotNull(this.clusterMetadataService.getSubscriptionGroupConfig(ctx, GROUP));
         assertEquals(1, this.clusterMetadataService.subscriptionGroupConfigCache.asMap().size());
+    }
+
+    @Test
+    public void testGetUserRetainsCredentialForAuthentication() throws Exception {
+        when(this.mqClientAPIExt.getUser(anyString(), eq("abc"), anyLong()))
+            .thenReturn(UserInfo.of("abc", "user-secret-for-proxy", "Normal"));
+
+        User user = this.clusterMetadataService.getUser(ProxyContext.create(), "abc").join();
+
+        assertNotNull(user);
+        assertEquals("user-secret-for-proxy", user.getPassword());
     }
 
     @Test

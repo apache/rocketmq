@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service;
 
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
@@ -41,6 +42,7 @@ import org.apache.rocketmq.proxy.service.admin.AdminService;
 import org.apache.rocketmq.proxy.service.admin.DefaultAdminService;
 import org.apache.rocketmq.proxy.service.client.ClusterConsumerManager;
 import org.apache.rocketmq.proxy.service.client.ProxyClientRemotingProcessor;
+import org.apache.rocketmq.proxy.service.lite.LiteSubscriptionService;
 import org.apache.rocketmq.proxy.service.message.ClusterMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.metadata.ClusterMetadataService;
@@ -49,6 +51,7 @@ import org.apache.rocketmq.proxy.service.relay.ClusterProxyRelayService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ClusterTopicRouteService;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
+import org.apache.rocketmq.proxy.service.sysmessage.SystemMessageConsumeExecutor;
 import org.apache.rocketmq.proxy.service.transaction.ClusterTransactionService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -65,11 +68,14 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     protected ProxyRelayService proxyRelayService;
     protected ClusterMetadataService metadataService;
     protected AdminService adminService;
+    protected LiteSubscriptionService liteSubscriptionService;
 
     protected ScheduledExecutorService scheduledExecutorService;
+    protected ThreadPoolExecutor systemMessageConsumeExecutor;
     protected MQClientAPIFactory messagingClientAPIFactory;
     protected MQClientAPIFactory operationClientAPIFactory;
     protected MQClientAPIFactory transactionClientAPIFactory;
+    protected MQClientAPIFactory liteSubscriptionAPIFactory;
 
     public ClusterServiceManager(RPCHook rpcHook) {
         this(rpcHook, null);
@@ -106,14 +112,15 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
         this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
 
+        this.systemMessageConsumeExecutor = SystemMessageConsumeExecutor.create(proxyConfig);
         this.producerManager = new ProducerManager();
-        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout(), rpcHook);
+        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout(), rpcHook, this.systemMessageConsumeExecutor);
 
         this.transactionClientAPIFactory = new MQClientAPIFactory(
             nameserverAccessConfig,
             "ClusterTransaction_",
             1,
-            new ProxyClientRemotingProcessor(producerManager),
+            new ProxyClientRemotingProcessor(producerManager, consumerManager),
             rpcHook,
             scheduledExecutorService,
             remotingClientCreator
@@ -122,6 +129,16 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager,
             this.transactionClientAPIFactory);
         this.proxyRelayService = new ClusterProxyRelayService(this.clusterTransactionService);
+
+        // Lite subscriptions use a separate channel
+        this.liteSubscriptionAPIFactory = new MQClientAPIFactory(
+            nameserverAccessConfig,
+            "LiteSubscription_",
+            1,
+            new ProxyClientRemotingProcessor(producerManager, consumerManager),
+            rpcHook,
+            scheduledExecutorService);
+        this.liteSubscriptionService = new LiteSubscriptionService(this.topicRouteService, this.liteSubscriptionAPIFactory);
 
         this.init();
     }
@@ -141,10 +158,13 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendShutdown(scheduledExecutorService::shutdown);
         this.appendStartAndShutdown(this.messagingClientAPIFactory);
         this.appendStartAndShutdown(this.operationClientAPIFactory);
+        this.appendStartAndShutdown(this.adminService);
         this.appendStartAndShutdown(this.transactionClientAPIFactory);
+        this.appendStartAndShutdown(this.liteSubscriptionAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
         this.appendStartAndShutdown(this.metadataService);
+        this.appendShutdown(() -> ThreadUtils.shutdownGracefully(this.systemMessageConsumeExecutor, 5, TimeUnit.SECONDS));
         this.appendStartAndShutdown(this.consumerManager);
     }
 
@@ -186,6 +206,11 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     @Override
     public AdminService getAdminService() {
         return this.adminService;
+    }
+
+    @Override
+    public LiteSubscriptionService getLiteSubscriptionService() {
+        return liteSubscriptionService;
     }
 
     protected static class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {

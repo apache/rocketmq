@@ -29,16 +29,18 @@ public enum TopicMessageType {
     DELAY("DELAY"),
     TRANSACTION("TRANSACTION"),
     PRIORITY("PRIORITY"),
+    LITE("LITE"),
     MIXED("MIXED");
 
     private final String value;
+
     TopicMessageType(String value) {
         this.value = value;
     }
 
     public static Set<String> topicMessageTypeSet() {
         return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value,
-            PRIORITY.value, MIXED.value);
+            PRIORITY.value, LITE.value, MIXED.value);
     }
 
     public String getValue() {
@@ -58,6 +60,8 @@ public enum TopicMessageType {
             return TopicMessageType.FIFO;
         } else if (messageProperty.get(MessageConst.PROPERTY_PRIORITY) != null) {
             return TopicMessageType.PRIORITY;
+        } else if (messageProperty.get(MessageConst.PROPERTY_LITE_TOPIC) != null) {
+            return TopicMessageType.LITE;
         }
         return TopicMessageType.NORMAL;
     }

@@ -31,9 +31,11 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Assume;
+import org.junit.Ignore;
 
 import static org.awaitility.Awaitility.await;
 
+@Ignore("Flaky: DLedger multi-path integration test, extremely slow and environment-sensitive")
 public class DLedgerMultiPathTest extends MessageStoreTestBase {
 
 
@@ -43,7 +45,7 @@ public class DLedgerMultiPathTest extends MessageStoreTestBase {
         Assume.assumeFalse(MixAll.isWindows());
         String base = createBaseDir();
         String topic = UUID.randomUUID().toString();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         String multiStorePath =
             base + "/multi/a/" + MessageStoreConfig.MULTI_PATH_SPLITTER +

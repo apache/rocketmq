@@ -546,7 +546,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
-    public class HandlePutResultTask implements Runnable {
+    class HandlePutResultTask implements Runnable {
         private final int delayLevel;
 
         public HandlePutResultTask(int delayLevel) {
@@ -557,6 +557,12 @@ public class ScheduleMessageService extends ConfigManager {
         public void run() {
             LinkedBlockingQueue<PutResultProcess> pendingQueue =
                 ScheduleMessageService.this.deliverPendingTable.get(this.delayLevel);
+
+            // Check if the queue exists for the given level
+            if (pendingQueue == null) {
+                log.warn("No pending queue found for delay level: {}", this.delayLevel);
+                return;
+            }
 
             PutResultProcess putResultProcess;
             while ((putResultProcess = pendingQueue.peek()) != null) {
@@ -599,7 +605,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
-    public class PutResultProcess {
+    class PutResultProcess {
         private String topic;
         private long offset;
         private long physicOffset;
@@ -824,7 +830,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
-    public enum ProcessStatus {
+    enum ProcessStatus {
         /**
          * In process, the processing result has not yet been returned.
          */

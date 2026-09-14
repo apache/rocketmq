@@ -336,6 +336,7 @@ public class LocalMessageServiceTest extends InitConfigTest {
         assertThat(popResult.getMsgFoundList().size()).isEqualTo(messageExtList.size());
         for (int i = 0; i < popResult.getMsgFoundList().size(); i++) {
             assertMessageExt(popResult.getMsgFoundList().get(i), messageExtList.get(i));
+            assertThat(popResult.getMsgFoundList().get(i).getBrokerName()).isEqualTo(brokerName);
         }
     }
 

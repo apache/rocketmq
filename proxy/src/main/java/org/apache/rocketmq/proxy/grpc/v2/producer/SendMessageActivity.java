@@ -195,12 +195,8 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         }
     }
 
-    protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
-        long userPropertySize = 0;
+    protected void checkUserProperties(Map<String, String> userProperties) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
-        // set user properties
-        Map<String, String> userProperties = message.getUserPropertiesMap();
         if (userProperties.size() > config.getUserPropertyMaxNum()) {
             throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "too many user properties, max is " + config.getUserPropertyMaxNum());
         }
@@ -214,6 +210,17 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getValue())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the value of property cannot contain control character");
             }
+        }
+    }
+
+    protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
+        long userPropertySize = 0;
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
+        // set user properties
+        Map<String, String> userProperties = message.getUserPropertiesMap();
+        checkUserProperties(userProperties);
+        for (Map.Entry<String, String> userPropertiesEntry : userProperties.entrySet()) {
             userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
             userPropertySize += userPropertiesEntry.getValue().getBytes(StandardCharsets.UTF_8).length;
         }
@@ -249,6 +256,9 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         // set transaction property
         MessageType messageType = message.getSystemProperties().getMessageType();
         if (messageType.equals(MessageType.TRANSACTION)) {
+            if (message.getSystemProperties().hasDeliveryTimestamp()) {
+                throw new GrpcProxyException(Code.BAD_REQUEST, "transaction message cannot set delivery timestamp");
+            }
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
 
             if (message.getSystemProperties().hasOrphanedTransactionRecoveryDuration()) {
@@ -279,6 +289,13 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             validateMessageGroup(messageGroup);
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_SHARDING_KEY, messageGroup);
         }
+        // set lite topic
+        String liteTopic = message.getSystemProperties().getLiteTopic();
+        if (StringUtils.isNotEmpty(liteTopic)) {
+            validateLiteTopic(liteTopic);
+            MessageAccessor.setLiteTopic(messageWithHeader, liteTopic);
+        }
+
         // set trace context
         String traceContext = message.getSystemProperties().getTraceContext();
         if (!traceContext.isEmpty()) {
@@ -385,6 +402,10 @@ public class SendMessageActivity extends AbstractMessagingActivity {
                 String shardingKey = null;
                 if (request.getMessagesCount() == 1) {
                     shardingKey = message.getSystemProperties().getMessageGroup();
+                    // lite topic
+                    if (StringUtils.isBlank(shardingKey)) {
+                        shardingKey = message.getSystemProperties().getLiteTopic();
+                    }
                 }
                 AddressableMessageQueue targetMessageQueue;
                 if (StringUtils.isNotEmpty(shardingKey)) {

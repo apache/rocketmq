@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -292,5 +293,53 @@ public class IndexStoreFileTest {
         itemList = indexStoreFile.queryAsync(
             TOPIC_NAME + "1", KEY, 64, timestamp, System.currentTimeMillis()).get();
         Assert.assertEquals(3, itemList.size());
+    }
+
+    @Test
+    public void hashCodeAndMultiKeyPutTest() throws Exception {
+        // hashCode must never return negative, including Integer.MIN_VALUE edge case.
+        // Old code (keyHash < 0 ? -keyHash : keyHash) overflows on MIN_VALUE.
+        for (int i = 0; i < 10000; i++) {
+            Assert.assertTrue(indexStoreFile.hashCode(UUID.randomUUID().toString()) >= 0);
+        }
+        String minValKey = "polygenelubricants";
+        if (minValKey.hashCode() == Integer.MIN_VALUE) {
+            Assert.assertEquals(0, indexStoreFile.hashCode(minValKey));
+        }
+
+        // All keys in a multi-key set must be queryable after putKey.
+        // Catches slotBuffer reuse bug where 2nd+ keys had 0-byte slot writes.
+        long timestamp = indexStoreFile.getTimestamp();
+        Set<String> multiKeys = new HashSet<>(Arrays.asList("key1", "key2", "key3"));
+        Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(
+            TOPIC_NAME, TOPIC_ID, QUEUE_ID, multiKeys, MESSAGE_OFFSET, MESSAGE_SIZE, timestamp));
+        for (String key : multiKeys) {
+            List<IndexItem> items = indexStoreFile.queryAsync(
+                TOPIC_NAME, key, 10, timestamp, timestamp + 1000).get();
+            Assert.assertEquals("Key should be queryable: " + key, 1, items.size());
+        }
+    }
+
+    @Test
+    public void queryMaxCountAndTimeDiffClampTest() throws Exception {
+        long timestamp = indexStoreFile.getTimestamp();
+
+        // queryAsync must return at most maxCount items (not maxCount + 1).
+        // Old code used result.size() > maxCount which allowed one extra.
+        for (int i = 0; i < 10; i++) {
+            Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(
+                TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET + i, MESSAGE_SIZE, timestamp));
+        }
+        List<IndexItem> items = indexStoreFile.queryAsync(
+            TOPIC_NAME, KEY, 3, timestamp, timestamp + 1000).get();
+        Assert.assertEquals(3, items.size());
+
+        // timeDiff clamped to [0, Integer.MAX_VALUE] to prevent overflow.
+        long futureTimestamp = timestamp + 1000;
+        Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(
+            TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, futureTimestamp));
+        items = indexStoreFile.queryAsync(
+            TOPIC_NAME, KEY, 10, timestamp, futureTimestamp + 1000).get();
+        Assert.assertTrue(items.size() >= 1);
     }
 }

@@ -62,10 +62,6 @@ public class SubRemotingServerTest {
                 return request;
             }
 
-            @Override
-            public boolean rejectRequest() {
-                return false;
-            }
         }, null);
         subServer.start();
         return subServer;

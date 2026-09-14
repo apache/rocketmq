@@ -33,7 +33,6 @@ public class UserConverter {
     public static UserInfo convertUser(User user) {
         UserInfo result = new UserInfo();
         result.setUsername(user.getUsername());
-        result.setPassword(user.getPassword());
         if (user.getUserType() != null) {
             result.setUserType(user.getUserType().getName());
         }

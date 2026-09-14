@@ -54,7 +54,7 @@ For business system adapting to use RocketMQ's message trace feature easily, in 
 
 ### 4.1 Enable message trace when sending messages
 ```
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true);
+        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true,null);
         producer.setNamesrvAddr("XX.XX.XX.XX1");
         producer.start();
             try {
@@ -74,7 +74,7 @@ For business system adapting to use RocketMQ's message trace feature easily, in 
 
 ### 4.2 Enable message trace when subscribe messages
 ```
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true,null);
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumer.setConsumeTimestamp("20181109221800");

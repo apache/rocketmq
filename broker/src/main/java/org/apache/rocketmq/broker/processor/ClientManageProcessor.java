@@ -70,22 +70,17 @@ public class ClientManageProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
-        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-            ctx.channel(),
-            heartbeatData.getClientID(),
-            request.getLanguage(),
-            request.getVersion()
-        );
         int heartbeatFingerprint = heartbeatData.getHeartbeatFingerprint();
         if (heartbeatFingerprint != 0) {
+            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+                ctx.channel(),
+                heartbeatData.getClientID(),
+                request.getLanguage(),
+                request.getVersion()
+            );
             return heartBeatV2(ctx, heartbeatData, clientChannelInfo, response);
         }
         for (ConsumerData consumerData : heartbeatData.getConsumerDataSet()) {
@@ -122,6 +117,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, subscriptionGroupConfig.getRetryQueueNums(),
                 PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
 
+            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+                ctx.channel(),
+                heartbeatData.getClientID(),
+                request.getLanguage(),
+                request.getVersion()
+            );
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
                 consumerData.getGroupName(),
                 clientChannelInfo,
@@ -140,7 +141,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                clientChannelInfo);
+                new ClientChannelInfo(
+                    ctx.channel(),
+                    heartbeatData.getClientID(),
+                    request.getLanguage(),
+                    request.getVersion()
+                ));
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

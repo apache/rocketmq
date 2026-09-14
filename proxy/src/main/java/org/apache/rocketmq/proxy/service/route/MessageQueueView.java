@@ -17,7 +17,8 @@
 package org.apache.rocketmq.proxy.service.route;
 
 import com.google.common.base.MoreObjects;
-import org.apache.rocketmq.client.latency.MQFaultStrategy;
+import java.util.List;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class MessageQueueView {
@@ -27,11 +28,24 @@ public class MessageQueueView {
     private final MessageQueueSelector writeSelector;
     private final TopicRouteWrapper topicRouteWrapper;
 
-    public MessageQueueView(String topic, TopicRouteData topicRouteData, MQFaultStrategy mqFaultStrategy) {
+
+    public MessageQueueView(String topic, TopicRouteData topicRouteData, List<MessageQueuePenalizer<AddressableMessageQueue>> penalizer) {
+        this(topic, topicRouteData, penalizer, null);
+    }
+
+    public MessageQueueView(String topic, TopicRouteData topicRouteData, List<MessageQueuePenalizer<AddressableMessageQueue>> penalizer,
+        MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider) {
         this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
 
-        this.readSelector = new MessageQueueSelector(topicRouteWrapper, mqFaultStrategy, true);
-        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, mqFaultStrategy, false);
+        this.readSelector = new MessageQueueSelector(topicRouteWrapper, true, priorityProvider);
+        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, false, priorityProvider);
+
+        if (CollectionUtils.isNotEmpty(penalizer)) {
+            for (MessageQueuePenalizer<AddressableMessageQueue> p : penalizer) {
+                this.readSelector.addPenalizer(p);
+                this.writeSelector.addPenalizer(p);
+            }
+        }
     }
 
     public TopicRouteData getTopicRouteData() {

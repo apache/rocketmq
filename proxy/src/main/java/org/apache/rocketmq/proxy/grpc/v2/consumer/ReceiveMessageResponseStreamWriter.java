@@ -129,14 +129,17 @@ public class ReceiveMessageResponseStreamWriter {
         if (handle == null) {
             return;
         }
-
+        String liteTopic = ctx.isLiteConsumer() ? messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC) : null;
         this.messagingProcessor.changeInvisibleTime(
             ctx,
             ReceiptHandle.decode(handle),
             messageExt.getMsgId(),
             request.getGroup().getName(),
             request.getMessageQueue().getTopic().getName(),
-            NACK_INVISIBLE_TIME
+            NACK_INVISIBLE_TIME,
+            liteTopic,
+            MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
+            true
         );
     }
 

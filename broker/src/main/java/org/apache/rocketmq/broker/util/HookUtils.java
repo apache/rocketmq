@@ -38,6 +38,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class HookUtils {
@@ -151,6 +152,30 @@ public class HookUtils {
         return null;
     }
 
+    public static PutMessageResult handleLmqQuota(BrokerController brokerController, final MessageExtBrokerInner msg) {
+        if (!brokerController.getMessageStoreConfig().isEnableLmqQuota()
+            || !brokerController.getMessageStoreConfig().isEnableLmq()
+            || !brokerController.getMessageStoreConfig().isEnableMultiDispatch()
+            || !msg.needDispatchLMQ()) {
+            return null;
+        }
+
+        ConsumeQueueStoreInterface cqStore = brokerController.getMessageStore().getQueueStore();
+        String[] queueNames =
+            msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH).split(MixAll.LMQ_DISPATCH_SEPARATOR);
+        for (String queueName : queueNames) {
+            if (!MixAll.isLmq(queueName)) {
+                continue;
+            }
+            if (cqStore.getLmqNum() >= brokerController.getMessageStoreConfig().getMaxLmqConsumeQueueNum()) {
+                if (!cqStore.isLmqExist(queueName)) {
+                    return new PutMessageResult(PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED, null);
+                }
+            }
+        }
+        return null;
+    }
+
     private static boolean isRolledTimerMessage(MessageExtBrokerInner msg) {
         return TimerMessageStore.TIMER_TOPIC.equals(msg.getTopic());
     }
@@ -181,19 +206,23 @@ public class HookUtils {
         //do transform
         int delayLevel = msg.getDelayTimeLevel();
         long deliverMs;
+        long now = System.currentTimeMillis();
         try {
             if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
-                deliverMs = System.currentTimeMillis() + Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) * 1000;
+                long delaySec = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC));
+                deliverMs = Math.multiplyExact(delaySec, 1000L);
+                deliverMs = Math.addExact(now, deliverMs);
             } else if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
-                deliverMs = System.currentTimeMillis() + Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
+                long delayMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
+                deliverMs = Math.addExact(now, delayMs);
             } else {
                 deliverMs = Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
             }
         } catch (Exception e) {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
-        if (deliverMs > System.currentTimeMillis()) {
-            if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
+        if (deliverMs > now) {
+            if (delayLevel <= 0 && deliverMs - now > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
             }
 

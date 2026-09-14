@@ -38,6 +38,8 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
+import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
+import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
@@ -93,6 +95,14 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.clientActivity = new ClientActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
 
         this.appendStartAndShutdown(this.grpcClientSettingsManager);
+    }
+
+    public GrpcChannelManager getGrpcChannelManager() {
+        return this.grpcChannelManager;
+    }
+
+    public GrpcClientSettingsManager getGrpcClientSettingsManager() {
+        return this.grpcClientSettingsManager;
     }
 
     @Override
@@ -154,6 +164,12 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     public CompletableFuture<RecallMessageResponse> recallMessage(ProxyContext ctx,
         RecallMessageRequest request) {
         return this.recallMessageActivity.recallMessage(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<SyncLiteSubscriptionResponse> syncLiteSubscription(ProxyContext ctx,
+        SyncLiteSubscriptionRequest request) {
+        return this.clientActivity.syncLiteSubscription(ctx, request);
     }
 
     @Override

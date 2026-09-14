@@ -27,7 +27,6 @@ error_exit ()
 find_java_home()
 {
     if [ -n "$JAVA_HOME" ]; then
-        JAVA_HOME=$JAVA_HOME
         return
     fi
     case "`uname`" in

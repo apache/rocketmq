@@ -42,6 +42,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -147,6 +148,24 @@ public class ClientManageProcessorTest {
     }
 
     @Test
+    public void processRequest_producerHeartbeat() throws RemotingCommandException {
+        ProducerData producerData = new ProducerData();
+        producerData.setGroupName(group);
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setClientID(clientId);
+        heartbeatData.getProducerDataSet().add(producerData);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        request.setLanguage(LanguageCode.JAVA);
+        request.setVersion(100);
+        request.setBody(heartbeatData.encode());
+
+        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(brokerController.getProducerManager().getGroupChannelTable().get(group)).containsKey(channel);
+    }
+
+    @Test
     public void test_heartbeat_costTime() {
         String topic = "TOPIC_TEST";
         List<String> topicList = new ArrayList<>();
@@ -216,6 +235,63 @@ public class ClientManageProcessorTest {
         heartbeatData.getConsumerDataSet().add(consumerData);
         heartbeatData.setWithoutSub(isWithoutSub);
         return heartbeatData;
+    }
+
+    @Test
+    public void testHeartbeatMultiGroupChannelIndependentExpiry() throws RemotingCommandException {
+        String groupA = "GroupA";
+        String groupB = "GroupB";
+
+        // Send heartbeat containing two consumer groups
+        RemotingCommand request = createMultiGroupHeartbeatCommand(groupA, groupB);
+        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        ConsumerGroupInfo groupAInfo = brokerController.getConsumerManager().getConsumerGroupInfo(groupA);
+        ConsumerGroupInfo groupBInfo = brokerController.getConsumerManager().getConsumerGroupInfo(groupB);
+        assertThat(groupAInfo).isNotNull();
+        assertThat(groupBInfo).isNotNull();
+
+        // Each group must hold an independent ClientChannelInfo instance
+        ClientChannelInfo channelInfoInA = groupAInfo.getChannelInfoTable().get(channel);
+        ClientChannelInfo channelInfoInB = groupBInfo.getChannelInfoTable().get(channel);
+        assertThat(channelInfoInA).isNotSameAs(channelInfoInB);
+
+        // Simulate time exceeding the expiry threshold
+        long expiredTs = System.currentTimeMillis()
+            - brokerController.getBrokerConfig().getChannelExpiredTimeout() * 2;
+        channelInfoInA.setLastUpdateTimestamp(expiredTs);
+        channelInfoInB.setLastUpdateTimestamp(expiredTs);
+
+        // Only groupA sends a subsequent heartbeat
+        RemotingCommand heartbeatOnlyA = createMultiGroupHeartbeatCommand(groupA);
+        clientManageProcessor.processRequest(handlerContext, heartbeatOnlyA);
+
+        brokerController.getConsumerManager().scanNotActiveChannel();
+
+        // groupA should survive (just sent heartbeat)
+        assertThat(brokerController.getConsumerManager().getConsumerGroupInfo(groupA)).isNotNull();
+        // groupB should be evicted (no heartbeat renewal)
+        assertThat(brokerController.getConsumerManager().getConsumerGroupInfo(groupB)).isNull();
+    }
+
+    private RemotingCommand createMultiGroupHeartbeatCommand(String... groups) {
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setClientID(clientId);
+        for (String g : groups) {
+            ConsumerData consumerData = createConsumerData(g);
+            SubscriptionData sub = new SubscriptionData();
+            sub.setTopic(topic);
+            sub.setSubString("*");
+            sub.setSubVersion(100L);
+            consumerData.getSubscriptionDataSet().add(sub);
+            heartbeatData.getConsumerDataSet().add(consumerData);
+        }
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        request.setLanguage(LanguageCode.JAVA);
+        request.setVersion(100);
+        request.setBody(heartbeatData.encode());
+        return request;
     }
 
     static ConsumerData createConsumerData(String group) {

@@ -21,6 +21,8 @@ public enum SerializeType {
     JSON((byte) 0),
     ROCKETMQ((byte) 1);
 
+    private static final SerializeType[] BY_CODE = {JSON, ROCKETMQ};
+
     private byte code;
 
     SerializeType(byte code) {
@@ -28,12 +30,8 @@ public enum SerializeType {
     }
 
     public static SerializeType valueOf(byte code) {
-        for (SerializeType serializeType : SerializeType.values()) {
-            if (serializeType.getCode() == code) {
-                return serializeType;
-            }
-        }
-        return null;
+        int idx = code & 0xFF;
+        return idx < BY_CODE.length ? BY_CODE[idx] : null;
     }
 
     public byte getCode() {

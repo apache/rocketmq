@@ -40,16 +40,19 @@ public class HeaderInterceptor implements ServerInterceptor {
         Metadata headers,
         ServerCallHandler<R, W> next
     ) {
+        // The authorization subject must only come from verified authentication context.
+        GrpcUtils.putHeader(headers, GrpcConstants.AUTHORIZATION_AK, null);
+
         String remoteAddress = getProxyProtocolAddress(call.getAttributes());
         if (StringUtils.isBlank(remoteAddress)) {
             SocketAddress remoteSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
             remoteAddress = parseSocketAddress(remoteSocketAddress);
         }
-        GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.REMOTE_ADDRESS, remoteAddress);
+        GrpcUtils.putHeader(headers, GrpcConstants.REMOTE_ADDRESS, remoteAddress);
 
         SocketAddress localSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_LOCAL_ADDR);
         String localAddress = parseSocketAddress(localSocketAddress);
-        GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.LOCAL_ADDRESS, localAddress);
+        GrpcUtils.putHeader(headers, GrpcConstants.LOCAL_ADDRESS, localAddress);
 
         for (Attributes.Key<?> key : call.getAttributes().keys()) {
             if (!StringUtils.startsWith(key.toString(), HAProxyConstants.PROXY_PROTOCOL_PREFIX)) {
@@ -58,12 +61,12 @@ public class HeaderInterceptor implements ServerInterceptor {
             Metadata.Key<String> headerKey
                     = Metadata.Key.of(key.toString(), Metadata.ASCII_STRING_MARSHALLER);
             String headerValue = String.valueOf(call.getAttributes().get(key));
-            GrpcUtils.putHeaderIfNotExist(headers, headerKey, headerValue);
+            GrpcUtils.putHeader(headers, headerKey, headerValue);
         }
 
         String channelId = call.getAttributes().get(AttributeKeys.CHANNEL_ID);
         if (StringUtils.isNotBlank(channelId)) {
-            GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.CHANNEL_ID, channelId);
+            GrpcUtils.putHeader(headers, GrpcConstants.CHANNEL_ID, channelId);
         }
 
         return next.startCall(call, headers);

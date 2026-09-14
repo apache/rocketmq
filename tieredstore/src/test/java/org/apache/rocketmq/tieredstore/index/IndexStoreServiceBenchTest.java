@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
@@ -61,6 +62,7 @@ public class IndexStoreServiceBenchTest {
     private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     private static final String TOPIC_NAME = "TopicTest";
     private MessageStoreConfig storeConfig;
+    private MessageStoreExecutor executor;
     private IndexStoreService indexStoreService;
     private final LongAdder failureCount = new LongAdder();
 
@@ -77,7 +79,8 @@ public class IndexStoreServiceBenchTest {
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(500 * 1000);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000 * 1000);
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FlatFileFactory flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+        executor = new MessageStoreExecutor();
+        FlatFileFactory flatFileFactory = new FlatFileFactory(metadataStore, storeConfig, executor);
         indexStoreService = new IndexStoreService(flatFileFactory, storePath);
         indexStoreService.start();
     }
@@ -86,6 +89,7 @@ public class IndexStoreServiceBenchTest {
     public void shutdown() throws IOException {
         indexStoreService.shutdown();
         indexStoreService.destroy();
+        executor.shutdown();
     }
 
     //@Benchmark

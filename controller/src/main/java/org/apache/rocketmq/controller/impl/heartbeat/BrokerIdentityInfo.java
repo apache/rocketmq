@@ -17,9 +17,8 @@
 package org.apache.rocketmq.controller.impl.heartbeat;
 
 import java.io.Serializable;
-import org.apache.rocketmq.common.UtilAll;
-
 import java.util.Objects;
+import org.apache.rocketmq.common.UtilAll;
 
 public class BrokerIdentityInfo implements Serializable {
 
@@ -63,7 +62,8 @@ public class BrokerIdentityInfo implements Serializable {
 
         if (obj instanceof BrokerIdentityInfo) {
             BrokerIdentityInfo addr = (BrokerIdentityInfo) obj;
-            return clusterName.equals(addr.clusterName) && brokerName.equals(addr.brokerName) && brokerId.equals(addr.brokerId);
+            return Objects.equals(clusterName, addr.clusterName) && Objects.equals(brokerName, addr.brokerName)
+                && Objects.equals(brokerId, addr.brokerId);
         }
         return false;
     }

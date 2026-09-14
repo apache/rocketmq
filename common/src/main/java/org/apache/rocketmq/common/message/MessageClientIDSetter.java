@@ -111,9 +111,11 @@ public class MessageClientIDSetter {
         return value & 0x0000FFFF;
     }
 
+    private static final ThreadLocal<char[]> UNIQ_ID_BUF = ThreadLocal.withInitial(() -> new char[LEN * 2]);
+
     public static String createUniqID() {
-        char[] sb = new char[LEN * 2];
-        System.arraycopy(FIX_STRING, 0, sb, 0, FIX_STRING.length);
+        char[] buf = UNIQ_ID_BUF.get();
+        System.arraycopy(FIX_STRING, 0, buf, 0, FIX_STRING.length);
         long current = System.currentTimeMillis();
         if (current >= nextStartTime) {
             setStartTime(current);
@@ -124,10 +126,10 @@ public class MessageClientIDSetter {
             diff = 0;
         }
         int pos = FIX_STRING.length;
-        UtilAll.writeInt(sb, pos, diff);
+        UtilAll.writeInt(buf, pos, diff);
         pos += 8;
-        UtilAll.writeShort(sb, pos, COUNTER.getAndIncrement());
-        return new String(sb);
+        UtilAll.writeShort(buf, pos, COUNTER.getAndIncrement());
+        return new String(buf);
     }
 
     public static void setUniqID(final Message msg) {

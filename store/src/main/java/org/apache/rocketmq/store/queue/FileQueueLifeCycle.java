@@ -78,7 +78,10 @@ public interface FileQueueLifeCycle extends Swappable {
 
     /**
      * Does the first file exist?
+     *
      * @return true if it exists
      */
     boolean isFirstFileExist();
+
+    boolean shutdown();
 }

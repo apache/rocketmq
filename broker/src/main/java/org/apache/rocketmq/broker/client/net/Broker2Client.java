@@ -49,6 +49,7 @@ import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBodyForC;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyConsumerIdsChangedRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
@@ -58,6 +59,16 @@ public class Broker2Client {
 
     public Broker2Client(BrokerController brokerController) {
         this.brokerController = brokerController;
+    }
+
+    public void notifyUnsubscribeLite(Channel channel, NotifyUnsubscribeLiteRequestHeader requestHeader) {
+        RemotingCommand request =
+            RemotingCommand.createRequestCommand(RequestCode.NOTIFY_UNSUBSCRIBE_LITE, requestHeader);
+        try {
+            this.brokerController.getRemotingServer().invokeOneway(channel, request, 100);
+        } catch (Exception e) {
+            log.error("notifyUnsubscribeLite failed. header={}, error={}", requestHeader, e.toString());
+        }
     }
 
     public void checkProducerTransactionState(

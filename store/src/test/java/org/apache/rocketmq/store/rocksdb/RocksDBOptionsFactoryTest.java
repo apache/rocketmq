@@ -17,12 +17,25 @@
 
 package org.apache.rocketmq.store.rocksdb;
 
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.CompactionOptionsUniversal;
 import org.rocksdb.CompressionType;
+import org.rocksdb.RocksDB;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RocksDBOptionsFactoryTest {
+
+    @BeforeClass
+    public static void loadRocksDB() {
+        RocksDB.loadLibrary();
+    }
 
     @Test
     public void testBottomMostCompressionType() {
@@ -31,4 +44,18 @@ public class RocksDBOptionsFactoryTest {
             CompressionType.getCompressionType(config.getBottomMostCompressionTypeForConsumeQueueStore()));
         Assert.assertEquals(CompressionType.LZ4_COMPRESSION, CompressionType.getCompressionType("lz4"));
     }
+
+    @Test
+    public void testConsumeQueueUniversalCompactionMaxSizeAmplificationPercent() {
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setRocksdbMaxSizeAmplificationPercent(50);
+        MessageStore messageStore = mock(MessageStore.class);
+        when(messageStore.getMessageStoreConfig()).thenReturn(config);
+
+        try (ColumnFamilyOptions options = RocksDBOptionsFactory.createCQCFOptions(messageStore);
+            CompactionOptionsUniversal compactionOptions = options.compactionOptionsUniversal()) {
+            Assert.assertEquals(50, compactionOptions.maxSizeAmplificationPercent());
+        }
+    }
+
 }

@@ -54,7 +54,7 @@ public class Producer {
 |int|retryTimesWhenSendAsyncFailed|异步模式下内部尝试发送消息的最大次数|
 |boolean|retryAnotherBrokerWhenNotStoreOK|是否在内部发送失败时重试另一个broker|
 |int|maxMessageSize|消息体的最大长度|
-|TraceDispatcher|traceDispatcher|基于RPCHooK实现的消息轨迹插件|
+|TraceDispatcher|traceDispatcher|基于RPCHook实现的消息轨迹插件|
 
 ### 构造方法摘要
 
@@ -443,7 +443,7 @@ public class Producer {
 
 	- 异常描述：
 
-		MQClientException - 生产者状态非Running；没有找到broker；broker返回失败；网络异常等客户端异常客户端异常。<br>
+		MQClientException - 生产者状态非Running；没有找到broker；broker返回失败；网络异常等客户端异常。<br>
 		InterruptedException - 线程中断。
 
 8. searchOffset
@@ -678,7 +678,7 @@ public class Producer {
 
 	`public void send(Message msg, MessageQueue mq, SendCallback sendCallback)`
 
-	向指定的消息队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	向指定的消息队列异步发送单条消息，异步发送调用后直接返回，并在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
 	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	- 入参描述：
@@ -703,7 +703,7 @@ public class Producer {
 
 	`public void send(Message msg, MessageQueue mq, SendCallback sendCallback, long timeout)`
 
-	向指定的消息队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	向指定的消息队列异步发送单条消息，异步发送调用后直接返回，并在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
 	若在指定时间内消息未发送成功，回调方法会收到*RemotingTooMuchRequestException*异常。
 	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
@@ -789,7 +789,7 @@ public class Producer {
 
 	`public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback)`
 
-	向通过`MessageQueueSelector`计算出的队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	向通过`MessageQueueSelector`计算出的队列异步发送单条消息，异步发送调用后直接返回，并在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
 	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	可以通过自实现`MessageQueueSelector`接口，将某一类消息发送至固定的队列。比如：将同一个订单的状态变更消息投递至固定的队列。
@@ -817,7 +817,7 @@ public class Producer {
 
 	`public void send(Message msg, MessageQueueSelector selector, Object arg, SendCallback sendCallback, long timeout)`
 
-	向通过`MessageQueueSelector`计算出的队列异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	向通过`MessageQueueSelector`计算出的队列异步发送单条消息，异步发送调用后直接返回，并在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
 	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	可以通过自实现`MessageQueueSelector`接口，将某一类消息发送至固定的队列。比如：将同一个订单的状态变更消息投递至固定的队列。
@@ -846,7 +846,7 @@ public class Producer {
 
 	`public void send(Message msg, SendCallback sendCallback)`
 
-	异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	异步发送单条消息，异步发送调用后直接返回，并在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
 	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	- 入参描述：
@@ -870,7 +870,7 @@ public class Producer {
 
 	`public void send(Message msg, SendCallback sendCallback, long timeout)`
 
-	异步发送单条消息，异步发送调用后直接返回，并在在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
+	异步发送单条消息，异步发送调用后直接返回，并在发送成功或者异常时回调`sendCallback`，所以异步发送时`sendCallback`参数不能为null，否则在回调时会抛出`NullPointerException`。
 	异步发送时，在成功发送前，其内部会尝试重新发送消息的最大次数（参见*retryTimesWhenSendAsyncFailed*属性）。
 
 	- 入参描述：

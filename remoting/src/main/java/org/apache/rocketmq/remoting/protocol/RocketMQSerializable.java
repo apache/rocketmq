@@ -28,6 +28,75 @@ import io.netty.buffer.ByteBuf;
 
 public class RocketMQSerializable {
     private static final Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
+    private static final String[] SINGLE_BYTE_STRINGS = new String[128];
+    static {
+        for (int i = 0; i < 128; i++) {
+            SINGLE_BYTE_STRINGS[i] = String.valueOf((char) i);
+        }
+    }
+
+    public static void writeDecimalLong(ByteBuf buf, long value) {
+        int lenIndex = buf.writerIndex();
+        buf.writeInt(0);
+        int start = buf.writerIndex();
+        if (value == 0) {
+            buf.writeByte('0');
+        } else {
+            boolean neg = value < 0;
+            if (neg) {
+                buf.writeByte('-');
+                if (value == Long.MIN_VALUE) {
+                    writePositiveDigits(buf, 922337203685477580L);
+                    buf.writeByte('8');
+                    buf.setInt(lenIndex, buf.writerIndex() - start);
+                    return;
+                }
+                value = -value;
+            }
+            writePositiveDigits(buf, value);
+        }
+        buf.setInt(lenIndex, buf.writerIndex() - start);
+    }
+
+    public static void writeDecimalInt(ByteBuf buf, int value) {
+        int lenIndex = buf.writerIndex();
+        buf.writeInt(0);
+        int start = buf.writerIndex();
+        if (value == 0) {
+            buf.writeByte('0');
+        } else {
+            boolean neg = value < 0;
+            if (neg) {
+                buf.writeByte('-');
+                if (value == Integer.MIN_VALUE) {
+                    writePositiveDigits(buf, 214748364L);
+                    buf.writeByte('8');
+                    buf.setInt(lenIndex, buf.writerIndex() - start);
+                    return;
+                }
+                value = -value;
+            }
+            writePositiveDigits(buf, value);
+        }
+        buf.setInt(lenIndex, buf.writerIndex() - start);
+    }
+
+    private static void writePositiveDigits(ByteBuf buf, long value) {
+        int digitStart = buf.writerIndex();
+        int numDigits = 0;
+        long temp = value;
+        while (temp > 0) {
+            numDigits++;
+            temp /= 10;
+        }
+        buf.ensureWritable(numDigits);
+        buf.writerIndex(digitStart + numDigits);
+        temp = value;
+        for (int i = numDigits - 1; i >= 0; i--) {
+            buf.setByte(digitStart + i, (byte) ('0' + (int) (temp % 10)));
+            temp /= 10;
+        }
+    }
 
     public static void writeStr(ByteBuf buf, boolean useShortLength, String str) {
         int lenIndex = buf.writerIndex();
@@ -51,6 +120,13 @@ public class RocketMQSerializable {
         }
         if (len > limit) {
             throw new RemotingCommandException("string length exceed limit:" + limit);
+        }
+        if (len == 1) {
+            byte b = buf.readByte();
+            if (b >= 0) {
+                return SINGLE_BYTE_STRINGS[b];
+            }
+            return new String(new byte[]{b}, CHARSET_UTF8);
         }
         CharSequence cs = buf.readCharSequence(len, StandardCharsets.UTF_8);
         return cs == null ? null : cs.toString();
@@ -231,7 +307,8 @@ public class RocketMQSerializable {
 
     public static HashMap<String, String> mapDeserialize(ByteBuf byteBuffer, int len) throws RemotingCommandException {
 
-        HashMap<String, String> map = new HashMap<>(128);
+        // Typical RocketMQ headers have 5-15 entries; 24 (next power-of-2 above 15*1.33) avoids resize
+        HashMap<String, String> map = new HashMap<>(24);
         int endIndex = byteBuffer.readerIndex() + len;
 
         while (byteBuffer.readerIndex() < endIndex) {

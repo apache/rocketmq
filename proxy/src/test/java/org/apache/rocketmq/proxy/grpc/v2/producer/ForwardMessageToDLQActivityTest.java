@@ -50,7 +50,7 @@ public class ForwardMessageToDLQActivityTest extends BaseActivityTest {
     @Test
     public void testForwardMessageToDeadLetterQueue() throws Throwable {
         ArgumentCaptor<ReceiptHandle> receiptHandleCaptor = ArgumentCaptor.forClass(ReceiptHandle.class);
-        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString()))
+        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "")));
 
         String handleStr = buildReceiptHandle("topic", System.currentTimeMillis(), 3000);
@@ -71,7 +71,7 @@ public class ForwardMessageToDLQActivityTest extends BaseActivityTest {
     @Test
     public void testForwardMessageToDeadLetterQueueWhenHasMappingHandle() throws Throwable {
         ArgumentCaptor<ReceiptHandle> receiptHandleCaptor = ArgumentCaptor.forClass(ReceiptHandle.class);
-        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString()))
+        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "")));
 
         String savedHandleStr = buildReceiptHandle("topic", System.currentTimeMillis(),3000);

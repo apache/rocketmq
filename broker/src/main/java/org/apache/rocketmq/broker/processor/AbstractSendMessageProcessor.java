@@ -589,8 +589,4 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
 }

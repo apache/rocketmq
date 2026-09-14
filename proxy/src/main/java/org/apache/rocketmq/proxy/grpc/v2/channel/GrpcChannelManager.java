@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
+import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,6 +68,10 @@ public class GrpcChannelManager implements StartAndShutdown {
 
     public GrpcClientChannel getChannel(String clientId) {
         return clientIdChannelMap.get(clientId);
+    }
+
+    public Collection<GrpcClientChannel> getClientChannels() {
+        return clientIdChannelMap.values();
     }
 
     public GrpcClientChannel removeChannel(String clientId) {

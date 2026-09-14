@@ -122,7 +122,11 @@ public class PopReviveService extends ServiceThread {
         msgInner.setSysFlag(messageExt.getSysFlag());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
-        msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
+        if (popCheckPoint.isSuspend()) {
+            msgInner.setReconsumeTimes(messageExt.getReconsumeTimes());
+        } else {
+            msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
+        }
         msgInner.getProperties().putAll(messageExt.getProperties());
         if (messageExt.getReconsumeTimes() == 0 || msgInner.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(popCheckPoint.getPopTime()));

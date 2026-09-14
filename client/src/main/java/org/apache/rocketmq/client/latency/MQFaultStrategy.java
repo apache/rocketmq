@@ -21,8 +21,9 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo.QueueFilter;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 
-public class MQFaultStrategy {
+public class MQFaultStrategy implements StartAndShutdown {
     private LatencyFaultTolerance<String> latencyFaultTolerance;
     private volatile boolean sendLatencyFaultEnable;
     private volatile boolean startDetectorEnable;
@@ -128,6 +129,11 @@ public class MQFaultStrategy {
 
     public void startDetector() {
         this.latencyFaultTolerance.startDetector();
+    }
+
+    @Override
+    public void start() throws Exception {
+        this.startDetector();
     }
 
     public void shutdown() {

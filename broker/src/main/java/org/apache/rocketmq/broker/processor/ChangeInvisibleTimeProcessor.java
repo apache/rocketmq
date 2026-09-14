@@ -22,14 +22,17 @@ import io.netty.channel.ChannelHandlerContext;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -63,11 +66,6 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         return this.processRequest(ctx.channel(), request, true);
-    }
-
-    @Override
-    public boolean rejectRequest() {
-        return false;
     }
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
@@ -122,6 +120,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             response.setRemark(errorInfo);
             return CompletableFuture.completedFuture(response);
         }
+
+        CompletableFuture<RemotingCommand> future = processChangeInvisibleTimeForLite(requestHeader, response, responseHeader);
+        if (future != null) {
+            return future;
+        }
+
         long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
         long maxOffset;
         try {
@@ -145,7 +149,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                 brokerController.getPopConsumerService().changeInvisibilityDuration(
                     ExtraInfoUtil.getPopTime(extraInfo), ExtraInfoUtil.getInvisibleTime(extraInfo), current,
                     requestHeader.getInvisibleTime(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    requestHeader.getQueueId(), requestHeader.getOffset());
+                    requestHeader.getQueueId(), requestHeader.getOffset(), requestHeader.isSuspend());
                 responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
                 responseHeader.setPopTime(current);
                 responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
@@ -316,6 +320,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setQueueId(queueId);
         ck.addDiff(0);
         ck.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
+        ck.setSuspend(requestHeader.isSuspend());
 
         msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(reviveQid);
@@ -352,6 +357,58 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             POP_LOGGER.error("change invisible, put new ck error", throwable);
             return null;
         });
+    }
+
+    protected CompletableFuture<RemotingCommand> processChangeInvisibleTimeForLite(
+        ChangeInvisibleTimeRequestHeader requestHeader,
+        RemotingCommand response, ChangeInvisibleTimeResponseHeader responseHeader) {
+        if (StringUtils.isBlank(requestHeader.getLiteTopic())) {
+            return null;
+        }
+        String lmqName = LiteUtil.toLmqName(requestHeader.getTopic(), requestHeader.getLiteTopic());
+        long maxOffset = this.brokerController.getLiteLifecycleManager().getMaxOffsetInQueue(lmqName);
+        if (requestHeader.getOffset() > maxOffset) {
+            POP_LOGGER.warn("process lite offset illegal, {}, {}, {}", lmqName, requestHeader.getOffset(), maxOffset);
+            response.setCode(ResponseCode.NO_MESSAGE);
+            return CompletableFuture.completedFuture(response);
+        }
+
+        String group = requestHeader.getConsumerGroup();
+        String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
+        long popTime = ExtraInfoUtil.getPopTime(extraInfo);
+
+        ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
+        MemoryConsumerOrderInfoManager consumerOrderInfoManager =
+            (MemoryConsumerOrderInfoManager) brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager();
+        PopConsumerLockService consumerLockService = this.brokerController.getPopLiteMessageProcessor().getLockService();
+
+        long oldOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+        if (requestHeader.getOffset() < oldOffset) {
+            return CompletableFuture.completedFuture(response);
+        }
+
+        while (!consumerLockService.tryLock(group, lmqName)) {
+        }
+
+        try {
+            oldOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+            if (requestHeader.getOffset() < oldOffset) {
+                return CompletableFuture.completedFuture(response);
+            }
+            long visibilityTimeout = System.currentTimeMillis() + requestHeader.getInvisibleTime();
+            if (requestHeader.isSuspend()) {
+                consumerOrderInfoManager.suspendQueue(lmqName, group, 0, popTime, visibilityTimeout);
+            } else {
+                consumerOrderInfoManager.updateNextVisibleTime(
+                    lmqName, group, 0, requestHeader.getOffset(), popTime, visibilityTimeout);
+            }
+            responseHeader.setInvisibleTime(visibilityTimeout - popTime);
+            responseHeader.setPopTime(popTime);
+            responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+        } finally {
+            consumerLockService.unlock(group, lmqName);
+        }
+        return CompletableFuture.completedFuture(response);
     }
 
     protected void doResponse(Channel channel, RemotingCommand request,

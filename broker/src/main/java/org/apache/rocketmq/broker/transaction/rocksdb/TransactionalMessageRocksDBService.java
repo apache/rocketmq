@@ -76,11 +76,11 @@ public class TransactionalMessageRocksDBService {
     private void initService() {
         this.transStatusService = new TransStatusCheckService();
         this.checkTranStatusTaskExecutor = ThreadUtils.newThreadPoolExecutor(
-            2,
-            5,
+            brokerController.getBrokerConfig().getTransactionCheckRocksdbCoreThreads(),
+            brokerController.getBrokerConfig().getTransactionCheckRocksdbMaxThreads(),
             100,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2000),
+            new ArrayBlockingQueue<>(brokerController.getBrokerConfig().getTransactionCheckRocksdbQueueCapacity()),
             new ThreadFactoryImpl("Transaction-rocksdb-msg-check-thread", brokerController.getBrokerIdentity()),
             new CallerRunsPolicy());
     }
@@ -223,7 +223,7 @@ public class TransactionalMessageRocksDBService {
         }
         try {
             CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
-            checkTransactionStateRequestHeader.setTopic(msgExt.getTopic());
+            checkTransactionStateRequestHeader.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
             checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
             checkTransactionStateRequestHeader.setOffsetMsgId(msgExt.getMsgId());
             checkTransactionStateRequestHeader.setMsgId(MessageClientIDSetter.getUniqID(msgExt));

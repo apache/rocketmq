@@ -69,17 +69,17 @@ public class AckMessageActivityTest extends BaseActivityTest {
         String msg2 = "msg2";
         String msg3 = "msg3";
 
-        when(this.messagingProcessor.ackMessage(any(), any(), eq(msg1), anyString(), anyString()))
+        when(this.messagingProcessor.ackMessage(any(), any(), eq(msg1), anyString(), anyString(), any()))
             .thenThrow(new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "receipt handle is expired"));
 
         AckResult msg2AckResult = new AckResult();
         msg2AckResult.setStatus(AckStatus.OK);
-        when(this.messagingProcessor.ackMessage(any(), any(), eq(msg2), anyString(), anyString()))
+        when(this.messagingProcessor.ackMessage(any(), any(), eq(msg2), anyString(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(msg2AckResult));
 
         AckResult msg3AckResult = new AckResult();
         msg3AckResult.setStatus(AckStatus.NO_EXIST);
-        when(this.messagingProcessor.ackMessage(any(), any(), eq(msg3), anyString(), anyString()))
+        when(this.messagingProcessor.ackMessage(any(), any(), eq(msg3), anyString(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(msg3AckResult));
 
         {

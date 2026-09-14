@@ -286,10 +286,6 @@ public class ContainerIntegrationTestBase {
                 return namesrvController.getRemotingServer().getDefaultProcessorPair().getObject1().processRequest(ctx, request);
             }
 
-            @Override
-            public boolean rejectRequest() {
-                return false;
-            }
         }, null);
 
         namesrvControllers.add(namesrvController);

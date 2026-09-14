@@ -22,8 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -48,8 +46,8 @@ public class FlatMessageFile implements FlatFileInterface {
     protected static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     protected volatile boolean closed = false;
 
-    protected TopicMetadata topicMetadata;
-    protected QueueMetadata queueMetadata;
+    protected volatile TopicMetadata topicMetadata;
+    protected volatile QueueMetadata queueMetadata;
 
     protected final String filePath;
     protected final ReentrantLock fileLock;
@@ -58,8 +56,6 @@ public class FlatMessageFile implements FlatFileInterface {
     protected final MetadataStore metadataStore;
     protected final FlatCommitLogFile commitLog;
     protected final FlatConsumeQueueFile consumeQueue;
-
-    protected final ConcurrentMap<String, CompletableFuture<?>> inFlightRequestMap;
 
     public FlatMessageFile(FlatFileFactory fileFactory, String topic, int queueId) {
         this(fileFactory, MessageStoreUtil.toFilePath(
@@ -75,7 +71,6 @@ public class FlatMessageFile implements FlatFileInterface {
         this.metadataStore = fileFactory.getMetadataStore();
         this.commitLog = fileFactory.createFlatFileForCommitLog(filePath);
         this.consumeQueue = fileFactory.createFlatFileForConsumeQueue(filePath);
-        this.inFlightRequestMap = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -236,8 +231,7 @@ public class FlatMessageFile implements FlatFileInterface {
 
     @Override
     public CompletableFuture<Boolean> commitAsync() {
-        // acquire lock
-        if (commitLock.drainPermits() <= 0) {
+        if (!commitLock.tryAcquire()) {
             return CompletableFuture.completedFuture(false);
         }
 
@@ -287,16 +281,16 @@ public class FlatMessageFile implements FlatFileInterface {
         ByteBuffer buffer = getMessageAsync(cqMax).join();
         long storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
         if (storeTime < timestamp) {
-            log.info("FlatMessageFile getQueueOffsetByTimeAsync, exceeded maximum time, " +
-                "filePath={}, timestamp={}, result={}", filePath, timestamp, cqMax + 1);
+            log.debug("FlatMessageFile#getQueueOffsetByTimeAsync, exceeded maximum time, filePath={}, timestamp={}, result={}",
+                filePath, timestamp, cqMax + 1);
             return CompletableFuture.completedFuture(cqMax + 1);
         }
 
         buffer = getMessageAsync(cqMin).join();
         storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
         if (storeTime > timestamp) {
-            log.info("FlatMessageFile getQueueOffsetByTimeAsync, less than minimum time, " +
-                "filePath={}, timestamp={}, result={}", filePath, timestamp, cqMin);
+            log.debug("FlatMessageFile#getQueueOffsetByTimeAsync, less than minimum time, filePath={}, timestamp={}, result={}",
+                filePath, timestamp, cqMin);
             return CompletableFuture.completedFuture(cqMin);
         }
 
@@ -351,7 +345,7 @@ public class FlatMessageFile implements FlatFileInterface {
             }
         }
 
-        log.info("FlatMessageFile getQueueOffsetByTimeAsync, filePath={}, timestamp={}, result={}, log={}",
+        log.debug("FlatMessageFile#getQueueOffsetByTimeAsync, filePath={}, timestamp={}, result={}, log={}",
             filePath, timestamp, offset, JSON.toJSONString(queryLog));
         return CompletableFuture.completedFuture(offset);
     }

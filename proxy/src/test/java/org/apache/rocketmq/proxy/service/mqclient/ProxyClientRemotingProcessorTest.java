@@ -88,7 +88,7 @@ public class ProxyClientRemotingProcessorTest {
         when(producerManager.getAvailableChannel(anyString()))
             .thenReturn(grpcClientChannel);
 
-        ProxyClientRemotingProcessor processor = new ProxyClientRemotingProcessor(producerManager);
+        ProxyClientRemotingProcessor processor = new ProxyClientRemotingProcessor(producerManager, null);
         CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
         RemotingCommand command = RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, requestHeader);
         MessageExt message = new MessageExt();

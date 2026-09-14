@@ -17,10 +17,13 @@
 
 package org.apache.rocketmq.namesrv;
 
+import java.util.concurrent.ExecutorService;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.Configuration;
+import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.junit.Assert;
@@ -29,6 +32,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class NamesrvControllerTest {
@@ -44,6 +51,29 @@ public class NamesrvControllerTest {
     public void setUp() throws Exception {
         NamesrvConfig namesrvConfig = new NamesrvConfig();
         namesrvController = new NamesrvController(namesrvConfig, nettyServerConfig);
+    }
+
+    @Test
+    public void testShutdownMarksStateBeforeClosingResources() throws Exception {
+        RemotingClient remotingClient = mock(RemotingClient.class);
+        FieldUtils.writeField(namesrvController, "remotingClient", remotingClient, true);
+        FieldUtils.writeField(namesrvController, "defaultExecutor", mock(ExecutorService.class), true);
+        FieldUtils.writeField(namesrvController, "clientRequestExecutor", mock(ExecutorService.class), true);
+        namesrvController.setRemotingServer(remotingServer);
+        doAnswer(invocation -> {
+            Assert.assertTrue(namesrvController.isShutdown());
+            return null;
+        }).when(remotingClient).shutdown();
+        doAnswer(invocation -> {
+            Assert.assertTrue(namesrvController.isShutdown());
+            return null;
+        }).when(remotingServer).shutdown();
+
+        Assert.assertFalse(namesrvController.isShutdown());
+        namesrvController.shutdown();
+        Assert.assertTrue(namesrvController.isShutdown());
+        verify(remotingClient).shutdown();
+        verify(remotingServer).shutdown();
     }
 
     @Test

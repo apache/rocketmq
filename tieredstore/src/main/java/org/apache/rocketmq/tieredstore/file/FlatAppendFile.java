@@ -38,6 +38,7 @@ public class FlatAppendFile {
 
     protected static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     public static final long GET_FILE_SIZE_ERROR = -1L;
+    public static final long GET_TIMESTAMP_ERROR = -1L;
 
     protected final String filePath;
     protected final FileSegmentType fileType;
@@ -108,7 +109,7 @@ public class FlatAppendFile {
         if (fileSegment.getCommitPosition() != fileSize) {
             fileSegment.initPosition(fileSize);
             flushFileSegmentMeta(fileSegment);
-            log.warn("FlatAppendFile last file size not correct, filePath: {}", this.filePath);
+            log.warn("FlatAppendFile#recoverFileSize, last file size not correct, filePath={}", this.filePath);
         }
     }
 
@@ -164,12 +165,12 @@ public class FlatAppendFile {
 
     public long getMinTimestamp() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(0).getMinTimestamp();
+        return list.isEmpty() ? GET_TIMESTAMP_ERROR : list.get(0).getMinTimestamp();
     }
 
     public long getMaxTimestamp() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(list.size() - 1).getMaxTimestamp();
+        return list.isEmpty() ? GET_TIMESTAMP_ERROR : list.get(list.size() - 1).getMaxTimestamp();
     }
 
     public FileSegment rollingNewFile(long offset) {
@@ -202,7 +203,7 @@ public class FlatAppendFile {
             result = fileSegment.append(buffer, timestamp);
             if (result == AppendResult.FILE_FULL) {
                 boolean commitResult = fileSegment.commitAsync().join();
-                log.info("FlatAppendFile#append not successful for the file {} is full, commit result={}",
+                log.debug("FlatAppendFile#append, file is full, filePath={}, commitResult={}",
                     fileSegment.getPath(), commitResult);
                 if (commitResult) {
                     this.flushFileSegmentMeta(fileSegment);
@@ -279,7 +280,7 @@ public class FlatAppendFile {
 
                 if (fileSegment.getMaxTimestamp() != Long.MAX_VALUE &&
                     fileSegment.getMaxTimestamp() >= expireTimestamp) {
-                    log.debug("FileSegment has not expired, filePath={}, fileType={}, " +
+                    log.debug("FlatAppendFile#destroyExpiredFile, file not expired, filePath={}, fileType={}, " +
                             "offset={}, expireTimestamp={}, maxTimestamp={}", filePath, fileType,
                         fileSegment.getBaseOffset(), expireTimestamp, fileSegment.getMaxTimestamp());
                     break;

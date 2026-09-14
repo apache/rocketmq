@@ -43,8 +43,11 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -80,7 +83,7 @@ public class ClientRequestProcessorTest {
     }
 
     @Test
-    public void testGetRouteInfoByTopicWithHighVersionClient() throws RemotingCommandException {
+    public void testGetRouteInfoByTopicWithHighVersionClient() throws Exception {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, null);
         request.setVersion(MQVersion.Version.V4_9_4.ordinal());
 
@@ -94,7 +97,7 @@ public class ClientRequestProcessorTest {
 
         when(routeInfoManager.pickupTopicRouteData("TestTopic")).thenReturn(topicRouteData);
 
-        RemotingCommand response = clientRequestProcessor.getRouteInfoByTopic(ctx, spyRequest);
+        RemotingCommand response = clientRequestProcessor.processRequest(ctx, spyRequest);
 
         assertEquals(ResponseCode.SUCCESS, response.getCode());
         assertNotNull(response.getBody());
@@ -165,6 +168,47 @@ public class ClientRequestProcessorTest {
 
         assertEquals(ResponseCode.TOPIC_NOT_EXIST, response.getCode());
         assertNotNull(response.getRemark());
+    }
+
+    @Test
+    public void testShutdownRejectsRouteRequestsForAllVersions() throws Exception {
+        when(namesrvController.isShutdown()).thenReturn(true);
+        for (int version : new int[] {MQVersion.Version.V4_9_3.ordinal(), MQVersion.Version.V5_3_1.ordinal(),
+            MQVersion.Version.V5_3_1.ordinal() + 1}) {
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, null);
+            request.setVersion(version);
+            RemotingCommand response = clientRequestProcessor.processRequest(ctx, request);
+            assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
+            assertEquals("name server not ready", response.getRemark());
+            assertNull(response.getBody());
+        }
+        verifyNoInteractions(routeInfoManager);
+    }
+
+    @Test
+    public void testRouteLookupKeepsOriginalResultWhenShutdownStarts() throws Exception {
+        GetRouteInfoRequestHeader header = new GetRouteInfoRequestHeader();
+        header.setTopic("TestTopic");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, header);
+        request.makeCustomHeaderToNet();
+        when(namesrvConfig.isNeedWaitForService()).thenReturn(false);
+        for (TopicRouteData route : new TopicRouteData[] {createMockTopicRouteData(), null}) {
+            when(namesrvController.isShutdown()).thenReturn(false);
+            doAnswer(invocation -> {
+                when(namesrvController.isShutdown()).thenReturn(true);
+                return route;
+            }).when(routeInfoManager).pickupTopicRouteData("TestTopic");
+
+            RemotingCommand response = clientRequestProcessor.processRequest(ctx, request);
+
+            if (route != null) {
+                assertEquals(ResponseCode.SUCCESS, response.getCode());
+                assertNotNull(response.getBody());
+            } else {
+                assertEquals(ResponseCode.TOPIC_NOT_EXIST, response.getCode());
+                assertNull(response.getBody());
+            }
+        }
     }
 
     private TopicRouteData createMockTopicRouteData() {

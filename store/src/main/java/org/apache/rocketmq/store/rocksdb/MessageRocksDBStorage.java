@@ -84,7 +84,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private volatile ColumnFamilyHandle transCFHandle;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private static final Cache<byte[], byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
+    private static final Cache<String, byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
         .maximumSize(10000)
         .expireAfterWrite(60, TimeUnit.MINUTES)
         .build();
@@ -354,9 +354,9 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
                         writeBatch.put(cfHandle, keyBytes, valueBytes);
                     } else if (record.getActionFlag() == TIMER_ROCKSDB_DELETE) {
                         writeBatch.delete(cfHandle, keyBytes);
-                        DELETE_KEY_CACHE_FOR_TIMER.put(keyBytes, DELETE_VAL_FLAG);
+                        DELETE_KEY_CACHE_FOR_TIMER.put(getTimerCacheKey(record.getDelayTime(), record.getUniqKey()), DELETE_VAL_FLAG);
                     } else if (record.getActionFlag() == TIMER_ROCKSDB_UPDATE) {
-                        byte[] deleteByte = DELETE_KEY_CACHE_FOR_TIMER.getIfPresent(keyBytes);
+                        byte[] deleteByte = DELETE_KEY_CACHE_FOR_TIMER.getIfPresent(getTimerCacheKey(record.getDelayTime(), record.getUniqKey()));
                         if (null == deleteByte) {
                             writeBatch.put(cfHandle, keyBytes, valueBytes);
                         }
@@ -371,6 +371,10 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         } catch (Exception e) {
             logError.error("MessageRocksDBStorage writeRecordsForTimer error: {}", e.getMessage());
         }
+    }
+
+    private static String getTimerCacheKey(long delayTime, String uniqKey) {
+        return delayTime + ":" + uniqKey;
     }
 
     public List<TimerRocksDBRecord> scanRecordsForTimer(byte[] columnFamily, long lowerTime, long upperTime, int size, byte[] startKey) {

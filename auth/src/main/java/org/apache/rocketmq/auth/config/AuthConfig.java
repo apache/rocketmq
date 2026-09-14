@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.auth.config;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+
 public class AuthConfig implements Cloneable {
 
     private String configName;
@@ -32,7 +37,7 @@ public class AuthConfig implements Cloneable {
 
     private String authenticationStrategy;
 
-    private String authenticationWhitelist;
+    private volatile WhitelistSnapshot authenticationWhitelist;
 
     private String initAuthenticationUser;
 
@@ -76,6 +81,48 @@ public class AuthConfig implements Cloneable {
             return (AuthConfig) super.clone();
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
+        }
+    }
+
+    public boolean isAuthenticationRequired(String rpcCode) {
+        return authenticationEnabled && !contains(authenticationWhitelist, rpcCode);
+    }
+
+    private static boolean contains(WhitelistSnapshot snapshot, String rpcCode) {
+        return snapshot != null && StringUtils.isNotEmpty(rpcCode)
+            && snapshot.entries.contains(rpcCode);
+    }
+
+    private static Set<String> parseWhitelist(String whitelist) {
+        if (StringUtils.isBlank(whitelist)) {
+            return Collections.emptySet();
+        }
+        Set<String> result = new LinkedHashSet<>();
+        for (String rpcCode : StringUtils.split(whitelist, ',')) {
+            String value = StringUtils.trim(rpcCode);
+            if (StringUtils.isNotEmpty(value)) {
+                result.add(value);
+            }
+        }
+        return Collections.unmodifiableSet(result);
+    }
+
+    private static final class WhitelistSnapshot {
+        private final String value;
+        private final Set<String> entries;
+
+        private WhitelistSnapshot(String value) {
+            this.value = value;
+            this.entries = parseWhitelist(value);
+        }
+
+        private static WhitelistSnapshot of(String value) {
+            return value == null ? null : new WhitelistSnapshot(value);
+        }
+
+        @Override
+        public String toString() {
+            return value;
         }
     }
 
@@ -136,11 +183,12 @@ public class AuthConfig implements Cloneable {
     }
 
     public String getAuthenticationWhitelist() {
-        return authenticationWhitelist;
+        WhitelistSnapshot snapshot = authenticationWhitelist;
+        return snapshot == null ? null : snapshot.value;
     }
 
     public void setAuthenticationWhitelist(String authenticationWhitelist) {
-        this.authenticationWhitelist = authenticationWhitelist;
+        this.authenticationWhitelist = WhitelistSnapshot.of(authenticationWhitelist);
     }
 
     public String getInitAuthenticationUser() {

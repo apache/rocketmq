@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.io.FileUtils;
+import org.rocksdb.util.SizeUnit;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
@@ -65,7 +66,8 @@ public class PopConsumerRocksdbStoreTest {
     @Test
     public void rocksdbStoreWriteDeleteTest() {
         String filePath = getRandomStorePath();
-        PopConsumerKVStore consumerStore = new PopConsumerRocksdbStore(filePath);
+        PopConsumerKVStore consumerStore = new PopConsumerRocksdbStore(
+            filePath, 256 * SizeUnit.MB, 32 * SizeUnit.MB);
         Assert.assertEquals(filePath, consumerStore.getFilePath());
 
         consumerStore.start();
@@ -127,7 +129,8 @@ public class PopConsumerRocksdbStoreTest {
     @Ignore
     @SuppressWarnings("ConstantValue")
     public void tombstoneDeletionTest() throws IllegalAccessException, NoSuchFieldException {
-        PopConsumerRocksdbStore rocksdbStore = new PopConsumerRocksdbStore(getRandomStorePath());
+        PopConsumerRocksdbStore rocksdbStore = new PopConsumerRocksdbStore(
+            getRandomStorePath(), 256 * SizeUnit.MB, 32 * SizeUnit.MB);
         rocksdbStore.start();
 
         int iterCount = 1000 * 1000;

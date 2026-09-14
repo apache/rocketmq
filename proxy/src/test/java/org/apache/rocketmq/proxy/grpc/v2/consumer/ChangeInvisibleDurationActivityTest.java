@@ -37,6 +37,8 @@ import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +63,15 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
         ackResult.setExtraInfo(newHandle);
         ackResult.setStatus(AckStatus.OK);
         when(this.messagingProcessor.changeInvisibleTime(
-            any(), any(), anyString(), anyString(), anyString(), invisibleTimeArgumentCaptor.capture()
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            invisibleTimeArgumentCaptor.capture(),
+            anyString(),  // request.getLiteTopic()
+            anyLong(),    // MessagingProcessor.DEFAULT_TIMEOUT_MILLS
+            anyBoolean()  // request.getSuspend()
         )).thenReturn(CompletableFuture.completedFuture(ackResult));
 
         ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
@@ -90,7 +100,15 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
         String savedHandleStr = buildReceiptHandle("topic", System.currentTimeMillis(),3000);
         ArgumentCaptor<ReceiptHandle> receiptHandleCaptor = ArgumentCaptor.forClass(ReceiptHandle.class);
         when(this.messagingProcessor.changeInvisibleTime(
-            any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString(), invisibleTimeArgumentCaptor.capture()
+            any(),
+            receiptHandleCaptor.capture(),
+            anyString(),
+            anyString(),
+            anyString(),
+            invisibleTimeArgumentCaptor.capture(),
+            anyString(),  // request.getLiteTopic()
+            anyLong(),    // MessagingProcessor.DEFAULT_TIMEOUT_MILLS
+            anyBoolean()  // request.getSuspend()
         )).thenReturn(CompletableFuture.completedFuture(ackResult));
         when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
             .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0));
@@ -119,9 +137,16 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
         AckResult ackResult = new AckResult();
         ackResult.setStatus(AckStatus.NO_EXIST);
         when(this.messagingProcessor.changeInvisibleTime(
-            any(), any(), anyString(), anyString(), anyString(), invisibleTimeArgumentCaptor.capture()
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            invisibleTimeArgumentCaptor.capture(),
+            anyString(),  // request.getLiteTopic()
+            anyLong(),    // MessagingProcessor.DEFAULT_TIMEOUT_MILLS
+            anyBoolean()  // request.getSuspend()
         )).thenReturn(CompletableFuture.completedFuture(ackResult));
-
         ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
             createContext(),
             ChangeInvisibleDurationRequest.newBuilder()

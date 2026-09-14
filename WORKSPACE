@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 
 RULES_JVM_EXTERNAL_TAG = "4.2"
 
@@ -40,40 +40,40 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 maven_install(
     artifacts = [
         "junit:junit:4.13.2",
-        "com.alibaba:fastjson:1.2.76",
-        "com.alibaba.fastjson2:fastjson2:2.0.43",
+        "com.alibaba.fastjson2:fastjson2:2.0.64",
         "org.hamcrest:hamcrest-library:1.3",
-        "io.netty:netty-all:4.1.65.Final",
+        "io.netty:netty-all:4.1.130.Final",
         "org.assertj:assertj-core:3.22.0",
         "org.mockito:mockito-core:3.10.0",
         "org.powermock:powermock-module-junit4:2.0.9",
         "org.powermock:powermock-api-mockito2:2.0.9",
         "org.powermock:powermock-core:2.0.9",
         "com.github.luben:zstd-jni:1.5.2-2",
-        "org.lz4:lz4-java:1.8.0",
-        "commons-validator:commons-validator:1.7",
-        "org.apache.commons:commons-lang3:3.12.0",
+        "at.yawk.lz4:lz4-java:1.10.3",
+        "commons-validator:commons-validator:1.10.0",
+        "org.apache.commons:commons-lang3:3.20.0",
         "org.hamcrest:hamcrest-core:1.3",
-        "io.openmessaging.storage:dledger:0.3.2",
+        "io.openmessaging.storage:dledger:0.3.3.4",
         "net.java.dev.jna:jna:4.2.2",
         "ch.qos.logback:logback-classic:1.2.10",
         "ch.qos.logback:logback-core:1.2.10",
         "io.opentracing:opentracing-api:0.33.0",
         "io.opentracing:opentracing-mock:0.33.0",
         "commons-collections:commons-collections:3.2.2",
+        "org.apache.commons:commons-collections4:4.5.0",
         "org.awaitility:awaitility:4.1.0",
         "commons-cli:commons-cli:1.5.0",
-        "com.google.guava:guava:31.0.1-jre",
+        "com.google.guava:guava:32.0.1-jre",
         "org.yaml:snakeyaml:2.0",
         "commons-codec:commons-codec:1.13",
-        "commons-io:commons-io:2.7",
+        "commons-io:commons-io:2.14.0",
         "com.google.truth:truth:0.30",
-        "org.bouncycastle:bcpkix-jdk15on:1.69",
-        "com.google.code.gson:gson:2.8.9",
+        "org.bouncycastle:bcpkix-jdk18on:1.83",
+        "com.google.code.gson:gson:2.9.0",
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
-        "org.apache.rocketmq:rocketmq-proto:2.1.1",
-        "com.google.protobuf:protobuf-java:3.20.1",
-        "com.google.protobuf:protobuf-java-util:3.20.1",
+        "com.google.protobuf:protobuf-java:3.24.4",
+        "com.google.protobuf:protobuf-java-util:3.24.4",
+        "javax.annotation:javax.annotation-api:1.3.2",
         "com.conversantmedia:disruptor:1.2.10",
         "org.apache.tomcat:annotations-api:6.0.53",
         "com.google.code.findbugs:jsr305:3.0.2",
@@ -82,24 +82,25 @@ maven_install(
         "org.openjdk.jmh:jmh-core:1.19",
         "org.openjdk.jmh:jmh-generator-annprocess:1.19",
         "com.github.ben-manes.caffeine:caffeine:2.9.3",
-        "io.grpc:grpc-services:1.47.0",
-        "io.grpc:grpc-netty-shaded:1.47.0",
-        "io.grpc:grpc-context:1.47.0",
-        "io.grpc:grpc-stub:1.47.0",
-        "io.grpc:grpc-api:1.47.0",
-        "io.grpc:grpc-testing:1.47.0",
-        "org.springframework:spring-core:5.3.26",
-        "io.opentelemetry:opentelemetry-exporter-otlp:1.29.0",
-        "io.opentelemetry:opentelemetry-exporter-prometheus:1.29.0-alpha",
-        "io.opentelemetry:opentelemetry-exporter-logging:1.29.0",
-        "io.opentelemetry:opentelemetry-sdk:1.29.0",
-        "io.opentelemetry:opentelemetry-exporter-logging-otlp:1.29.0",
-        "com.squareup.okio:okio-jvm:3.0.0",
-        "io.opentelemetry:opentelemetry-api:1.29.0",
-        "io.opentelemetry:opentelemetry-sdk-metrics:1.29.0",
-        "io.opentelemetry:opentelemetry-sdk-common:1.29.0",
-        "io.github.aliyunmq:rocketmq-slf4j-api:1.0.0",
-        "io.github.aliyunmq:rocketmq-logback-classic:1.0.0",
+        "io.grpc:grpc-services:1.50.0",
+        "io.grpc:grpc-netty-shaded:1.50.0",
+        "io.grpc:grpc-context:1.50.0",
+        "io.grpc:grpc-stub:1.50.0",
+        "io.grpc:grpc-api:1.50.0",
+        "io.grpc:grpc-protobuf:1.50.0",
+        "io.grpc:grpc-testing:1.50.0",
+        "org.springframework:spring-core:5.3.27",
+        "io.opentelemetry:opentelemetry-exporter-otlp:1.47.0",
+        "io.opentelemetry:opentelemetry-exporter-prometheus:1.47.0-alpha",
+        "io.opentelemetry:opentelemetry-exporter-logging:1.47.0",
+        "io.opentelemetry:opentelemetry-sdk:1.47.0",
+        "io.opentelemetry:opentelemetry-exporter-logging-otlp:1.47.0",
+        "com.squareup.okio:okio-jvm:3.4.0",
+        "io.opentelemetry:opentelemetry-api:1.47.0",
+        "io.opentelemetry:opentelemetry-sdk-metrics:1.47.0",
+        "io.opentelemetry:opentelemetry-sdk-common:1.47.0",
+        "io.github.aliyunmq:rocketmq-slf4j-api:1.0.1",
+        "io.github.aliyunmq:rocketmq-logback-classic:1.0.1",
         "org.slf4j:jul-to-slf4j:2.0.6",
     	"org.jetbrains:annotations:23.1.0",
         "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
@@ -107,19 +108,87 @@ maven_install(
         "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
         "com.adobe.testing:s3mock-junit4:2.11.0",
         "io.github.aliyunmq:rocketmq-grpc-netty-codec-haproxy:1.0.0",
-        "org.apache.rocketmq:rocketmq-rocksdb:1.0.2",
+        "org.rocksdb:rocksdbjni:8.4.4",
         "com.alipay.sofa:jraft-core:1.3.14",
         "com.alipay.sofa:hessian:3.3.6",
         "io.netty:netty-tcnative-boringssl-static:2.0.48.Final",
         "org.mockito:mockito-junit-jupiter:4.11.0",
-        "com.alibaba.fastjson2:fastjson2:2.0.43",
         "org.junit.jupiter:junit-jupiter-api:5.9.1",
+        "org.slf4j:slf4j-api:2.0.3",
+        "org.javassist:javassist:3.20.0-GA",
     ],
-    fetch_sources = True,
+    excluded_artifacts = ["org.apache.rocketmq:rocketmq-remoting"],
+    fetch_sources = False,
     repositories = [
-        # Private repositories are supported through HTTP Basic auth
         "https://repo1.maven.org/maven2",
+        "https://repo.maven.apache.org/maven2",
     ],
+)
+
+# Well-known type protos (google/protobuf/{timestamp,duration}.proto). The
+# standalone protoc executable does not bundle them, so they have to be placed on
+# the include path explicitly.
+http_archive(
+    name = "com_google_protobuf_wkt",
+    build_file_content = """
+filegroup(
+    name = "wkt_protos",
+    srcs = glob(["*.proto"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "616bb3536ac1fff3fb1a141450fa28b875e985712170ea7f1bfe5e5fc41e2cd8",
+    strip_prefix = "protobuf-24.4/src/google/protobuf",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/refs/tags/v24.4.tar.gz"],
+)
+
+# protoc / grpc codegen binaries. rules_jvm_external can only resolve jar
+# artifacts, so the prebuilt executables are fetched directly. Using prebuilt
+# binaries avoids the grpc-java Bazel toolchain, which would build protoc and
+# the grpc plugin from C++ sources.
+http_file(
+    name = "com_google_protobuf_protoc_linux_x86_64",
+    downloaded_file_path = "protoc",
+    executable = True,
+    sha256 = "59a70515db36977cf29ab09323b469dca51dd6572a5e08a731d741f22eef2b6c",
+    urls = ["https://repo1.maven.org/maven2/com/google/protobuf/protoc/3.24.4/protoc-3.24.4-linux-x86_64.exe"],
+)
+
+http_file(
+    name = "com_google_protobuf_protoc_osx_x86_64",
+    downloaded_file_path = "protoc",
+    executable = True,
+    sha256 = "8689519587d41b7af9e3b3f2e8c3d1335a23315857d157f61c26c10a1c61a9fa",
+    urls = ["https://repo1.maven.org/maven2/com/google/protobuf/protoc/3.24.4/protoc-3.24.4-osx-x86_64.exe"],
+)
+
+http_file(
+    name = "io_grpc_protoc_gen_grpc_java_linux_x86_64",
+    downloaded_file_path = "protoc-gen-grpc-java",
+    executable = True,
+    sha256 = "52dcbe738d3c920d7744780c67417309fe4ed990b380e9d1cf073c0654656191",
+    urls = ["https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/1.53.0/protoc-gen-grpc-java-1.53.0-linux-x86_64.exe"],
+)
+
+http_file(
+    name = "io_grpc_protoc_gen_grpc_java_osx_x86_64",
+    downloaded_file_path = "protoc-gen-grpc-java",
+    executable = True,
+    sha256 = "97da9c1a408fb23391853273272a9c04f1b8ba6a2ce3c18ff95eab9cc91f0388",
+    urls = ["https://repo1.maven.org/maven2/io/grpc/protoc-gen-grpc-java/1.53.0/protoc-gen-grpc-java-1.53.0-osx-x86_64.exe"],
+)
+
+# The rocketmq-apis git submodule (apache main), which supplies
+# apache/rocketmq/v2/*.proto including the admin.proto.
+#
+# The submodule ships its own BUILD files, but they pull in toolchains this
+# workspace does not declare (graknlabs_bazel_distribution, googleapis), so the
+# directory is listed in .bazelignore (keeps `bazel build //...` from trying to
+# build it) and is surfaced here through a minimal build file instead.
+new_local_repository(
+    name = "rocketmq_apis",
+    build_file = "//bazel:rocketmq_apis.BUILD",
+    path = "rocketmq-apis",
 )
 
 http_archive(

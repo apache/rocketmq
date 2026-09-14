@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 public class ConfigurationManagerTest extends InitConfigTest {
 
     @Test
-    public void testIntConfig() {
+    public void testInitConfig() {
         assertThat(ConfigurationManager.getProxyConfig()).isNotNull();
         assertThat(ConfigurationManager.getProxyConfig().getProxyMode()).isEqualToIgnoringCase(ProxyMode.CLUSTER.toString());
 

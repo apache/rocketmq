@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
+import io.netty.channel.Channel;
 import java.net.InetSocketAddress;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -26,15 +29,22 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultTransactionalMessageCheckListenerTest {
@@ -42,6 +52,12 @@ public class DefaultTransactionalMessageCheckListenerTest {
     private DefaultTransactionalMessageCheckListener listener;
     @Mock
     private MessageStore messageStore;
+    @Mock
+    private ProducerManager producerManager;
+    @Mock
+    private Broker2Client broker2Client;
+    @Mock
+    private Channel channel;
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(),
@@ -69,7 +85,21 @@ public class DefaultTransactionalMessageCheckListenerTest {
     @Test
     public void testSendCheckMessage() throws Exception {
         MessageExt messageExt = createMessageExt();
+        String producerGroup = "producerGroup";
+        messageExt.setTopic(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_PRODUCER_GROUP, producerGroup);
+        when(brokerController.getProducerManager()).thenReturn(producerManager);
+        when(producerManager.getAvailableChannel(producerGroup)).thenReturn(channel);
+        when(brokerController.getBroker2Client()).thenReturn(broker2Client);
+
         listener.sendCheckMessage(messageExt);
+
+        ArgumentCaptor<CheckTransactionStateRequestHeader> headerCaptor =
+            ArgumentCaptor.forClass(CheckTransactionStateRequestHeader.class);
+        verify(broker2Client).checkProducerTransactionState(
+            eq(producerGroup), eq(channel), headerCaptor.capture(), eq(messageExt));
+        assertThat(headerCaptor.getValue().getTopic()).isEqualTo("realTopic");
+        assertThat(messageExt.getTopic()).isEqualTo("realTopic");
     }
 
     @Test

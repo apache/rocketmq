@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 
@@ -233,14 +234,16 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private RemotingCommand checkPrepareMessage(MessageExt msgExt, EndTransactionRequestHeader requestHeader) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         if (msgExt != null) {
+            if (StringUtils.isNotBlank(requestHeader.getTopic())
+                && !Objects.equals(requestHeader.getTopic(),
+                msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC))) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("The topic does not match the transaction message");
+                return response;
+            }
             final String pgroupRead = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             if (!pgroupRead.equals(requestHeader.getProducerGroup())) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -293,7 +296,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 msgExt.putUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, String.valueOf(checkTimesRocksDB));
             }
         }
-        MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(MessageDecoder.messageProperties2String(msgExt.getProperties())));
+        MessageAccessor.setProperties(msgInner, MessageAccessor.deepCopyProperties(msgExt.getProperties()));
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));

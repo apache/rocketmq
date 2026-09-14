@@ -128,19 +128,21 @@ public class PullAPIWrapper {
                 this.executeHook(filterMessageContext);
             }
 
-            for (MessageExt msg : msgListFilterAgain) {
-                String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-                if (Boolean.parseBoolean(traFlag)) {
-                    msg.setTransactionId(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
-                }
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
-                    Long.toString(pullResult.getMinOffset()));
-                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
-                    Long.toString(pullResult.getMaxOffset()));
-                msg.setBrokerName(mq.getBrokerName());
-                msg.setQueueId(mq.getQueueId());
-                if (pullResultExt.getOffsetDelta() != null) {
-                    msg.setQueueOffset(pullResultExt.getOffsetDelta() + msg.getQueueOffset());
+            if (!msgListFilterAgain.isEmpty()) {
+                String minOffset = Long.toString(pullResult.getMinOffset());
+                String maxOffset = Long.toString(pullResult.getMaxOffset());
+                for (MessageExt msg : msgListFilterAgain) {
+                    String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                    if (Boolean.parseBoolean(traFlag)) {
+                        msg.setTransactionId(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+                    }
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET, minOffset);
+                    MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET, maxOffset);
+                    msg.setBrokerName(mq.getBrokerName());
+                    msg.setQueueId(mq.getQueueId());
+                    if (pullResultExt.getOffsetDelta() != null) {
+                        msg.setQueueOffset(pullResultExt.getOffsetDelta() + msg.getQueueOffset());
+                    }
                 }
             }
 
@@ -299,10 +301,12 @@ public class PullAPIWrapper {
         ConcurrentMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
         if (topicRouteTable != null) {
             TopicRouteData topicRouteData = topicRouteTable.get(topic);
-            List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
+            if (topicRouteData != null && topicRouteData.getFilterServerTable() != null) {
+                List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
 
-            if (list != null && !list.isEmpty()) {
-                return list.get(randomNum() % list.size());
+                if (list != null && !list.isEmpty()) {
+                    return list.get(randomNum() % list.size());
+                }
             }
         }
 

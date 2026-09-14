@@ -84,6 +84,7 @@ public class TieredMessageStoreTest {
         Properties properties = new Properties();
         properties.setProperty("recordGetMessageResult", Boolean.TRUE.toString().toLowerCase(Locale.ROOT));
         properties.setProperty("tieredBackendServiceProvider", PosixFileSegment.class.getName());
+        properties.setProperty("tieredStoreFilePath", storePath);
 
         configuration = new Configuration(LoggerFactory.getLogger(
             MessageStoreUtil.TIERED_STORE_LOGGER_NAME), storePath + File.separator + "conf",
@@ -268,8 +269,10 @@ public class TieredMessageStoreTest {
         configuration.update(properties);
         Assert.assertEquals(1, (long) currentStore.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
 
+        // If data cannot be fetched from tiered storage,
+        // there is no need to fallback to local storage.
         Mockito.when(fetcher.getMessageStoreTimeStampAsync(anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(-1L));
-        Assert.assertEquals(3, (long) currentStore.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
+        Assert.assertEquals(-1L, (long) currentStore.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
     }
 
     @Test

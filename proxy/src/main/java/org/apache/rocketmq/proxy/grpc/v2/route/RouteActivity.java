@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
@@ -108,11 +109,13 @@ public class RouteActivity extends AbstractMessagingActivity {
                 addressList,
                 request.getTopic().getName());
 
-            boolean fifo = false;
-            SubscriptionGroupConfig config = this.messagingProcessor.getSubscriptionGroupConfig(ctx,
-                request.getGroup().getName());
-            if (config != null && config.isConsumeMessageOrderly()) {
-                fifo = true;
+            boolean isFifo = false;
+            boolean isLite = false;
+            SubscriptionGroupConfig groupConfig = this.messagingProcessor
+                .getSubscriptionGroupConfig(ctx, request.getGroup().getName());
+            if (groupConfig != null) {
+                isFifo = groupConfig.isConsumeMessageOrderly();
+                isLite = StringUtils.isNotEmpty(groupConfig.getLiteBindTopic());
             }
 
             List<Assignment> assignments = new ArrayList<>();
@@ -123,7 +126,7 @@ public class RouteActivity extends AbstractMessagingActivity {
                     if (brokerIdMap != null) {
                         Broker broker = brokerIdMap.get(MixAll.MASTER_ID);
                         Permission permission = this.convertToPermission(queueData.getPerm());
-                        if (fifo) {
+                        if (isFifo && !isLite) {
                             for (int i = 0; i < queueData.getReadQueueNums(); i++) {
                                 MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
                                     .setTopic(request.getTopic())
@@ -302,6 +305,8 @@ public class RouteActivity extends AbstractMessagingActivity {
                 return Collections.singletonList(MessageType.NORMAL);
             case FIFO:
                 return Collections.singletonList(MessageType.FIFO);
+            case LITE:
+                return Collections.singletonList(MessageType.LITE);
             case TRANSACTION:
                 return Collections.singletonList(MessageType.TRANSACTION);
             case DELAY:

@@ -25,7 +25,8 @@ public interface PopMessageResultFilter {
     enum FilterResult {
         TO_DLQ,
         NO_MATCH,
-        MATCH
+        MATCH,
+        TO_RETURN
     }
 
     FilterResult filterMessage(ProxyContext ctx, String consumerGroup, SubscriptionData subscriptionData,

@@ -37,6 +37,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.file.FlatAppendFile;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
@@ -67,6 +68,7 @@ public class IndexStoreServiceTest {
 
     private String filePath;
     private MessageStoreConfig storeConfig;
+    private MessageStoreExecutor executor;
     private FlatFileFactory fileAllocator;
     private IndexStoreService indexService;
 
@@ -81,7 +83,8 @@ public class IndexStoreServiceTest {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(20);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.PosixFileSegment");
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        fileAllocator = new FlatFileFactory(metadataStore, storeConfig);
+        executor = new MessageStoreExecutor();
+        fileAllocator = new FlatFileFactory(metadataStore, storeConfig, executor);
     }
 
     @After
@@ -90,6 +93,7 @@ public class IndexStoreServiceTest {
             indexService.shutdown();
             indexService.destroy();
         }
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storeConfig.getTieredStoreFilePath());
     }
 
@@ -313,6 +317,9 @@ public class IndexStoreServiceTest {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
         indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
+        // Wait for service thread to complete its first iteration and enter 10s wait,
+        // preventing compaction from racing with queries below.
+        TimeUnit.MILLISECONDS.sleep(500);
 
         int fileCount = 10;
         for (int j = 0; j < fileCount; j++) {
@@ -350,5 +357,39 @@ public class IndexStoreServiceTest {
         Assert.assertTrue(latch.await(15, TimeUnit.SECONDS));
         executorService.shutdown();
         Assert.assertTrue(result.get());
+    }
+
+    @Test
+    public void queryCrossFileBoundaryTest() throws InterruptedException, ExecutionException {
+        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
+
+        long file1Begin = indexService.getTimeStoreTable().firstKey();
+
+        // Fill file1 completely to trigger SEALED and create file2.
+        // maxIndexNum=20, seals when indexItemCount + 1 >= 20, so 20 puts will seal and overflow.
+        for (int i = 0; i < storeConfig.getTieredStoreIndexFileMaxIndexNum(); i++) {
+            indexService.putKey(TOPIC_NAME, TOPIC_ID, QUEUE_ID,
+                Collections.singleton("crossKey"), i * 100L, MESSAGE_SIZE, file1Begin + i * 1000);
+        }
+
+        // One more put to go into file2
+        long file2ItemTimestamp = file1Begin + 100_000;
+        for (int i = 0; i < 5; i++) {
+            indexService.putKey(TOPIC_NAME, TOPIC_ID, QUEUE_ID,
+                Collections.singleton("crossKey"), (20 + i) * 100L, MESSAGE_SIZE, file2ItemTimestamp + i);
+        }
+
+        Assert.assertEquals(2, indexService.getTimeStoreTable().size());
+
+        // Query range starts AFTER file1's beginTimestamp but covers file1's items.
+        // This verifies headMap(endTime) correctly includes file1 even though file1.key < queryBegin.
+        long queryBegin = file1Begin + 5_000;
+        long queryEnd = file1Begin + 15_000;
+
+        List<IndexItem> results = indexService.queryAsync(
+            TOPIC_NAME, "crossKey", 50, queryBegin, queryEnd).get();
+
+        Assert.assertFalse("Should find index items from file covering query range", results.isEmpty());
     }
 }

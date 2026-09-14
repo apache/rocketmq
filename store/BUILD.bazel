@@ -41,7 +41,7 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
-        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
+        "@maven//:org_rocksdb_rocksdbjni",
         "@maven//:com_google_code_findbugs_jsr305",
         "@maven//:commons_validator_commons_validator",
     ],
@@ -64,7 +64,7 @@ java_library(
         "@maven//:com_google_guava_guava",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
-        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
+        "@maven//:org_rocksdb_rocksdbjni",
         "@maven//:org_junit_jupiter_junit_jupiter_api",
     ],
 )

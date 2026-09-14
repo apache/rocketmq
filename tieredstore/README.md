@@ -18,7 +18,7 @@ Use the following steps to easily use tiered storage
 
 ## Configuration
 
-The following are some core configurations, for more details, see [TieredMessageStoreConfig](https://github.com/apache/rocketmq/blob/develop/tieredstore/src/main/java/org/apache/rocketmq/tieredstore/common/TieredMessageStoreConfig.java)
+The following are some core configurations, for more details, see [MessageStoreConfig](https://github.com/apache/rocketmq/blob/develop/tieredstore/src/main/java/org/apache/rocketmq/tieredstore/MessageStoreConfig.java)
 
 | Configuration                   | Default value                                                 | Unit        | Function                                                                        |
 | ------------------------------- |---------------------------------------------------------------| ----------- |---------------------------------------------------------------------------------|
@@ -31,7 +31,9 @@ The following are some core configurations, for more details, see [TieredMessage
 | tieredStoreGroupCommitCount     | 2500                                                          |             | The number of messages that trigger one batch transfer                          |
 | tieredStoreGroupCommitSize      | 33554432                                                      | byte        | The size of messages that trigger one batch transfer, 32M by default            |
 | tieredStoreMaxGroupCommitCount  | 10000                                                         |             | The maximum number of messages waiting to be transferred per queue              |
-| readAheadCacheExpireDuration    | 1000                                                          | millisecond | Read-ahead cache expiration time                                                |
+| readAheadCacheExpireDuration    | 15000                                                         | millisecond | Legacy fallback expiration time for read-ahead cache entries                    |
+| readAheadCacheCreateExpireDuration | 180000                                                     | millisecond | Read-ahead cache expiration time after entry creation                           |
+| readAheadCacheAfterReadExpireDuration | 10000                                                   | millisecond | Read-ahead cache expiration time after entry read                               |
 | readAheadCacheSizeThresholdRate | 0.3                                                           |             | The maximum heap space occupied by the read-ahead cache                         |
 
 ## Metrics

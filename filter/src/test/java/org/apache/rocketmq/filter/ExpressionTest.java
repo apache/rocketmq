@@ -599,6 +599,17 @@ public class ExpressionTest {
     }
 
     @Test
+    public void testEvaluate_booleanConstantComparedToStringProperty() throws Exception {
+        EvaluationContext trueContext = genContext(KeyValue.c("a", "true"));
+        EvaluationContext falseContext = genContext(KeyValue.c("a", "false"));
+
+        eval(genExp("TRUE=a"), trueContext, Boolean.TRUE);
+        eval(genExp("TRUE<>a"), falseContext, Boolean.TRUE);
+        eval(genExp("FALSE=a"), falseContext, Boolean.TRUE);
+        eval(genExp("FALSE<>a"), trueContext, Boolean.TRUE);
+    }
+
+    @Test
     public void testEvaluate_equal() throws Exception {
         Expression expression = genExp(equalExpression);
 

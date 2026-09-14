@@ -42,6 +42,7 @@ import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -68,6 +69,7 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -79,9 +81,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -91,6 +95,7 @@ import static org.apache.rocketmq.remoting.rpc.ClientMetadata.topicRouteData2End
 
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
+    private final static long RESET_OFFSET_MAX_WAIT = 10;
     private final static Logger log = LoggerFactory.getLogger(MQClientInstance.class);
     private final ClientConfig clientConfig;
     private final String clientId;
@@ -125,16 +130,10 @@ public class MQClientInstance {
      */
     private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
-    private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String/* Broker Name */, ConcurrentHashMap<String/* address */, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
     private final Set<String/* Broker address */> brokerSupportV2HeartbeatSet = new HashSet<>();
     private final ConcurrentMap<String, Integer> brokerAddrHeartbeatFingerprintTable = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "MQClientFactoryScheduledThread"));
-    private final ScheduledExecutorService fetchRemoteConfigExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(r, "MQClientFactoryFetchRemoteConfigScheduledThread");
-        }
-    });
     private final PullMessageService pullMessageService;
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
@@ -142,86 +141,121 @@ public class MQClientInstance {
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private final Random random = new Random();
+    private ExecutorService concurrentHeartbeatExecutor;
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
         this(clientConfig, instanceIndex, clientId, null);
     }
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
-        this.clientConfig = clientConfig;
-        this.nettyClientConfig = new NettyClientConfig();
-        this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
-        this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
-        this.nettyClientConfig.setSocksProxyConfig(clientConfig.getSocksProxyConfig());
-        this.nettyClientConfig.setScanAvailableNameSrv(false);
-        ClientRemotingProcessor clientRemotingProcessor = new ClientRemotingProcessor(this);
-        ChannelEventListener channelEventListener;
-        if (clientConfig.isEnableHeartbeatChannelEventListener()) {
-            channelEventListener = new ChannelEventListener() {
-                
-                private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
-                
-                @Override
-                public void onChannelConnect(String remoteAddr, Channel channel) {
-                }
+        MQClientAPIImpl clientAPI = null;
+        try {
+            this.clientConfig = clientConfig;
+            this.nettyClientConfig = new NettyClientConfig();
+            this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
+            this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
+            this.nettyClientConfig.setSocksProxyConfig(clientConfig.getSocksProxyConfig());
+            this.nettyClientConfig.setScanAvailableNameSrv(false);
+            ClientRemotingProcessor clientRemotingProcessor = new ClientRemotingProcessor(this);
+            ChannelEventListener channelEventListener;
+            if (clientConfig.isEnableHeartbeatChannelEventListener()) {
+                channelEventListener = new ChannelEventListener() {
 
-                @Override
-                public void onChannelClose(String remoteAddr, Channel channel) {
-                }
+                    private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
 
-                @Override
-                public void onChannelException(String remoteAddr, Channel channel) {
-                }
+                    @Override
+                    public void onChannelConnect(String remoteAddr, Channel channel) {
+                    }
 
-                @Override
-                public void onChannelIdle(String remoteAddr, Channel channel) {
-                }
+                    @Override
+                    public void onChannelClose(String remoteAddr, Channel channel) {
+                    }
 
-                @Override
-                public void onChannelActive(String remoteAddr, Channel channel) {
-                    for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
-                        for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
-                            String addr = entry.getValue();
-                            if (addr.equals(remoteAddr)) {
-                                long id = entry.getKey();
-                                String brokerName = addressEntry.getKey();
-                                if (sendHeartbeatToBroker(id, brokerName, addr, false)) {
-                                    rebalanceImmediately();
+                    @Override
+                    public void onChannelException(String remoteAddr, Channel channel) {
+                    }
+
+                    @Override
+                    public void onChannelIdle(String remoteAddr, Channel channel) {
+                    }
+
+                    @Override
+                    public void onChannelActive(String remoteAddr, Channel channel) {
+                        for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
+                            for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
+                                String addr = entry.getValue();
+                                if (addr.equals(remoteAddr)) {
+                                    long id = entry.getKey();
+                                    String brokerName = addressEntry.getKey();
+                                    if (sendHeartbeatToBroker(id, brokerName, addr, false)) {
+                                        rebalanceImmediately();
+                                    }
+                                    break;
                                 }
-                                break;
                             }
                         }
                     }
-                }
-            };
-        } else {
-            channelEventListener = null;
+                };
+            } else {
+                channelEventListener = null;
+            }
+            this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, channelEventListener);
+            clientAPI = this.mQClientAPIImpl;
+
+            if (this.clientConfig.getNamesrvAddr() != null) {
+                this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
+                log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
+            }
+
+            this.clientId = clientId;
+
+            this.mQAdminImpl = new MQAdminImpl(this);
+
+            this.pullMessageService = new PullMessageService(this);
+
+            this.rebalanceService = new RebalanceService(this);
+
+            this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
+            this.defaultMQProducer.resetClientConfig(clientConfig);
+
+            this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
+
+            if (this.clientConfig.isEnableConcurrentHeartbeat()) {
+                this.concurrentHeartbeatExecutor = Executors.newFixedThreadPool(
+                    clientConfig.getConcurrentHeartbeatThreadPoolSize(),
+                    new ThreadFactoryImpl("MQClientConcurrentHeartbeatThread_", true));
+            }
+
+            log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
+                instanceIndex,
+                this.clientId,
+                this.clientConfig,
+                MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION), RemotingCommand.getSerializeTypeConfigInThisServer());
+        } catch (RuntimeException | Error e) {
+            cleanupAfterConstructionFailure(clientAPI, e);
+            throw e;
         }
-        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, channelEventListener);
+    }
 
-        if (this.clientConfig.getNamesrvAddr() != null) {
-            this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
-            log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
+    private void cleanupAfterConstructionFailure(MQClientAPIImpl clientAPI, Throwable cause) {
+        runCleanup(this.scheduledExecutorService::shutdownNow, cause);
+        if (this.concurrentHeartbeatExecutor != null) {
+            runCleanup(this.concurrentHeartbeatExecutor::shutdownNow, cause);
         }
+        if (clientAPI != null) {
+            runCleanup(clientAPI::shutdown, cause);
+        }
+    }
 
-        this.clientId = clientId;
-
-        this.mQAdminImpl = new MQAdminImpl(this);
-
-        this.pullMessageService = new PullMessageService(this);
-
-        this.rebalanceService = new RebalanceService(this);
-
-        this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
-        this.defaultMQProducer.resetClientConfig(clientConfig);
-
-        this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
-
-        log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
-            instanceIndex,
-            this.clientId,
-            this.clientConfig,
-            MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION), RemotingCommand.getSerializeTypeConfigInThisServer());
+    private static void runCleanup(Runnable cleanup, Throwable cause) {
+        try {
+            cleanup.run();
+        } catch (Throwable t) {
+            // Cleanup on Error paths is best effort; always preserve the original failure.
+            if (t != cause) {
+                cause.addSuppressed(t);
+            }
+        }
     }
 
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
@@ -307,22 +341,31 @@ public class MQClientInstance {
             switch (this.serviceState) {
                 case CREATE_JUST:
                     this.serviceState = ServiceState.START_FAILED;
-                    // If not specified,looking address from name server
-                    if (null == this.clientConfig.getNamesrvAddr()) {
-                        this.mQClientAPIImpl.fetchNameServerAddr();
+                    try {
+                        // If not specified,looking address from name server
+                        if (null == this.clientConfig.getNamesrvAddr()) {
+                            this.mQClientAPIImpl.fetchNameServerAddr();
+                        }
+                        // Start request-response channel
+                        this.mQClientAPIImpl.start();
+                        // Start various schedule tasks
+                        this.startScheduledTask();
+                        // Start pull service
+                        this.pullMessageService.start();
+                        // Start rebalance service
+                        this.rebalanceService.start();
+                        // Start push service
+                        this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
+                        log.info("the client factory [{}] start OK", this.clientId);
+                        this.serviceState = ServiceState.RUNNING;
+                    } catch (MQClientException | RuntimeException | Error e) {
+                        // Do not apply the normal shutdown registration guards here: a factory that never reached
+                        // RUNNING cannot serve any registered client, and its partially started resources must stop.
+                        // Existing holders still observe START_FAILED; a later manager lookup may create a replacement.
+                        cleanupAfterStartFailure(e);
+                        MQClientManager.getInstance().removeClientFactory(this.clientId, this);
+                        throw e;
                     }
-                    // Start request-response channel
-                    this.mQClientAPIImpl.start();
-                    // Start various schedule tasks
-                    this.startScheduledTask();
-                    // Start pull service
-                    this.pullMessageService.start();
-                    // Start rebalance service
-                    this.rebalanceService.start();
-                    // Start push service
-                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
-                    log.info("the client factory [{}] start OK", this.clientId);
-                    this.serviceState = ServiceState.RUNNING;
                     break;
                 case START_FAILED:
                     throw new MQClientException("The Factory object[" + this.getClientId() + "] has been created before, and failed.", null);
@@ -330,6 +373,17 @@ public class MQClientInstance {
                     break;
             }
         }
+    }
+
+    private void cleanupAfterStartFailure(Throwable cause) {
+        runCleanup(this.scheduledExecutorService::shutdownNow, cause);
+        if (this.concurrentHeartbeatExecutor != null) {
+            runCleanup(this.concurrentHeartbeatExecutor::shutdownNow, cause);
+        }
+        runCleanup(() -> this.defaultMQProducer.getDefaultMQProducerImpl().shutdown(false), cause);
+        runCleanup(() -> this.pullMessageService.shutdown(true), cause);
+        runCleanup(this.rebalanceService::shutdown, cause);
+        runCleanup(this.mQClientAPIImpl::shutdown, cause);
     }
 
     private void startScheduledTask() {
@@ -537,6 +591,8 @@ public class MQClientInstance {
             try {
                 if (clientConfig.isUseHeartbeatV2()) {
                     return this.sendHeartbeatToAllBrokerV2(false);
+                } else if (clientConfig.isEnableConcurrentHeartbeat()) {
+                    return this.sendHeartbeatToAllBrokerConcurrently();
                 } else {
                     return this.sendHeartbeatToAllBroker();
                 }
@@ -607,14 +663,14 @@ public class MQClientInstance {
      */
     public boolean sendHeartbeatToBroker(long id, String brokerName, String addr, boolean strictLockMode) {
         if (this.lockHeartbeat.tryLock()) {
-            final HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
-            final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
-            final boolean consumerEmpty = heartbeatDataWithSub.getConsumerDataSet().isEmpty();
-            if (producerEmpty && consumerEmpty) {
-                log.warn("sendHeartbeatToBroker sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
-                return false;
-            }
             try {
+                final HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
+                final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
+                final boolean consumerEmpty = heartbeatDataWithSub.getConsumerDataSet().isEmpty();
+                if (producerEmpty && consumerEmpty) {
+                    log.warn("sendHeartbeatToBroker sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
+                    return false;
+                }
                 if (clientConfig.isUseHeartbeatV2()) {
                     int currentHeartbeatFingerprint = heartbeatDataWithSub.computeHeartbeatFingerprint();
                     heartbeatDataWithSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
@@ -641,7 +697,7 @@ public class MQClientInstance {
         try {
             int version = this.mQClientAPIImpl.sendHeartbeat(addr, heartbeatData, clientConfig.getMqClientApiTimeout());
             if (!this.brokerVersionTable.containsKey(brokerName)) {
-                this.brokerVersionTable.put(brokerName, new HashMap<>(4));
+                this.brokerVersionTable.put(brokerName, new ConcurrentHashMap<>(4));
             }
             this.brokerVersionTable.get(brokerName).put(addr, version);
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
@@ -721,7 +777,7 @@ public class MQClientInstance {
             }
             version = heartbeatV2Result.getVersion();
             if (!this.brokerVersionTable.containsKey(brokerName)) {
-                this.brokerVersionTable.put(brokerName, new HashMap<>(4));
+                this.brokerVersionTable.put(brokerName, new ConcurrentHashMap<>(4));
             }
             this.brokerVersionTable.get(brokerName).put(addr, version);
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
@@ -776,6 +832,100 @@ public class MQClientInstance {
                 }
                 sendHeartbeatToBrokerV2(id, brokerName, addr, heartbeatDataWithSub, heartbeatDataWithoutSub, currentHeartbeatFingerprint);
             }
+        }
+        return true;
+    }
+
+    private class ClientHeartBeatTask {
+        private final String brokerName;
+        private final Long brokerId;
+        private final String brokerAddr;
+        private final HeartbeatData heartbeatData;
+
+        public ClientHeartBeatTask(String brokerName, Long brokerId, String brokerAddr, HeartbeatData heartbeatData) {
+            this.brokerName = brokerName;
+            this.brokerId = brokerId;
+            this.brokerAddr = brokerAddr;
+            this.heartbeatData = heartbeatData;
+        }
+
+        public void execute() throws Exception {
+            int version = MQClientInstance.this.mQClientAPIImpl.sendHeartbeat(
+                brokerAddr, heartbeatData, MQClientInstance.this.clientConfig.getMqClientApiTimeout());
+
+            ConcurrentHashMap<String, Integer> inner = MQClientInstance.this.brokerVersionTable
+                .computeIfAbsent(brokerName, k -> new ConcurrentHashMap<>(4));
+            inner.put(brokerAddr, version);
+        }
+    }
+
+    private boolean sendHeartbeatToAllBrokerConcurrently() {
+        final HeartbeatData heartbeatData = this.prepareHeartbeatData(false);
+        final boolean producerEmpty = heartbeatData.getProducerDataSet().isEmpty();
+        final boolean consumerEmpty = heartbeatData.getConsumerDataSet().isEmpty();
+
+        if (producerEmpty && consumerEmpty) {
+            log.warn("sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
+            return false;
+        }
+
+        if (this.brokerAddrTable.isEmpty()) {
+            return false;
+        }
+
+        long times = this.sendHeartbeatTimesTotal.getAndIncrement();
+        List<ClientHeartBeatTask> tasks = new ArrayList<>();
+        for (Entry<String, HashMap<Long, String>> entry : this.brokerAddrTable.entrySet()) {
+            String brokerName = entry.getKey();
+            HashMap<Long, String> oneTable = entry.getValue();
+            if (oneTable != null) {
+                for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
+                    Long id = entry1.getKey();
+                    String addr = entry1.getValue();
+                    if (addr == null) continue;
+                    if (consumerEmpty && id != MixAll.MASTER_ID) continue;
+                    tasks.add(new ClientHeartBeatTask(brokerName, id, addr, heartbeatData));
+                }
+            }
+        }
+
+        if (tasks.isEmpty()) {
+            return false;
+        }
+
+        final CountDownLatch latch = new CountDownLatch(tasks.size());
+
+        for (ClientHeartBeatTask task : tasks) {
+            try {
+                this.concurrentHeartbeatExecutor.execute(() -> {
+                    try {
+                        task.execute();
+                        if (times % 20 == 0) {
+                            log.info("send heart beat to broker[{} {} {}] success", task.brokerName, task.brokerId, task.brokerAddr);
+                        }
+                    } catch (Exception e) {
+                        if (MQClientInstance.this.isBrokerInNameServer(task.brokerAddr)) {
+                            log.warn("send heart beat to broker[{} {} {}] failed", task.brokerName, task.brokerId, task.brokerAddr, e);
+                        } else {
+                            log.warn("send heart beat to broker[{} {} {}] exception, because the broker not up, forget it",
+                                task.brokerName, task.brokerId, task.brokerAddr, e);
+                        }
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+            } catch (RejectedExecutionException rex) {
+                log.warn("heartbeat submission rejected for broker[{} {} {}], will skip this round", task.brokerName, task.brokerId, task.brokerAddr, rex);
+                latch.countDown();
+            }
+        }
+
+        try {
+            // wait all tasks finish
+            latch.await();
+        } catch (InterruptedException ie) {
+            log.warn("Interrupted while waiting for broker heartbeat tasks to complete", ie);
+            Thread.currentThread().interrupt();
         }
         return true;
     }
@@ -971,8 +1121,11 @@ public class MQClientInstance {
                     this.scheduledExecutorService.shutdown();
                     this.mQClientAPIImpl.shutdown();
                     this.rebalanceService.shutdown();
+                    if (concurrentHeartbeatExecutor != null) {
+                        this.concurrentHeartbeatExecutor.shutdown();
+                    }
 
-                    MQClientManager.getInstance().removeClientFactory(this.clientId);
+                    MQClientManager.getInstance().removeClientFactory(this.clientId, this);
                     log.info("the client factory [{}] shutdown OK", this.clientId);
                     break;
                 case CREATE_JUST:
@@ -1269,9 +1422,11 @@ public class MQClientInstance {
                 }
             }
 
-            try {
-                TimeUnit.SECONDS.sleep(10);
-            } catch (InterruptedException ignored) {
+            if (!consumer.isConsumeOrderly()) {
+                try {
+                    TimeUnit.SECONDS.sleep(RESET_OFFSET_MAX_WAIT);
+                } catch (InterruptedException ignored) {
+                }
             }
 
             Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
@@ -1280,8 +1435,10 @@ public class MQClientInstance {
                 Long offset = offsetTable.get(mq);
                 if (topic.equals(mq.getTopic()) && offset != null) {
                     try {
+                        ProcessQueue pq = processQueueTable.get(mq);
+                        waitResetOffsetReady(consumer, pq);
                         consumer.updateConsumeOffset(mq, offset);
-                        consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
+                        consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, pq);
                         iterator.remove();
                     } catch (Exception e) {
                         log.warn("reset offset failed. group={}, {}", group, mq, e);
@@ -1291,6 +1448,22 @@ public class MQClientInstance {
         } finally {
             if (consumer != null) {
                 consumer.resume();
+            }
+        }
+    }
+
+    private void waitResetOffsetReady(DefaultMQPushConsumerImpl consumer, ProcessQueue pq) {
+        if (consumer.isConsumeOrderly()) {
+            Lock lock = pq.getConsumeLock().writeLock();
+            boolean locked = false;
+            try {
+                locked = lock.tryLock(RESET_OFFSET_MAX_WAIT, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            } finally {
+                if (locked) {
+                    lock.unlock();
+                }
             }
         }
     }

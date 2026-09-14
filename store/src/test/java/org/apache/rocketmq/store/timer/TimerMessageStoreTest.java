@@ -180,6 +180,31 @@ public class TimerMessageStoreTest {
     }
 
     @Test
+    public void testConvertMessagePropertiesStringMatchesProperties() throws Exception {
+        final TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+
+        MessageExtBrokerInner msgExt = buildMessage(3000, "TimerTest_testConvertMessage", false);
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_TOPIC, msgExt.getTopic());
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        msgExt.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        msgExt.setTopic(TimerMessageStore.TIMER_TOPIC);
+
+        // delivered message: internal properties are cleared from both the map and the wire data
+        MessageExtBrokerInner delivered = timerMessageStore.convertMessage(msgExt, false);
+        assertEquals("TimerTest_testConvertMessage", delivered.getTopic());
+        assertFalse(delivered.getPropertiesString().contains(MessageConst.PROPERTY_REAL_TOPIC));
+        assertFalse(delivered.getPropertiesString().contains(MessageConst.PROPERTY_REAL_QUEUE_ID));
+        assertEquals(MessageDecoder.messageProperties2String(delivered.getProperties()), delivered.getPropertiesString());
+
+        // rolled message: keeps REAL_TOPIC and stays consistent between the map and the wire data
+        MessageExtBrokerInner rolled = timerMessageStore.convertMessage(msgExt, true);
+        assertEquals(TimerMessageStore.TIMER_TOPIC, rolled.getTopic());
+        assertTrue(rolled.getPropertiesString().contains(MessageConst.PROPERTY_REAL_TOPIC));
+        assertTrue(rolled.getPropertiesString().contains(MessageConst.PROPERTY_REAL_QUEUE_ID));
+        assertEquals(MessageDecoder.messageProperties2String(rolled.getProperties()), rolled.getPropertiesString());
+    }
+
+    @Test
     public void testPutTimerMessage() throws Exception {
         Assume.assumeFalse(MixAll.isWindows());
         String topic = "TimerTest_testPutTimerMessage";

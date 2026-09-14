@@ -183,8 +183,4 @@ public class RecallMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
 }

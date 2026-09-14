@@ -147,9 +147,9 @@ public class CommitLogInputStream extends FileSegmentInputStream {
                 posInCurBuffer += readLen;
                 continue;
             }
+            curBuf = bufferList.get(bufIndex);
             remaining = curBuf.remaining() - posInCurBuffer;
             readLen = Math.min(remaining, needRead);
-            curBuf = bufferList.get(bufIndex);
             if (posInCurBuffer < MessageFormatUtil.PHYSICAL_OFFSET_POSITION) {
                 realReadLen = Math.min(MessageFormatUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer, readLen);
                 // read from commitLog buffer

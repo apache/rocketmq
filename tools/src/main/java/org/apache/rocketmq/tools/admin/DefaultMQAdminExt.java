@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.tools.admin;
 
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -47,6 +52,11 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
+import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
@@ -69,12 +79,6 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.tools.admin.api.BrokerOperatorResult;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
-
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
@@ -997,4 +1001,44 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         UnsupportedEncodingException, InterruptedException, MQBrokerException {
         defaultMQAdminExtImpl.switchTimerEngine(brokerAddr, desTimerEngine);
     }
+
+    @Override
+    public GetBrokerLiteInfoResponseBody getBrokerLiteInfo(final String brokerAddr)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.getBrokerLiteInfo(brokerAddr);
+    }
+
+    @Override
+    public GetParentTopicInfoResponseBody getParentTopicInfo(final String brokerAddr, final String topic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return defaultMQAdminExtImpl.getParentTopicInfo(brokerAddr, topic);
+    }
+
+    @Override
+    public GetLiteTopicInfoResponseBody getLiteTopicInfo(final String brokerAddr, final String parentTopic,
+        final String liteTopic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return defaultMQAdminExtImpl.getLiteTopicInfo(brokerAddr, parentTopic, liteTopic);
+    }
+
+    @Override
+    public GetLiteClientInfoResponseBody getLiteClientInfo(final String brokerAddr, final String parentTopic,
+        final String group, final String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return defaultMQAdminExtImpl.getLiteClientInfo(brokerAddr, parentTopic, group, clientId);
+    }
+
+    @Override
+    public GetLiteGroupInfoResponseBody getLiteGroupInfo(final String brokerAddr, final String group,
+        final String liteTopic, final int topK)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return defaultMQAdminExtImpl.getLiteGroupInfo(brokerAddr, group, liteTopic, topK);
+    }
+
+    @Override
+    public void triggerLiteDispatch(final String brokerAddr, final String group, final String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.triggerLiteDispatch(brokerAddr, group, clientId);
+    }
+
 }

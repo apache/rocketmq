@@ -430,8 +430,10 @@ public class ProcessQueue {
     }
 
     public void fillProcessQueueInfo(final ProcessQueueInfo info) {
+        boolean lockAcquired = false;
         try {
             this.treeMapLock.readLock().lockInterruptibly();
+            lockAcquired = true;
 
             if (!this.msgTreeMap.isEmpty()) {
                 info.setCachedMsgMinOffset(this.msgTreeMap.firstKey());
@@ -454,8 +456,11 @@ public class ProcessQueue {
             info.setLastPullTimestamp(this.lastPullTimestamp);
             info.setLastConsumeTimestamp(this.lastConsumeTimestamp);
         } catch (Exception e) {
+            log.error("fillProcessQueueInfo exception", e);
         } finally {
-            this.treeMapLock.readLock().unlock();
+            if (lockAcquired) {
+                this.treeMapLock.readLock().unlock();
+            }
         }
     }
 

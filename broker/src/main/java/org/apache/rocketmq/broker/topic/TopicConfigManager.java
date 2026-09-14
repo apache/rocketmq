@@ -615,23 +615,38 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
-    public void deleteTopicConfig(final String topic) {
+    public void deleteTopicConfig(final String topic, boolean persist) {
         TopicConfig old = removeTopicConfig(topic);
         if (old != null) {
             log.info("delete topic config OK, topic: {}", old);
             updateDataVersion();
-            this.persist();
+            if (persist) {
+                this.persist();
+            }
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
         }
     }
 
+    public void deleteTopicConfig(final String topic) {
+        deleteTopicConfig(topic, true);
+    }
+
+    public void deleteTopicConfigList(final List<String> topics) {
+        if (topics == null || topics.isEmpty()) {
+            return;
+        }
+        for (String topic : topics) {
+            deleteTopicConfig(topic);
+        }
+    }
+
     public TopicConfigSerializeWrapper buildTopicConfigSerializeWrapper() {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
-        topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
         DataVersion dataVersionCopy = new DataVersion();
         dataVersionCopy.assignNewOne(this.dataVersion);
         topicConfigSerializeWrapper.setDataVersion(dataVersionCopy);
+        topicConfigSerializeWrapper.setTopicConfigTable(new ConcurrentHashMap<>(this.topicConfigTable));
         return topicConfigSerializeWrapper;
     }
 
@@ -647,6 +662,9 @@ public class TopicConfigManager extends ConfigManager {
         topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         topicConfigWrapper.setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
         topicConfigWrapper.setDataVersion(this.getDataVersion());
+        if (this.brokerController.getBrokerConfig().isEnableSplitRegistration()) {
+            updateDataVersion();
+        }
         return topicConfigWrapper;
     }
 
@@ -725,7 +743,7 @@ public class TopicConfigManager extends ConfigManager {
         int maxTopicNum) {
         // [topicSeq, topicSeq + maxTopicNum)
         int beginIndex = topicSeq;
-        if (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), this.dataVersion)) {
+        if (beginIndex != 0 && (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), getDataVersion()))) {
             beginIndex = 0;
             log.info("get sub topic config table from {} due to {}", beginIndex,
                 StringUtils.isBlank(dataVersion) ? "DataVersion Empty" : "DataVersion Changed");
@@ -778,6 +796,8 @@ public class TopicConfigManager extends ConfigManager {
         dataVersion.nextVersion(stateMachineVersion);
     }
 
-
+    public void setDataVersion(DataVersion dataVersion) {
+        this.dataVersion.assignNewOne(dataVersion);
+    }
 
 }

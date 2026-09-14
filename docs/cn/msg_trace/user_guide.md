@@ -54,7 +54,7 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 
 ### 4.1 发送消息时开启消息轨迹
 ```java
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true);
+        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true,null);
         producer.setNamesrvAddr("XX.XX.XX.XX1");
         producer.start();
             try {
@@ -74,7 +74,7 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 
 ### 4.2 订阅消息时开启消息轨迹
 ```java
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true,null);
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumer.setConsumeTimestamp("20181109221800");

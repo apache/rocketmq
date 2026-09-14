@@ -140,7 +140,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                     defaultMQAdminExt.searchOffset(brokerAddr, topic, queueId, timestamp, 3000);
 
                 System.out.printf("reset consumer offset to %d%n", resetOffset);
-                if (resetOffset > 0) {
+                if (resetOffset >= 0) {
                     defaultMQAdminExt.resetOffsetByQueueId(brokerAddr, group, topic, queueId, resetOffset);
                 }
                 return;

@@ -21,6 +21,7 @@ import java.nio.charset.Charset;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.common.MixAll;
@@ -63,6 +64,10 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
         opt = new Option("f", "bodyFormat", true, "print message body by the specified format");
         opt.setRequired(false);
         options.addOption(opt);
+
+        opt = new Option("r", "routeTopic", true, "the topic which is used to find route info");
+        opt.setRequired(false);
+        options.addOption(opt);
         return options;
     }
 
@@ -79,6 +84,7 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
             String brokerName = commandLine.getOptionValue('b').trim();
             String queueId = commandLine.getOptionValue('i').trim();
             String offset = commandLine.getOptionValue('o').trim();
+            String routeTopic = commandLine.hasOption('r') ? commandLine.getOptionValue('r').trim() : null;
             Charset msgBodyCharset = null;
             if (commandLine.hasOption('f')) {
                 msgBodyCharset = Charset.forName(commandLine.getOptionValue('f').trim());
@@ -92,6 +98,10 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
             defaultMQPullConsumer.start();
             defaultMQAdminExt.start();
 
+            if (StringUtils.isNotEmpty(routeTopic) && !routeTopic.equals(topic)) {
+                // try to find route info by route topic, to support LMQ
+                defaultMQPullConsumer.pull(new MessageQueue(routeTopic, brokerName, 0), "*", 0, 1);
+            }
             PullResult pullResult = defaultMQPullConsumer.pull(mq, "*", Long.parseLong(offset), 1);
             if (pullResult != null) {
                 switch (pullResult.getPullStatus()) {

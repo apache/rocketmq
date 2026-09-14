@@ -60,8 +60,12 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
                 request.getMessageId(),
                 group,
                 request.getTopic().getName(),
-                Durations.toMillis(request.getInvisibleDuration())
-            ).thenApply(ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
+                Durations.toMillis(request.getInvisibleDuration()),
+                request.getLiteTopic(),
+                MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
+                request.getSuspend()
+            ).thenApply(
+                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Resource;
 import com.google.common.base.CharMatcher;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -120,5 +121,34 @@ public class GrpcValidator {
             }
         }
         return false;
+    }
+
+    public void validateLiteTopic(String liteTopic) {
+        if (StringUtils.isBlank(liteTopic)) {
+            throw new GrpcProxyException(Code.ILLEGAL_LITE_TOPIC, "lite topic cannot be the char sequence of whitespace");
+        }
+        int maxSize = ConfigurationManager.getProxyConfig().getMaxLiteTopicSize();
+        if (liteTopic.getBytes(StandardCharsets.UTF_8).length > maxSize) {
+            throw new GrpcProxyException(Code.ILLEGAL_LITE_TOPIC, "lite topic exceed the max size " + maxSize);
+        }
+        if (!isValidLiteTopic(liteTopic)) {
+            throw new GrpcProxyException(Code.ILLEGAL_LITE_TOPIC, "lite topic can only contain alphanumeric characters, hyphens(-), and underscores(_)");
+        }
+    }
+
+    /**
+     * alternative for regex "^[a-zA-Z0-9_-]+$"
+     */
+    private boolean isValidLiteTopic(String liteTopic) {
+        for (int i = 0; i < liteTopic.length(); i++) {
+            char c = liteTopic.charAt(i);
+            if (!(c >= 'a' && c <= 'z') &&
+                !(c >= 'A' && c <= 'Z') &&
+                !(c >= '0' && c <= '9') &&
+                c != '-' && c != '_') {
+                return false;
+            }
+        }
+        return true;
     }
 }

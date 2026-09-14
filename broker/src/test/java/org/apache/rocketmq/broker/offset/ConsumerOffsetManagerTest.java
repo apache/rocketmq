@@ -100,4 +100,25 @@ public class ConsumerOffsetManagerTest {
         ConcurrentMap<Integer, Long> offsetTableLoaded = manager.getOffsetTable().get(group);
         Assert.assertEquals(table, offsetTableLoaded);
     }
+
+    @Test
+    public void testEraseResetOffset() {
+        String topic = "Topic";
+        String group = "Group";
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        consumerOffsetManager.assignResetOffset(topic, group, 0, 100L);
+        consumerOffsetManager.assignResetOffset(topic, group, 1, 200L);
+
+        Assert.assertTrue(consumerOffsetManager.hasOffsetReset(topic, group, 0));
+        Assert.assertTrue(consumerOffsetManager.hasOffsetReset(topic, group, 1));
+
+        consumerOffsetManager.eraseResetOffset(topic, group, 0);
+        Assert.assertFalse(consumerOffsetManager.hasOffsetReset(topic, group, 0));
+        Assert.assertTrue(consumerOffsetManager.hasOffsetReset(topic, group, 1));
+        Assert.assertTrue(consumerOffsetManager.resetOffsetTable.containsKey(key));
+
+        consumerOffsetManager.eraseResetOffset(topic, group, 1);
+        Assert.assertFalse(consumerOffsetManager.hasOffsetReset(topic, group, 1));
+        Assert.assertFalse(consumerOffsetManager.resetOffsetTable.containsKey(key));
+    }
 }

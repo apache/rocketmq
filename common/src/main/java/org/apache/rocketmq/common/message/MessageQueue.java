@@ -119,6 +119,6 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
             }
         }
 
-        return this.queueId - o.queueId;
+        return Integer.compare(this.queueId, o.queueId);
     }
 }
