@@ -61,6 +61,14 @@ public class TopicValidatorTest {
     }
 
     @Test
+    public void testTopicValidator_V2RetryTopicWithPlusSeparator() {
+        // KeyBuilder.buildPopRetryTopicV2() uses '+' as the separator between cid and topic.
+        TopicValidator.ValidateResult res = TopicValidator.validateTopic("%RETRY%GID_test+normal_topic");
+        assertThat(res.isValid()).isTrue();
+        assertThat(res.getRemark()).isEmpty();
+    }
+
+    @Test
     public void testGroupValidator_Pass() {
         TopicValidator.ValidateResult res = TopicValidator.validateGroup("TestGroup");
         assertThat(res.isValid()).isTrue();

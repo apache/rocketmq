@@ -78,7 +78,7 @@ public class TopicValidator {
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC);
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC);
 
-        // regex: ^[%|a-zA-Z0-9_-]+$
+        // regex: ^[%|a-zA-Z0-9_+-]+$
         // %
         VALID_CHAR_BIT_MAP['%'] = true;
         // -
@@ -87,6 +87,8 @@ public class TopicValidator {
         VALID_CHAR_BIT_MAP['_'] = true;
         // |
         VALID_CHAR_BIT_MAP['|'] = true;
+        // + (V2 pop retry topic separator, see KeyBuilder.POP_RETRY_SEPARATOR_V2)
+        VALID_CHAR_BIT_MAP['+'] = true;
         for (int i = 0; i < VALID_CHAR_BIT_MAP.length; i++) {
             if (i >= '0' && i <= '9') {
                 // 0-9
@@ -120,7 +122,7 @@ public class TopicValidator {
         }
 
         if (isTopicOrGroupIllegal(topic)) {
-            String falseRemark = "The specified topic: " + topic + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$";
+            String falseRemark = "The specified topic: " + topic + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_+-]+$";
             return new ValidateResult(false, falseRemark);
         }
 
@@ -146,7 +148,7 @@ public class TopicValidator {
         }
 
         if (isTopicOrGroupIllegal(group)) {
-            String falseRemark = "The specified group: " + group + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$";
+            String falseRemark = "The specified group: " + group + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_+-]+$";
             return new ValidateResult(false, falseRemark);
         }
 
