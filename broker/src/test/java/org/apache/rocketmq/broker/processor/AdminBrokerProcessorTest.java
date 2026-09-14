@@ -86,6 +86,7 @@ import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
@@ -146,6 +147,7 @@ import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.util.LibC;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -660,6 +662,41 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testDeleteSubscriptionGroupWithEmptyLiteBindTopicDoesNotCleanOffset() throws Exception {
+        String groupName = "GID-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(groupName);
+        groupConfig.setLiteBindTopic("");
+        brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put(groupName, groupConfig);
+        brokerController.setConsumerOffsetManager(consumerOffsetManager);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, null);
+        request.addExtField("groupName", groupName);
+        request.addExtField("cleanOffset", "false");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(consumerOffsetManager, never()).removeOffset(groupName);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListWithEmptyLiteBindTopicDoesNotCleanOffset() throws Exception {
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+        String groupName = "GID-BATCH-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(groupName);
+        groupConfig.setLiteBindTopic("");
+        brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put(groupName, groupConfig);
+        brokerController.setConsumerOffsetManager(consumerOffsetManager);
+
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(Collections.singletonList(groupName), false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(consumerOffsetManager, never()).removeOffset(groupName);
+    }
+
+    @Test
     public void testDeleteTopicListWithPopRetryTopics() throws Exception {
         // When clearRetryTopicWhenDeleteTopic=true, POP retry topics should be collected and deleted
         brokerController.getBrokerConfig().setBatchDeleteTopicMaxRate(0);
@@ -1075,6 +1112,42 @@ public class AdminBrokerProcessorTest {
         request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupRejectsEmptyLiteBindTopic() {
+        String groupName = "GID-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(groupName);
+        subscriptionGroupConfig.setAttributes(ImmutableMap.of("+lite.bind.topic", ""));
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
+        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes(StandardCharsets.UTF_8));
+
+        RuntimeException exception = Assert.assertThrows(RuntimeException.class,
+            () -> adminBrokerProcessor.processRequest(handlerContext, request));
+
+        assertThat(exception).hasMessageContaining("The specified topic is blank");
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupListRejectsEmptyLiteBindTopic() {
+        String groupName = "GID-LIST-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(groupName);
+        subscriptionGroupConfig.setAttributes(ImmutableMap.of("+lite.bind.topic", ""));
+
+        SubscriptionGroupList subscriptionGroupList =
+            new SubscriptionGroupList(Collections.singletonList(subscriptionGroupConfig));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST, null);
+        request.setBody(subscriptionGroupList.encode());
+
+        RuntimeException exception = Assert.assertThrows(RuntimeException.class,
+            () -> adminBrokerProcessor.processRequest(handlerContext, request));
+
+        assertThat(exception).hasMessageContaining("The specified topic is blank");
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
     }
 
     @Test
