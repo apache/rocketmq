@@ -17,16 +17,23 @@
 
 package org.apache.rocketmq.common.attribute;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.Preconditions;
+import java.util.function.Consumer;
 
 public class StringAttribute extends Attribute {
+    private final Consumer<String> validator;
 
     public StringAttribute(String name, boolean changeable) {
+        this(name, changeable, Preconditions::checkNotNull);
+    }
+
+    public StringAttribute(String name, boolean changeable, Consumer<String> validator) {
         super(name, changeable);
+        this.validator = validator;
     }
 
     @Override
     public void verify(String value) {
-        checkNotNull(value);
+        validator.accept(value);
     }
 }
