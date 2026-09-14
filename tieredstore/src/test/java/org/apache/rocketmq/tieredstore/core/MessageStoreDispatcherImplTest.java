@@ -165,6 +165,51 @@ public class MessageStoreDispatcherImplTest {
     }
 
     @Test
+    public void dispatchMessageAtGroupCommitSizeTest() throws Exception {
+        MessageStore defaultStore = Mockito.mock(MessageStore.class);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        Mockito.when(defaultStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(101L);
+
+        messageStore = Mockito.mock(TieredMessageStore.class);
+        IndexService indexService =
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
+        indexService.start();
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
+        Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
+        Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
+        Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+
+        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        storeConfig.setTieredStoreGroupCommitSize(buffer.remaining());
+        DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(),
+            MessageFormatUtil.getCommitLogOffset(buffer), buffer.remaining(), 0L,
+            MessageFormatUtil.getStoreTimeStamp(buffer), 0L,
+            "", "", 0, 0L, new HashMap<>());
+
+        MessageStoreDispatcher dispatcher = new MessageStoreDispatcherImpl(messageStore);
+        dispatcher.dispatch(request);
+        FlatMessageFile flatFile = fileStore.getFlatFile(mq);
+        Assert.assertNotNull(flatFile);
+
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+        Assert.assertEquals(100L, flatFile.getConsumeQueueCommitOffset());
+
+        ConsumeQueueInterface cq = Mockito.mock(ConsumeQueueInterface.class);
+        Mockito.when(defaultStore.getConsumeQueue(anyString(), anyInt())).thenReturn(cq);
+        Mockito.when(cq.get(100L)).thenReturn(new CqUnit(100, 1000, buffer.remaining(), 0L));
+        Mockito.when(defaultStore.selectOneMessageByOffset(anyLong(), anyInt())).thenReturn(
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null));
+
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+
+        Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            Assert.assertEquals(101L, flatFile.getConsumeQueueMaxOffset());
+            Assert.assertEquals(101L, flatFile.getConsumeQueueCommitOffset());
+        });
+    }
+
+    @Test
     public void dispatchCommitFailedTest() throws Exception {
         MessageStore defaultStore = Mockito.mock(MessageStore.class);
         Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
