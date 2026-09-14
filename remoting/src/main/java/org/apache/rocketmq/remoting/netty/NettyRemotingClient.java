@@ -436,7 +436,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (null == prevCW) {
                         LOGGER.info("closeChannel: the channel[addr={}, id={}] has been removed from the channel table before", addrRemote, channel.id());
                         removeItemFromTable = false;
-                    } else if (prevCW.isWrapperOf(channel)) {
+                    } else if (!prevCW.isWrapperOf(channel)) {
                         LOGGER.info("closeChannel: the channel[addr={}, id={}] has been closed before, and has been created again, nothing to do.",
                             addrRemote, channel.id());
                         removeItemFromTable = false;
@@ -1087,16 +1087,25 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         public void close() {
+            // Snapshot the channels under the read lock, then close them without holding
+            // any wrapper lock. Holding the wrapper lock across closeChannel would take
+            // lockChannelTables while inside the wrapper lock, which inverts the
+            // lockChannelTables -> wrapper lock order used by createChannelAsync and
+            // closeChannel (via tryClose).
+            ChannelFuture current;
+            ChannelFuture toClose;
+            lock.readLock().lock();
             try {
-                lock.writeLock().lock();
-                if (channelFuture != null) {
-                    closeChannel(channelFuture.channel());
-                }
-                if (channelToClose != null) {
-                    closeChannel(channelToClose.channel());
-                }
+                current = this.channelFuture;
+                toClose = this.channelToClose;
             } finally {
-                lock.writeLock().unlock();
+                lock.readLock().unlock();
+            }
+            if (current != null) {
+                closeChannel(channelAddress, current.channel());
+            }
+            if (toClose != null) {
+                closeChannel(channelAddress, toClose.channel());
             }
         }
     }
