@@ -212,6 +212,40 @@ public class ClientActivityTest extends BaseActivityTest {
         assertEquals("tag", data.getSubString());
     }
 
+    @Test
+    public void testHeartbeatWithUnsupportedClientType() throws Throwable {
+        ProxyContext context = createContext();
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(settings);
+
+        HeartbeatResponse response = this.clientActivity.heartbeat(context, HeartbeatRequest.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build()).get();
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, response.getStatus().getCode());
+        assertThat(response.getStatus().getMessage()).contains("unsupported client type: CLIENT_TYPE_UNSPECIFIED");
+        assertThat(response.getStatus().getMessage()).contains("Proxy supports");
+    }
+
+    @Test
+    public void testNotifyClientTerminationWithUnsupportedClientType() throws Throwable {
+        ProxyContext context = createContext();
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build();
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(settings);
+
+        NotifyClientTerminationResponse response = this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()).get();
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, response.getStatus().getCode());
+        assertThat(response.getStatus().getMessage()).contains("unsupported client type: CLIENT_TYPE_UNSPECIFIED");
+        assertThat(response.getStatus().getMessage()).contains("Proxy supports");
+    }
+
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {
         assertEquals(LanguageCode.JAVA, clientChannelInfo.getLanguage());
         assertEquals(CLIENT_ID, clientChannelInfo.getClientId());
