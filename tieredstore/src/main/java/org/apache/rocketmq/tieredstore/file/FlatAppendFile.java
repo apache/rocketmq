@@ -286,10 +286,16 @@ public class FlatAppendFile {
                     break;
                 }
 
+                // Unregister the metadata before deleting the object. The opposite order leaves a
+                // metadata row pointing at a deleted object if the process dies in between, and every
+                // later read of that segment then fails with NoSuchKey. An orphaned object is harmless.
+                long baseOffset = fileSegment.getBaseOffset();
+                fileSegmentTable.remove(0);
+                metadataStore.deleteFileSegment(filePath, fileType, baseOffset);
                 fileSegment.destroyFile();
-                if (!fileSegment.exists()) {
-                    fileSegmentTable.remove(0);
-                    metadataStore.deleteFileSegment(filePath, fileType, fileSegment.getBaseOffset());
+                if (fileSegment.exists()) {
+                    log.warn("FlatAppendFile#destroyExpiredFile, metadata deleted but object still exists, " +
+                            "filePath={}, fileType={}, offset={}", filePath, fileType, baseOffset);
                 }
             }
         } finally {
