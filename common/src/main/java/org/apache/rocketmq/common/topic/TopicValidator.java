@@ -78,7 +78,7 @@ public class TopicValidator {
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC);
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC);
 
-        // regex: ^[%|a-zA-Z0-9_+-]+$
+        // regex: ^[%|a-zA-Z0-9_-]+$
         // %
         VALID_CHAR_BIT_MAP['%'] = true;
         // -
@@ -87,8 +87,6 @@ public class TopicValidator {
         VALID_CHAR_BIT_MAP['_'] = true;
         // |
         VALID_CHAR_BIT_MAP['|'] = true;
-        // + (V2 pop retry topic separator, see KeyBuilder.POP_RETRY_SEPARATOR_V2)
-        VALID_CHAR_BIT_MAP['+'] = true;
         for (int i = 0; i < VALID_CHAR_BIT_MAP.length; i++) {
             if (i >= '0' && i <= '9') {
                 // 0-9
@@ -121,8 +119,12 @@ public class TopicValidator {
             return new ValidateResult(false, "The specified topic is blank.");
         }
 
+        if (isPopRetryTopicV2(topic)) {
+            return validatePopRetryTopicV2(topic);
+        }
+
         if (isTopicOrGroupIllegal(topic)) {
-            String falseRemark = "The specified topic: " + topic + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_+-]+$";
+            String falseRemark = "The specified topic: " + topic + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$";
             return new ValidateResult(false, falseRemark);
         }
 
@@ -148,13 +150,42 @@ public class TopicValidator {
         }
 
         if (isTopicOrGroupIllegal(group)) {
-            String falseRemark = "The specified group: " + group + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_+-]+$";
+            String falseRemark = "The specified group: " + group + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$";
             return new ValidateResult(false, falseRemark);
         }
 
         if (group.length() > GROUP_MAX_LENGTH) {
             String falseRemark = "The specified group: " + group + ", is longer than group max length: " + GROUP_MAX_LENGTH;
             return new ValidateResult(false, falseRemark);
+        }
+
+        return new ValidateResult(true, "");
+    }
+
+    private static boolean isPopRetryTopicV2(String topic) {
+        return topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && topic.indexOf('+') >= 0;
+    }
+
+    private static ValidateResult validatePopRetryTopicV2(String topic) {
+        String[] parts = topic.split("\\+", -1);
+        if (parts.length != 2) {
+            return new ValidateResult(false, "The specified V2 retry topic: " + topic
+                + ", must contain exactly one '+' separator between the consumer group and the topic.");
+        }
+
+        String group = parts[0].substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+        if (group.isEmpty() || isTopicOrGroupIllegal(group)) {
+            return new ValidateResult(false, "The specified V2 retry topic: " + topic + ", contains an illegal consumer group name.");
+        }
+
+        String originalTopic = parts[1];
+        if (originalTopic.isEmpty() || isTopicOrGroupIllegal(originalTopic)) {
+            return new ValidateResult(false, "The specified V2 retry topic: " + topic + ", contains an illegal topic name.");
+        }
+
+        if (topic.length() > RETRY_OR_DLQ_TOPIC_MAX_LENGTH) {
+            return new ValidateResult(false, "The specified V2 retry topic: " + topic
+                + ", is longer than topic max length: " + RETRY_OR_DLQ_TOPIC_MAX_LENGTH);
         }
 
         return new ValidateResult(true, "");
