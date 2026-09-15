@@ -494,11 +494,10 @@ public class PopReviveService extends ServiceThread {
             // convert message to PopCheckPoint and AckMsg
             for (MessageExt messageExt : messageExts) {
                 if (PopAckConstants.CK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
-                    if (brokerController.getBrokerConfig().isEnablePopLog()) {
-                        POP_LOGGER.info("reviveQueueId={},find ck, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
+                    if (brokerController.getBrokerConfig().isEnablePopLog() && POP_LOGGER.isInfoEnabled()) {
+                        POP_LOGGER.info("reviveQueueId={},find ck, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), new String(messageExt.getBody(), DataConverter.CHARSET_UTF8));
                     }
-                    PopCheckPoint point = JSON.parseObject(raw, PopCheckPoint.class);
+                    PopCheckPoint point = JSON.parseObject(messageExt.getBody(), PopCheckPoint.class);
                     if (point.getTopic() == null || point.getCId() == null) {
                         continue;
                     }
@@ -509,11 +508,10 @@ public class PopReviveService extends ServiceThread {
                         firstRt = point.getReviveTime();
                     }
                 } else if (PopAckConstants.ACK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), StandardCharsets.UTF_8);
-                    if (brokerController.getBrokerConfig().isEnablePopLog()) {
-                        POP_LOGGER.info("reviveQueueId={}, find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
+                    if (brokerController.getBrokerConfig().isEnablePopLog() && POP_LOGGER.isInfoEnabled()) {
+                        POP_LOGGER.info("reviveQueueId={}, find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), new String(messageExt.getBody(), StandardCharsets.UTF_8));
                     }
-                    AckMsg ackMsg = JSON.parseObject(raw, AckMsg.class);
+                    AckMsg ackMsg = JSON.parseObject(messageExt.getBody(), AckMsg.class);
                     brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveAckGetCount(ackMsg, queueId);
                     String brokerName = StringUtils.isNotBlank(ackMsg.getBrokerName()) ?
                         ackMsg.getBrokerName() : brokerController.getBrokerConfig().getBrokerName();
@@ -537,12 +535,11 @@ public class PopReviveService extends ServiceThread {
                         }
                     }
                 } else if (PopAckConstants.BATCH_ACK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), StandardCharsets.UTF_8);
-                    if (brokerController.getBrokerConfig().isEnablePopLog()) {
-                        POP_LOGGER.info("reviveQueueId={}, find batch ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
+                    if (brokerController.getBrokerConfig().isEnablePopLog() && POP_LOGGER.isInfoEnabled()) {
+                        POP_LOGGER.info("reviveQueueId={}, find batch ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), new String(messageExt.getBody(), StandardCharsets.UTF_8));
                     }
 
-                    BatchAckMsg bAckMsg = JSON.parseObject(raw, BatchAckMsg.class);
+                    BatchAckMsg bAckMsg = JSON.parseObject(messageExt.getBody(), BatchAckMsg.class);
                     brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveAckGetCount(bAckMsg, queueId);
                     String brokerName = StringUtils.isNotBlank(bAckMsg.getBrokerName()) ?
                         bAckMsg.getBrokerName() : brokerController.getBrokerConfig().getBrokerName();

@@ -121,9 +121,10 @@ public class LiteEventDispatcher extends ServiceThread {
         if (queueId != 0 || !LiteUtil.isLiteTopicQueue(lmqName)) {
             return;
         }
-        // Maintain prefix index only on the lmq's first message; pre-existing lmqs are
-        // populated once at startup during init().
-        if (offset == 0) {
+        // Maintain prefix index on the lmq's first message: the arriving notification carries
+        // logicOffset = queueOffset + 1, so the first message shows offset == 1. Pre-existing lmqs
+        // are populated once at startup during init().
+        if (offset == 1) {
             liteLifecycleManager.onLmqCreate(lmqName);
         }
         doDispatch(group, lmqName, null);
