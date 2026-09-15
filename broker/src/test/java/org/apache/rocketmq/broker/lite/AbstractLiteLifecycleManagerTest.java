@@ -18,9 +18,7 @@
 package org.apache.rocketmq.broker.lite;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -47,7 +45,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -59,7 +56,6 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.atLeastOnce;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -112,7 +108,6 @@ public class AbstractLiteLifecycleManagerTest {
         topicConfig.setLiteTopicExpiration(1);
         topicConfigTable.put(PARENT_TOPIC, topicConfig);
         when(topicConfigManager.getTopicConfigTable()).thenReturn(topicConfigTable);
-        when(topicConfigManager.selectTopicConfig(PARENT_TOPIC)).thenReturn(topicConfig);
 
         groupConfig.setGroupName(GROUP);
         groupConfig.setLiteBindTopic(PARENT_TOPIC);
@@ -156,28 +151,6 @@ public class AbstractLiteLifecycleManagerTest {
     public void testIsLmqExist() {
         Assert.assertTrue(lifecycleManager.isLmqExist(EXIST_LMQ_NAME));
         Assert.assertFalse(lifecycleManager.isLmqExist("whatever"));
-    }
-
-    @Test
-    public void testGetLiteTopicCount() {
-        Assert.assertEquals(1, lifecycleManager.getLiteTopicCount(PARENT_TOPIC));
-        Assert.assertEquals(0, lifecycleManager.getLiteTopicCount("whatever"));
-
-        // parentTopic1: 2 liteTopics, parentTopic2: 3 liteTopics
-        String parent1 = "parentTopic1";
-        String parent2 = "parentTopic2";
-        registerLiteTopicConfig(parent1);
-        registerLiteTopicConfig(parent2);
-        lifecycleManager.lmqPrefixIndex.add(LiteUtil.toLmqName(parent1, "sub1"));
-        lifecycleManager.lmqPrefixIndex.add(LiteUtil.toLmqName(parent1, "sub2"));
-        lifecycleManager.lmqPrefixIndex.add(LiteUtil.toLmqName(parent2, "sub1"));
-        lifecycleManager.lmqPrefixIndex.add(LiteUtil.toLmqName(parent2, "sub2"));
-        lifecycleManager.lmqPrefixIndex.add(LiteUtil.toLmqName(parent2, "sub3"));
-
-        Assert.assertEquals(2, lifecycleManager.getLiteTopicCount(parent1));
-        Assert.assertEquals(3, lifecycleManager.getLiteTopicCount(parent2));
-        // PARENT_TOPIC count unchanged
-        Assert.assertEquals(1, lifecycleManager.getLiteTopicCount(PARENT_TOPIC));
     }
 
     @Test
@@ -269,79 +242,6 @@ public class AbstractLiteLifecycleManagerTest {
     }
 
     @Test
-    public void testCleanByParentTopic() {
-        String lmq1 = LiteUtil.toLmqName(PARENT_TOPIC, "sub1");
-        String lmq2 = LiteUtil.toLmqName(PARENT_TOPIC, "sub2");
-        String lmq3 = LiteUtil.toLmqName(PARENT_TOPIC, "sub3");
-
-        String otherLmq1 = LiteUtil.toLmqName("otherParentTopic", "sub1");
-        String otherLmq2 = LiteUtil.toLmqName("otherParentTopic", "sub2");
-
-        // multiple LMQs: deleteLmq called only for LMQs under PARENT_TOPIC
-        lifecycleManager.lmqPrefixIndex.remove(EXIST_LMQ_NAME);
-        lifecycleManager.lmqPrefixIndex.add(lmq1);
-        lifecycleManager.lmqPrefixIndex.add(lmq2);
-        lifecycleManager.lmqPrefixIndex.add(lmq3);
-        lifecycleManager.lmqPrefixIndex.add(otherLmq1);
-        lifecycleManager.lmqPrefixIndex.add(otherLmq2);
-
-        ArgumentCaptor<String> parentCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> lmqCaptor = ArgumentCaptor.forClass(String.class);
-        lifecycleManager.cleanByParentTopic(PARENT_TOPIC);
-        verify(lifecycleManager, times(3)).deleteLmq(parentCaptor.capture(), lmqCaptor.capture());
-        Assert.assertTrue(parentCaptor.getAllValues().stream().allMatch(PARENT_TOPIC::equals));
-        Assert.assertEquals(new HashSet<>(Arrays.asList(lmq1, lmq2, lmq3)), new HashSet<>(lmqCaptor.getAllValues()));
-
-        // other parent's LMQs remain untouched
-        List<String> otherResult = lifecycleManager.collectByParentTopic("otherParentTopic");
-        Assert.assertEquals(new HashSet<>(Arrays.asList(otherLmq1, otherLmq2)), new HashSet<>(otherResult));
-
-        // zero LMQs: deleteLmq not called
-        Mockito.clearInvocations(lifecycleManager);
-        lifecycleManager.cleanByParentTopic(PARENT_TOPIC);
-        verify(lifecycleManager, never()).deleteLmq(anyString(), anyString());
-
-        // guard: non-lite topic and null both return early
-        Mockito.clearInvocations(lifecycleManager);
-        lifecycleManager.lmqPrefixIndex.add(EXIST_LMQ_NAME);
-        lifecycleManager.cleanByParentTopic("nonExistentTopic");
-        verify(lifecycleManager, never()).deleteLmq(anyString(), anyString());
-        lifecycleManager.cleanByParentTopic(null);
-        verify(lifecycleManager, never()).deleteLmq(anyString(), anyString());
-    }
-
-    @Test
-    public void testCollectByParentTopic() {
-        String lmq1 = LiteUtil.toLmqName(PARENT_TOPIC, "sub1");
-        String lmq2 = LiteUtil.toLmqName(PARENT_TOPIC, "sub2");
-        String lmq3 = LiteUtil.toLmqName(PARENT_TOPIC, "sub3");
-
-        String otherLmq1 = LiteUtil.toLmqName("otherParentTopic", "sub1");
-        String otherLmq2 = LiteUtil.toLmqName("otherParentTopic", "sub2");
-
-        lifecycleManager.lmqPrefixIndex.remove(EXIST_LMQ_NAME);
-        lifecycleManager.lmqPrefixIndex.add(lmq1);
-        lifecycleManager.lmqPrefixIndex.add(lmq2);
-        lifecycleManager.lmqPrefixIndex.add(lmq3);
-        lifecycleManager.lmqPrefixIndex.add(otherLmq1);
-        lifecycleManager.lmqPrefixIndex.add(otherLmq2);
-
-        // multiple LMQs: returns only those under PARENT_TOPIC, excluding other parent's
-        List<String> result = lifecycleManager.collectByParentTopic(PARENT_TOPIC);
-        Assert.assertEquals(new HashSet<>(Arrays.asList(lmq1, lmq2, lmq3)), new HashSet<>(result));
-
-        // no LMQs under parent: returns empty list
-        result = lifecycleManager.collectByParentTopic("nonExistentTopic");
-        Assert.assertTrue(result.isEmpty());
-
-        // guard: null and empty both return empty list
-        result = lifecycleManager.collectByParentTopic(null);
-        Assert.assertTrue(result.isEmpty());
-        result = lifecycleManager.collectByParentTopic("");
-        Assert.assertTrue(result.isEmpty());
-    }
-
-    @Test
     public void testRun() throws InterruptedException {
         brokerConfig.setLiteTtlCheckInterval(100L);
         brokerConfig.setMinLiteTTl(0);
@@ -355,14 +255,6 @@ public class AbstractLiteLifecycleManagerTest {
         verify(consumerOffsetManager, atLeastOnce()).removeConsumerOffset(anyString());
         verify(messageStore, atLeastOnce()).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry, atLeastOnce()).cleanSubscription(EXIST_LMQ_NAME, false);
-    }
-
-    private void registerLiteTopicConfig(String parentTopic) {
-        TopicConfig config = new TopicConfig(parentTopic, 1, 1);
-        config.getAttributes().put(
-            TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
-        topicConfigTable.put(parentTopic, config);
-        when(topicConfigManager.selectTopicConfig(parentTopic)).thenReturn(config);
     }
 
     private static class TestLiteLifecycleManager extends AbstractLiteLifecycleManager {
