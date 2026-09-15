@@ -182,8 +182,7 @@ public class PopConsumerCache extends ServiceThread {
 
             if (timeout) {
                 records.stageExpiredRecords(Long.MAX_VALUE);
-                List<PopConsumerRecord> writeConsumerRecords =
-                    new ArrayList<>(records.getRemoveTreeMap().values());
+                List<PopConsumerRecord> writeConsumerRecords = new ArrayList<>(records.getRemoveTreeMap().values());
                 if (!writeConsumerRecords.isEmpty()) {
                     consumerRecordStore.writeRecords(writeConsumerRecords);
                 }
