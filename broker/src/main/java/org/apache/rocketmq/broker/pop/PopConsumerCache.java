@@ -82,8 +82,9 @@ public class PopConsumerCache extends ServiceThread {
 
     private final AtomicInteger estimateCacheSize;
     /**
-     * Maps {@code consumerGroupId@topicId@queueId} to the buffered records for that
-     * consumer-queue.
+     * Maps to the buffered records for that consumer-queue.
+     * - key: {@code consumerGroupId@topicId@queueId}
+     * - value: {@code ConsumerRecords}
      *
      * <p>Used by {@link #writeRecords} to add popped messages,
      * {@link #deleteRecords} to remove acked messages, and
@@ -281,23 +282,22 @@ public class PopConsumerCache extends ServiceThread {
         /**
          * Staged records awaiting cleanup (revival or KVStore write).
          *
-         * <p>Populated by {@link #stageExpiredRecords} and drained by
-         * {@link PopConsumerCache#cleanupRecords}. Sorted by offset
-         * so that {@link #getMinOffset} can include these records in
-         * the minimum offset computation.
+         * <p>Populated by {@link #stageExpiredRecords},
+         * and drained by {@link PopConsumerCache#cleanupRecords}.
+         * Sorted by offset so that {@link #getMinOffset} can include these records
+         * in the minimum offset computation.
          */
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> removeTreeMap;
         /**
-         * Active (in-flight) records that have been popped but not yet
-         * acked by the consumer.
+         * Active (in-flight) records that have been popped
+         * but not yet acked by the consumer.
          *
          * <p>Records are added via {@link #write} when messages are popped,
-         * removed via {@link #delete} when an ack arrives, and moved to
-         * {@link #removeTreeMap} via {@link #stageExpiredRecords} when
-         * the visibility timeout or stay-buffer time expires.
+         * removed via {@link #delete} when an ack arrives,
+         * and moved to {@link #removeTreeMap} via {@link #stageExpiredRecords}
+         * when the visibility timeout or stay-buffer time expires.
          *
-         * <p>Sorted by offset for efficient minimum-offset queries
-         * ({@link #getMinOffset}).
+         * <p>Sorted by offset for efficient minimum-offset queries ({@link #getMinOffset}).
          */
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> recordTreeMap;
 
