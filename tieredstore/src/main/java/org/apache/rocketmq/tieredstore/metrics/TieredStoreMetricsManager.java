@@ -200,7 +200,7 @@ public class TieredStoreMetricsManager {
                             .build();
                         measurement.record(Math.max(maxOffset - flatFile.getConsumeQueueMaxOffset(), 0), consumeQueueAttributes);
                     } catch (ConsumeQueueException e) {
-                        // TODO: handle exception here
+                        log.error("Failed to collect tiered store dispatch-behind metric", e);
                     }
                 }
             });
@@ -239,7 +239,7 @@ public class TieredStoreMetricsManager {
                             measurement.record(System.currentTimeMillis() - consumeQueueDispatchLatency, consumeQueueAttributes);
                         }
                     } catch (ConsumeQueueException e) {
-                        // TODO: handle exception
+                        log.error("Failed to collect tiered store dispatch-latency metric", e);
                     }
                 }
             });
