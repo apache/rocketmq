@@ -224,10 +224,10 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
     private void expireSubscriptions() throws Exception {
         long expiredAt = System.currentTimeMillis() - ConfigurationManager.getProxyConfig().getChannelExpiredTimeout()
             - TimeUnit.SECONDS.toMillis(1);
-        Field lastUpdateTimestamp = ClusterTransactionService.ClusterData.class.getDeclaredField("lastUpdateTimestamp");
-        lastUpdateTimestamp.setAccessible(true);
+        Field lastActiveTimestamp = ClusterTransactionService.ClusterData.class.getDeclaredField("lastActiveTimestamp");
+        lastActiveTimestamp.setAccessible(true);
         for (ClusterTransactionService.ClusterData data : this.clusterTransactionService.getGroupClusterData().get(GROUP)) {
-            lastUpdateTimestamp.setLong(data, expiredAt);
+            lastActiveTimestamp.setLong(data, expiredAt);
         }
     }
 
