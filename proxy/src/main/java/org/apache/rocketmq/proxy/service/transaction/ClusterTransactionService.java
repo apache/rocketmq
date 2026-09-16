@@ -82,6 +82,10 @@ public class ClusterTransactionService extends AbstractTransactionService {
                     clusterDataSet = Sets.newHashSet();
                 }
                 clusterDataSet.addAll(getClusterDataFromTopic(ctx, topic));
+                long now = System.nanoTime();
+                for (ClusterData clusterData : clusterDataSet) {
+                    clusterData.lastActiveNanos = now;
+                }
                 return clusterDataSet;
             });
         } catch (Exception e) {
@@ -131,14 +135,19 @@ public class ClusterTransactionService extends AbstractTransactionService {
                 if (clusterDataSet.isEmpty()) {
                     return null;
                 }
+                long now = System.nanoTime();
                 if (!this.producerManager.groupOnline(groupName)) {
-                    return null;
+                    // A transaction send may precede the producer's first heartbeat.
+                    long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(ConfigurationManager.getProxyConfig().getChannelExpiredTimeout());
+                    clusterDataSet.removeIf(clusterData -> now - clusterData.lastActiveNanos >= timeoutNanos);
+                    return clusterDataSet.isEmpty() ? null : clusterDataSet;
                 }
 
                 ProducerData producerData = new ProducerData();
                 producerData.setGroupName(groupName);
 
                 for (ClusterData clusterData : clusterDataSet) {
+                    clusterData.lastActiveNanos = now;
                     List<HeartbeatData> heartbeatDataList = clusterHeartbeatData.get(clusterData.cluster);
                     if (heartbeatDataList == null) {
                         heartbeatDataList = new ArrayList<>();
@@ -228,6 +237,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
 
     static class ClusterData {
         private final String cluster;
+        private long lastActiveNanos = System.nanoTime();
 
         public ClusterData(String cluster) {
             this.cluster = cluster;

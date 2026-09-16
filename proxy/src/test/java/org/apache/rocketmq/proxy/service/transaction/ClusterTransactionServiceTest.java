@@ -17,12 +17,16 @@
 
 package org.apache.rocketmq.proxy.service.transaction;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MixAll;
@@ -44,6 +48,7 @@ import org.mockito.Mockito;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -106,6 +111,124 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         this.clusterTransactionService.unSubscribeAllTransactionTopic(ctx, GROUP);
 
         assertEquals(0, this.clusterTransactionService.getGroupClusterData().size());
+    }
+
+    @Test
+    public void testTransactionSubscriptionSurvivesFirstHeartbeatDelay() {
+        List<HeartbeatData> heartbeats = recordHeartbeats();
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
+
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertTrue(this.clusterTransactionService.getGroupClusterData().containsKey(GROUP));
+        assertTrue(heartbeats.isEmpty());
+
+        when(this.producerManager.groupOnline(GROUP)).thenReturn(true);
+        this.clusterTransactionService.scanProducerHeartBeat();
+
+        assertEquals(1, heartbeats.size());
+        assertEquals(GROUP, heartbeats.get(0).getProducerDataSet().iterator().next().getGroupName());
+    }
+
+    @Test
+    public void testNeverRegisteredSubscriptionExpiresWithoutHeartbeats() throws Exception {
+        List<HeartbeatData> heartbeats = recordHeartbeats();
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
+
+        this.clusterTransactionService.scanProducerHeartBeat();
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertTrue(this.clusterTransactionService.getGroupClusterData().containsKey(GROUP));
+        assertTrue(heartbeats.isEmpty());
+
+        expireSubscriptions();
+        this.clusterTransactionService.scanProducerHeartBeat();
+
+        assertFalse(this.clusterTransactionService.getGroupClusterData().containsKey(GROUP));
+        assertTrue(heartbeats.isEmpty());
+    }
+
+    @Test
+    public void testAddingExistingSubscriptionRefreshesGracePeriod() throws Exception {
+        List<HeartbeatData> heartbeats = recordHeartbeats();
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
+        expireSubscriptions();
+
+        // Set.addAll keeps the existing ClusterData when another topic uses the same cluster.
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC + "-another");
+        this.clusterTransactionService.scanProducerHeartBeat();
+
+        assertEquals(1, this.clusterTransactionService.getGroupClusterData().get(GROUP).size());
+        assertTrue(heartbeats.isEmpty());
+    }
+
+    @Test
+    public void testOnlineSubscriptionRefreshesGracePeriod() throws Exception {
+        List<HeartbeatData> heartbeats = recordHeartbeats();
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
+        expireSubscriptions();
+
+        when(this.producerManager.groupOnline(GROUP)).thenReturn(true);
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertEquals(1, heartbeats.size());
+
+        when(this.producerManager.groupOnline(GROUP)).thenReturn(false);
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertTrue(this.clusterTransactionService.getGroupClusterData().containsKey(GROUP));
+        assertEquals(1, heartbeats.size());
+
+        expireSubscriptions();
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertFalse(this.clusterTransactionService.getGroupClusterData().containsKey(GROUP));
+        assertEquals(1, heartbeats.size());
+    }
+
+    @Test
+    public void testReplacingSubscriptionRefreshesGracePeriod() throws Exception {
+        List<HeartbeatData> heartbeats = recordHeartbeats();
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
+        expireSubscriptions();
+
+        this.clusterTransactionService.replaceTransactionSubscription(ctx, GROUP, Lists.newArrayList(TOPIC));
+        this.clusterTransactionService.scanProducerHeartBeat();
+
+        assertTrue(this.clusterTransactionService.getGroupClusterData().containsKey(GROUP));
+        assertTrue(heartbeats.isEmpty());
+    }
+
+    @Test
+    public void testUnsubscribeDuringGracePeriodRemovesSubscriptionImmediately() {
+        List<HeartbeatData> heartbeats = recordHeartbeats();
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
+        this.clusterTransactionService.scanProducerHeartBeat();
+
+        this.clusterTransactionService.unSubscribeAllTransactionTopic(ctx, GROUP);
+        assertFalse(this.clusterTransactionService.getGroupClusterData().containsKey(GROUP));
+
+        when(this.producerManager.groupOnline(GROUP)).thenReturn(true);
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertTrue(heartbeats.isEmpty());
+    }
+
+    private List<HeartbeatData> recordHeartbeats() {
+        List<HeartbeatData> heartbeats = new ArrayList<>();
+        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager,
+            this.mqClientAPIFactory) {
+            @Override
+            protected void sendHeartBeatToCluster(String clusterName, List<HeartbeatData> heartbeatDataList,
+                Map<String, String> brokerAddrNameMap) {
+                heartbeats.addAll(heartbeatDataList);
+            }
+        };
+        return heartbeats;
+    }
+
+    private void expireSubscriptions() throws Exception {
+        long expiredAt = System.nanoTime() - TimeUnit.MILLISECONDS.toNanos(
+            ConfigurationManager.getProxyConfig().getChannelExpiredTimeout()) - TimeUnit.SECONDS.toNanos(1);
+        Field lastActiveNanos = ClusterTransactionService.ClusterData.class.getDeclaredField("lastActiveNanos");
+        lastActiveNanos.setAccessible(true);
+        for (ClusterTransactionService.ClusterData data : this.clusterTransactionService.getGroupClusterData().get(GROUP)) {
+            lastActiveNanos.setLong(data, expiredAt);
+        }
     }
 
     @Test
