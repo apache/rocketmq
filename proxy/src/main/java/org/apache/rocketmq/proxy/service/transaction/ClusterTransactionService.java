@@ -82,9 +82,9 @@ public class ClusterTransactionService extends AbstractTransactionService {
                     clusterDataSet = Sets.newHashSet();
                 }
                 clusterDataSet.addAll(getClusterDataFromTopic(ctx, topic));
-                long now = System.nanoTime();
+                long now = System.currentTimeMillis();
                 for (ClusterData clusterData : clusterDataSet) {
-                    clusterData.lastActiveNanos = now;
+                    clusterData.lastUpdateTimestamp = now;
                 }
                 return clusterDataSet;
             });
@@ -135,11 +135,11 @@ public class ClusterTransactionService extends AbstractTransactionService {
                 if (clusterDataSet.isEmpty()) {
                     return null;
                 }
-                long now = System.nanoTime();
+                long now = System.currentTimeMillis();
                 if (!this.producerManager.groupOnline(groupName)) {
                     // A transaction send may precede the producer's first heartbeat.
-                    long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(ConfigurationManager.getProxyConfig().getChannelExpiredTimeout());
-                    clusterDataSet.removeIf(clusterData -> now - clusterData.lastActiveNanos >= timeoutNanos);
+                    long timeoutMillis = ConfigurationManager.getProxyConfig().getChannelExpiredTimeout();
+                    clusterDataSet.removeIf(clusterData -> now - clusterData.lastUpdateTimestamp >= timeoutMillis);
                     return clusterDataSet.isEmpty() ? null : clusterDataSet;
                 }
 
@@ -147,7 +147,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
                 producerData.setGroupName(groupName);
 
                 for (ClusterData clusterData : clusterDataSet) {
-                    clusterData.lastActiveNanos = now;
+                    clusterData.lastUpdateTimestamp = now;
                     List<HeartbeatData> heartbeatDataList = clusterHeartbeatData.get(clusterData.cluster);
                     if (heartbeatDataList == null) {
                         heartbeatDataList = new ArrayList<>();
@@ -237,7 +237,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
 
     static class ClusterData {
         private final String cluster;
-        private long lastActiveNanos = System.nanoTime();
+        private long lastUpdateTimestamp = System.currentTimeMillis();
 
         public ClusterData(String cluster) {
             this.cluster = cluster;

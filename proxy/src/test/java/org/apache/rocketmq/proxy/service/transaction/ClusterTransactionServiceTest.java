@@ -222,12 +222,12 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
     }
 
     private void expireSubscriptions() throws Exception {
-        long expiredAt = System.nanoTime() - TimeUnit.MILLISECONDS.toNanos(
-            ConfigurationManager.getProxyConfig().getChannelExpiredTimeout()) - TimeUnit.SECONDS.toNanos(1);
-        Field lastActiveNanos = ClusterTransactionService.ClusterData.class.getDeclaredField("lastActiveNanos");
-        lastActiveNanos.setAccessible(true);
+        long expiredAt = System.currentTimeMillis() - ConfigurationManager.getProxyConfig().getChannelExpiredTimeout()
+            - TimeUnit.SECONDS.toMillis(1);
+        Field lastUpdateTimestamp = ClusterTransactionService.ClusterData.class.getDeclaredField("lastUpdateTimestamp");
+        lastUpdateTimestamp.setAccessible(true);
         for (ClusterTransactionService.ClusterData data : this.clusterTransactionService.getGroupClusterData().get(GROUP)) {
-            lastActiveNanos.setLong(data, expiredAt);
+            lastUpdateTimestamp.setLong(data, expiredAt);
         }
     }
 
