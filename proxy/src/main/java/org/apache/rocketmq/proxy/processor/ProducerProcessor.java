@@ -211,13 +211,23 @@ public class ProducerProcessor extends AbstractProcessor {
         if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             String reconsumeTimes = MessageAccessor.getReconsumeTime(message);
             if (reconsumeTimes != null) {
-                requestHeader.setReconsumeTimes(Integer.valueOf(reconsumeTimes));
+                try {
+                    requestHeader.setReconsumeTimes(Integer.parseInt(reconsumeTimes.trim()));
+                } catch (NumberFormatException e) {
+                    log.warn("parse reconsumeTimes error, with value:{}", reconsumeTimes);
+                    requestHeader.setReconsumeTimes(0);
+                }
                 MessageAccessor.clearProperty(message, MessageConst.PROPERTY_RECONSUME_TIME);
             }
 
             String maxReconsumeTimes = MessageAccessor.getMaxReconsumeTimes(message);
             if (maxReconsumeTimes != null) {
-                requestHeader.setMaxReconsumeTimes(Integer.valueOf(maxReconsumeTimes));
+                try {
+                    requestHeader.setMaxReconsumeTimes(Integer.parseInt(maxReconsumeTimes.trim()));
+                } catch (NumberFormatException e) {
+                    log.warn("parse maxReconsumeTimes error, with value:{}", maxReconsumeTimes);
+                    requestHeader.setMaxReconsumeTimes(0);
+                }
                 MessageAccessor.clearProperty(message, MessageConst.PROPERTY_MAX_RECONSUME_TIMES);
             }
         }
