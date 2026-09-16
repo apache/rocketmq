@@ -46,6 +46,33 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private static final long CLEAN_SPAN_FROM_LAST = 24 * 3600 * 1000;
 
+    /**
+     * In-memory registry of per-queue ordered-consumption state.
+     *
+     * <p>Two-level nested map keyed by {@code topic@group} then {@code queueId},
+     * holding the {@link OrderInfo} of the currently in-flight (popped but not
+     * fully acked) ordered batch for each queue:
+     * <pre>
+     * table
+     *   └─ "topic@group" (ConcurrentHashMap)
+     *        └─ queueId (Integer)
+     *             └─ OrderInfo (in-flight ordered batch state)
+     * </pre>
+     *
+     * <p>Lifecycle of an {@link OrderInfo} entry:
+     * <ul>
+     *   <li>Created by {@link #update} when a FIFO pop delivers a batch</li>
+     *   <li>Queried by {@link #checkBlock} to decide whether a new pop must block</li>
+     *   <li>Mutated by {@link #commitAndNext} / {@link #updateNextVisibleTime} as
+     *       the consumer acks or delays individual messages</li>
+     *   <li>Removed by {@link #clearBlock} (rebalance) or {@link #autoClean}
+     *       (topic/group deleted or long idle)</li>
+     * </ul>
+     *
+     * <p>Both levels use {@link ConcurrentHashMap} so {@code update} / {@code checkBlock}
+     * / {@code commitAndNext} can run concurrently without an external lock. The
+     * whole table is persisted to disk via {@link #encode} / {@link #decode}.
+     */
     private ConcurrentHashMap<String/* topic@group*/, ConcurrentHashMap<Integer/*queueId*/, OrderInfo>> table =
         new ConcurrentHashMap<>(128);
 
