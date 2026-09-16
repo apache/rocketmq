@@ -358,8 +358,6 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
         int readableBytes = (int) (currentCommitPosition - position);
         if (readableBytes < length) {
-            // Silently shortening the read makes the caller's buffer end mid-batch, which surfaces much
-            // later as a split failure. Keep it visible.
             log.warn("FileSegment#readAsync, request position exceeds commit position, " +
                     "file={}, requestPosition={}, commitPosition={}, changeLength={} to {}",
                 getPath(), position, currentCommitPosition, length, readableBytes);
