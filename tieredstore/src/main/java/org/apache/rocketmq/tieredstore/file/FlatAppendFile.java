@@ -241,23 +241,30 @@ public class FlatAppendFile {
             }
         }
 
-        FileSegment fileSegment1 = fileSegmentList.get(index);
-        FileSegment fileSegment2 = offset + length > fileSegment1.getCommitOffset() &&
-            fileSegmentList.size() > index + 1 ? fileSegmentList.get(index + 1) : null;
-
-        if (fileSegment2 == null) {
-            return fileSegment1.readAsync(offset - fileSegment1.getBaseOffset(), length);
+        FileSegment fileSegment = fileSegmentList.get(index);
+        if (offset + length <= fileSegment.getCommitOffset() || fileSegmentList.size() <= index + 1) {
+            return fileSegment.readAsync(offset - fileSegment.getBaseOffset(), length);
         }
 
-        int segment1Length = (int) (fileSegment1.getCommitOffset() - offset);
-        return fileSegment1.readAsync(offset - fileSegment1.getBaseOffset(), segment1Length)
-            .thenCombine(fileSegment2.readAsync(0, length - segment1Length),
-                (buffer1, buffer2) -> {
-                    ByteBuffer buffer = ByteBuffer.allocate(buffer1.remaining() + buffer2.remaining());
-                    buffer.put(buffer1).put(buffer2);
-                    buffer.flip();
-                    return buffer;
-                });
+        List<CompletableFuture<ByteBuffer>> futureList = new ArrayList<>();
+        long readOffset = offset;
+        int remainingLength = length;
+        for (; index < fileSegmentList.size() && remainingLength > 0; index++) {
+            fileSegment = fileSegmentList.get(index);
+            int segmentLength = (int) Math.min(remainingLength, fileSegment.getCommitOffset() - readOffset);
+            futureList.add(fileSegment.readAsync(readOffset - fileSegment.getBaseOffset(), segmentLength));
+            readOffset += segmentLength;
+            remainingLength -= segmentLength;
+        }
+
+        CompletableFuture<?>[] futures = futureList.toArray(new CompletableFuture<?>[0]);
+        return CompletableFuture.allOf(futures).thenApply(nil -> {
+            int resultLength = futureList.stream().mapToInt(future -> future.join().remaining()).sum();
+            ByteBuffer result = ByteBuffer.allocate(resultLength);
+            futureList.forEach(future -> result.put(future.join()));
+            result.flip();
+            return result;
+        });
     }
 
     public void shutdown() {
