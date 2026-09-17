@@ -1107,11 +1107,14 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         }
         long physicalOffsetFrom = firstMappedFileBuffer.getStartOffset();
 
-        SelectMappedBufferResult lastMappedFileBuffer = getBatchMsgIndexBuffer(to);
+        // 'to' is an exclusive upper bound, so the last unit in range is the one
+        // containing 'to - 1'; getBatchMsgIndexBuffer returns null for offsets
+        // >= maxOffsetInQueue, which made counting up to the queue head fail
+        SelectMappedBufferResult lastMappedFileBuffer = getBatchMsgIndexBuffer(to - 1);
         if (lastMappedFileBuffer == null) {
             return -1;
         }
-        long physicalOffsetTo = lastMappedFileBuffer.getStartOffset();
+        long physicalOffsetTo = lastMappedFileBuffer.getStartOffset() + CQ_STORE_UNIT_SIZE;
 
         List<MappedFile> mappedFiles = mappedFileQueue.range(physicalOffsetFrom, physicalOffsetTo);
         if (mappedFiles.isEmpty()) {
