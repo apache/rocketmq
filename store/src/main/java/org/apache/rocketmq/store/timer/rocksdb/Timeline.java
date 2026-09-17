@@ -49,6 +49,8 @@ public class Timeline {
     private static final String DELETE_KEY_SPLIT = "+";
     private static final int ORIGIN_CAPACITY = 100000;
     private static final int BATCH_SIZE = 1000, MAX_BATCH_SIZE_FROM_ROCKSDB = 8000;
+    private static final long ROLL_TRIGGER_EARLY_MS = 1000L;
+    private static final long ROLL_POLL_WHEN_NOT_DUE_MS = 1000L;
     private static final int INITIAL = 0, RUNNING = 1, SHUTDOWN = 2;
     private volatile int state = INITIAL;
     private final AtomicLong commitOffset = new AtomicLong(0);
@@ -373,37 +375,37 @@ public class Timeline {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service start");
+            long checkpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_ROLL_CHECK_POINT);
+            if (checkpoint <= 0L) {
+                long now = System.currentTimeMillis();
+                long forwardCheckpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT);
+                int rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours() > 0 ? storeConfig.getTimerRocksDBRollRangeHours() : 2;
+                checkpoint = (forwardCheckpoint > 0L ? Math.min(forwardCheckpoint, now) : now)
+                    + TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec()) - TimeUnit.HOURS.toMillis(rollRangeHour);
+            }
+            log.info(this.getServiceName() + " service start, checkpoint: {}", checkpoint);
             while (!this.isStopped()) {
-                int rollIntervalHour = 1;
-                int rollRangeHour = 2;
                 try {
-                    if (storeConfig.getTimerRocksDBRollIntervalHours() > 0) {
-                        rollIntervalHour = storeConfig.getTimerRocksDBRollIntervalHours();
+                    long maxDelayMs = TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec());
+                    long rangeMs = TimeUnit.HOURS.toMillis(storeConfig.getTimerRocksDBRollRangeHours() > 0 ? storeConfig.getTimerRocksDBRollRangeHours() : 2);
+                    long triggerAt = checkpoint + rangeMs - maxDelayMs - ROLL_TRIGGER_EARLY_MS;
+                    long now = System.currentTimeMillis();
+                    if (now < triggerAt) {
+                        this.waitForRunning(ROLL_POLL_WHEN_NOT_DUE_MS);
+                        continue;
                     }
-                    if (storeConfig.getTimerRocksDBRollRangeHours() > 0) {
-                        rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours();
+
+                    log.info("Timeline TimelineRollService start roll checkpoint: {}, rangeMs: {}, triggerAt: {}, delayMs: {}", checkpoint, rangeMs, triggerAt, now - triggerAt);
+                    if (!scanRecordsToQueue(checkpoint, rangeMs, timerMessageRocksDBStore.getRollMessageQueue())) {
+                        logError.error("Timeline TimelineRollService scanRecordsToQueue error, checkpoint: {}", checkpoint);
+                        this.waitForRunning(200L);
+                        continue;
                     }
-                    this.waitForRunning(TimeUnit.HOURS.toMillis(rollIntervalHour));
-                    if (stopped) {
-                        log.info(this.getServiceName() + " service end");
-                        return;
-                    }
-                } catch (Exception e) {
-                    logError.error("Timeline TimelineRollService wait error: {}", e.getMessage());
-                }
-                long rollCheckpoint = System.currentTimeMillis();
-                try {
-                    log.info("Timeline TimelineRollService start roll rollCheckpoint: {}", rollCheckpoint);
-                    while (!scanRecordsToQueue(rollCheckpoint + TimeUnit.HOURS.toMillis(rollRangeHour),
-                            TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec()),
-                            timerMessageRocksDBStore.getRollMessageQueue())) {
-                        logError.error("Timeline TimelineRollService scanRecordsToQueue error.");
-                        Thread.sleep(200);
-                    }
-                    log.info("Timeline TimelineRollService roll records success, lastRollTime: {}, rollCheckpoint: {}, cost: {}", rollCheckpoint, rollCheckpoint, System.currentTimeMillis() - rollCheckpoint);
+                    checkpoint += rangeMs;
+                    log.info("Timeline TimelineRollService roll records success, checkpoint: {}, cost: {}", checkpoint, System.currentTimeMillis() - now);
                 } catch (Exception e) {
                     logError.error("Timeline TimelineRollService failed error: {}", e.getMessage());
+                    this.waitForRunning(200L);
                 }
             }
             log.info(this.getServiceName() + " service end");
