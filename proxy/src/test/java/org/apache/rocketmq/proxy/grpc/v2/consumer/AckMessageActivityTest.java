@@ -30,10 +30,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.processor.BatchAckResult;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.junit.Before;
@@ -41,11 +43,14 @@ import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AckMessageActivityTest extends BaseActivityTest {
@@ -151,6 +156,94 @@ public class AckMessageActivityTest extends BaseActivityTest {
             assertEquals(Code.OK, response.getEntries(1).getStatus().getCode());
             assertEquals(Code.INTERNAL_SERVER_ERROR, response.getEntries(2).getStatus().getCode());
         }
+    }
+
+    @Test
+    public void testAckMessageRestoresManagedHandleWhenAckFutureFailsTest() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(false);
+        String messageId = "msg-retry";
+        String clientHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String latestHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 6000);
+        GrpcClientChannel channel = grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle managed = new MessageReceiptHandle(GROUP, TOPIC, 0, latestHandle, messageId, 0, 0);
+        when(messagingProcessor.removeReceiptHandle(any(), eq(channel), eq(GROUP), eq(messageId), eq(clientHandle)))
+            .thenReturn(managed);
+        CompletableFuture<AckResult> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("transient ack failure"));
+        when(messagingProcessor.ackMessage(any(), any(), eq(messageId), eq(GROUP), eq(TOPIC), any())).thenReturn(failed);
+
+        AckMessageResponse response = ackMessageActivity.ackMessage(createContext(), AckMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName(TOPIC)).setGroup(Resource.newBuilder().setName(GROUP))
+            .addEntries(AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(clientHandle)).build()).get();
+
+        assertEquals(Code.INTERNAL_SERVER_ERROR, response.getStatus().getCode());
+        verify(messagingProcessor).addReceiptHandle(any(), eq(channel), eq(GROUP), eq(messageId), eq(managed));
+    }
+
+    @Test
+    public void testAckMessageRestoresManagedHandleWhenAckThrowsTest() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(false);
+        String messageId = "msg-sync-failure";
+        String clientHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String latestHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 6000);
+        GrpcClientChannel channel = grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle managed = new MessageReceiptHandle(GROUP, TOPIC, 0, latestHandle, messageId, 0, 0);
+        when(messagingProcessor.removeReceiptHandle(any(), eq(channel), eq(GROUP), eq(messageId), eq(clientHandle))).thenReturn(managed);
+        when(messagingProcessor.ackMessage(any(), any(), eq(messageId), eq(GROUP), eq(TOPIC), any()))
+            .thenThrow(new RuntimeException("sync ack failure"));
+
+        AckMessageResponse response = ackMessageActivity.ackMessage(createContext(), AckMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName(TOPIC)).setGroup(Resource.newBuilder().setName(GROUP))
+            .addEntries(AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(clientHandle)).build()).get();
+
+        assertEquals(Code.INTERNAL_SERVER_ERROR, response.getStatus().getCode());
+        verify(messagingProcessor).addReceiptHandle(any(), eq(channel), eq(GROUP), eq(messageId), eq(managed));
+    }
+
+    @Test
+    public void testBatchAckRestoresManagedHandleWhenFutureFailsTest() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(true);
+        String messageId = "msg-batch-failure";
+        String clientHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String latestHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 6000);
+        GrpcClientChannel channel = grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle managed = new MessageReceiptHandle(GROUP, TOPIC, 0, latestHandle, messageId, 0, 0);
+        when(messagingProcessor.removeReceiptHandle(any(), eq(channel), eq(GROUP), eq(messageId), eq(clientHandle))).thenReturn(managed);
+        CompletableFuture<List<BatchAckResult>> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("batch ack failure"));
+        when(messagingProcessor.batchAckMessage(any(), anyList(), eq(GROUP), eq(TOPIC))).thenReturn(failed);
+
+        try {
+            ackMessageActivity.ackMessage(createContext(), AckMessageRequest.newBuilder()
+                .setTopic(Resource.newBuilder().setName(TOPIC)).setGroup(Resource.newBuilder().setName(GROUP))
+                .addEntries(AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(clientHandle)).build()).get();
+            fail("batch ack should complete exceptionally");
+        } catch (Exception expected) {
+            // Expected: batch invocation preserves its existing exceptional-completion semantics.
+        }
+        verify(messagingProcessor).addReceiptHandle(any(), eq(channel), eq(GROUP), eq(messageId), eq(managed));
+    }
+
+    @Test
+    public void testAckMessageDoesNotRestoreManagedHandleWhenAckSucceedsTest() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(false);
+        String messageId = "msg-success";
+        String clientHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String latestHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 6000);
+        GrpcClientChannel channel = grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle managed = new MessageReceiptHandle(GROUP, TOPIC, 0, latestHandle, messageId, 0, 0);
+        when(messagingProcessor.removeReceiptHandle(any(), eq(channel), eq(GROUP), eq(messageId), eq(clientHandle))).thenReturn(managed);
+        AckResult ackResult = new AckResult();
+        ackResult.setStatus(AckStatus.OK);
+        when(messagingProcessor.ackMessage(any(), any(), eq(messageId), eq(GROUP), eq(TOPIC), any()))
+            .thenReturn(CompletableFuture.completedFuture(ackResult));
+
+        AckMessageResponse response = ackMessageActivity.ackMessage(createContext(), AckMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName(TOPIC)).setGroup(Resource.newBuilder().setName(GROUP))
+            .addEntries(AckMessageEntry.newBuilder().setMessageId(messageId).setReceiptHandle(clientHandle)).build()).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        verify(messagingProcessor, never()).addReceiptHandle(any(), any(), anyString(), anyString(), any());
     }
 
     @Test
