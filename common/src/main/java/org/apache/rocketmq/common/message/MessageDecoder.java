@@ -661,8 +661,19 @@ public class MessageDecoder {
     }
 
     public static byte[] encodeMessage(Message message) {
+        try {
+            return encodeMessage(message,null,null);
+        } catch (IOException e) {
+            //should not happen because not doing compress
+            throw new RuntimeException(e);
+        }
+    }
+    public static byte[] encodeMessage(Message message, Compressor compressor,Integer compressLevel) throws IOException {
         //only need flag, body, properties
         byte[] body = message.getBody();
+        if (compressor != null) {
+            body = compressor.compress(body,compressLevel);
+        }
         int bodyLen = body.length;
         String properties = messageProperties2String(message.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
@@ -731,11 +742,20 @@ public class MessageDecoder {
     }
 
     public static byte[] encodeMessages(List<Message> messages) {
+        try {
+            return encodeMessages(messages, null,null);
+        } catch (IOException e) {
+            //should not happen because not doing compress
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] encodeMessages(List<Message> messages, Compressor compressor, Integer compressLevel) throws IOException {
         //TO DO refactor, accumulate in one buffer, avoid copies
         List<byte[]> encodedMessages = new ArrayList<>(messages.size());
         int allSize = 0;
         for (Message message : messages) {
-            byte[] tmp = encodeMessage(message);
+            byte[] tmp = encodeMessage(message,compressor,compressLevel);
             encodedMessages.add(tmp);
             allSize += tmp.length;
         }
