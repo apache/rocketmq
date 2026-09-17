@@ -422,6 +422,31 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
 
+    @Test
+    public void testReceiveMessageWithoutClientSettings() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(null);
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
     private Code getResponseCodeFromReceiveMessageResponseList(List<ReceiveMessageResponse> responseList) {
         for (ReceiveMessageResponse response : responseList) {
             if (response.hasStatus()) {
