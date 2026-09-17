@@ -242,6 +242,29 @@ public class PopMessageProcessorTest {
         assertEquals(ck.getReviveTime(), actual.getReviveTime());
     }
 
+    @Test
+    public void testProcessRequest_IllegalMaxMsgNums() throws RemotingCommandException {
+        for (int maxMsgNums : new int[] {0, -1}) {
+            PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+            requestHeader.setConsumerGroup(group);
+            requestHeader.setMaxMsgNums(maxMsgNums);
+            requestHeader.setQueueId(-1);
+            requestHeader.setTopic(topic);
+            requestHeader.setInvisibleTime(10_000);
+            requestHeader.setInitMode(ConsumeInitMode.MAX);
+            requestHeader.setOrder(false);
+            requestHeader.setPollTime(15_000);
+            requestHeader.setBornTime(System.currentTimeMillis());
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
+            request.makeCustomHeaderToNet();
+
+            RemotingCommand response = popMessageProcessor.processRequest(handlerContext, request);
+            assertThat(response).isNotNull();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+            assertThat(response.getRemark()).contains("num must be positive");
+        }
+    }
+
     private RemotingCommand createPopMsgCommand() {
         return createPopMsgCommand(group, topic, -1, ConsumeInitMode.MAX);
     }
