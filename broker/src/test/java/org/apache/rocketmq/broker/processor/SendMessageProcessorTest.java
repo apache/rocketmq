@@ -357,6 +357,24 @@ public class SendMessageProcessorTest {
         }
     }
 
+    @Test
+    public void testAttachRecallHandle_invalidTimestamp() {
+        SendMessageResponseHeader responseHeader = new SendMessageResponseHeader();
+        String id = MessageClientIDSetter.createUniqID();
+        MessageExt message = new MessageExt();
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, id);
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_TIMER_OUT_MS, "not-a-timestamp");
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_REAL_TOPIC, topic);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, null);
+        sendMessageProcessor.attachRecallHandle(request, message, responseHeader);
+        Assert.assertNull(responseHeader.getRecallHandle());
+
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_TIMER_OUT_MS, "-1");
+        sendMessageProcessor.attachRecallHandle(request, message, responseHeader);
+        Assert.assertNull(responseHeader.getRecallHandle());
+    }
+
     private long floor(long deliverMs, int precisionMs) {
         assert precisionMs > 0;
         if (deliverMs % precisionMs == 0) {
