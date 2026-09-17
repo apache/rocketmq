@@ -20,7 +20,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -85,11 +84,11 @@ public class UpdateConsumerOffsetRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("consumerGroup", consumerGroup)
-            .add("topic", topic)
-            .add("queueId", queueId)
-            .add("commitOffset", commitOffset)
-            .toString();
+        StringBuilder sb = new StringBuilder(205);
+        sb.append("UpdateConsumerOffsetRequestHeader{consumerGroup=").append(consumerGroup)
+            .append(", topic=").append(topic)
+            .append(", queueId=").append(queueId)
+            .append(", commitOffset=").append(commitOffset).append('}');
+        return sb.toString();
     }
 }

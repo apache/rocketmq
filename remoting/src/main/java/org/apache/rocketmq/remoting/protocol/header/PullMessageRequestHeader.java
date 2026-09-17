@@ -20,7 +20,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
 import org.apache.rocketmq.common.action.Action;
@@ -332,22 +331,22 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("consumerGroup", consumerGroup)
-            .add("topic", topic)
-            .add("liteTopic", liteTopic)
-            .add("queueId", queueId)
-            .add("queueOffset", queueOffset)
-            .add("maxMsgBytes", maxMsgBytes)
-            .add("maxMsgNums", maxMsgNums)
-            .add("sysFlag", sysFlag)
-            .add("commitOffset", commitOffset)
-            .add("suspendTimeoutMillis", suspendTimeoutMillis)
-            .add("subscription", subscription)
-            .add("subVersion", subVersion)
-            .add("expressionType", expressionType)
-            .add("requestSource", requestSource)
-            .add("proxyFrowardClientId", proxyFrowardClientId)
-            .toString();
+        StringBuilder sb = new StringBuilder(671);
+        sb.append("PullMessageRequestHeader{consumerGroup=").append(consumerGroup)
+            .append(", topic=").append(topic)
+            .append(", liteTopic=").append(liteTopic)
+            .append(", queueId=").append(queueId)
+            .append(", queueOffset=").append(queueOffset)
+            .append(", maxMsgBytes=").append(maxMsgBytes)
+            .append(", maxMsgNums=").append(maxMsgNums)
+            .append(", sysFlag=").append(sysFlag)
+            .append(", commitOffset=").append(commitOffset)
+            .append(", suspendTimeoutMillis=").append(suspendTimeoutMillis)
+            .append(", subscription=").append(subscription)
+            .append(", subVersion=").append(subVersion)
+            .append(", expressionType=").append(expressionType)
+            .append(", requestSource=").append(requestSource)
+            .append(", proxyFrowardClientId=").append(proxyFrowardClientId).append('}');
+        return sb.toString();
     }
 }
