@@ -21,6 +21,8 @@ import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class ClusterTopicRouteService extends TopicRouteService {
@@ -44,7 +46,8 @@ public class ClusterTopicRouteService extends TopicRouteService {
     @Override
     public String getBrokerAddr(ProxyContext ctx, String brokerName) throws Exception {
         TopicRouteWrapper topicRouteWrapper = getAllMessageQueueView(ctx, brokerName).getTopicRouteWrapper();
-        return topicRouteWrapper.getMasterAddr(brokerName);
+        return topicRouteWrapper.getOptionalMasterAddr(brokerName)
+            .orElseThrow(() -> new ProxyException(ProxyExceptionCode.INVALID_BROKER_NAME, "cannot find broker " + brokerName));
     }
 
     @Override
