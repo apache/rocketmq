@@ -1512,8 +1512,19 @@ public class TimerMessageStore {
             }
 
             while (!isStopped()) {
-                CountDownLatch latch = new CountDownLatch(trs.size());
+                // Only retry the requests that have not succeeded yet, otherwise the
+                // already-succeeded requests would be enqueued again and delivered multiple times
+                List<TimerRequest> retryList = new ArrayList<>(trs.size());
                 for (TimerRequest req : trs) {
+                    if (!req.isSucc()) {
+                        retryList.add(req);
+                    }
+                }
+                if (retryList.isEmpty()) {
+                    break;
+                }
+                CountDownLatch latch = new CountDownLatch(retryList.size());
+                for (TimerRequest req : retryList) {
                     req.setLatch(latch);
                     if (storeConfig.isTimerWheelSnapshotFlush()) {
                         synchronized (lockWhenFlush) {
@@ -1524,7 +1535,7 @@ public class TimerMessageStore {
                     }
                 }
                 checkDequeueLatch(latch, -1);
-                boolean allSuccess = trs.stream().allMatch(TimerRequest::isSucc);
+                boolean allSuccess = retryList.stream().allMatch(TimerRequest::isSucc);
                 if (allSuccess) {
                     break;
                 } else {
