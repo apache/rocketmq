@@ -264,10 +264,16 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                     System.out.print("clusterAddrTable is empty");
                     return;
                 }
-                for (Map.Entry<String, BrokerData> entry : brokerAddrTable.entrySet()) {
-                    String brokerName = entry.getKey();
-                    BrokerData brokerData = entry.getValue();
+                for (String brokerName : clusterAddrTable.get(clusterName)) {
+                    BrokerData brokerData = brokerAddrTable.get(brokerName);
+                    if (brokerData == null) {
+                        continue;
+                    }
                     String brokerAddr = brokerData.getBrokerAddrs().get(0L);
+                    if (brokerAddr == null) {
+                        System.out.printf("broker %s has no master, skip it.%n", brokerName);
+                        continue;
+                    }
                     futureList.add(sendRequest(type, defaultMQAdminExt, brokerAddr, brokerName));
                 }
             } else if (inputBrokerAddr != null) {
