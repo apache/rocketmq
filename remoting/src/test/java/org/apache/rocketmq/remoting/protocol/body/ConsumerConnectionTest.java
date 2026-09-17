@@ -80,4 +80,11 @@ public class ConsumerConnectionTest {
         int version = consumerConnection.computeMinVersion();
         assertThat(version).isEqualTo(1);
     }
+
+    @Test
+    public void testComputeMinVersionWithNoConnection() {
+        // a group without live connections must not be reported as HighestVersion
+        ConsumerConnection consumerConnection = new ConsumerConnection();
+        assertThat(consumerConnection.computeMinVersion()).isEqualTo(0);
+    }
 }
