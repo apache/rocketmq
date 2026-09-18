@@ -951,6 +951,27 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     * This method is used to send transactional messages with a message queue selector.
+     *
+     * <p>The {@code selectorArg} is passed only to {@link MessageQueueSelector#select(List, Message, Object)}.
+     * The {@code transactionArg} is passed only to {@link TransactionListener#executeLocalTransaction(Message, Object)}.
+     * This method follows the existing selector send semantics and does not perform the broker or queue reselection
+     * retry used by the default send path.</p>
+     *
+     * @param msg Transactional message to send.
+     * @param selector Message queue selector.
+     * @param selectorArg Argument used by the selector.
+     * @param transactionArg Argument used along with local transaction executor.
+     * @return Transaction result.
+     * @throws MQClientException if there is any client error.
+     */
+    @Override
+    public TransactionSendResult sendMessageInTransaction(Message msg,
+        MessageQueueSelector selector, Object selectorArg, Object transactionArg) throws MQClientException {
+        throw new RuntimeException("sendMessageInTransaction not implement, please use TransactionMQProducer class");
+    }
+
+    /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      *
      * @param key        accessKey
