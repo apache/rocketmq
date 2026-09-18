@@ -214,4 +214,21 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     public int compareTo(PopCheckPoint o) {
         return (int) (this.getStartOffset() - o.getStartOffset());
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof PopCheckPoint)) {
+            return false;
+        }
+        PopCheckPoint that = (PopCheckPoint) o;
+        return this.getStartOffset() == that.getStartOffset();
+    }
+
+    @Override
+    public int hashCode() {
+        return Long.hashCode(getStartOffset());
+    }
 }
