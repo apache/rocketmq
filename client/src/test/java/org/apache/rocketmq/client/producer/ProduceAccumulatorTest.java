@@ -102,6 +102,20 @@ public class ProduceAccumulatorTest {
     }
 
     @Test
+    public void testGetTotalBatchMaxBytes() {
+        ProduceAccumulator produceAccumulator = new ProduceAccumulator("test");
+
+        assertThat(produceAccumulator.getTotalBatchMaxBytes()).isEqualTo(32L * 1024 * 1024);
+        assertThat(produceAccumulator.getBatchMaxBytes()).isEqualTo(32L * 1024);
+
+        produceAccumulator.totalBatchMaxBytes(64L * 1024 * 1024);
+        produceAccumulator.batchMaxBytes(1024);
+
+        assertThat(produceAccumulator.getTotalBatchMaxBytes()).isEqualTo(64L * 1024 * 1024);
+        assertThat(produceAccumulator.getBatchMaxBytes()).isEqualTo(1024);
+    }
+
+    @Test
     public void testProduceAccumulator_sync() throws MQBrokerException, RemotingException, InterruptedException, MQClientException {
         final MockMQProducer mockMQProducer = new MockMQProducer();
 
