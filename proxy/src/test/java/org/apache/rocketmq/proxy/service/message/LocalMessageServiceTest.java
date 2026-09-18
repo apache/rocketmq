@@ -28,10 +28,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
+import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
@@ -46,6 +48,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -70,6 +73,8 @@ import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -94,6 +99,8 @@ public class LocalMessageServiceTest extends InitConfigTest {
     private EndTransactionProcessor endTransactionProcessorMock;
     @Mock
     private PopMessageProcessor popMessageProcessorMock;
+    @Mock
+    private PopLiteMessageProcessor popLiteMessageProcessorMock;
     @Mock
     private ChangeInvisibleTimeProcessor changeInvisibleTimeProcessorMock;
     @Mock
@@ -126,6 +133,7 @@ public class LocalMessageServiceTest extends InitConfigTest {
         channelManager = new ChannelManager();
         Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
+        Mockito.when(brokerControllerMock.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessorMock);
         Mockito.when(brokerControllerMock.getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessorMock);
         Mockito.when(brokerControllerMock.getAckMessageProcessor()).thenReturn(ackMessageProcessorMock);
         Mockito.when(brokerControllerMock.getEndTransactionProcessor()).thenReturn(endTransactionProcessorMock);
@@ -275,6 +283,169 @@ public class LocalMessageServiceTest extends InitConfigTest {
             boolean second = argument.readCustomHeader() instanceof EndTransactionRequestHeader;
             return first && second;
         }));
+    }
+
+    @Test
+    public void testPopLiteMessageWriteAndFlush() throws Exception {
+        long popTime = System.currentTimeMillis();
+        long invisibleTime = 3000L;
+        List<MessageExt> messages = new ArrayList<>();
+        MessageExt message1 = buildMessageExt(topic, 0, 100L);
+        message1.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%$topic$lite");
+        message1.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, "0");
+        messages.add(message1);
+        MessageExt message2 = buildMessageExt(topic, 0, 101L);
+        message2.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%$topic$lite");
+        message2.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, "1");
+        messages.add(message2);
+        byte[] body = ByteBuffer.allocate(MessageDecoder.encode(message1, false).length + MessageDecoder.encode(message2, false).length)
+            .put(MessageDecoder.encode(message1, false)).put(MessageDecoder.encode(message2, false)).array();
+        PopLiteMessageRequestHeader requestHeader = new PopLiteMessageRequestHeader();
+        requestHeader.setInvisibleTime(invisibleTime);
+        Mockito.when(popLiteMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.argThat(argument ->
+            argument.getCode() == RequestCode.POP_LITE_MESSAGE
+                && argument.readCustomHeader() instanceof PopLiteMessageRequestHeader))).thenAnswer(invocation -> {
+                    SimpleChannelHandlerContext channelHandlerContext = invocation.getArgument(0);
+                    RemotingCommand request = invocation.getArgument(1);
+                    RemotingCommand response = RemotingCommand.createResponseCommand(PopLiteMessageResponseHeader.class);
+                    response.setOpaque(request.getOpaque());
+                    response.setCode(ResponseCode.SUCCESS);
+                    response.setBody(body);
+                    PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) response.readCustomHeader();
+                    responseHeader.setPopTime(popTime);
+                    responseHeader.setInvisibleTime(invisibleTime);
+                    responseHeader.setReviveQid(1);
+                    channelHandlerContext.writeAndFlush(response);
+                    return null;
+                });
+
+        PopResult result = localMessageService.popLiteMessage(proxyContext,
+            new AddressableMessageQueue(new MessageQueue(topic, brokerName, queueId), ""), requestHeader, 1000L).get();
+        assertThat(result.getPopStatus()).isEqualTo(PopStatus.FOUND);
+        assertThat(result.getMsgFoundList()).hasSize(2);
+        assertThat(result.getMsgFoundList().get(0).getQueueOffset()).isEqualTo(0L);
+        assertThat(result.getMsgFoundList().get(1).getQueueOffset()).isEqualTo(1L);
+        assertThat(result.getMsgFoundList().get(0).getBrokerName()).isEqualTo(brokerName);
+    }
+
+    @Test
+    public void testPopLiteMessagePollingResponses() throws Exception {
+        int[] codes = {ResponseCode.POLLING_FULL, ResponseCode.POLLING_TIMEOUT, ResponseCode.PULL_NOT_FOUND};
+        PopStatus[] statuses = {PopStatus.POLLING_FULL, PopStatus.POLLING_NOT_FOUND, PopStatus.POLLING_NOT_FOUND};
+        for (int i = 0; i < codes.length; i++) {
+            PopResult result = invokeLiteResponse(RemotingCommand.createResponseCommand(codes[i], ""));
+            assertThat(result.getPopStatus()).isEqualTo(statuses[i]);
+            assertThat(result.getMsgFoundList()).isEmpty();
+        }
+    }
+
+    @Test
+    public void testPopLiteMessageEmptyBatch() throws Exception {
+        PopResult result = invokeLiteResponse(buildLiteResponse(null));
+        assertThat(result.getPopStatus()).isEqualTo(PopStatus.FOUND);
+        assertThat(result.getMsgFoundList()).isEmpty();
+    }
+
+    @Test
+    public void testPopLiteMessageMalformedDispatchProperties() throws Exception {
+        String[][] properties = {
+            {null, "7"}, {"%LMQ%$topic$lite", null},
+            {"%LMQ%$topic$lite,%LMQ%$topic$other", "7,8"}, {"%LMQ%$topic$lite", "7,8"}
+        };
+        for (String[] property : properties) {
+            MessageExt message = buildMessageExt(topic, 0, 100L);
+            if (property[0] != null) {
+                message.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, property[0]);
+            }
+            if (property[1] != null) {
+                message.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, property[1]);
+            }
+            PopResult result = invokeLiteResponse(buildLiteResponse(null, message));
+            assertThat(result.getMsgFoundList()).hasSize(1);
+            assertThat(result.getMsgFoundList().get(0).getQueueOffset()).isEqualTo(100L);
+            assertThat(result.getMsgFoundList().get(0).getProperty(MessageConst.PROPERTY_POP_CK)).isNull();
+        }
+    }
+
+    @Test
+    public void testPopLiteMessageMissingOrMismatchedOrderCounts() throws Exception {
+        for (String counts : new String[] {null, "", "3", "3;4;5"}) {
+            PopResult result = invokeLiteResponse(buildLiteResponse(counts, buildLiteMessage(7L), buildLiteMessage(8L)));
+            assertThat(result.getMsgFoundList()).hasSize(2);
+            for (MessageExt message : result.getMsgFoundList()) {
+                assertThat(message.getReconsumeTimes()).isZero();
+                assertThat(message.getProperty(MessageConst.PROPERTY_POP_CK)).isNotNull();
+            }
+        }
+    }
+
+    @Test
+    public void testPopLiteMessageOrderCountsAndReceiptMetadata() throws Exception {
+        PopResult result = invokeLiteResponse(buildLiteResponse("3;4", buildLiteMessage(7L), buildLiteMessage(8L)));
+        for (int i = 0; i < 2; i++) {
+            MessageExt message = result.getMsgFoundList().get(i);
+            assertThat(message.getReconsumeTimes()).isEqualTo(i + 3);
+            assertThat(message.getQueueOffset()).isEqualTo(i + 7L);
+            assertThat(message.getBrokerName()).isEqualTo(brokerName);
+            assertThat(message.getProperty(MessageConst.PROPERTY_FIRST_POP_TIME)).isEqualTo("123456");
+            assertThat(message.getProperty(MessageConst.PROPERTY_POP_CK)).isEqualTo(
+                ExtraInfoUtil.buildExtraInfo(0, 123456L, 3000L, 1, topic, brokerName, 0, i + 7L));
+        }
+    }
+
+    @Test
+    public void testPopLiteMessageBrokerError() throws Exception {
+        ExecutionException exception = catchThrowableOfType(() -> invokeLiteResponse(
+            RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "lite failure")), ExecutionException.class);
+        assertThat(exception.getCause()).isInstanceOf(ProxyException.class);
+        assertThat(((ProxyException) exception.getCause()).getCode()).isEqualTo(ProxyExceptionCode.INTERNAL_SERVER_ERROR);
+        assertThat(exception.getCause()).hasMessage("lite failure");
+    }
+
+    @Test
+    public void testPopLiteMessageProcessorException() throws Exception {
+        RemotingCommandException failure = new RemotingCommandException("lite failure");
+        Mockito.when(popLiteMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.any()))
+            .thenThrow(failure);
+        ExecutionException exception = catchThrowableOfType(() -> localMessageService.popLiteMessage(proxyContext,
+            null, new PopLiteMessageRequestHeader(), 1000L).get(5, TimeUnit.SECONDS), ExecutionException.class);
+        assertThat(exception.getCause()).isSameAs(failure);
+    }
+
+    private MessageExt buildLiteMessage(long offset) {
+        MessageExt message = buildMessageExt(topic, 0, 100L);
+        message.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%$topic$lite");
+        message.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, Long.toString(offset));
+        return message;
+    }
+
+    private RemotingCommand buildLiteResponse(String orderCounts, MessageExt... messages) throws Exception {
+        List<byte[]> encoded = new ArrayList<>();
+        int size = 0;
+        for (MessageExt message : messages) {
+            byte[] bytes = MessageDecoder.encode(message, false);
+            encoded.add(bytes);
+            size += bytes.length;
+        }
+        ByteBuffer body = ByteBuffer.allocate(size);
+        encoded.forEach(body::put);
+        RemotingCommand response = RemotingCommand.createResponseCommand(PopLiteMessageResponseHeader.class);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setBody(body.array());
+        PopLiteMessageResponseHeader header = (PopLiteMessageResponseHeader) response.readCustomHeader();
+        header.setPopTime(123456L);
+        header.setInvisibleTime(3000L);
+        header.setReviveQid(1);
+        header.setOrderCountInfo(orderCounts);
+        return response;
+    }
+
+    private PopResult invokeLiteResponse(RemotingCommand response) throws Exception {
+        Mockito.when(popLiteMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.any()))
+            .thenReturn(response);
+        return localMessageService.popLiteMessage(proxyContext,
+            new AddressableMessageQueue(new MessageQueue(topic, brokerName, queueId), ""),
+            new PopLiteMessageRequestHeader(), 1000L).get(5, TimeUnit.SECONDS);
     }
 
     @Test
