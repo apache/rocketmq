@@ -1264,8 +1264,25 @@ public class TimerMessageStore {
             msgInner.setTopic(msgExt.getTopic());
             msgInner.setQueueId(msgExt.getQueueId());
         } else {
-            msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
-            msgInner.setQueueId(Integer.parseInt(msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
+            String realTopic = msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+            String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
+            // A timer message without a usable destination can never be
+            // delivered; throwing here wedges the dequeue thread, which
+            // retries the same request forever when timerSkipUnknownError
+            // is false (the default).
+            if (realTopic == null || queueIdStr == null) {
+                LOGGER.warn("[BUG] the real topic or queue id of timer msg is missing, discard the msg. msg={}", msgInner);
+                return null;
+            }
+            int queueId;
+            try {
+                queueId = Integer.parseInt(queueIdStr);
+            } catch (NumberFormatException e) {
+                LOGGER.warn("[BUG] the real queue id of timer msg is {}, discard the msg. msg={}", queueIdStr, msgInner);
+                return null;
+            }
+            msgInner.setTopic(realTopic);
+            msgInner.setQueueId(queueId);
             MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
             MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
         }
@@ -1647,6 +1664,10 @@ public class TimerMessageStore {
 
                                 addMetric(msgExt, -1);
                                 MessageExtBrokerInner msg = convert(msgExt, tr.getEnqueueTime(), needRoll(tr.getMagic()));
+                                if (msg == null) {
+                                    TimerMessageStore.LOGGER.warn("Skipping message due to missing or malformed destination. Msg: {}", msgExt);
+                                    break;
+                                }
 
                                 boolean processed = false;
                                 int retryCount = 0;
