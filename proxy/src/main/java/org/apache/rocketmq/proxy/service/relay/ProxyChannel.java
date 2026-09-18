@@ -111,6 +111,8 @@ public abstract class ProxyChannel extends SimpleChannel {
                         break;
                     }
                     default:
+                        processFuture.completeExceptionally(new UnsupportedOperationException(
+                            "Unsupported remoting command code: " + command.getCode()));
                         break;
                 }
             } else {
