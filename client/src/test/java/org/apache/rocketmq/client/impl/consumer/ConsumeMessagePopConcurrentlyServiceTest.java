@@ -47,6 +47,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -179,6 +181,26 @@ public class ConsumeMessagePopConcurrentlyServiceTest {
         when(defaultMQPushConsumerImpl.getPopDelayLevel()).thenReturn(new int[]{1, 10});
         popService.processConsumeResult(ConsumeConcurrentlyStatus.CONSUME_SUCCESS, context, consumeRequest);
         verify(defaultMQPushConsumerImpl, times(1)).ackAsync(any(MessageExt.class), any());
+    }
+
+    @Test
+    public void testProcessConsumeResultWithMaxReconsumeReachedAndFreshMessage() throws Exception {
+        ConsumeConcurrentlyContext context = mock(ConsumeConcurrentlyContext.class);
+        ConsumeMessagePopConcurrentlyService.ConsumeRequest consumeRequest = mock(ConsumeMessagePopConcurrentlyService.ConsumeRequest.class);
+        MessageExt messageExt = createMessageExt();
+        messageExt.setReconsumeTimes(0);
+        when(consumeRequest.getMsgs()).thenReturn(Collections.singletonList(messageExt));
+        MessageQueue messageQueue = mock(MessageQueue.class);
+        when(messageQueue.getTopic()).thenReturn(defaultTopic);
+        when(consumeRequest.getMessageQueue()).thenReturn(messageQueue);
+        PopProcessQueue processQueue = mock(PopProcessQueue.class);
+        when(consumeRequest.getPopProcessQueue()).thenReturn(processQueue);
+        when(defaultMQPushConsumerImpl.getMaxReconsumeTimes()).thenReturn(0);
+        when(defaultMQPushConsumerImpl.getPopDelayLevel()).thenReturn(new int[] {10, 30, 60});
+
+        popService.processConsumeResult(ConsumeConcurrentlyStatus.RECONSUME_LATER, context, consumeRequest);
+
+        verify(defaultMQPushConsumerImpl, times(1)).changePopInvisibleTimeAsync(anyString(), anyString(), anyString(), anyLong(), any());
     }
 
     private MessageExt createMessageExt() {
