@@ -82,6 +82,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -540,6 +541,58 @@ public class LiteManagerProcessorTest {
     }
 
     @Test
+    public void testGetLiteGroupInfo_InvalidTopK() throws Exception {
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName("lite_group");
+        groupConfig.setLiteBindTopic("parent_topic");
+        when(subscriptionGroupManager.findSubscriptionGroupConfig("lite_group")).thenReturn(groupConfig);
+
+        for (String liteTopic : new String[] {null, ""}) {
+            for (int topK : new int[] {0, -1, Integer.MIN_VALUE, 10001, Integer.MAX_VALUE}) {
+                GetLiteGroupInfoRequestHeader requestHeader = new GetLiteGroupInfoRequestHeader();
+                requestHeader.setGroup("lite_group");
+                requestHeader.setLiteTopic(liteTopic);
+                requestHeader.setTopK(topK);
+                RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_LITE_GROUP_INFO, requestHeader);
+                request.makeCustomHeaderToNet();
+
+                RemotingCommand response = processor.processRequest(ctx, request);
+
+                assertEquals(ResponseCode.INVALID_PARAMETER, response.getCode());
+                assertTrue(response.getRemark().contains("topK"));
+                assertNull(response.getBody());
+            }
+        }
+        verifyNoInteractions(liteConsumerLagCalculator);
+    }
+
+    @Test
+    public void testGetLiteGroupInfo_TopKBoundaries() throws Exception {
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName("lite_group");
+        groupConfig.setLiteBindTopic("parent_topic");
+        when(subscriptionGroupManager.findSubscriptionGroupConfig("lite_group")).thenReturn(groupConfig);
+
+        for (int topK : new int[] {1, 10000}) {
+            GetLiteGroupInfoRequestHeader requestHeader = new GetLiteGroupInfoRequestHeader();
+            requestHeader.setGroup("lite_group");
+            requestHeader.setTopK(topK);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_LITE_GROUP_INFO, requestHeader);
+            request.makeCustomHeaderToNet();
+            when(liteConsumerLagCalculator.getLagCountTopK("lite_group", topK))
+                .thenReturn(Pair.of(Collections.emptyList(), 0L));
+            when(liteConsumerLagCalculator.getLagTimestampTopK("lite_group", "parent_topic", topK))
+                .thenReturn(Pair.of(Collections.emptyList(), -1L));
+
+            RemotingCommand response = processor.processRequest(ctx, request);
+
+            assertEquals(ResponseCode.SUCCESS, response.getCode());
+            verify(liteConsumerLagCalculator).getLagCountTopK("lite_group", topK);
+            verify(liteConsumerLagCalculator).getLagTimestampTopK("lite_group", "parent_topic", topK);
+        }
+    }
+
+    @Test
     public void testGetLiteGroupInfo_GetTopKInfo() throws RemotingCommandException {
         GetLiteGroupInfoRequestHeader requestHeader = new GetLiteGroupInfoRequestHeader();
         requestHeader.setGroup("lite_group");
@@ -604,7 +657,6 @@ public class LiteManagerProcessorTest {
         GetLiteGroupInfoRequestHeader requestHeader = new GetLiteGroupInfoRequestHeader();
         requestHeader.setGroup("lite_group");
         requestHeader.setLiteTopic("specific_lite_topic");
-        requestHeader.setTopK(10);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_LITE_GROUP_INFO, requestHeader);
         request.makeCustomHeaderToNet();
