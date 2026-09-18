@@ -140,6 +140,38 @@ public class RouteActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testQueryRouteSkipsQueueDataOfUnregisteredBroker() throws Throwable {
+        ConfigurationManager.getProxyConfig().setGrpcServerPort(8080);
+        // A route may carry a queueData whose broker has no BrokerData entry:
+        // namesrv pickupTopicRouteData puts every queueData into the route but
+        // only adds brokers present in brokerAddrTable. The queue list must skip
+        // that queueData instead of dropping every following broker's queues.
+        ProxyTopicRouteData proxyTopicRouteData = createProxyTopicRouteData(2, 2, 6);
+        QueueData staleQueueData = createQueueData(2, 2, 6);
+        staleQueueData.setBrokerName("staleBroker");
+        proxyTopicRouteData.getQueueDatas().add(0, staleQueueData);
+        when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
+            .thenReturn(proxyTopicRouteData);
+        MetadataService metadataService = Mockito.mock(LocalMetadataService.class);
+        when(this.messagingProcessor.getMetadataService()).thenReturn(metadataService);
+        when(metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
+
+        QueryRouteResponse response = this.routeActivity.queryRoute(
+            createContext(),
+            QueryRouteRequest.newBuilder()
+                .setEndpoints(grpcEndpoints)
+                .setTopic(GRPC_TOPIC)
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(4, response.getMessageQueuesCount());
+        for (MessageQueue messageQueue : response.getMessageQueuesList()) {
+            assertEquals(BROKER_NAME, messageQueue.getBroker().getName());
+        }
+    }
+
+    @Test
     public void testQueryAssignmentWithNoReadPerm() throws Throwable {
         when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
             .thenReturn(createProxyTopicRouteData(2, 2, PermName.PERM_WRITE));
