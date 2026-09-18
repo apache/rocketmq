@@ -173,6 +173,15 @@ public class RouteInfoManagerTest {
     }
 
     @Test
+    public void testGetTopicsByClusterNotExisted() {
+        // An unknown cluster must be distinguishable from a cluster whose
+        // brokers serve no topics: before the fix the unknown-cluster lookup
+        // NPE'd on the null set, was swallowed by the catch and reported as
+        // an empty topic list.
+        assertThat(routeInfoManager.getTopicsByCluster("not-exist-cluster")).isNull();
+    }
+
+    @Test
     public void testGetUnitTopics() {
         byte[] topicList = routeInfoManager.getUnitTopics().encode();
         assertThat(topicList).isNotNull();
