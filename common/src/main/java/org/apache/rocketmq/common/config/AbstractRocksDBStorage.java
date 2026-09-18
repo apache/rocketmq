@@ -57,6 +57,23 @@ import org.rocksdb.Status;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
+/**
+ * Abstract base class for all RocksDB-backed storage in RocketMQ.
+ *
+ * <p>Provides common CRUD operations:
+ * - {@code put},
+ * - {@code get},
+ * - {@code delete},
+ * - {@code batchPut},
+ * - {@code rangeDelete},
+ * - {@code iterate}),
+ * lifecycle management: ({@code start}, {@code shutdown}),
+ * automatic recovery on corruption ({@code scheduleReloadRocksdb}),
+ * and manual compaction scheduling.
+ *
+ * <p>Subclasses define column families in {@link #postLoad()}
+ * and handle their own cleanup in {@link #preShutdown()}.
+ */
 public abstract class AbstractRocksDBStorage {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
 
@@ -76,10 +93,14 @@ public abstract class AbstractRocksDBStorage {
     protected RocksDB db;
     protected DBOptions options;
 
+    // WriteOptions with WAL disabled for high-throughput index writes that can be rebuilt
     protected WriteOptions writeOptions;
+    // WriteOptions with WAL enabled for durability-critical writes (trans, timer checkpoints)
     protected WriteOptions ableWalWriteOptions;
 
+    // ReadOptions using prefix seek (fast, index-friendly)
     protected ReadOptions readOptions;
+    // ReadOptions using total-order seek (slower, required for range scans without prefix)
     protected ReadOptions totalOrderReadOptions;
 
     protected CompactionOptions compactionOptions;
@@ -93,8 +114,10 @@ public abstract class AbstractRocksDBStorage {
 
     protected volatile boolean loaded;
     protected CompressionType compressionType = CompressionType.LZ4_COMPRESSION;
+    // Set to true when a reload is scheduled, causing hold() to reject new operations
     private volatile boolean closed;
 
+    // Guard to ensure only one reload attempt at a time
     private final Semaphore reloadPermit = new Semaphore(1);
     private final ScheduledExecutorService reloadScheduler = ThreadUtils.newScheduledThreadPool(1, new ThreadFactoryImpl("RocksDBStorageReloadService_"));
     private final ThreadPoolExecutor manualCompactionThread = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
@@ -175,6 +198,16 @@ public abstract class AbstractRocksDBStorage {
         this.flushOptions = new FlushOptions();
     }
 
+    /**
+     * check RocksDB status. isReady maybe a better name.
+     *
+     * <p>Called before every read/write operation. Returns {@code true} if the
+     * database is fully loaded, the handle is non-null, and the instance has not
+     * been closed (e.g. due to a scheduled reload). Subclasses may override
+     * {@link #release()} to pair with this call (e.g. for reference counting).
+     *
+     * @return {@code true} if the database is ready for operations
+     */
     public boolean hold() {
         if (!this.loaded || this.db == null || this.closed) {
             LOGGER.error("hold rocksdb Failed. {}", this.dbPath);
@@ -333,6 +366,17 @@ public abstract class AbstractRocksDBStorage {
         iterate(columnFamilyHandle, prefix, null, null, callback);
     }
 
+    /**
+     * Iterate over keys in a column family with optional prefix and range bounds.
+     *
+     * <p>If a prefix is given without an explicit start, the prefix serves as
+     * the lower bound and iteration continues until keys deviate from the prefix.
+     * If a start key is given, it takes precedence over the prefix for seeking.
+     *
+     * @param prefix optional lower-bound prefix; iteration stops when key deviates
+     * @param start optional explicit start key (overrides prefix for seek)
+     * @param end optional upper bound (exclusive)
+     */
     public void iterate(ColumnFamilyHandle columnFamilyHandle, byte[] prefix,
         final byte[] start, final byte[] end, BiConsumer<byte[], byte[]> callback) throws RocksDBException {
 
@@ -644,6 +688,15 @@ public abstract class AbstractRocksDBStorage {
         }
     }
 
+    /**
+     * Auto-recovery hook: when a write/delete/flush operation throws a RocksDB
+     * exception with code {@code Aborted}, {@code Corruption}, or
+     * {@code Undefined}, schedule a full reload of the RocksDB instance after
+     * a 10-second delay. The {@link #reloadPermit} semaphore ensures only one
+     * reload is scheduled at a time. While the reload is in progress,
+     * {@link #closed} is set to true, causing {@link #hold()} to reject all
+     * new operations.
+     */
     private void scheduleReloadRocksdb(RocksDBException rocksDBException) {
         if (rocksDBException == null || rocksDBException.getStatus() == null) {
             return;

@@ -39,6 +39,8 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     public AbstractConsumeQueueStore(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
+
+        // default value of enableLmq is false
         if (messageStoreConfig.isEnableLmq()) {
             this.consumeQueueTable = new ConcurrentHashMap<>(32_768);
         } else {

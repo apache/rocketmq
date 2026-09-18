@@ -231,7 +231,10 @@ public class DispatchRequest {
         this.offsetId = offsetId;
     }
 
+
+    // not system topic and contains lmq property
     public boolean containsLMQ() {
+        // not system topic
         if (!MixAll.topicAllowsLMQ(topic)) {
             return false;
         }
@@ -240,6 +243,8 @@ public class DispatchRequest {
         }
         String lmqNames = propertiesMap.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String lmqOffsets = propertiesMap.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+
+        // contains lmq property
         return !StringUtils.isBlank(lmqNames) && !StringUtils.isBlank(lmqOffsets);
     }
 

@@ -19,10 +19,31 @@ package org.apache.rocketmq.common.lite;
 
 import java.util.Objects;
 
+/**
+ * Strategy descriptor for resetting the consumer offset on a Lite Topic
+ * subscription. The pair of {@link Type} and a {@code long} value is
+ * consumed by
+ * {@code LiteSubscriptionRegistryImpl.resetOffset} to compute and apply
+ * a target offset for a (group, lmqName) pair.
+ *
+ * <p>The {@code value} field is interpreted according to {@link #getType()}:
+ * <ul>
+ *   <li>{@link Type#POLICY} — use a symbolic policy via the {@code POLICY_*}
+ *   constants below</li>
+ *   <li>{@link Type#OFFSET} — set the offset directly to {@code value}</li>
+ *   <li>{@link Type#TAIL_N} — rewind {@code value} messages from the current
+ *   offset (clamped to 0)</li>
+ *   <li>{@link Type#TIMESTAMP} — currently disabled; reserved for future
+ *   use</li>
+ * </ul>
+ */
 public class OffsetOption {
 
+    /** Symbolic policy for {@link Type#POLICY}: keep the current offset unchanged. */
     public static final long POLICY_LAST_VALUE = 0L;
+    /** Symbolic policy for {@link Type#POLICY}: reset the offset to 0. */
     public static final long POLICY_MIN_VALUE = 1L;
+    /** Symbolic policy for {@link Type#POLICY}: reset to the current max offset of the queue. */
     public static final long POLICY_MAX_VALUE = 2L;
 
     private Type type;
@@ -76,10 +97,18 @@ public class OffsetOption {
             '}';
     }
 
+    /**
+     * Reset strategy selector. See the {@link OffsetOption} class doc for
+     * the semantics of each value when paired with the {@code value} field.
+     */
     public enum Type {
+        /** Symbolic policy selected by the {@code POLICY_*} constants. */
         POLICY,
+        /** Set the offset directly to the {@code value}. */
         OFFSET,
+        /** Rewind {@code value} messages from the current offset (clamped to 0). */
         TAIL_N,
+        /** Set the offset by timestamp. Reserved; currently disabled. */
         TIMESTAMP
     }
 

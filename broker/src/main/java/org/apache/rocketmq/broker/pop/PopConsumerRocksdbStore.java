@@ -38,6 +38,19 @@ import org.rocksdb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * RocksDB-backed implementation of {@link PopConsumerKVStore} for the
+ * KVStore-based Pop ack path.
+ *
+ * <p>Stores Pop consumer records in a dedicated {@code "popState"} column
+ * family. Each record is keyed by {@code visibilityTimeout|groupId@topicId@queueId@offset}
+ * so that {@link #scanExpiredRecords} can efficiently scan only expired
+ * records within a time window without a full table scan.
+ *
+ * <p>Write and delete operations use synchronous flush and WAL for
+ * durability — Pop visibility state is the sole source of truth in the
+ * KVStore path and must survive crashes.
+ */
 public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements PopConsumerKVStore {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -55,31 +68,71 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         this.writeBufferSize = writeBufferSize;
     }
 
-    // https://www.cnblogs.com/renjc/p/rocksdb-class-db.html
-    // https://github.com/johnzeng/rocksdb-doc-cn/blob/master/doc/RocksDB-Tuning-Guide.md
+    /**
+     * Configure RocksDB options for Pop consumer record storage.
+     *
+     * <p>Unlike the parent class defaults, write and delete options enable
+     * WAL and synchronous flush — Pop visibility state is the sole source
+     * of truth and must survive crashes. Compaction is configured to be
+     * aggressive so that expired-then-deleted records are purged promptly,
+     * reclaiming disk space.
+     *
+     * @see <a href="https://www.cnblogs.com/renjc/p/rocksdb-class-db.html">rocksdb-class-db</a>
+     * @see <a href="https://github.com/johnzeng/rocksdb-doc-cn/blob/master/doc/RocksDB-Tuning-Guide.md">RocksDB-Tuning-Guide</a>
+     */
     protected void initOptions() {
+        // durability-first: enable WAL and sync flush for pop state recovery
         this.options = RocksDBOptionsFactory.createDBOptions();
 
         this.writeOptions = new WriteOptions();
+        // fsync every write to disk
         this.writeOptions.setSync(true);
+        // enable WAL
         this.writeOptions.setDisableWAL(false);
+        // allow writing throttling under pressure
         this.writeOptions.setNoSlowdown(false);
 
+        // delete must be durable too — otherwise ack can be lost and message revived incorrectly
         this.deleteOptions = new WriteOptions();
         this.deleteOptions.setSync(true);
         this.deleteOptions.setDisableWAL(false);
         this.deleteOptions.setNoSlowdown(false);
 
+        // aggressive compaction to purge expired pop records and reclaim space
         this.compactRangeOptions = new CompactRangeOptions();
+        // force compact bottom level
         this.compactRangeOptions.setBottommostLevelCompaction(
             CompactRangeOptions.BottommostLevelCompaction.kForce);
+        // allow compaction to pause writes
         this.compactRangeOptions.setAllowWriteStall(true);
+        // manual compaction runs in parallel with auto-compaction.
+        // Appropriate here because expired Pop records generate tombstones continuously,
+        // and cleanup should not starve RocksDB's normal background work
         this.compactRangeOptions.setExclusiveManualCompaction(false);
+        // Allows compaction to move data across levels
         this.compactRangeOptions.setChangeLevel(true);
+        // -1 delegates level selection to RocksDB's internal heuristics
         this.compactRangeOptions.setTargetLevel(-1);
+        // Splits the compaction work into at most 4 parallel sub-tasks
         this.compactRangeOptions.setMaxSubcompactions(4);
     }
 
+    /**
+     * Initialise the RocksDB instance with a dedicated column family for Pop state.
+     *
+     * <p>Two column families are created:
+     * <ol>
+     *   <li>{@code default} — unused, required by RocksDB</li>
+     *   <li>{@code "popState"} — stores Pop consumer records keyed by
+     *       {@code visibilityTimeout|groupId@topicId@queueId@offset}</li>
+     * </ol>
+     *
+     * <p>Called by {@link AbstractRocksDBStorage#start()} before the storage
+     * is marked as loaded. Returns {@code false} if any step fails, preventing
+     * all subsequent read/write operations via {@link #hold()}.
+     *
+     * @return {@code true} if the database was opened successfully
+     */
     @Override
     protected boolean postLoad() {
         try {
@@ -111,6 +164,16 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         return this.dbPath;
     }
 
+    /**
+     * Batch-write consumer records to RocksDB via a single {@link WriteBatch}.
+     * Key: (popTime + invisibleTime) + groupId + topicId + queueId + offset
+     * value: PopConsumerRecord.toJsonBytes
+     *
+     * <p>Each record is serialized with its visibility-timeout-prefixed key
+     * so that {@link #scanExpiredRecords} can efficiently scan by time range.
+     *
+     * @param consumerRecordList the records to persist
+     */
     @Override
     public void writeRecords(List<PopConsumerRecord> consumerRecordList) {
         if (!consumerRecordList.isEmpty()) {
@@ -125,6 +188,14 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         }
     }
 
+    /**
+     * Batch-delete consumer records from RocksDB via a single {@link WriteBatch}.
+     *
+     * <p>Deletion uses the same durability guarantees as writes ({@code sync=true},
+     * WAL enabled)
+     *
+     * @param consumerRecordList the records to remove
+     */
     @Override
     public void deleteRecords(List<PopConsumerRecord> consumerRecordList) {
         if (!consumerRecordList.isEmpty()) {
@@ -139,8 +210,19 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         }
     }
 
+    /**
+     * Scan and return expired consumer records within a visibility-timeout range.
+     *
+     * <p>Because each record's key is prefixed with {@code visibilityTimeout},
+     * this method uses a RocksDB iterator bounded by {@code [lower, upper)} to
+     * efficiently scan only the relevant time window without a full table scan.
+     *
+     * @param lower    inclusive lower bound of the visibility timeout (ms)
+     * @param upper    exclusive upper bound of the visibility timeout (ms)
+     * @param maxCount maximum number of records to return
+     * @return up to {@code maxCount} expired records, or an empty list
+     */
     @Override
-    // https://github.com/facebook/rocksdb/issues/10300
     public List<PopConsumerRecord> scanExpiredRecords(long lower, long upper, int maxCount) {
         // In RocksDB, we can use SstPartitionerFixedPrefixFactory in cfOptions
         // and new ColumnFamilyOptions().useFixedLengthPrefixExtractor() to
@@ -153,6 +235,7 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
              RocksIterator iterator = db.newIterator(this.columnFamilyHandle, scanOptions)) {
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lower).array());
             while (iterator.isValid() && consumerRecordList.size() < maxCount) {
+                // decode json bytes to PopConsumerRecord
                 consumerRecordList.add(PopConsumerRecord.decode(iterator.value()));
                 iterator.next();
             }

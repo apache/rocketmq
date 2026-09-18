@@ -58,6 +58,15 @@ public class PopConsumerRecord {
     @JSONField(ordinal = 4)
     private int retryFlag;
 
+    /**
+     * Message visibility timeout in milliseconds.
+     *
+     * <p>The visibility timeout ({@code popTime + invisibleTime}) determines when
+     * a popped-but-unacked message becomes eligible for revival. Set by the
+     * consumer (default 60s via {@code DefaultMQPushConsumer#setPopInvisibleTime}).
+     * Can be changed by proxy with config.
+     * Can be extended via {@code ChangeInvisibleTime}.
+     */
     @JSONField(ordinal = 5)
     private long invisibleTime;
 
@@ -67,9 +76,31 @@ public class PopConsumerRecord {
     @JSONField(ordinal = 7)
     private int attemptTimes;
 
+    /**
+     * Client-generated idempotency key for FIFO ordered consumption.
+     *
+     * <p>Possible values:
+     * <ul>
+     *   <li>Client request — a unique id from {@code PopMessageRequestHeader#getAttemptId},
+     *       used by {@code ConsumerOrderInfoManager} to block subsequent pops on the same
+     *       queue until the current batch is acked</li>
+     *   <li>{@code null} — for ack records ({@code PopConsumerService#ackAsync}) and
+     *       change-invisibility records, where FIFO ordering is not applicable</li>
+     *   <li>Copied from the original record — for revive retry records, the attemptId is
+     *       inherited from the expired record</li>
+     * </ul>
+     */
     @JSONField(ordinal = 8)
     private String attemptId;
 
+    /**
+     * Whether the consumer has suspended (nacked) this message.
+     *
+     * <p>When {@code true}, the reconsume count is <b>not</b> incremented on
+     * revive, so the message will not be prematurely sent to the DLQ due to
+     * repeated visibility timeout extensions. Set via
+     * {@code ChangeInvisibleTimeRequestHeader#isSuspend}.
+     */
     @JSONField(ordinal = 9)
     private boolean suspend;
 
@@ -102,7 +133,19 @@ public class PopConsumerRecord {
     }
 
     /**
-     * Key: timestamp(8) + groupId + topicId + queueId + offset
+     * Build the RocksDB key for this record.
+     *
+     * <p>Format:
+     * <pre>
+     * visibilityTimeout(8B) + groupId + '@' + topicId + '@' + queueId(4B) + '@' + offset(8B)
+     * </pre>
+     *
+     * <p>The {@code visibilityTimeout} is placed first so that records are ordered
+     * by expiration time in RocksDB's SST files. This allows
+     * {@code PopConsumerRocksdbStore#scanExpiredRecords} to use a bounded iterator
+     * to scan only the relevant time window without a full table scan.
+     *
+     * <p>NACK(changeInvisibleTime) will create a new record, and the old one will be deleted.
      */
     @JSONField(serialize = false)
     public byte[] getKeyBytes() {

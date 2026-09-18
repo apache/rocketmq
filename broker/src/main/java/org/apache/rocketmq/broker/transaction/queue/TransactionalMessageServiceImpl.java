@@ -67,6 +67,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private static final int SLEEP_WHILE_NO_OP = 1000;
 
+    /**
+     * deleted offset queue map
+     * only one key: 0
+     */
     private final ConcurrentHashMap<Integer, MessageQueueOpContext> deleteContext = new ConcurrentHashMap<>();
 
     private ServiceThread transactionalOpBatchService;
@@ -105,6 +109,20 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return transactionalMessageBridge.putHalfMessage(messageInner);
     }
 
+    /**
+     * Check whether the prepared message has exceeded the maximum number of
+     * transaction checks and should be discarded.
+     * isOverMaxCheckTimes may be a better method name
+     *
+     * <p>Each time the message is checked, the {@code TRANSACTION_CHECK_TIMES}
+     * property is incremented. When it reaches {@code transactionCheckMax},
+     * the message is considered expired and will be discarded via
+     * {@link AbstractTransactionalMessageCheckListener#resolveDiscardMsg}.
+     *
+     * @param msgExt             the prepared message being checked
+     * @param transactionCheckMax maximum allowed check attempts
+     * @return {@code true} if the message should be discarded
+     */
     private boolean needDiscard(MessageExt msgExt, int transactionCheckMax) {
         String checkTimes = msgExt.getProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES);
         int checkTime = 1;
@@ -120,6 +138,19 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return false;
     }
 
+    /**
+     * Check whether the prepared message should be skipped because its birth
+     * time exceeds the commit log's file reserved time.
+     * isExpired maybe a better method name
+     *
+     * <p>If the message has been in the half topic longer than
+     * {@code fileReservedTime} hours, the corresponding commit log data may
+     * have already been deleted. The message is skipped rather than checked
+     * to avoid unnecessary IO and potential errors.
+     *
+     * @param msgExt the prepared message being checked
+     * @return {@code true} if the message should be skipped
+     */
     private boolean needSkip(MessageExt msgExt) {
         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
         if (valueOfCurrentMinusBorn
@@ -158,10 +189,37 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         }
     }
 
+    /**
+     * Scan the half-message topic and compare with the OP topic to find
+     * unresolved transactions. called by independent thread(TransactionalMessageCheckService).
+     *
+     * <p>For each queue in the HALF topic:
+     * <ol>
+     *   <li>Fetches the OP (operation) topic at the current offset and builds
+     *       a {@code removeMap} — half offsets that have been committed or
+     *       rolled back</li>
+     *   <li>Iterates through the HALF topic:
+     *       <ul>
+     *         <li>If the offset is in {@code removeMap} → skip (already done)</li>
+     *         <li>If the message is outside the immunity window → calls
+     *             {@code listener.resolveHalfMsg} to trigger a broker-side
+     *             check-back to the producer</li>
+     *         <li>If the message exceeds check max or file-reserved time →
+     *             {@code listener.resolveDiscardMsg}</li>
+     *       </ul>
+     *   </li>
+     *   <li>Updates consume offsets for both HALF and OP topics</li>
+     * </ol>
+     *
+     * @param transactionTimeout   the transaction timeout in milliseconds
+     * @param transactionCheckMax  maximum number of times to check a transaction
+     * @param listener             callback for resolved or discarded messages
+     */
     @Override
     public void check(long transactionTimeout, int transactionCheckMax,
         AbstractTransactionalMessageCheckListener listener) {
         try {
+            // fetch message queues of the half-message topic, one queue by default
             String topic = TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC;
             Set<MessageQueue> msgQueues = transactionalMessageBridge.fetchMessageQueues(topic);
             if (msgQueues == null || msgQueues.size() == 0) {
@@ -169,7 +227,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 return;
             }
             log.debug("Check topic={}, queues={}", topic, msgQueues);
+
+            // loop through each prepare queue, one queue by default
             for (MessageQueue messageQueue : msgQueues) {
+                // init context: opQueue, offsets, etc
                 long startTime = System.currentTimeMillis();
                 MessageQueue opQueue = getOpQueue(messageQueue);
                 long halfOffset = transactionalMessageBridge.fetchConsumeOffset(messageQueue);
@@ -181,15 +242,29 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     continue;
                 }
 
+                // opOffset list for which:
+                // - message body is null or empty
+                // - all corresponding prepareOffsets < miniOffset
+                // - all corresponding prepareOffsets have been committed/rolled back
                 List<Long> doneOpOffset = new ArrayList<>();
+                // the relation between:
+                // - prepareOffset : opOffset = N:1
+                // - prepareOffset : prepareMessage = 1:1
+                // Map<prepareOffset,opOffset>
                 HashMap<Long, Long> removeMap = new HashMap<>();
+                // Map<opOffset, HashSet<prepareOffset>>
+                // This match the storage format of the OP topic queue
                 HashMap<Long, HashSet<Long>> opMsgMap = new HashMap<Long, HashSet<Long>>();
+
+                // load op message to removeMap
                 PullResult pullResult = fillOpRemoveMap(removeMap, opQueue, opOffset, halfOffset, opMsgMap, doneOpOffset);
                 if (null == pullResult) {
                     log.error("The queue={} check msgOffset={} with opOffset={} failed, pullResult is null",
                         messageQueue, halfOffset, opOffset);
                     continue;
                 }
+
+                // init merge prepare queue and op queue context
                 // single thread
                 int getMessageNullCount = 1;
                 long newOffset = halfOffset;
@@ -204,6 +279,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         break;
                     }
                     Long removedOpOffset;
+
+                    // remove committed/rolled back message
                     if ((removedOpOffset = removeMap.remove(i)) != null) {
                         log.debug("Half offset {} has been committed/rolled back", i);
                         opMsgMap.get(removedOpOffset).remove(i);
@@ -211,7 +288,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             opMsgMap.remove(removedOpOffset);
                             doneOpOffset.add(removedOpOffset);
                         }
-                    } else {
+                    }
+                    // merge prepare message and op message
+                    else {
+                        // get one prepare message
                         GetResult getResult = getHalfMsg(messageQueue, i);
                         MessageExt msgExt = getResult.getMsg();
                         if (msgExt == null) {
@@ -231,6 +311,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         }
 
+                        // slave acting master mode
                         if (this.transactionalMessageBridge.getBrokerController().getBrokerConfig().isEnableSlaveActingMaster()
                             && this.transactionalMessageBridge.getBrokerController().getMinBrokerIdInGroup()
                             == this.transactionalMessageBridge.getBrokerController().getBrokerIdentity().getBrokerId()
@@ -260,24 +341,30 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             continue;
                         }
 
+                        // if isOverMaxCheckTimes or isExpired, call client to check transaction status
                         if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
                             listener.resolveDiscardMsg(msgExt);
                             newOffset = i + 1;
                             i++;
                             continue;
                         }
+
+                        // skip if the message is fresh, break
                         if (msgExt.getStoreTimestamp() >= startTime) {
                             log.debug("Fresh stored. the miss offset={}, check it later, store={}", i,
                                 new Date(msgExt.getStoreTimestamp()));
                             break;
                         }
 
+                        // check ImmunityTime, skip if bornTime <= immunityTime, reput to prepare queue if needed
                         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
                         long checkImmunityTime = transactionTimeout;
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
                         if (null != checkImmunityTimeStr) {
+                            // convert checkImmunityTimeStr to long, if failed, use transactionTimeout
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
                             if (valueOfCurrentMinusBorn <= checkImmunityTime) {
+                                // check the prepare message has been committed/rolled back
                                 if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTimeStr)) {
                                     newOffset = i + 1;
                                     i++;
@@ -291,13 +378,18 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 break;
                             }
                         }
+
+                        // calculate isNeedCheck
                         List<MessageExt> opMsg = pullResult == null ? null : pullResult.getMsgFoundList();
+                        // isNeedCheck is true if:
+                        // - no opMessage && bornTime > transactionTimeout
+                        // - have opMessage && lastOpMessage.bornTime > transactionTimeout
+                        // - bornTime before now
                         boolean isNeedCheck = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime
                             || opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
                             || valueOfCurrentMinusBorn <= -1;
 
                         if (isNeedCheck) {
-
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
@@ -307,7 +399,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                     msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX),
                                     msgExt.getQueueOffset(), msgExt.getCommitLogOffset());
                             listener.resolveHalfMsg(msgExt);
-                        } else {
+                        } else { // fetch more opMessages and sleep if needed
                             nextOpOffset = pullResult != null ? pullResult.getNextBeginOffset() : nextOpOffset;
                             pullResult = fillOpRemoveMap(removeMap, opQueue, nextOpOffset,
                                     halfOffset, opMsgMap, doneOpOffset);
@@ -330,6 +422,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     newOffset = i + 1;
                     i++;
                 }
+
+                // update new offsets and logging
                 if (newOffset != halfOffset) {
                     transactionalMessageBridge.updateConsumeOffset(messageQueue, newOffset);
                 }
@@ -337,6 +431,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 if (newOpOffset != opOffset) {
                     transactionalMessageBridge.updateConsumeOffset(opQueue, newOpOffset);
                 }
+
                 GetResult getResult = getHalfMsg(messageQueue, newOffset);
                 pullResult = pullOpMsg(opQueue, newOpOffset, 1);
                 long maxMsgOffset = getResult.getPullResult() == null ? newOffset : getResult.getPullResult().getMaxOffset();
@@ -350,9 +445,22 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         } catch (Throwable e) {
             log.error("Check error", e);
         }
-
     }
 
+    /**
+     * convert checkImmunityTimeStr to long, return transactionTimeout if invalid.
+     *
+     * <p>The immunity time is the minimum duration the broker must wait
+     * before initiating a transaction status check-back to the producer.
+     * If the producer specifies a custom value via
+     * {@code PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS}, it is used (converted
+     * from seconds to millis). Otherwise, the default
+     * {@code transactionTimeout} is returned.
+     *
+     * @param checkImmunityTimeStr the custom immunity time string, may be null
+     * @param transactionTimeout   the default transaction timeout
+     * @return the immunity time in milliseconds
+     */
     private long getImmunityTime(String checkImmunityTimeStr, long transactionTimeout) {
         long checkImmunityTime;
 
@@ -378,6 +486,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
      */
     private PullResult fillOpRemoveMap(HashMap<Long, Long> removeMap, MessageQueue opQueue,
                                        long pullOffsetOfOp, long miniOffset, Map<Long, HashSet<Long>> opMsgMap, List<Long> doneOpOffset) {
+        // pull op messages(32 by default)
         PullResult pullResult = pullOpMsg(opQueue, pullOffsetOfOp, OP_MSG_PULL_NUMS);
         if (null == pullResult) {
             return null;
@@ -398,18 +507,24 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             log.warn("The miss op offset={} in queue={} is empty, pullResult={}", pullOffsetOfOp, opQueue, pullResult);
             return pullResult;
         }
+
         for (MessageExt opMessageExt : opMsg) {
+            // add opOffset to doneOpOffset if body is null
             if (opMessageExt.getBody() == null) {
                 log.error("op message body is null. queueId={}, offset={}", opMessageExt.getQueueId(),
                         opMessageExt.getQueueOffset());
                 doneOpOffset.add(opMessageExt.getQueueOffset());
                 continue;
             }
+
+            // format op message body
             HashSet<Long> set = new HashSet<Long>();
             String queueOffsetBody = new String(opMessageExt.getBody(), TransactionalMessageUtil.CHARSET);
 
             log.debug("Topic: {} tags: {}, OpOffset: {}, HalfOffset: {}", opMessageExt.getTopic(),
                     opMessageExt.getTags(), opMessageExt.getQueueOffset(), queueOffsetBody);
+
+            // valid opMessage has tag: REMOVE_TAG
             if (TransactionalMessageUtil.REMOVE_TAG.equals(opMessageExt.getTags())) {
                 String[] offsetArray = queueOffsetBody.split(TransactionalMessageUtil.OFFSET_SEPARATOR);
                 for (String offset : offsetArray) {
@@ -418,6 +533,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         continue;
                     }
 
+                    // put prepareOffset, opOffset to removeMap
                     removeMap.put(offsetValue, opMessageExt.getQueueOffset());
                     set.add(offsetValue);
                 }
@@ -425,13 +541,16 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 log.error("Found a illegal tag in opMessageExt= {} ", opMessageExt);
             }
 
+            // put opOffset Set to opMsgMap
             if (set.size() > 0) {
                 opMsgMap.put(opMessageExt.getQueueOffset(), set);
             } else {
+                // if all prepareOffset is done, add opOffset to doneOpOffset
                 doneOpOffset.add(opMessageExt.getQueueOffset());
             }
         }
 
+        // logging
         log.debug("Remove map: {}", removeMap);
         log.debug("Done op list: {}", doneOpOffset);
         log.debug("opMsg map: {}", opMsgMap);
@@ -439,25 +558,44 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     /**
-     * If return true, skip this msg
+     * Check whether the prepared queue offset of a half message has been
+     * committed or rolled back during the immunity window.
+     *
+     * <p>There are three cases:
+     * <ul>
+     *   <li>No {@code PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET} — first time
+     *   this message is checked. Re-put it back to the half topic with the
+     *   offset attached so subsequent checks can skip it by offset.</li>
+     *   <li>Offset found in {@code removeMap} — the producer has committed or
+     *   rolled back via the OP queue. Remove from the pending map and mark as
+     *   done.</li>
+     *   <li>Offset not in {@code removeMap} — the producer has not responded
+     *   yet. Re-queue for a future check.</li>
+     * </ul>
      *
      * @param removeMap Op message map to determine whether a half message was responded by producer.
      * @param doneOpOffset Op Message which has been checked.
      * @param msgExt Half message
-     * @return Return true if put success, otherwise return false.
+     * @return true if the message can be skipped (completed or re-queued),
+     *         false if the offset is illegal
      */
     private boolean checkPrepareQueueOffset(HashMap<Long, Long> removeMap, List<Long> doneOpOffset,
         MessageExt msgExt, String checkImmunityTimeStr) {
         String prepareQueueOffsetStr = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
         if (null == prepareQueueOffsetStr) {
+            // This message has never been checked by Rpc transaction-checker.
+            // We need re-put this message back to the end of the Half_Topic.
+            // so that we can skip the current offset(message) to check for the following message.
+            // PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET will be added to the message by putImmunityMsgBackToHalfQueue.
             return putImmunityMsgBackToHalfQueue(msgExt);
         } else {
             long prepareQueueOffset = getLong(prepareQueueOffsetStr);
-            if (-1 == prepareQueueOffset) {
+            if (-1 == prepareQueueOffset) { // illegal offset
                 return false;
             } else {
                 Long tmpOpOffset;
                 if ((tmpOpOffset = removeMap.remove(prepareQueueOffset)) != null) {
+                    // message has been committed/rollback, remove it and add it to doneOpOffset
                     doneOpOffset.add(tmpOpOffset);
                     log.info("removeMap contain prepareQueueOffset. real_topic={},uniqKey={},immunityTime={},offset={}",
                             msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC),
@@ -466,6 +604,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             msgExt.getQueueOffset());
                     return true;
                 } else {
+                    // The commit/rollback confirmation message is still not received,
+                    // The message is again put back to the end of the queue for the future checking
                     return putImmunityMsgBackToHalfQueue(msgExt);
                 }
             }
@@ -489,6 +629,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return putMessageResult;
     }
 
+    /**
+     * Renew a half message and set property MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET if not exists
+     * then save new half message to Half Topic
+     *
+     * @param messageExt original half message
+     * @return store status
+     */
     private boolean putImmunityMsgBackToHalfQueue(MessageExt messageExt) {
         MessageExtBrokerInner msgInner = transactionalMessageBridge.renewImmunityHalfMessageInner(messageExt);
         return transactionalMessageBridge.putMessage(msgInner);
@@ -593,10 +740,28 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return response;
     }
 
+    /**
+     * Logically delete a prepared (half) message by writing its offset to the
+     * OP (operation) topic.
+     *
+     * <p>Offsets are first buffered in per-queue {@link MessageQueueOpContext}
+     * queues. When the buffer exceeds {@code transactionOpMsgMaxSize}, or when
+     * the buffer is full, they are flushed as a batch OP message containing
+     * multiple comma-separated offsets. If buffering fails entirely, a single
+     * OP message is written synchronously.
+     *
+     * <p>The transaction checker later reads the OP topic and skips any half
+     * message whose offset appears in the OP stream.
+     *
+     * @param messageExt the prepared (half) message to delete
+     * @return {@code true} if the OP record was written successfully
+     */
     @Override
     public boolean deletePrepareMessage(MessageExt messageExt) {
         Integer queueId = messageExt.getQueueId();
         MessageQueueOpContext mqContext = deleteContext.get(queueId);
+
+        // init mq op context if not exist
         if (mqContext == null) {
             mqContext = new MessageQueueOpContext(System.currentTimeMillis(), 20000);
             MessageQueueOpContext old = deleteContext.putIfAbsent(queueId, mqContext);
@@ -605,11 +770,17 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             }
         }
 
+        // the body of OP_Message is the offset of Half_Message
+        // every Half_Message store a lot of offset, split by comma
+        // default number of offset is 4096
         String data = messageExt.getQueueOffset() + TransactionalMessageUtil.OFFSET_SEPARATOR;
         try {
+            // add offset to context queue
             boolean res = mqContext.getContextQueue().offer(data, 100, TimeUnit.MILLISECONDS);
+            // if offer succeed, wait for batch write
             if (res) {
                 int totalSize = mqContext.getTotalSize().addAndGet(data.length());
+                // default value of transactionOpMsgMaxSize is 4096
                 if (totalSize > transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpMsgMaxSize()) {
                     this.transactionalOpBatchService.wakeup();
                 }
@@ -620,6 +791,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         } catch (InterruptedException ignore) {
         }
 
+        // if failed to enqueue offset to memory queue, write to OP topic
         Message msg = getOpMessage(queueId, data);
         if (this.transactionalMessageBridge.writeOp(queueId, msg)) {
             log.warn("Force add remove op data. queueId={}", queueId);
@@ -653,6 +825,17 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         this.getTransactionMetrics().persist();
     }
 
+    /**
+     * build op message with data in deleteContext.get(queueId)
+     *  - topic: op_topic
+     *  - tag: REMOVE_TAG
+     *  - body: moreData(prepareOffset + ",")
+     *      + prepareOffset in deleteContext.get(queueId)
+     *
+     * @param queueId prepare message queueId
+     * @param moreData prepare message offset list
+     * @return op message
+     */
     public Message getOpMessage(int queueId, String moreData) {
         String opTopic = TransactionalMessageUtil.buildOpTopic();
         MessageQueueOpContext mqContext = deleteContext.get(queueId);
@@ -695,17 +878,36 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return new Message(opTopic, TransactionalMessageUtil.REMOVE_TAG,
                 sb.toString().getBytes(TransactionalMessageUtil.CHARSET));
     }
+
+    /**
+     * Flush buffered delete offsets for all queues to the OP topic.
+     * Called by independent thread(TransactionalOpBatchService)
+     *
+     * <p>Iterates over each per-queue {@link MessageQueueOpContext}. If the
+     * buffer has data and the time since the last write exceeds
+     * {@code transactionOpBatchInterval} (or the buffer is oversized), the
+     * buffered offsets are drained via {@link #getOpMessage}, combined into
+     * a single OP message, and written via
+     * {@link TransactionalMessageBridge#writeOp}.
+     *
+     * <p>Called by {@link TransactionalOpBatchService#onWaitEnd()}.
+     *
+     * @return the earliest wakeup timestamp for the next flush, or 0 if no
+     *         waiting is needed
+     */
     public long batchSendOpMessage() {
-        long startTime = System.currentTimeMillis();
         try {
+            long startTime = System.currentTimeMillis();
             long firstTimestamp = startTime;
             Map<Integer, Message> sendMap = null;
+            // default transactionOpBatchInterval is 3000
             long interval = transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpBatchInterval();
+            // default transactionOpMsgMaxSize is 4096
             int maxSize = transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpMsgMaxSize();
             boolean overSize = false;
             for (Map.Entry<Integer, MessageQueueOpContext> entry : deleteContext.entrySet()) {
                 MessageQueueOpContext mqContext = entry.getValue();
-                //no msg in contextQueue
+                // skip: no data or wait for the interval
                 if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0 ||
                         // wait for the interval
                         mqContext.getTotalSize().get() < maxSize &&
@@ -718,10 +920,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     sendMap = new HashMap<>();
                 }
 
+                // build op message with data in deleteContext.get(queueId)
+                // will build a message contains all offsets in deleteContext.get(queueId)
+                // it's better to pass mqContext as parameter
                 Message opMsg = getOpMessage(entry.getKey(), null);
                 if (opMsg == null) {
                     continue;
                 }
+
                 sendMap.put(entry.getKey(), opMsg);
                 firstTimestamp = Math.min(firstTimestamp, mqContext.getLastWriteTimestamp());
                 if (mqContext.getTotalSize().get() >= maxSize) {
