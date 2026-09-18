@@ -158,9 +158,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final PutKVConfigRequestHeader requestHeader =
             (PutKVConfigRequestHeader) request.decodeCommandCustomHeader(PutKVConfigRequestHeader.class);
 
-        if (requestHeader.getNamespace() == null || requestHeader.getKey() == null) {
+        if (requestHeader.getNamespace() == null || requestHeader.getKey() == null || requestHeader.getValue() == null) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("namespace or key is null");
+            response.setRemark("namespace or key or value is null");
             return response;
         }
 
