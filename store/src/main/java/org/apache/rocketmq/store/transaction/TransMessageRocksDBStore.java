@@ -81,7 +81,26 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
     // Thread-local buffer for reading messages from CommitLog, grown on demand
     private ThreadLocal<ByteBuffer> bufferLocal = null;
     private TransIndexBuildService transIndexBuildService;
-    // Bounded queue decoupling CommitLog dispatch from RocksDB batch writes
+    /**
+     * In-memory staging queue between the CommitLog dispatch thread
+     * and the {@link TransIndexBuildService} background writer.
+     *
+     * <p>This is a bounded {@link LinkedBlockingDeque} (capacity {@value #DEFAULT_CAPACITY})
+     * holding {@link TransRocksDBRecord}s that have been produced by {@link #buildTransIndex}
+     * but not yet flushed to RocksDB.
+     * Decoupling the two stages lets the hot dispatch path enqueue in O(1)
+     * without blocking on RocksDB write latency,
+     * while the background service drains records in batches ({@link #BATCH_SIZE} at a time)
+     * for a single {@code writeRecordsForTrans} call.
+     *
+     * <p>Boundedness provides back-pressure: when the queue is full,
+     * {@link #buildTransIndex} blocks in {@code offer(record, 3, SECONDS)} and keeps retrying,
+     * trading a slow dispatch thread for guaranteed delivery of transaction index records (no silent drop).
+     *
+     * <p>The {@link TransIndexBuildService} continues draining this queue
+     * even after shutdown is requested,
+     * so every enqueued record is eventually written before the broker exits.
+     */
     protected BlockingQueue<TransRocksDBRecord> originTransMsgQueue;
 
     public TransMessageRocksDBStore(final MessageStore messageStore, final BrokerStatsManager brokerStatsManager, final SocketAddress storeHost) {
