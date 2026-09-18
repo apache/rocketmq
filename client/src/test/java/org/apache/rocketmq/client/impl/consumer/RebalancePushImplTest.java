@@ -39,6 +39,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -212,6 +214,20 @@ public class RebalancePushImplTest {
         assertEquals(12345L, rebalanceImpl.computePullFromWhereWithException(mq));
 
         assertEquals(23456L, rebalanceImpl.computePullFromWhereWithException(retryMq));
+    }
+
+    @Test
+    public void testComputePullFromWhereWithException_eq_minus1_invalid_timestamp() {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
+        consumer.setConsumeTimestamp("not-a-timestamp");
+
+        try {
+            rebalanceImpl.computePullFromWhereWithException(mq);
+            fail("expected MQClientException for an unparseable consumeTimestamp");
+        } catch (MQClientException expected) {
+            assertTrue(expected.getMessage().contains("Invalid consumeTimestamp"));
+        }
     }
 
 }
