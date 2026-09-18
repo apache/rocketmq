@@ -51,10 +51,13 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -169,6 +172,25 @@ public class MQAdminImplTest {
         assertNotNull(actual);
         assertEquals(1, actual.getMessageList().size());
         assertEquals(defaultTopic, actual.getMessageList().get(0).getTopic());
+    }
+
+    @Test
+    public void assertQueryMessageNotBlockedWhenInvokeThrows() throws InterruptedException, MQBrokerException, RemotingException {
+        mqAdminImpl.setTimeoutMillis(200L);
+        doThrow(new RemotingException("invoke failed"))
+            .when(mQClientAPIImpl).queryMessage(anyString(), any(), anyLong(), any(InvokeCallback.class), any());
+
+        long begin = System.currentTimeMillis();
+        try {
+            mqAdminImpl.queryMessage(defaultTopic, "keys", 100, 1L, 50L);
+            fail("expected MQClientException because the query returned no messages");
+        } catch (MQClientException expected) {
+            // query message by key finished, but no message
+        }
+        long elapsed = System.currentTimeMillis() - begin;
+
+        assertTrue("queryMessage should not wait for the whole latch timeout, elapsed=" + elapsed,
+            elapsed < 400L);
     }
 
     @Test
