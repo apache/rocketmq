@@ -30,6 +30,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 
 public class PopConsumerCacheTest {
 
@@ -142,5 +145,81 @@ public class PopConsumerCacheTest {
         consumerRecordList.clear();
         consumerCache.cleanupRecords(consumerRecordList::add);
         Assert.assertEquals(0, consumerRecordList.size());
+
+        // timeout cleanup is skipped when tryLock fails: concurrent pop holds the lock
+        record = new PopConsumerRecord(System.currentTimeMillis(),
+            groupId, topicId, queueId, 0, 20000, 105, attemptId);
+        consumerCache.writeRecords(Collections.singletonList(record));
+        Mockito.when(consumerLockService.tryLock(eq(groupId), eq(topicId))).thenReturn(false);
+        int remain = consumerCache.cleanupRecords(consumerRecordList::add);
+        Assert.assertEquals(1, remain);
+        Assert.assertEquals(1, consumerCache.getCacheKeySize());
+        Assert.assertEquals(1, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+
+        // timeout cleanup proceeds and persists records to KV store when the lock is acquired
+        Mockito.when(consumerLockService.tryLock(eq(groupId), eq(topicId))).thenReturn(true);
+        consumerCache.cleanupRecords(consumerRecordList::add);
+        Assert.assertEquals(0, consumerCache.getCacheKeySize());
+        Mockito.verify(consumerKVStore).writeRecords(Collections.singletonList(record));
+    }
+
+    @Test
+    public void commitPendingOffsetTest() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        ConsumerOffsetManager consumerOffsetManager = Mockito.mock(ConsumerOffsetManager.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        Mockito.when(consumerLockService.tryLock(groupId, topicId)).thenReturn(true);
+
+        PopConsumerCache consumerCache =
+            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+
+        // the record is still in cache, so it bounds the commit
+        PopConsumerRecord record = new PopConsumerRecord(System.currentTimeMillis(),
+            groupId, topicId, queueId, 0, 20000, 100, attemptId);
+        consumerCache.writeRecords(Collections.singletonList(record));
+        consumerCache.setPendingCommitOffset(groupId, topicId, queueId, 110L);
+        consumerCache.cleanupRecords(consumerRecord -> {
+        });
+        Mockito.verify(consumerOffsetManager).commitOffset(
+            anyString(), eq(groupId), eq(topicId), eq(queueId), eq(100L));
+
+        // nothing remains in cache after the acknowledgement, so the pending offset is committed
+        Assert.assertTrue(consumerCache.deleteRecords(Collections.singletonList(record)).isEmpty());
+        consumerCache.cleanupRecords(consumerRecord -> {
+        });
+        Mockito.verify(consumerOffsetManager).commitOffset(
+            anyString(), eq(groupId), eq(topicId), eq(queueId), eq(110L));
+
+        // the offset store has caught up, so the pending offset is not committed again
+        Mockito.when(consumerOffsetManager.queryOffset(groupId, topicId, queueId)).thenReturn(110L);
+        consumerCache.cleanupRecords(consumerRecord -> {
+        });
+        Mockito.verify(consumerOffsetManager, Mockito.times(1)).commitOffset(
+            anyString(), eq(groupId), eq(topicId), eq(queueId), eq(110L));
+
+        // reset offset wins over the pending offset
+        Mockito.when(consumerOffsetManager.hasOffsetReset(topicId, groupId, queueId)).thenReturn(true);
+        consumerCache.setPendingCommitOffset(groupId, topicId, queueId, 120L);
+        consumerCache.cleanupRecords(consumerRecord -> {
+        });
+        Mockito.verify(consumerOffsetManager, Mockito.never()).commitOffset(
+            anyString(), anyString(), anyString(), anyInt(), eq(120L));
+
+        // records of an offline consumer are persisted before the entry is dropped
+        Mockito.when(consumerOffsetManager.hasOffsetReset(topicId, groupId, queueId)).thenReturn(false);
+        Mockito.when(consumerLockService.isLockTimeout(any(), any())).thenReturn(true);
+        consumerCache.writeRecords(Collections.singletonList(new PopConsumerRecord(
+            System.currentTimeMillis(), groupId, topicId, queueId, 0, 20000, 200, attemptId)));
+        consumerCache.setPendingCommitOffset(groupId, topicId, queueId, 210L);
+        consumerCache.cleanupRecords(consumerRecord -> {
+        });
+        Mockito.verify(consumerKVStore).writeRecords(Mockito.argThat(records ->
+            records.size() == 1 && records.get(0).getOffset() == 200L));
+        Mockito.verify(consumerOffsetManager).commitOffset(
+            anyString(), eq(groupId), eq(topicId), eq(queueId), eq(210L));
+        Assert.assertEquals(0, consumerCache.getCacheKeySize());
     }
 }

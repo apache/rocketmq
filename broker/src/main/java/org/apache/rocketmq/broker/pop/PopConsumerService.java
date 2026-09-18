@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
@@ -185,23 +186,18 @@ public class PopConsumerService extends ServiceThread {
             }
         }
 
-        long commitOffset = offset;
         if (context.isFifo()) {
+            long commitOffset = offset;
             if (!GetMessageStatus.FOUND.equals(result.getStatus())) {
                 commitOffset = result.getNextBeginOffset();
             }
+            this.brokerController.getConsumerOffsetManager().commitOffset(
+                context.getClientHost(), context.getGroupId(), topicId, queueId, commitOffset);
         } else {
             this.brokerController.getConsumerOffsetManager().commitPullOffset(
                 context.getClientHost(), context.getGroupId(), topicId, queueId, result.getNextBeginOffset());
-            if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
-                long minOffset = popConsumerCache.getMinOffsetInCache(context.getGroupId(), topicId, queueId);
-                if (minOffset != OFFSET_NOT_EXIST) {
-                    commitOffset = minOffset;
-                }
-            }
+            context.addPendingCommit(topicId, queueId, result.getNextBeginOffset());
         }
-        this.brokerController.getConsumerOffsetManager().commitOffset(
-            context.getClientHost(), context.getGroupId(), topicId, queueId, commitOffset);
         return context;
     }
 
@@ -447,6 +443,7 @@ public class PopConsumerService extends ServiceThread {
                         }
                     }
                 }
+                this.commitPendingOffset(result);
                 return CompletableFuture.completedFuture(result);
             }).whenComplete((result, throwable) -> {
                 try {
@@ -468,6 +465,48 @@ public class PopConsumerService extends ServiceThread {
         }
 
         return getMessageFuture;
+    }
+
+    /**
+     * Commit the consumer offset up to nextBeginOffset of this pop, instead of the batch start
+     * offset which always lags one round behind. Acknowledgements only delete records, so the offset would
+     * otherwise never catch up once a consumer acknowledged everything and went offline.
+     * <p>
+     * Records written to the kv store are durable and unacknowledged ones are redelivered by revive, so
+     * the offset may pass them. Records held in the cache are not persisted yet, so they cap the
+     * offset at minOffsetInCache here, and nextBeginOffset is kept on the cache entry for
+     * PopConsumerCache#cleanupRecords to commit once they are acknowledged or persisted.
+     */
+    protected void commitPendingOffset(PopConsumerContext context) {
+        List<PopConsumerContext.PendingCommit> pendingCommitList = context.getPendingCommitList();
+        if (pendingCommitList == null) {
+            return;
+        }
+
+        String groupId = context.getGroupId();
+        ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
+
+        for (PopConsumerContext.PendingCommit pendingCommit : pendingCommitList) {
+            String topicId = pendingCommit.getTopicId();
+            int queueId = pendingCommit.getQueueId();
+
+            if (consumerOffsetManager.hasOffsetReset(topicId, groupId, queueId)) {
+                continue;
+            }
+
+            long commitOffset = pendingCommit.getCommitOffset();
+            if (popConsumerCache != null) {
+                long minOffset = popConsumerCache.getMinOffsetInCache(groupId, topicId, queueId);
+                if (minOffset != OFFSET_NOT_EXIST) {
+                    popConsumerCache.setPendingCommitOffset(groupId, topicId, queueId, commitOffset);
+                    commitOffset = Math.min(commitOffset, minOffset);
+                }
+            }
+
+            if (commitOffset > consumerOffsetManager.queryOffset(groupId, topicId, queueId)) {
+                consumerOffsetManager.commitOffset(context.getClientHost(), groupId, topicId, queueId, commitOffset);
+            }
+        }
     }
 
     /**
