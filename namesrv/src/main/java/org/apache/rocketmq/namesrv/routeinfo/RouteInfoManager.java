@@ -673,7 +673,13 @@ public class RouteInfoManager {
                 final QueueData queueData = queueDataMap.get(brokerName);
 
                 if (queueData != null) {
-                    if (this.brokerAddrTable.get(brokerName).isEnableActingMaster()) {
+                    final BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                    // The broker data may already be gone while a stale queueData is
+                    // still around (e.g. an earlier aborted unregister batch left it
+                    // behind); isNoMasterExists guards the same lookup, so a null
+                    // broker data must skip the perm wipe instead of aborting the
+                    // cleanup of the whole batch.
+                    if (brokerData != null && brokerData.isEnableActingMaster()) {
                         // Master has been unregistered, wipe the write perm
                         if (isNoMasterExists(brokerName)) {
                             queueData.setPerm(queueData.getPerm() & (~PermName.PERM_WRITE));
