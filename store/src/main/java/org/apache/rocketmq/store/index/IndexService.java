@@ -356,12 +356,20 @@ public class IndexService implements CommitLogDispatchStore {
                 indexFile =
                     new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
                         lastUpdateIndexTimestamp);
-                this.readWriteLock.writeLock().lock();
-                this.indexFileList.add(indexFile);
             } catch (Exception e) {
                 LOGGER.error("getLastIndexFile exception ", e);
-            } finally {
-                this.readWriteLock.writeLock().unlock();
+            }
+
+            // The write lock must only guard the list update: IndexFile creation
+            // happens outside it, so a failed construction cannot release a lock
+            // that was never acquired.
+            if (indexFile != null) {
+                this.readWriteLock.writeLock().lock();
+                try {
+                    this.indexFileList.add(indexFile);
+                } finally {
+                    this.readWriteLock.writeLock().unlock();
+                }
             }
 
             if (indexFile != null) {
