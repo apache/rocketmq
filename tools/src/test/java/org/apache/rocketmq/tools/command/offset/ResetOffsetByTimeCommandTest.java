@@ -16,17 +16,22 @@
  */
 package org.apache.rocketmq.tools.command.offset;
 
+import java.util.HashMap;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.server.NameServerMocker;
 import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class ResetOffsetByTimeCommandTest {
 
@@ -57,6 +62,30 @@ public class ResetOffsetByTimeCommandTest {
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                 cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
+    }
+
+    @Test
+    public void testExecuteWithClusterOptionKeepsJavaClientProtocol() throws Exception {
+        DefaultMQAdminExt adminExt = Mockito.mock(DefaultMQAdminExt.class);
+        Mockito.when(adminExt.resetOffsetByTimestamp(Mockito.eq("default-cluster"), Mockito.eq("unit-test"),
+                Mockito.eq("default-group"), Mockito.anyLong(), Mockito.anyBoolean(), Mockito.eq(false)))
+            .thenReturn(new HashMap<>());
+        ResetOffsetByTimeCommand cmd = new ResetOffsetByTimeCommand() {
+            @Override
+            protected DefaultMQAdminExt createDefaultMQAdminExt(RPCHook rpcHook) {
+                return adminExt;
+            }
+        };
+        Options options = ServerUtil.buildCommandlineOptions(new Options());
+        String[] subargs = new String[] {
+            "-g default-group", "-t unit-test", "-s 1412131213231", "-f false", "-c default-cluster"};
+        final CommandLine commandLine =
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                cmd.buildCommandlineOptions(options), new DefaultParser());
+        cmd.execute(commandLine, options, null);
+
+        Mockito.verify(adminExt).resetOffsetByTimestamp("default-cluster", "unit-test",
+            "default-group", 1412131213231L, false, false);
     }
 
     private ServerResponseMocker startOneBroker() {
