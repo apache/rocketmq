@@ -202,6 +202,21 @@ public class EndTransactionProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
+    @Test
+    public void testProcessRequestRejectsPreparedMessageWithoutProducerGroup() throws RemotingCommandException {
+        OperationResult prepareResult = createResponse(ResponseCode.SUCCESS);
+        MessageAccessor.clearProperty(prepareResult.getPrepareMessage(), MessageConst.PROPERTY_PRODUCER_GROUP);
+        when(transactionMsgService.commitMessage(any(EndTransactionRequestHeader.class))).thenReturn(prepareResult);
+
+        RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_COMMIT_TYPE, false);
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains("producer group wrong");
+        verify(messageStore, never()).putMessage(any(MessageExtBrokerInner.class));
+        verify(transactionMsgService, never()).deletePrepareMessage(any(MessageExt.class));
+    }
+
     private MessageExt createDefaultMessageExt() {
         MessageExt messageExt = new MessageExt();
         messageExt.setMsgId("12345678");
