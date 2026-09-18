@@ -16,16 +16,28 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import io.netty.channel.Channel;
+import io.netty.channel.DefaultChannelPromise;
+import io.netty.util.concurrent.ImmediateEventExecutor;
+import java.net.InetSocketAddress;
+import java.nio.channels.ClosedChannelException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.when;
 
@@ -167,5 +179,61 @@ public class NettyRemotingAbstractTest {
         // Acquire the release permit after call back
         semaphore.acquire(1);
         assertThat(semaphore.availablePermits()).isEqualTo(0);
+    }
+
+    @Test
+    public void testInvokeAsyncSendFailureCarriesCause() throws InterruptedException {
+        ClosedChannelException sendCause = new ClosedChannelException();
+        Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(channel.remoteAddress()).thenReturn(new InetSocketAddress("127.0.0.1", 8888));
+        Mockito.when(channel.writeAndFlush(ArgumentMatchers.any()))
+            .thenReturn(new DefaultChannelPromise(channel, ImmediateEventExecutor.INSTANCE).setFailure(sendCause));
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<Throwable> failure = new AtomicReference<>();
+        RemotingCommand request = RemotingCommand.createRequestCommand(1, null);
+
+        remotingAbstract.invokeAsyncImpl(channel, request, 3000, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+                failure.set(throwable);
+                latch.countDown();
+            }
+        });
+
+        assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(failure.get()).isInstanceOf(RemotingSendRequestException.class);
+        assertThat(failure.get().getCause()).isSameAs(sendCause);
+    }
+
+    @Test
+    public void testInvokeSyncSendFailureCarriesCause() throws Exception {
+        ClosedChannelException sendCause = new ClosedChannelException();
+        Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(channel.remoteAddress()).thenReturn(new InetSocketAddress("127.0.0.1", 8888));
+        Mockito.when(channel.writeAndFlush(ArgumentMatchers.any()))
+            .thenReturn(new DefaultChannelPromise(channel, ImmediateEventExecutor.INSTANCE).setFailure(sendCause));
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(1, null);
+
+        Throwable thrown = catchThrowable(
+            () -> remotingAbstract.invokeSyncImpl(channel, request, 3000));
+
+        assertThat(thrown).isInstanceOf(RemotingSendRequestException.class);
+        Throwable cause = thrown;
+        while (cause != null && cause != sendCause) {
+            cause = cause.getCause();
+        }
+        assertThat(cause).isSameAs(sendCause);
     }
 }
