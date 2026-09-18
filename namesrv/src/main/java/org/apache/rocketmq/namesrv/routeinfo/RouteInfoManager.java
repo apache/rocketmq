@@ -277,7 +277,11 @@ public class RouteInfoManager {
             if (null != oldBrokerAddr && !oldBrokerAddr.equals(brokerAddr)) {
                 BrokerLiveInfo oldBrokerInfo = brokerLiveTable.get(new BrokerAddrInfo(clusterName, oldBrokerAddr));
 
-                if (null != oldBrokerInfo) {
+                // The wrapper is decoded from the register body and may carry
+                // explicit null fields; without comparable versions skip the
+                // conflict rejection instead of aborting the registration.
+                if (null != oldBrokerInfo && null != oldBrokerInfo.getDataVersion()
+                    && null != topicConfigWrapper && null != topicConfigWrapper.getDataVersion()) {
                     long oldStateVersion = oldBrokerInfo.getDataVersion().getStateVersion();
                     long newStateVersion = topicConfigWrapper.getDataVersion().getStateVersion();
                     if (oldStateVersion > newStateVersion) {
@@ -291,7 +295,8 @@ public class RouteInfoManager {
                 }
             }
 
-            if (!brokerAddrsMap.containsKey(brokerId) && topicConfigWrapper.getTopicConfigTable().size() == 1) {
+            if (null != topicConfigWrapper && null != topicConfigWrapper.getTopicConfigTable()
+                && !brokerAddrsMap.containsKey(brokerId) && topicConfigWrapper.getTopicConfigTable().size() == 1) {
                 log.warn("Can't register topicConfigWrapper={} because broker[{}]={} has not registered.",
                     topicConfigWrapper.getTopicConfigTable(), brokerId, brokerAddr);
                 return null;
@@ -368,7 +373,7 @@ public class RouteInfoManager {
                 new BrokerLiveInfo(
                     System.currentTimeMillis(),
                     timeoutMillis == null ? DEFAULT_BROKER_CHANNEL_EXPIRED_TIME : timeoutMillis,
-                    topicConfigWrapper == null ? new DataVersion() : topicConfigWrapper.getDataVersion(),
+                    topicConfigWrapper == null || topicConfigWrapper.getDataVersion() == null ? new DataVersion() : topicConfigWrapper.getDataVersion(),
                     channel,
                     haServerAddr));
             if (null == prevBrokerLiveInfo) {
