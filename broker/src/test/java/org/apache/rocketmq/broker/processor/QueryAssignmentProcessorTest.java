@@ -212,12 +212,51 @@ public class QueryAssignmentProcessorTest {
         return false;
     }
 
+    @Test
+    public void testQueryAssignmentWithNullTopic() throws Exception {
+        final RemotingCommand request = createQueryAssignmentRequest(null, group, MessageModel.CLUSTERING);
+        RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+    }
+
+    @Test
+    public void testQueryAssignmentWithNullConsumerGroup() throws Exception {
+        final RemotingCommand request = createQueryAssignmentRequest(topic, null, MessageModel.CLUSTERING);
+        RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+    }
+
+    @Test
+    public void testQueryAssignmentWithNullMessageModel() throws Exception {
+        final RemotingCommand request = createQueryAssignmentRequest(topic, group, null);
+        RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+    }
+
+    @Test
+    public void testSetMessageRequestModeWithNullTopic() throws Exception {
+        final RemotingCommand request = createSetMessageRequestModeRequest(null, group);
+        RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+    }
+
+    @Test
+    public void testSetMessageRequestModeWithNullConsumerGroup() throws Exception {
+        final RemotingCommand request = createSetMessageRequestModeRequest(topic, null);
+        RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+    }
+
     private RemotingCommand createQueryAssignmentRequest() {
+        return createQueryAssignmentRequest(topic, group, MessageModel.CLUSTERING);
+    }
+
+    private RemotingCommand createQueryAssignmentRequest(String topic, String consumerGroup, MessageModel messageModel) {
         QueryAssignmentRequestBody requestBody = new QueryAssignmentRequestBody();
         requestBody.setTopic(topic);
-        requestBody.setConsumerGroup(group);
+        requestBody.setConsumerGroup(consumerGroup);
         requestBody.setClientId(clientId);
-        requestBody.setMessageModel(MessageModel.CLUSTERING);
+        requestBody.setMessageModel(messageModel);
         requestBody.setStrategyName("AVG");
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_ASSIGNMENT, null);
@@ -226,11 +265,15 @@ public class QueryAssignmentProcessorTest {
     }
 
     private RemotingCommand createSetMessageRequestModeRequest(String topic) {
+        return createSetMessageRequestModeRequest(topic, group);
+    }
+
+    private RemotingCommand createSetMessageRequestModeRequest(String topic, String consumerGroup) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SET_MESSAGE_REQUEST_MODE, null);
 
         SetMessageRequestModeRequestBody requestBody = new SetMessageRequestModeRequestBody();
         requestBody.setTopic(topic);
-        requestBody.setConsumerGroup(group);
+        requestBody.setConsumerGroup(consumerGroup);
         requestBody.setMode(MessageRequestMode.POP);
         requestBody.setPopShareQueueNum(0);
         request.setBody(requestBody.encode());

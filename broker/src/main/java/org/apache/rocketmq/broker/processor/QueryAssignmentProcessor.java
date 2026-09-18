@@ -104,6 +104,15 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final QueryAssignmentResponseBody responseBody = new QueryAssignmentResponseBody();
 
+        // A request without these fields would otherwise fail deep inside the
+        // lookup tables with an NPE; reject it with a proper error instead.
+        if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(consumerGroup) || null == messageModel) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("topic, consumerGroup and messageModel can not be null. topic: " + topic
+                + ", consumerGroup: " + consumerGroup + ", messageModel: " + messageModel);
+            return response;
+        }
+
         SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = this.messageRequestModeManager.getMessageRequestMode(topic, consumerGroup);
 
         if (setMessageRequestModeRequestBody == null) {
@@ -306,6 +315,14 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         final SetMessageRequestModeRequestBody requestBody = SetMessageRequestModeRequestBody.decode(request.getBody(), SetMessageRequestModeRequestBody.class);
 
         final String topic = requestBody.getTopic();
+        // selectTopicConfig/findSubscriptionGroupConfig would throw an NPE on a
+        // null key; reject the request with a proper error instead.
+        if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(requestBody.getConsumerGroup())) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("topic and consumerGroup can not be null. topic: " + topic
+                + ", consumerGroup: " + requestBody.getConsumerGroup());
+            return response;
+        }
         if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("retry topic is not allowed to set mode");
