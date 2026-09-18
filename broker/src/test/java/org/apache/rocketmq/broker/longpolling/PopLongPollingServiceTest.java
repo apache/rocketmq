@@ -47,8 +47,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -108,6 +113,19 @@ public class PopLongPollingServiceTest {
         // pop retry v2
         popLongPollingService.notifyMessageArrivingWithRetryTopic(popRetryTopicV2, queueId, queueId, -1L, 0L, null, properties);
         verify(popLongPollingService, times(2)).notifyMessageArriving(defaultTopic, queueId, group, true, -1L, 0L, null, properties, null);
+    }
+
+    @Test
+    public void testNotifyMessageArrivingFromRetryWithoutProperties() {
+        int queueId = -1;
+        String group = "group";
+        String pullRetryTopic = MixAll.getRetryTopic(group);
+        // A message stored on a retry topic without any properties (properties map is null,
+        // e.g. written by a non-Java client) must not throw, otherwise the reput thread
+        // stalls dispatch of every following message.
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(pullRetryTopic, queueId, queueId, -1L, 0L, null, null);
+        verify(popLongPollingService, never()).notifyMessageArriving(anyString(), anyInt(), anyString(), anyBoolean(),
+            any(), anyLong(), any(), any(), any());
     }
 
     @Test
