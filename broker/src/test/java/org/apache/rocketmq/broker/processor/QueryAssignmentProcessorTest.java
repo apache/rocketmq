@@ -35,6 +35,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -126,6 +127,20 @@ public class QueryAssignmentProcessorTest {
         final RemotingCommand request = createSetMessageRequestModeRequest(MixAll.RETRY_GROUP_TOPIC_PREFIX + topic);
         RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+    @Test
+    public void testQueryAssignmentWithNullBody() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_ASSIGNMENT, null);
+        RemotingCommand response = queryAssignmentProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testSetMessageRequestModeWithNullBody() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SET_MESSAGE_REQUEST_MODE, null);
+        RemotingCommand response = queryAssignmentProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
     }
 
     @Test

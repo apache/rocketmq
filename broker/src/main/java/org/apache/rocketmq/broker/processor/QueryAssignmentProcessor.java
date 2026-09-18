@@ -95,13 +95,20 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
     private RemotingCommand queryAssignment(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final QueryAssignmentRequestBody requestBody = QueryAssignmentRequestBody.decode(request.getBody(), QueryAssignmentRequestBody.class);
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (requestBody == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("query assignment request body is null or decode failed");
+            return response;
+        }
+
         final String topic = requestBody.getTopic();
         final String consumerGroup = requestBody.getConsumerGroup();
         final String clientId = requestBody.getClientId();
         final MessageModel messageModel = requestBody.getMessageModel();
         final String strategyName = requestBody.getStrategyName();
 
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final QueryAssignmentResponseBody responseBody = new QueryAssignmentResponseBody();
 
         SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = this.messageRequestModeManager.getMessageRequestMode(topic, consumerGroup);
@@ -304,6 +311,11 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final SetMessageRequestModeRequestBody requestBody = SetMessageRequestModeRequestBody.decode(request.getBody(), SetMessageRequestModeRequestBody.class);
+        if (requestBody == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("set message request mode request body is null or decode failed");
+            return response;
+        }
 
         final String topic = requestBody.getTopic();
         if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
