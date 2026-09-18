@@ -96,6 +96,14 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final CheckTransactionStateRequestHeader requestHeader =
             (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
+        // A broker that fails to resolve the transaction message sends the
+        // request without a body; skip the check instead of throwing an NPE,
+        // the broker will re-check this transaction later.
+        if (request.getBody() == null) {
+            logger.warn("checkTransactionState, message body is empty, brokerAddr={}",
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            return null;
+        }
         final ByteBuffer byteBuffer = ByteBuffer.wrap(request.getBody());
         final MessageExt messageExt = MessageDecoder.decode(byteBuffer);
         if (messageExt != null) {
@@ -202,6 +210,15 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         final ConsumeMessageDirectlyResultRequestHeader requestHeader =
             (ConsumeMessageDirectlyResultRequestHeader) request
                 .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
+
+        // The broker omits the body when it cannot resolve the msgId (e.g.
+        // expired or already deleted message); report that to the caller
+        // instead of failing with an NPE while decoding.
+        if (request.getBody() == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The request does not carry a message body, please check the message on the broker");
+            return response;
+        }
 
         final MessageExt msg = MessageDecoder.clientDecode(ByteBuffer.wrap(request.getBody()), true);
 
