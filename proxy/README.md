@@ -23,6 +23,16 @@ With `Proxy` served as a traffic interface, it's convenient to implement multipl
 is implemented first and the customized `Remoting` protocol will be implemented later. HTTP/1.1 will also be taken into
 consideration.
 
+## Client management
+
+`Proxy` already keeps track of online client connections and reuses the same lifecycle on both protocol paths.
+
+* `ClientManagerActivity` handles `HEART_BEAT`, `UNREGISTER_CLIENT`, and `CHECK_CLIENT_CONFIG` on the remoting side.
+* `ClientActivity` handles `heartbeat`, `notifyClientTermination`, and lite subscription sync on the gRPC v2 side.
+* These flows feed the client registry used by routing, cleanup, and admin-style inspection.
+
+This is the part of `Proxy` that matches the control-plane direction described in the RocketMQ 5.0 Studio proposal.
+
 ## Architecture
 
 `RocketMQ Proxy` has two deployment modes: `Cluster` mode and `Local` mode. With both modes, `Pop` mode is natively
