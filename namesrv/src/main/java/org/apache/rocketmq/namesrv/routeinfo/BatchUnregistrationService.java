@@ -26,7 +26,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 
 /**
  * BatchUnregistrationService provides a mechanism to unregister brokers in batch manner, which speeds up broker-offline
@@ -34,7 +33,7 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequ
  */
 public class BatchUnregistrationService extends ServiceThread {
     private final RouteInfoManager routeInfoManager;
-    private BlockingQueue<UnRegisterBrokerRequestHeader> unregistrationQueue;
+    private BlockingQueue<RouteInfoManager.BrokerUnregistration> unregistrationQueue;
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
     public BatchUnregistrationService(RouteInfoManager routeInfoManager, NamesrvConfig namesrvConfig) {
@@ -48,7 +47,7 @@ public class BatchUnregistrationService extends ServiceThread {
      * @param unRegisterRequest the request to submit
      * @return {@code true} if the request was added to this queue, else {@code false}
      */
-    public boolean submit(UnRegisterBrokerRequestHeader unRegisterRequest) {
+    public boolean submit(RouteInfoManager.BrokerUnregistration unRegisterRequest) {
         return unregistrationQueue.offer(unRegisterRequest);
     }
 
@@ -61,14 +60,14 @@ public class BatchUnregistrationService extends ServiceThread {
     public void run() {
         while (!this.isStopped()) {
             try {
-                final UnRegisterBrokerRequestHeader request = unregistrationQueue.take();
-                Set<UnRegisterBrokerRequestHeader> unregistrationRequests = new HashSet<>();
+                final RouteInfoManager.BrokerUnregistration request = unregistrationQueue.take();
+                Set<RouteInfoManager.BrokerUnregistration> unregistrationRequests = new HashSet<>();
                 unregistrationQueue.drainTo(unregistrationRequests);
 
                 // Add polled request
                 unregistrationRequests.add(request);
 
-                this.routeInfoManager.unRegisterBroker(unregistrationRequests);
+                this.routeInfoManager.doUnRegisterBroker(unregistrationRequests);
             } catch (Throwable e) {
                 log.error("Handle unregister broker request failed", e);
             }
