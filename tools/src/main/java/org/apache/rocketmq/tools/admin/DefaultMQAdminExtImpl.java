@@ -1544,8 +1544,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             if (mq.getTopic().equals(msg.getTopic()) && mq.getQueueId() == msg.getQueueId()) {
                 BrokerData brokerData = ci.getBrokerAddrTable().get(mq.getBrokerName());
                 if (brokerData != null) {
-                    String addr = NetworkUtil.convert2IpString(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID));
-                    if (NetworkUtil.socketAddress2String(msg.getStoreHost()).equals(addr)) {
+                    String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                    if (addr != null && NetworkUtil.socketAddress2String(msg.getStoreHost())
+                        .equals(NetworkUtil.convert2IpString(addr))) {
                         if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
                             return true;
                         }
