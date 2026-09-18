@@ -509,7 +509,7 @@ public class PopConsumerService extends ServiceThread {
             popTime, groupId, topicId, queueId, 0, invisibleTime, offset, null);
 
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
-            if (popConsumerCache.deleteRecords(Collections.singletonList(record)).isEmpty()) {
+            if (popConsumerCache.ackRecords(Collections.singletonList(record)).isEmpty()) {
                 return CompletableFuture.completedFuture(true);
             }
         }
