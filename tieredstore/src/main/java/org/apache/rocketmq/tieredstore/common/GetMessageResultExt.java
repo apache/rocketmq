@@ -24,8 +24,12 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
+/**
+ * Extended {@link GetMessageResult} for tiered store, holds additional tag‑code list for post‑filter.
+ */
 public class GetMessageResultExt extends GetMessageResult {
 
+    /** Store tag hash code corresponding to each message */
     private final List<Long> tagCodeList;
 
     public GetMessageResultExt() {
@@ -42,10 +46,11 @@ public class GetMessageResultExt extends GetMessageResult {
     }
 
     /**
-     * Due to the message fetched from the object storage is sequential,
-     * do message filtering occurs after the data retrieval.
+     * Since messages fetched from object storage are sequential,
+     * message filtering is performed after data retrieval.
      */
     public GetMessageResult doFilterMessage(MessageFilter messageFilter) {
+
         if (GetMessageStatus.FOUND != super.getStatus() || messageFilter == null) {
             return this;
         }
