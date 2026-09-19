@@ -32,6 +32,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 public class AuthorizationPipelineTest {
@@ -59,9 +60,22 @@ public class AuthorizationPipelineTest {
             () -> pipeline.execute(null, request, ProxyContext.create()));
     }
 
+    @Test
+    public void rejectsAuthorizationWithoutAuthentication() {
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.setConfigName("remoting-authorization-pipeline-test");
+        authConfig.setAuthorizationEnabled(true);
+        authConfig.setAuthenticationEnabled(false);
+
+        assertThatThrownBy(() -> new AuthorizationPipeline(authConfig, mock(MessagingProcessor.class)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("authorizationEnabled");
+    }
+
     private AuthorizationPipeline createPipeline() {
         AuthConfig authConfig = new AuthConfig();
         authConfig.setConfigName("remoting-authorization-pipeline-test");
+        authConfig.setAuthenticationEnabled(true);
         authConfig.setAuthorizationEnabled(true);
         return new AuthorizationPipeline(authConfig, mock(MessagingProcessor.class)) {
             @Override
