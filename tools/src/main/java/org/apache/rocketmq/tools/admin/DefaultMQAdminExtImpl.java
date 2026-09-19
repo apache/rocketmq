@@ -777,6 +777,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public void deleteConsumerOffset(String addr, String consumerGroup, String topic)
+        throws RemotingException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().deleteConsumerOffset(addr, consumerGroup, topic, timeoutMillis);
+    }
+
+    @Override
     public void createAndUpdateKvConfig(String namespace, String key,
         String value) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().putKVConfigValue(namespace, key, value, timeoutMillis);

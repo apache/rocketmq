@@ -434,6 +434,18 @@ public class ConsumerOffsetManager extends ConfigManager {
             "offsetTable={}, resetOffsetTable={}, pullOffsetTable={}", group, clearOffset, clearReset, clearPull);
     }
 
+    public void removeOffset(final String group, final String topic) {
+        String topicAtGroup = topic + TOPIC_GROUP_SEPARATOR + group;
+        boolean clearOffset = this.offsetTable.remove(topicAtGroup) != null;
+        boolean clearReset = this.resetOffsetTable.remove(topicAtGroup) != null;
+        boolean clearPull = this.pullOffsetTable.remove(topicAtGroup) != null;
+
+        removeConsumerOffset(topicAtGroup);
+
+        LOG.info("Consumer offset manager clean group and topic offset, groupName={}, topic={}, " +
+            "offsetTable={}, resetOffsetTable={}, pullOffsetTable={}", group, topic, clearOffset, clearReset, clearPull);
+    }
+
     public void assignResetOffset(String topic, String group, int queueId, long offset) {
         if (Strings.isNullOrEmpty(topic) || Strings.isNullOrEmpty(group) || queueId < 0 || offset < 0) {
             LOG.warn("Illegal arguments when assigning reset offset. Topic={}, group={}, queueId={}, offset={}",

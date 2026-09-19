@@ -169,6 +169,7 @@ import org.apache.rocketmq.remoting.protocol.header.CreateTopicListRequestHeader
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
@@ -2298,6 +2299,25 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             }
             default:
                 break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void deleteConsumerOffset(final String addr, final String consumerGroup, final String topic,
+        final long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
+        DeleteConsumerOffsetRequestHeader requestHeader = new DeleteConsumerOffsetRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(topic);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_CONSUMER_OFFSET, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(
+            MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
+        if (response == null) {
+            throw new MQClientException(ResponseCode.SYSTEM_ERROR, "response is null when deleting consumer offset");
+        }
+        if (response.getCode() == ResponseCode.SUCCESS) {
+            return;
         }
 
         throw new MQClientException(response.getCode(), response.getRemark());
