@@ -185,7 +185,7 @@ public class ConsumerGroupInfo {
                         sub.toString());
                 }
             } else if (sub.getSubVersion() > old.getSubVersion()) {
-                if (this.consumeType == ConsumeType.CONSUME_PASSIVELY) {
+                if (this.consumeType == ConsumeType.CONSUME_PASSIVELY && !old.equalsIgnoreSubVersion(sub)) {
                     log.info("subscription changed, group: {} OLD: {} NEW: {}",
                         this.groupName,
                         old.toString(),
