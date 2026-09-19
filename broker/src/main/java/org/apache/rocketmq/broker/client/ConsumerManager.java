@@ -236,12 +236,10 @@ public class ConsumerManager {
         }
 
         for (SubscriptionData subscriptionData : subList) {
-            Set<String> groups = this.topicGroupTable.get(subscriptionData.getTopic());
-            if (groups == null) {
-                Set<String> tmp = new HashSet<>();
-                Set<String> prev = this.topicGroupTable.putIfAbsent(subscriptionData.getTopic(), tmp);
-                groups = prev != null ? prev : tmp;
-            }
+            Set<String> groups = this.topicGroupTable.computeIfAbsent(
+                subscriptionData.getTopic(),
+                k -> ConcurrentHashMap.newKeySet()
+            );
             groups.add(group);
         }
 
@@ -287,12 +285,10 @@ public class ConsumerManager {
         }
 
         for (SubscriptionData subscriptionData : consumerGroupInfo.getSubscriptionTable().values()) {
-            Set<String> groups = this.topicGroupTable.get(subscriptionData.getTopic());
-            if (groups == null) {
-                Set<String> tmp = new HashSet<>();
-                Set<String> prev = this.topicGroupTable.putIfAbsent(subscriptionData.getTopic(), tmp);
-                groups = prev != null ? prev : tmp;
-            }
+            Set<String> groups = this.topicGroupTable.computeIfAbsent(
+                subscriptionData.getTopic(),
+                k -> ConcurrentHashMap.newKeySet()
+            );
             groups.add(group);
         }
 
