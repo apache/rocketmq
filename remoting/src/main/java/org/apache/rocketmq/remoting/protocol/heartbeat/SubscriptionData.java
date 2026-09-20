@@ -26,6 +26,20 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * A consumer's subscription to a single topic,
+ *   - exchanged between client and broker via heartbeat
+ *   - consumed during message filtering.
+ *
+ * <p>Carries:
+ *   - the tag/SQL92 filter expression ({@link #subString})
+ *   - its precomputed {@link #codeSet} (tag {@code hashCode()}s)
+ * used by the broker for O(1) tag matching
+ *   against the per-message {@code tagsCode} stored in the ConsumeQueue.
+ *
+ * <p>The {@link #subVersion} timestamp lets the broker detect
+ *   and propagate subscription changes.
+ */
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";
     private boolean classFilterMode = false;
