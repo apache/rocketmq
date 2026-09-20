@@ -45,7 +45,30 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     private boolean classFilterMode = false;
     private String topic;
     private String subString;
+    /**
+     * Verbatim tags subscribed by the consumer.
+     * populated alongside {@link #codeSet} by {@code FilterAPI#buildSubscriptionData}
+     * when it splits the {@link #subString} on {@code "||"}.
+     *
+     * <p>Unlike {@link #codeSet}, this holds the original tag strings
+     * and is used only for display, logging ({@link #toString}) and serialization;
+     * it is not consulted during broker-side filtering.
+     */
     private Set<String> tagsSet = new HashSet<>();
+    /**
+     * Precomputed {@code hashCode()} of each tag in {@link #tagsSet},
+     * used by the broker for O(1) tag matching.
+     *
+     * <p>The broker compares this set against the per-message {@code tagsCode}
+     * (also produced by {@code tagsString2tagsCode}, i.e. {@code String#hashCode})
+     * stored in the ConsumeQueue entry, so a subscription matches a message when
+     * {@code codeSet.contains(message.tagsCode)} holds. Because these are 32-bit
+     * hashes, a collision can yield a false-positive match on the broker, which is
+     * why the consumer still performs exact tag filtering after delivery.
+     *
+     * <p>Empty (or only {@link #SUB_ALL} subscription) means "match everything":
+     * the broker short-circuits tag filtering entirely.
+     */
     private Set<Integer> codeSet = new HashSet<>();
     private long subVersion = System.currentTimeMillis();
     private String expressionType = ExpressionType.TAG;
