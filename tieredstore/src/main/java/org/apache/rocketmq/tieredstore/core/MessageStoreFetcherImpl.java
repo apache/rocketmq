@@ -459,7 +459,12 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
             return CompletableFuture.completedFuture(result);
         }
 
-        boolean cacheBusy = fetcherCache.estimatedSize() > memoryMaxSize * 0.8;
+        // The cache is bounded by maximumWeight (bytes, via the SelectBufferResult#getSize weigher),
+        // so compare against weightedSize() rather than estimatedSize(), which counts entries.
+        long cacheWeight = fetcherCache.policy().eviction()
+            .map(eviction -> eviction.weightedSize().orElse(0L))
+            .orElse(0L);
+        boolean cacheBusy = cacheWeight > memoryMaxSize * 0.8;
         if (storeConfig.isReadAheadCacheEnable() && !cacheBusy) {
             return getMessageFromCacheAsync(flatFile, group, queueOffset, maxCount, messageFilter);
         } else {

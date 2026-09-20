@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.exception;
 
+import java.util.concurrent.CompletionException;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,5 +38,18 @@ public class TieredStoreExceptionTest {
         tieredStoreException.setPosition(position);
         Assert.assertEquals(position, tieredStoreException.getPosition());
         Assert.assertNotNull(tieredStoreException.toString());
+    }
+
+    @Test
+    public void hasErrorCodeTest() {
+        Throwable throwable = new CompletionException(
+            new TieredStoreException(TieredStoreErrorCode.FILE_NOT_FOUND, "not found"));
+
+        Assert.assertTrue(TieredStoreException.hasErrorCode(
+            throwable, TieredStoreErrorCode.FILE_NOT_FOUND));
+        Assert.assertFalse(TieredStoreException.hasErrorCode(
+            throwable, TieredStoreErrorCode.IO_ERROR));
+        Assert.assertFalse(TieredStoreException.hasErrorCode(
+            null, TieredStoreErrorCode.FILE_NOT_FOUND));
     }
 }

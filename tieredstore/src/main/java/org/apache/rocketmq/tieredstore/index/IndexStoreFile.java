@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,6 +42,8 @@ import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
+import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
+import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
 import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
@@ -418,8 +421,14 @@ public class IndexStoreFile implements IndexFile {
         return future.whenComplete((result, throwable) -> {
             long costTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
             if (throwable != null) {
-                log.error("IndexStoreFile#queryAsyncFromSegmentFile, query from segment file error, cost={}ms, timestamp={}, key={}, hashCode={}, maxCount={}, timeRange={}-{}",
-                    costTime, getTimestamp(), key, hashCode, maxCount, beginTime, endTime, throwable);
+                if (TieredStoreException.hasErrorCode(throwable, TieredStoreErrorCode.FILE_NOT_FOUND)) {
+                    log.info("IndexStoreFile#queryAsyncFromSegmentFile, segment file not found, treat as no result, cost={}ms, timestamp={}, key={}, hashCode={}, maxCount={}, timeRange={}-{}, reason={}",
+                        costTime, getTimestamp(), key, hashCode, maxCount, beginTime, endTime, throwable.getMessage());
+                } else {
+                    // The exception propagates to IndexStoreService, which records it at ERROR.
+                    log.debug("IndexStoreFile#queryAsyncFromSegmentFile, query from segment file error, cost={}ms, timestamp={}, key={}, hashCode={}, maxCount={}, timeRange={}-{}",
+                        costTime, getTimestamp(), key, hashCode, maxCount, beginTime, endTime, throwable);
+                }
             } else {
                 String details = Optional.ofNullable(result)
                     .map(r -> r.stream()
@@ -430,6 +439,14 @@ public class IndexStoreFile implements IndexFile {
                 log.debug("IndexStoreFile#queryAsyncFromSegmentFile, query from segment file, cost={}ms, timestamp={}, resultSize={}, ({}), key={}, hashCode={}, maxCount={}, timeRange={}-{}",
                     costTime, getTimestamp(), result != null ? result.size() : 0, details, key, hashCode, maxCount, beginTime, endTime);
             }
+        }).exceptionally(throwable -> {
+            if (!TieredStoreException.hasErrorCode(throwable, TieredStoreErrorCode.FILE_NOT_FOUND)) {
+                if (throwable instanceof RuntimeException) {
+                    throw (RuntimeException) throwable;
+                }
+                throw new CompletionException(throwable);
+            }
+            return Collections.emptyList();
         });
     }
 

@@ -237,8 +237,11 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
         if (fileSegmentInputStream != null) {
             long fileSize = this.getSize();
             if (fileSize == GET_FILE_SIZE_ERROR) {
-                log.error("FileSegment#commitAsync, correct position error, fileName={}, commit={}, append={}, buffer={}",
-                    this.getPath(), commitPosition, appendPosition, fileSegmentInputStream.getContentLength());
+                long contentLength = fileSegmentInputStream.getContentLength();
+                log.error("FileSegment#commitAsync, fileName={}, result={}, commit={}, content={}, " +
+                        "expect={}, append={}, remote={}",
+                    this.getPath(), "SIZE_LOOKUP_FAILED", commitPosition, contentLength,
+                    commitPosition + contentLength, appendPosition, fileSize);
                 releaseCommitLock();
                 return CompletableFuture.completedFuture(false);
             }
@@ -280,29 +283,32 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
     }
 
     private boolean handleCommitException(Throwable e) {
-
-        log.warn("FileSegment#handleCommitException, commit exception, filePath={}", this.filePath, e);
-
-        // Get root cause here
         Throwable rootCause = e.getCause() != null ? e.getCause() : e;
+        long commitPositionBefore = commitPosition;
+        long contentLength = fileSegmentInputStream.getContentLength();
+        long expectPosition = commitPositionBefore + contentLength;
 
         long fileSize = rootCause instanceof TieredStoreException ?
-            ((TieredStoreException) rootCause).getPosition() : this.getSize();
+            ((TieredStoreException) rootCause).getPosition() : GET_FILE_SIZE_ERROR;
+        boolean sizeKnown = fileSize != GET_FILE_SIZE_ERROR;
 
-        long expectPosition = commitPosition + fileSegmentInputStream.getContentLength();
-        if (fileSize == GET_FILE_SIZE_ERROR) {
-            log.error("FileSegment#handleCommitException, get file size error after commit, fileName={}, commit={}, content={}, expect={}, append={}",
-                this.getPath(), commitPosition, fileSegmentInputStream.getContentLength(), expectPosition, appendPosition);
-            return false;
-        }
-
-        if (correctPosition(fileSize)) {
+        boolean landed = false;
+        String result;
+        if (!sizeKnown) {
+            result = "RETRY_AFTER_RECONCILE";
+        } else if (correctPosition(fileSize)) {
             fileSegmentInputStream = null;
-            return true;
+            result = "REMOTE_LANDED";
+            landed = true;
         } else {
             fileSegmentInputStream.rewind();
-            return false;
+            result = "RETRY_AFTER_REWIND";
         }
+
+        log.warn("FileSegment#handleCommitException, fileName={}, result={}, commit={}, content={}, " +
+                "expect={}, append={}, remote={}",
+            this.getPath(), result, commitPositionBefore, contentLength, expectPosition, appendPosition, fileSize, e);
+        return landed;
     }
 
     private void releaseCommitLock() {
@@ -352,7 +358,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
         int readableBytes = (int) (currentCommitPosition - position);
         if (readableBytes < length) {
-            log.debug("FileSegment#readAsync, request position exceeds commit position, " +
+            log.warn("FileSegment#readAsync, request position exceeds commit position, " +
                     "file={}, requestPosition={}, commitPosition={}, changeLength={} to {}",
                 getPath(), position, currentCommitPosition, length, readableBytes);
             length = readableBytes;

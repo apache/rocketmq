@@ -54,6 +54,13 @@ public enum TieredStoreErrorCode {
     SEGMENT_SEALED,
 
     /**
+     * Error code for an object that does not exist in the storage system. A caller that can still
+     * answer from the remaining segments should treat this as an empty result rather than a query
+     * failure, since the object may be deleted while a read is already in flight.
+     */
+    FILE_NOT_FOUND,
+
+    /**
      * Error code for an unknown error.
      */
     UNKNOWN
