@@ -20,6 +20,7 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.BoundaryType;
@@ -33,8 +34,11 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.common.GetMessageResultExt;
 import org.apache.rocketmq.tieredstore.common.SelectBufferResult;
+import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
+import org.apache.rocketmq.tieredstore.index.IndexService;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtilTest;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
 import org.awaitility.Awaitility;
@@ -185,6 +189,39 @@ public class MessageStoreFetcherImplTest {
             return offset.get() == 200L;
         });
         Assert.assertEquals(100 / times.get(), batchSize);
+    }
+
+    @Test
+    public void cacheWeightControlsReadPathTest() {
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setReadAheadCacheEnable(true);
+        config.setReadAheadCacheSizeThresholdRate(1024D / Runtime.getRuntime().maxMemory());
+
+        TieredMessageStore tieredStore = Mockito.mock(TieredMessageStore.class);
+        FlatFileStore flatFileStore = Mockito.mock(FlatFileStore.class);
+        FlatMessageFile flatFile = Mockito.mock(FlatMessageFile.class);
+        Mockito.when(flatFileStore.getFlatFile(Mockito.any(MessageQueue.class))).thenReturn(flatFile);
+        Mockito.when(flatFile.getConsumeQueueMinOffset()).thenReturn(0L);
+        Mockito.when(flatFile.getConsumeQueueCommitOffset()).thenReturn(100L);
+
+        MessageStoreFetcherImpl cacheFetcher = Mockito.spy(new MessageStoreFetcherImpl(
+            tieredStore, config, flatFileStore, Mockito.mock(IndexService.class)));
+        Mockito.doReturn(CompletableFuture.completedFuture(new GetMessageResult()))
+            .when(cacheFetcher).getMessageFromCacheAsync(flatFile, groupName, 1L, 1, null);
+        Mockito.doReturn(CompletableFuture.completedFuture(new GetMessageResultExt()))
+            .when(cacheFetcher).getMessageFromTieredStoreAsync(flatFile, 1L, 1);
+
+        cacheFetcher.getMessageAsync(groupName, "topic", 0, 1L, 1, null).join();
+        Mockito.verify(cacheFetcher).getMessageFromCacheAsync(flatFile, groupName, 1L, 1, null);
+        Mockito.verify(cacheFetcher, Mockito.never()).getMessageFromTieredStoreAsync(flatFile, 1L, 1);
+
+        int entrySize = (int) Math.ceil(cacheFetcher.memoryMaxSize * 0.9);
+        cacheFetcher.getFetcherCache().put("entry", new SelectBufferResult(
+            ByteBuffer.allocate(entrySize), 0, entrySize, 0));
+        cacheFetcher.getFetcherCache().cleanUp();
+
+        cacheFetcher.getMessageAsync(groupName, "topic", 0, 1L, 1, null).join();
+        Mockito.verify(cacheFetcher).getMessageFromTieredStoreAsync(flatFile, 1L, 1);
     }
 
     @Test
