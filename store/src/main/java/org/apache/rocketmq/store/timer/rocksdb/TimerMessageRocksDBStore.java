@@ -560,7 +560,7 @@ public class TimerMessageRocksDBStore {
             if (null == msg) {
                 return;
             }
-            for (int retryCount = 0; !isStopped() && retryCount <= MAX_PUT_MSG_TIMES; retryCount++) {
+            for (int retryCount = 0; !isStopped(); retryCount++) {
                 int result = doPut(msg);
                 switch (result) {
                     case PUT_OK:
@@ -569,13 +569,12 @@ public class TimerMessageRocksDBStore {
                         logError.warn("Skipping message due to unrecoverable error. Msg: {}", msg);
                         return;
                     default:
-                        if (retryCount == MAX_PUT_MSG_TIMES) {
+                        if (!storeConfig.isTimerEnableRetryUntilSuccess() && retryCount >= MAX_PUT_MSG_TIMES) {
                             logError.error("Message processing failed after {} retries. Msg: {}", retryCount, msg);
                             return;
-                        } else {
-                            Thread.sleep(100L);
-                            logError.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
                         }
+                        Thread.sleep(100L);
+                        logError.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
                 }
             }
         }
