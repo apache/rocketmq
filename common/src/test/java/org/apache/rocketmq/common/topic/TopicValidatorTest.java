@@ -138,6 +138,12 @@ public class TopicValidatorTest {
     }
 
     @Test
+    public void testTimerTopicCannotBeSentByClient() {
+        assertThat(TopicValidator.isNotAllowedSendTopic(TopicValidator.RMQ_SYS_WHEEL_TIMER_TOPIC))
+            .isTrue();
+    }
+
+    @Test
     public void testIsNotAllowedSendTopicWithResponse() {
         boolean res;
         for (String topic : TopicValidator.getNotAllowedSendTopicSet()) {
