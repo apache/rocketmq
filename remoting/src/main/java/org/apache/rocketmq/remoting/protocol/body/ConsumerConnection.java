@@ -35,6 +35,9 @@ public class ConsumerConnection extends RemotingSerializable {
     private ConsumeFromWhere consumeFromWhere;
 
     public int computeMinVersion() {
+        if (this.connectionSet.isEmpty()) {
+            return 0;
+        }
         int minVersion = Integer.MAX_VALUE;
         for (Connection c : this.connectionSet) {
             if (c.getVersion() < minVersion) {
