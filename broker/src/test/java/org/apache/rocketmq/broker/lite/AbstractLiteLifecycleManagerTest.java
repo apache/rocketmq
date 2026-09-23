@@ -22,6 +22,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import java.util.function.Function;
@@ -239,6 +242,67 @@ public class AbstractLiteLifecycleManagerTest {
         verify(consumerOffsetManager).removeConsumerOffset(removeKey);
         verify(messageStore).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry).cleanSubscription(EXIST_LMQ_NAME, false);
+    }
+
+    @Test
+    public void testCollectByParentTopicSkipsLmqWithoutMessages() {
+        String skippedLmq = LiteUtil.toLmqName(PARENT_TOPIC, "skipped");
+        String countedLmq = LiteUtil.toLmqName(PARENT_TOPIC, "counted");
+        lifecycleManager.lmqPrefixIndex.add(skippedLmq);
+        lifecycleManager.lmqPrefixIndex.add(countedLmq);
+        // an lmq with maxOffset <= 0 has no message yet and must not be reported to the caller
+        Mockito.doReturn(0L).when(lifecycleManager).getMaxOffsetInQueue(skippedLmq);
+
+        List<String> collected = lifecycleManager.collectByParentTopic(PARENT_TOPIC);
+        Assert.assertEquals(2, collected.size());
+        Assert.assertTrue(collected.contains(EXIST_LMQ_NAME));
+        Assert.assertTrue(collected.contains(countedLmq));
+        Assert.assertFalse(collected.contains(skippedLmq));
+
+        Assert.assertEquals(2, lifecycleManager.getLiteTopicCount(PARENT_TOPIC));
+        Assert.assertTrue(lifecycleManager.collectByParentTopic("").isEmpty());
+    }
+
+    @Test
+    public void testForEachLiteTopicByParentDeleteInsideCallback() throws Exception {
+        String lmqToDelete = LiteUtil.toLmqName(PARENT_TOPIC, "toBeDeleted");
+        String lmqToKeep = LiteUtil.toLmqName(PARENT_TOPIC, "toBeKept");
+        lifecycleManager.lmqPrefixIndex.add(lmqToDelete);
+        lifecycleManager.lmqPrefixIndex.add(lmqToKeep);
+        lifecycleManager.updateMetadata();
+
+        List<String> visited = Collections.synchronizedList(new ArrayList<>());
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            // Regression: the callback used to run while the prefix index read lock was held, so
+            // deleteLmq -> onLmqDelete -> lmqPrefixIndex.remove (write lock) on the same thread
+            // hung forever. The traversal must complete now.
+            Future<?> future = executor.submit(() -> lifecycleManager.forEachLiteTopicByParent(
+                PARENT_TOPIC, triple -> {
+                    visited.add(triple.getLeft());
+                    lifecycleManager.deleteLmq(PARENT_TOPIC, lmqToDelete);
+                    return true;
+                }));
+            future.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdown();
+        }
+
+        // the traversal runs on a snapshot, so every indexed lmq of the parent is still visited once
+        Assert.assertEquals(3, visited.size());
+        Assert.assertTrue(visited.contains(EXIST_LMQ_NAME));
+        Assert.assertTrue(visited.contains(lmqToDelete));
+        Assert.assertTrue(visited.contains(lmqToKeep));
+
+        // only the lmq deleted by the callback left the index
+        List<String> remaining = lifecycleManager.collectByParentTopic(PARENT_TOPIC);
+        Assert.assertEquals(2, remaining.size());
+        Assert.assertTrue(remaining.contains(EXIST_LMQ_NAME));
+        Assert.assertTrue(remaining.contains(lmqToKeep));
+        Assert.assertFalse(remaining.contains(lmqToDelete));
+
+        // the repeated delete inside the loop is a safe no-op after the first round
+        verify(messageStore, times(3)).deleteTopics(Collections.singleton(lmqToDelete));
     }
 
     @Test

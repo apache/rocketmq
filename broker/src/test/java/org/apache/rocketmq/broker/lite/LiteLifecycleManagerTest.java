@@ -48,6 +48,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -192,6 +196,52 @@ public class LiteLifecycleManagerTest {
         for (int i = 0; i < num; i++) {
             String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
             Assert.assertFalse(messageStore.getQueueStore().getConsumeQueueTable().containsKey(lmqName));
+        }
+    }
+
+    @Test
+    public void testForEachLiteTopicByParentDeleteInsideVisitor() throws Exception {
+        int num = 3;
+        String parentTopic = UUID.randomUUID().toString();
+        mockTopicConfig.getAttributes().put(
+            TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
+        List<String> liteTopics =
+            IntStream.range(0, num).mapToObj(i -> UUID.randomUUID().toString()).collect(Collectors.toList());
+        for (int i = 0; i < num; i++) {
+            messageStore.putMessage(LiteTestUtil.buildMessage(parentTopic, liteTopics.get(i)));
+        }
+        await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
+
+        String lmqToDelete = LiteUtil.toLmqName(parentTopic, liteTopics.get(0));
+        List<String> visited = new CopyOnWriteArrayList<>();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            // Regression: deleting from inside the visitor re-enters the prefix index through the
+            // write lock (deleteLmq -> onLmqDelete -> LmqPrefixIndex.remove) and used to hang, because
+            // the traversal held the read lock on the very same thread.
+            Future<?> future = executor.submit(() -> liteLifecycleManager.forEachLiteTopicByParent(
+                parentTopic, triple -> {
+                    visited.add(triple.getLeft());
+                    liteLifecycleManager.deleteLmq(parentTopic, lmqToDelete);
+                    return true;
+                }));
+            future.get(5, SECONDS);
+        } finally {
+            executor.shutdown();
+        }
+
+        // the traversal iterates a snapshot, so every lmq of the parent is still visited exactly once
+        Assert.assertEquals(num, visited.size());
+        for (String liteTopic : liteTopics) {
+            Assert.assertTrue(visited.contains(LiteUtil.toLmqName(parentTopic, liteTopic)));
+        }
+
+        // only the lmq deleted by the visitor left the index
+        List<String> remaining = liteLifecycleManager.collectByParentTopic(parentTopic);
+        Assert.assertEquals(num - 1, remaining.size());
+        Assert.assertFalse(remaining.contains(lmqToDelete));
+        for (String lmqName : remaining) {
+            Assert.assertTrue(LiteUtil.belongsTo(lmqName, parentTopic));
         }
     }
 

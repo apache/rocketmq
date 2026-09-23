@@ -18,10 +18,12 @@
 package org.apache.rocketmq.broker.lite;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -160,14 +162,162 @@ public class LmqPrefixIndexTest {
     public void forEachByPrefixEmptyPrefix() {
         index.add(LiteUtil.toLmqName("topicA", "lite1"));
 
-        assertFalse(index.forEachLmqByPrefix("", name -> true));
-        assertFalse(index.forEachLmqByPrefix(null, name -> true));
+        AtomicInteger visitCount = new AtomicInteger(0);
+        assertFalse(index.forEachLmqByPrefix("", name -> {
+            visitCount.incrementAndGet();
+            return true;
+        }));
+        assertFalse(index.forEachLmqByPrefix(null, name -> {
+            visitCount.incrementAndGet();
+            return true;
+        }));
+        assertEquals(0, visitCount.get());
     }
 
     @Test
     public void forEachByPrefixNullVisitor() {
         index.add(LiteUtil.toLmqName("topicA", "lite1"));
         assertFalse(index.forEachLmqByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicA", null));
+    }
+
+    // --- traversal safety: the visitor must never run under the index lock ---
+
+    @Test
+    public void forEachByPrefixVisitorMayMutateIndex() throws Exception {
+        // Regression: the visitor used to run while the read lock was held, so a visitor that
+        // transitively called remove()/add() tried to upgrade the read lock to the write lock and
+        // blocked forever.
+        String lmq1 = LiteUtil.toLmqName("topicA", "lite1");
+        String lmq2 = LiteUtil.toLmqName("topicA", "lite2");
+        index.add(lmq1);
+        index.add(lmq2);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<Boolean> future = executor.submit(() -> {
+                return index.forEachLmqByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicA", name -> {
+                    index.remove(name);
+                    index.add(LiteUtil.toLmqName("topicB", "addedByVisitor"));
+                    return true;
+                });
+            });
+            assertTrue(future.get(5, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdown();
+        }
+
+        // both topicA entries were dropped by the visitor, the entry it added is the only survivor
+        String addedByVisitor = LiteUtil.toLmqName("topicB", "addedByVisitor");
+        assertEquals(1, index.size());
+        assertEquals(Collections.singletonList(addedByVisitor),
+            index.snapshotByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicB"));
+    }
+
+    @Test
+    public void forEachByPrefixDoesNotHoldIndexLockDuringVisitor() throws Exception {
+        // Regression: the write lock must stay free while the visitor runs, otherwise the store
+        // reput thread blocks in onLmqCreate -> add() for the whole duration of the traversal.
+        String lmq1 = LiteUtil.toLmqName("topicA", "lite1");
+        String lmq2 = LiteUtil.toLmqName("topicA", "lite2");
+        index.add(lmq1);
+
+        CountDownLatch visitorEntered = new CountDownLatch(1);
+        CountDownLatch releaseVisitor = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<Boolean> traversal = executor.submit(() -> {
+                return index.forEachLmqByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicA", name -> {
+                    visitorEntered.countDown();
+                    awaitQuietly(releaseVisitor);
+                    return true;
+                });
+            });
+            assertTrue(visitorEntered.await(5, TimeUnit.SECONDS));
+
+            // the visitor is still parked inside the traversal, yet a concurrent add() completes
+            Future<Boolean> writer = executor.submit(() -> {
+                return index.add(lmq2);
+            });
+            assertTrue(writer.get(5, TimeUnit.SECONDS));
+            assertFalse(traversal.isDone());
+
+            releaseVisitor.countDown();
+            assertTrue(traversal.get(5, TimeUnit.SECONDS));
+        } finally {
+            releaseVisitor.countDown();
+            executor.shutdown();
+        }
+
+        assertEquals(2, index.size());
+    }
+
+    @Test
+    public void forEachByPrefixTraversalUsesSnapshot() throws Exception {
+        // The traversal keeps iterating the snapshot taken before the first callback: entries the
+        // visitor removes are still visited exactly once, entries it adds are not visited at all.
+        String lmq1 = LiteUtil.toLmqName("topicA", "lite1");
+        String lmq2 = LiteUtil.toLmqName("topicA", "lite2");
+        String lmq3 = LiteUtil.toLmqName("topicA", "lite3");
+        index.add(lmq1);
+        index.add(lmq2);
+
+        List<String> visited = new ArrayList<>();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<Boolean> future = executor.submit(() -> {
+                return index.forEachLmqByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicA", name -> {
+                    visited.add(name);
+                    index.remove(name);
+                    index.add(lmq3);
+                    return true;
+                });
+            });
+            assertTrue(future.get(5, TimeUnit.SECONDS));
+        } finally {
+            executor.shutdown();
+        }
+
+        assertEquals(2, visited.size());
+        assertTrue(visited.contains(lmq1));
+        assertTrue(visited.contains(lmq2));
+        assertFalse(visited.contains(lmq3));
+        assertEquals(Collections.singletonList(lmq3),
+            index.snapshotByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicA"));
+    }
+
+    // --- snapshotByPrefix ---
+
+    @Test
+    public void snapshotByPrefixReturnsIndependentCopy() {
+        String lmq1 = LiteUtil.toLmqName("topicA", "lite1");
+        String lmq2 = LiteUtil.toLmqName("topicA", "lite2");
+        index.add(lmq1);
+        index.add(lmq2);
+
+        List<String> snapshot = index.snapshotByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicA");
+        assertEquals(2, snapshot.size());
+
+        // mutations after the snapshot must not leak into the copy already handed out
+        index.remove(lmq1);
+        index.add(LiteUtil.toLmqName("topicA", "lite3"));
+        assertEquals(2, snapshot.size());
+        assertTrue(snapshot.contains(lmq1));
+        assertTrue(snapshot.contains(lmq2));
+    }
+
+    @Test
+    public void snapshotByPrefixInvalidPrefix() {
+        index.add(LiteUtil.toLmqName("topicA", "lite1"));
+
+        assertTrue(index.snapshotByPrefix("").isEmpty());
+        assertTrue(index.snapshotByPrefix(null).isEmpty());
+        assertEquals(1, index.size());
+    }
+
+    @Test
+    public void snapshotByPrefixNoMatch() {
+        index.add(LiteUtil.toLmqName("topicA", "lite1"));
+        assertTrue(index.snapshotByPrefix(LiteUtil.LITE_TOPIC_PREFIX + "topicX").isEmpty());
     }
 
     // --- isEmpty / size ---
@@ -225,5 +375,13 @@ public class LmqPrefixIndexTest {
         assertTrue(latch.await(30, TimeUnit.SECONDS));
         executor.shutdown();
         assertEquals(threads * entriesPerThread, index.size());
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+        try {
+            latch.await(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
