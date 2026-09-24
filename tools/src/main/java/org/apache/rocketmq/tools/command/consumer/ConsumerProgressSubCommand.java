@@ -349,7 +349,7 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
             return o.count - this.count;
         }
 
-        return (int) (o.diffTotal - diffTotal);
+        return Long.compare(o.diffTotal, diffTotal);
     }
 
     public int getConsumeTps() {
