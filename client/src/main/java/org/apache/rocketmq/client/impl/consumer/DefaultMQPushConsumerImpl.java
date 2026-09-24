@@ -393,6 +393,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             break;
                         case NO_NEW_MSG:
                         case NO_MATCHED_MSG:
+                            if (pullRequest.getProcessQueue().isDropped()) {
+                                log.info("the message queue not be able to consume, because it's dropped. messageQueue={}",
+                                    pullRequest.getMessageQueue());
+                                return;
+                            }
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                             DefaultMQPushConsumerImpl.this.correctTagsOffset(pullRequest);
