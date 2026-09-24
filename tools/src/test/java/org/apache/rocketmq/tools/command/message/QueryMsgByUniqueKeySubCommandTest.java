@@ -19,6 +19,7 @@ package org.apache.rocketmq.tools.command.message;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +59,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.assertj.core.util.Lists;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -234,6 +236,75 @@ public class QueryMsgByUniqueKeySubCommandTest {
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
             cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
+    }
+
+    @Test
+    public void testStoreTimestampComparatorOrdersChronologically() {
+        List<MessageExt> list = new ArrayList<>();
+        list.add(messageStoredAt(3000L));
+        list.add(messageStoredAt(1000L));
+        list.add(messageStoredAt(2000L));
+
+        list.sort(QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR);
+
+        // The oldest stored message is printed first.
+        Assert.assertEquals(Arrays.asList(1000L, 2000L, 3000L), storeTimestamps(list));
+    }
+
+    @Test
+    public void testStoreTimestampComparatorWithGapBeyondIntRange() {
+        // Store timestamps are long values. Casting the difference of two of them to an int
+        // wrapped around when the messages were stored more than Integer.MAX_VALUE
+        // milliseconds apart, which printed the newest message first.
+        List<MessageExt> list = new ArrayList<>();
+        list.add(messageStoredAt(Long.MAX_VALUE));
+        list.add(messageStoredAt(0L));
+
+        list.sort(QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR);
+
+        Assert.assertEquals(Arrays.asList(0L, Long.MAX_VALUE), storeTimestamps(list));
+    }
+
+    @Test
+    public void testStoreTimestampComparatorAntisymmetric() {
+        long[] timestamps = new long[] {0L, 1L, Integer.MAX_VALUE + 1L, Long.MAX_VALUE / 2, Long.MAX_VALUE};
+        for (long left : timestamps) {
+            for (long right : timestamps) {
+                int forward = QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR
+                    .compare(messageStoredAt(left), messageStoredAt(right));
+                int backward = QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR
+                    .compare(messageStoredAt(right), messageStoredAt(left));
+                Assert.assertEquals(Integer.signum(forward), -Integer.signum(backward));
+            }
+        }
+    }
+
+    @Test
+    public void testSortMessagesWithMixedStoreTimestamps() {
+        List<MessageExt> list = new ArrayList<>();
+        list.add(messageStoredAt(Long.MAX_VALUE));
+        list.add(messageStoredAt(10L));
+        list.add(messageStoredAt(0L));
+        list.add(messageStoredAt(Integer.MAX_VALUE + 5L));
+
+        list.sort(QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR);
+
+        Assert.assertEquals(Arrays.asList(0L, 10L, Integer.MAX_VALUE + 5L, Long.MAX_VALUE),
+            storeTimestamps(list));
+    }
+
+    private static MessageExt messageStoredAt(long storeTimestamp) {
+        MessageExt msg = new MessageExt();
+        msg.setStoreTimestamp(storeTimestamp);
+        return msg;
+    }
+
+    private static List<Long> storeTimestamps(List<MessageExt> list) {
+        List<Long> timestamps = new ArrayList<>(list.size());
+        for (MessageExt msg : list) {
+            timestamps.add(msg.getStoreTimestamp());
+        }
+        return timestamps;
     }
 
     @Test

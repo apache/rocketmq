@@ -349,7 +349,12 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
             return o.count - this.count;
         }
 
-        return (int) (o.diffTotal - diffTotal);
+        // diffTotal is a long lag counter and may be far beyond the int range. Subtracting
+        // the two values and casting the result to an int truncated the sign of the
+        // difference, so groups whose lag differs by more than Integer.MAX_VALUE were
+        // ordered the wrong way round, and sorting could even fail because the comparator
+        // broke its contract. Long.compare keeps the comparison overflow-safe.
+        return Long.compare(o.diffTotal, diffTotal);
     }
 
     public int getConsumeTps() {

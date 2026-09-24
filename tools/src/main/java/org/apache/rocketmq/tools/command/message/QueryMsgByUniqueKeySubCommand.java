@@ -20,6 +20,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -39,6 +40,16 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class QueryMsgByUniqueKeySubCommand implements SubCommand {
+
+    /**
+     * Messages that share the same unique key are printed from the oldest stored one to the
+     * newest one. A store timestamp is a long value, so the comparison is delegated to
+     * {@link Long#compare(long, long)}: subtracting two timestamps whose difference does not
+     * fit into an int and casting the result to an int flipped the sign of the comparison and
+     * printed the newest message first.
+     */
+    static final Comparator<MessageExt> STORE_TIMESTAMP_COMPARATOR =
+        Comparator.comparingLong(MessageExt::getStoreTimestamp);
 
     private DefaultMQAdminExt defaultMQAdminExt;
 
@@ -73,7 +84,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         if (list == null || list.size() == 0) {
             return;
         }
-        list.sort((o1, o2) -> (int) (o1.getStoreTimestamp() - o2.getStoreTimestamp()));
+        list.sort(STORE_TIMESTAMP_COMPARATOR);
         for (int i = 0; i < (showAll ? list.size() : 1); i++) {
             showMessage(admin, list.get(i), i);
         }

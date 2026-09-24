@@ -250,7 +250,11 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
         @Override
         public int compareTo(final TagCountBean o) {
-            return (int) (o.getCount().get() - this.count.get());
+            // Tag counters are long values. Subtracting them and casting the difference to an
+            // int truncated the sign once a tag had been counted more times than
+            // Integer.MAX_VALUE, which made the tag summary print the tags in the wrong order.
+            // Long.compare cannot overflow.
+            return Long.compare(o.getCount().get(), this.count.get());
         }
     }
 }
