@@ -29,6 +29,7 @@ import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.netty.util.Attribute;
 import io.netty.util.DefaultAttributeMap;
+import io.netty.util.ReferenceCountUtil;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -62,14 +63,26 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        boolean fireChannelRead = false;
         try {
             forwardHAProxyMessage(ctx.channel(), outboundChannel);
+            fireChannelRead = true;
             ctx.fireChannelRead(msg);
+        } catch (InvalidHAProxyMetadataException e) {
+            log.warn("Reject malformed HAProxy metadata from Remoting to gRPC server.", e);
+            ReferenceCountUtil.release(msg);
+            ctx.close();
         } catch (Exception e) {
             log.error("Forward HAProxyMessage from Remoting to gRPC server error.", e);
+            if (!fireChannelRead) {
+                ReferenceCountUtil.release(msg);
+            }
+            ctx.close();
             throw e;
         } finally {
-            ctx.pipeline().remove(this);
+            if (ctx.pipeline().context(this) != null) {
+                ctx.pipeline().remove(this);
+            }
         }
     }
 
@@ -86,44 +99,55 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
         outboundChannel.writeAndFlush(message).sync();
     }
 
-    protected HAProxyMessage buildHAProxyMessage(Channel inboundChannel) throws IllegalAccessException, DecoderException {
+    protected HAProxyMessage buildHAProxyMessage(Channel inboundChannel)
+        throws IllegalAccessException, DecoderException, InvalidHAProxyMetadataException {
         String sourceAddress = null, destinationAddress = null;
         int sourcePort = 0, destinationPort = 0;
-        if (inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
-            Attribute<?>[] attributes = (Attribute<?>[]) FieldUtils.readField(FIELD_ATTRIBUTE, inboundChannel);
-            if (ArrayUtils.isEmpty(attributes)) {
-                return null;
-            }
+        Attribute<?>[] attributes = getProxyProtocolAttributes(inboundChannel);
+        if (ArrayUtils.isNotEmpty(attributes)) {
+            boolean sourcePortSet = false;
+            boolean destinationPortSet = false;
             for (Attribute<?> attribute : attributes) {
                 String attributeKey = attribute.key().name();
                 if (!StringUtils.startsWith(attributeKey, HAProxyConstants.PROXY_PROTOCOL_PREFIX)) {
                     continue;
                 }
                 String attributeValue = (String) attribute.get();
-                if (StringUtils.isEmpty(attributeValue)) {
-                    continue;
-                }
                 if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_ADDR) {
                     sourceAddress = attributeValue;
                 }
                 if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_PORT) {
-                    sourcePort = Integer.parseInt(attributeValue);
+                    sourcePort = parseProxyProtocolPort(attributeValue, attributeKey);
+                    sourcePortSet = true;
                 }
                 if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR) {
                     destinationAddress = attributeValue;
                 }
                 if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_PORT) {
-                    destinationPort = Integer.parseInt(attributeValue);
+                    destinationPort = parseProxyProtocolPort(attributeValue, attributeKey);
+                    destinationPortSet = true;
                 }
             }
+            validateProxyProtocolAddress(sourceAddress, HAProxyConstants.PROXY_PROTOCOL_ADDR);
+            validateProxyProtocolAddress(destinationAddress, HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR);
+            validateProxyProtocolPort(sourcePortSet, HAProxyConstants.PROXY_PROTOCOL_PORT);
+            validateProxyProtocolPort(destinationPortSet, HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT);
         } else {
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(inboundChannel);
             sourceAddress = StringUtils.substringBeforeLast(remoteAddr, CommonConstants.COLON);
-            sourcePort = Integer.parseInt(StringUtils.substringAfterLast(remoteAddr, CommonConstants.COLON));
+            Integer parsedSourcePort = parsePort(StringUtils.substringAfterLast(remoteAddr, CommonConstants.COLON));
+            if (parsedSourcePort == null) {
+                return null;
+            }
+            sourcePort = parsedSourcePort;
 
             String localAddr = RemotingHelper.parseChannelLocalAddr(inboundChannel);
             destinationAddress = StringUtils.substringBeforeLast(localAddr, CommonConstants.COLON);
-            destinationPort = Integer.parseInt(StringUtils.substringAfterLast(localAddr, CommonConstants.COLON));
+            Integer parsedDestinationPort = parsePort(StringUtils.substringAfterLast(localAddr, CommonConstants.COLON));
+            if (parsedDestinationPort == null) {
+                return null;
+            }
+            destinationPort = parsedDestinationPort;
         }
 
         HAProxyProxiedProtocol proxiedProtocol = AclUtils.isColon(sourceAddress) ? HAProxyProxiedProtocol.TCP6 :
@@ -133,6 +157,59 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
 
         return new HAProxyMessage(HAProxyProtocolVersion.V2, HAProxyCommand.PROXY,
             proxiedProtocol, sourceAddress, destinationAddress, sourcePort, destinationPort, haProxyTLVs);
+    }
+
+    protected Integer parsePort(String port) {
+        try {
+            int parsedPort = Integer.parseInt(port);
+            if (parsedPort < 0 || parsedPort > 65535) {
+                log.warn("HAProxy port out of range. port:{}", port);
+                return null;
+            }
+            return parsedPort;
+        } catch (NumberFormatException e) {
+            log.warn("parse HAProxy port failed. port:{}", port);
+            return null;
+        }
+    }
+
+    private Attribute<?>[] getProxyProtocolAttributes(Channel inboundChannel) throws IllegalAccessException {
+        if (!(inboundChannel instanceof DefaultAttributeMap)) {
+            return null;
+        }
+        Attribute<?>[] attributes = (Attribute<?>[]) FieldUtils.readField(FIELD_ATTRIBUTE, inboundChannel);
+        if (ArrayUtils.isEmpty(attributes)) {
+            return null;
+        }
+        for (Attribute<?> attribute : attributes) {
+            if (StringUtils.startsWith(attribute.key().name(), HAProxyConstants.PROXY_PROTOCOL_PREFIX)) {
+                return attributes;
+            }
+        }
+        return null;
+    }
+
+    private int parseProxyProtocolPort(String port, String attributeKey) throws InvalidHAProxyMetadataException {
+        if (StringUtils.isBlank(port)) {
+            throw new InvalidHAProxyMetadataException("missing proxy protocol port: " + attributeKey);
+        }
+        Integer parsedPort = parsePort(port);
+        if (parsedPort == null) {
+            throw new InvalidHAProxyMetadataException("invalid proxy protocol port: " + attributeKey);
+        }
+        return parsedPort;
+    }
+
+    private void validateProxyProtocolAddress(String address, String attributeKey) throws InvalidHAProxyMetadataException {
+        if (StringUtils.isBlank(address)) {
+            throw new InvalidHAProxyMetadataException("missing proxy protocol address: " + attributeKey);
+        }
+    }
+
+    private void validateProxyProtocolPort(boolean portSet, String attributeKey) throws InvalidHAProxyMetadataException {
+        if (!portSet) {
+            throw new InvalidHAProxyMetadataException("missing proxy protocol port: " + attributeKey);
+        }
     }
 
     protected List<HAProxyTLV> buildHAProxyTLV(Channel inboundChannel) throws IllegalAccessException, DecoderException {
@@ -163,5 +240,11 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
         ByteBuf byteBuf = Unpooled.buffer();
         byteBuf.writeBytes(attributeValue.getBytes(Charset.defaultCharset()));
         return new HAProxyTLV(Hex.decodeHex(typeString)[0], byteBuf);
+    }
+
+    protected static class InvalidHAProxyMetadataException extends Exception {
+        public InvalidHAProxyMetadataException(String message) {
+            super(message);
+        }
     }
 }
