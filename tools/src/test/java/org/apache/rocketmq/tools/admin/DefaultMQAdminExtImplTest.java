@@ -38,6 +38,7 @@ import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
+import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
@@ -46,6 +47,8 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
@@ -54,6 +57,7 @@ import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.api.BrokerOperatorResult;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
+import org.apache.rocketmq.tools.admin.api.TrackType;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
 import org.apache.rocketmq.tools.admin.common.AdminToolsResultCodeEnum;
 import org.junit.Before;
@@ -91,6 +95,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -624,6 +629,36 @@ public class DefaultMQAdminExtImplTest {
         assertNull(actual.getRemark());
         assertFalse(actual.isAutoCommit());
         assertFalse(actual.isOrder());
+    }
+
+    @Test
+    public void testMessageTrackDetailConcurrentWithBroadcastGroup() throws Exception {
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(defaultTopic);
+        messageExt.setQueueId(0);
+        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
+
+        GroupList groupList = mock(GroupList.class);
+        HashSet<String> groupSet = new HashSet<>();
+        groupSet.add(defaultGroup);
+        when(groupList.getGroupList()).thenReturn(groupSet);
+        when(mqClientAPIImpl.queryTopicConsumeByWho(anyString(), anyString(), anyLong())).thenReturn(groupList);
+
+        ConsumerConnection consumerConnection = new ConsumerConnection();
+        HashSet<Connection> connectionSet = new HashSet<>();
+        connectionSet.add(new Connection());
+        consumerConnection.setConnectionSet(connectionSet);
+        consumerConnection.setConsumeType(ConsumeType.CONSUME_PASSIVELY);
+        consumerConnection.setMessageModel(MessageModel.BROADCASTING);
+        when(mqClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
+
+        when(mqClientAPIImpl.getConsumeStats(anyString(), anyString(), nullable(String.class), anyLong()))
+            .thenReturn(new ConsumeStats());
+
+        List<MessageTrack> actual = defaultMQAdminExtImpl.messageTrackDetailConcurrent(messageExt);
+
+        assertEquals(1, actual.size());
+        assertEquals(TrackType.CONSUME_BROADCASTING, actual.get(0).getTrackType());
     }
 
     @Test
