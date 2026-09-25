@@ -25,6 +25,8 @@ import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.ExponentialBackoff;
 import apache.rocketmq.v2.Metric;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
+import apache.rocketmq.v2.SubscriptionEntry;
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 import java.util.Arrays;
@@ -237,21 +239,24 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             return;
         }
         try {
-            String topic = settings.getSubscription().getSubscriptions(0).getTopic().getName();
-            String group = settings.getSubscription().getGroup().getName();
-            log.info("offlineClientLiteSubscription, topic:{}, group:{}, clientId:{}", topic, group, clientId);
-            LiteSubscriptionDTO liteSubscriptionDTO = new LiteSubscriptionDTO()
-                .setAction(LiteSubscriptionAction.COMPLETE_REMOVE)
-                .setClientId(clientId)
-                .setGroup(group)
-                .setTopic(topic);
-            this.messagingProcessor.syncLiteSubscription(ctx, liteSubscriptionDTO, java.time.Duration.ofSeconds(2).toMillis())
-                .whenComplete((result, throwable) -> {
-                    if (throwable != null) {
-                        log.error("offlineClientLiteSubscription failed, topic:{}, group:{}, clientId:{}",
-                            topic, group, clientId, throwable);
-                    }
-                });
+            Subscription subscription = settings.getSubscription();
+            String group = subscription.getGroup().getName();
+            for (SubscriptionEntry subscriptionEntry : subscription.getSubscriptionsList()) {
+                String topic = subscriptionEntry.getTopic().getName();
+                log.info("offlineClientLiteSubscription, topic:{}, group:{}, clientId:{}", topic, group, clientId);
+                LiteSubscriptionDTO liteSubscriptionDTO = new LiteSubscriptionDTO()
+                    .setAction(LiteSubscriptionAction.COMPLETE_REMOVE)
+                    .setClientId(clientId)
+                    .setGroup(group)
+                    .setTopic(topic);
+                this.messagingProcessor.syncLiteSubscription(ctx, liteSubscriptionDTO, java.time.Duration.ofSeconds(2).toMillis())
+                    .whenComplete((result, throwable) -> {
+                        if (throwable != null) {
+                            log.error("offlineClientLiteSubscription failed, topic:{}, group:{}, clientId:{}",
+                                topic, group, clientId, throwable);
+                        }
+                    });
+            }
         } catch (Exception e) {
             log.error("offlineClientLiteSubscription error, clientId:{}, settings:{}", clientId, settings, e);
         }
