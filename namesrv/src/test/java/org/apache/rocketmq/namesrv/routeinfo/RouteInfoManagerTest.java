@@ -134,6 +134,38 @@ public class RouteInfoManagerTest {
     }
 
     @Test
+    public void testRegisterBrokerWithIncompleteWrapper() {
+        // A wrapper decoded from a malformed register body may carry explicit
+        // null fields; the registration must complete instead of aborting
+        // after partially updating the route tables.
+        TopicConfigSerializeWrapper incompleteWrapper = new TopicConfigSerializeWrapper();
+        incompleteWrapper.setDataVersion(null);
+        incompleteWrapper.setTopicConfigTable(null);
+        Channel channel = mock(Channel.class);
+
+        // same brokerId with a changed address runs into the version
+        // comparison before the method's own null guards
+        RegisterBrokerResult result = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:20911",
+            "default-broker", 1234, "127.0.0.1:1001", "", null, incompleteWrapper, new ArrayList<>(), channel);
+
+        assertThat(result).isNotNull();
+        assertThat(routeInfoManager.queryBrokerTopicConfig("default-cluster", "127.0.0.1:20911")).isNotNull();
+    }
+
+    @Test
+    public void testRegisterBrokerWithNullWrapper() {
+        // registerBroker explicitly supports a null wrapper (it is null-checked
+        // further down and at the BrokerLiveInfo construction)
+        Channel channel = mock(Channel.class);
+
+        RegisterBrokerResult result = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:30911",
+            "default-broker", 5678, null, "", null, null, null, channel);
+
+        assertThat(result).isNotNull();
+        assertThat(routeInfoManager.queryBrokerTopicConfig("default-cluster", "127.0.0.1:30911")).isNotNull();
+    }
+
+    @Test
     public void testWipeWritePermOfBrokerByLock() throws Exception {
         Map<String, QueueData> qdMap = new HashMap<>();
 
