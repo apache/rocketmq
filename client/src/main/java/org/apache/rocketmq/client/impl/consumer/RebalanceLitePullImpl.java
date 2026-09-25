@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
@@ -135,9 +136,16 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                             throw e;
                         }
                     } else {
+                        // parseDate returns null when the user-configured
+                        // consumeTimestamp does not match the expected pattern.
+                        Date consumeTimestampDate = UtilAll.parseDate(this.litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeTimestamp(),
+                            UtilAll.YYYYMMDDHHMMSS);
+                        if (null == consumeTimestampDate) {
+                            throw new MQClientException(String.format("Invalid consumeTimestamp: %s",
+                                this.litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeTimestamp()), null);
+                        }
                         try {
-                            long timestamp = UtilAll.parseDate(this.litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeTimestamp(),
-                                UtilAll.YYYYMMDDHHMMSS).getTime();
+                            long timestamp = consumeTimestampDate.getTime();
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
                             log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
