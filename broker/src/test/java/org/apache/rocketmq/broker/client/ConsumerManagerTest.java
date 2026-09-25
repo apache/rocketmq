@@ -178,6 +178,18 @@ public class ConsumerManagerTest {
     }
 
     @Test
+    public void scanNotActiveChannelClearsTopicGroupTableTest() {
+        register();
+        assertThat(consumerManager.queryTopicConsumeByWho(TOPIC)).isEqualTo(ImmutableSet.of(GROUP));
+
+        clientChannelInfo.setLastUpdateTimestamp(System.currentTimeMillis() - brokerConfig.getChannelExpiredTimeout() * 2);
+        consumerManager.scanNotActiveChannel();
+
+        assertThat(consumerManager.getConsumerTable().size()).isEqualTo(0);
+        assertThat(consumerManager.queryTopicConsumeByWho(TOPIC)).isEmpty();
+    }
+
+    @Test
     public void queryTopicConsumeByWhoTest() {
         register();
         final HashSet<String> consumeGroup = consumerManager.queryTopicConsumeByWho(TOPIC);
