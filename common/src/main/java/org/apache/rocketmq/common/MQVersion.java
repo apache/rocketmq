@@ -25,7 +25,7 @@ public class MQVersion {
     public static String getVersionDesc(int value) {
         Version[] versions = VERSION_VALUES;
         int length = versions.length;
-        if (value >= length) {
+        if (value < 0 || value >= length) {
             return versions[length - 1].name();
         }
         return versions[value].name();
@@ -34,7 +34,7 @@ public class MQVersion {
     public static Version value2Version(int value) {
         Version[] versions = VERSION_VALUES;
         int length = versions.length;
-        if (value >= length) {
+        if (value < 0 || value >= length) {
             return versions[length - 1];
         }
         return versions[value];

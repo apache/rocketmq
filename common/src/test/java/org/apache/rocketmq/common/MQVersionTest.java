@@ -41,6 +41,12 @@ public class MQVersionTest {
     }
 
     @Test
+    public void testNegativeVersionFallsBackToHigherVersion() throws Exception {
+        assertThat(MQVersion.value2Version(-1)).isEqualTo(MQVersion.Version.HIGHER_VERSION);
+        assertThat(MQVersion.getVersionDesc(-1)).isEqualTo(MQVersion.Version.HIGHER_VERSION.name());
+    }
+
+    @Test
     public void testValue2Version_HigherVersion() throws Exception {
         assertThat(MQVersion.value2Version(Integer.MAX_VALUE)).isEqualTo(MQVersion.Version.HIGHER_VERSION);
     }
