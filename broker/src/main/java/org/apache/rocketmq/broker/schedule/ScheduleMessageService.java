@@ -354,10 +354,23 @@ public class ScheduleMessageService extends ConfigManager {
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TIMER_DELIVER_MS);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TIMER_DELAY_SEC);
 
-        msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
-
+        // The message can only be rewritten to its destination topic when both
+        // properties are usable; without them it can never be delivered and
+        // throwing here would abort the scan of the whole delay queue batch.
+        String realTopic = msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
         String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
-        int queueId = Integer.parseInt(queueIdStr);
+        if (realTopic == null || queueIdStr == null) {
+            log.error("[BUG] the real topic or queue id of schedule msg is missing, discard the msg. msg={}", msgInner);
+            return null;
+        }
+        int queueId;
+        try {
+            queueId = Integer.parseInt(queueIdStr);
+        } catch (NumberFormatException e) {
+            log.error("[BUG] the real queue id of schedule msg is {}, discard the msg. msg={}", queueIdStr, msgInner);
+            return null;
+        }
+        msgInner.setTopic(realTopic);
         msgInner.setQueueId(queueId);
 
         return msgInner;
@@ -460,6 +473,9 @@ public class ScheduleMessageService extends ConfigManager {
                     }
 
                     MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeUp(msgExt);
+                    if (msgInner == null) {
+                        continue;
+                    }
                     if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                         log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                             msgInner.getTopic(), msgInner);
@@ -791,6 +807,11 @@ public class ScheduleMessageService extends ConfigManager {
                 }
 
                 MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeUp(msgExt);
+                if (msgInner == null) {
+                    log.warn("ScheduleMessageService resend discard malformed msg. info: {}", this.toString());
+                    this.status = need2Skip() ? ProcessStatus.SKIP : ProcessStatus.EXCEPTION;
+                    return;
+                }
                 PutMessageResult result = ScheduleMessageService.this.brokerController.getEscapeBridge().putMessage(msgInner);
                 this.handleResult(result);
                 if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
