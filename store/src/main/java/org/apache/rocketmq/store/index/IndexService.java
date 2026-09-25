@@ -173,7 +173,10 @@ public class IndexService implements CommitLogDispatchStore {
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end, String indexType) {
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
-        maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
+        // maxNum comes from the request header and is only checked for null,
+        // so a negative value must be clamped here instead of blowing up the
+        // ArrayList allocation below with an IllegalArgumentException.
+        maxNum = Math.min(Math.max(maxNum, 0), this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
         List<Long> phyOffsets = new ArrayList<>(maxNum);
         try {
             this.readWriteLock.readLock().lock();
