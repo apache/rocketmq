@@ -35,6 +35,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Test;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -383,5 +384,49 @@ public class BrokerMetricsManagerTest {
         BrokerMetricsManager metricsManager = new BrokerMetricsManager(brokerController);
 
         assertThat(metricsManager.getBrokerMeter()).isNotNull();
+    }
+
+    @Test
+    public void testMetricsConfigValuesContainingColons() throws Exception {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setMetricsExporterType(MetricsExporterType.OTLP_GRPC);
+        brokerConfig.setMetricsGrpcExporterTarget("http://127.0.0.1:4317");
+        brokerConfig.setMetricsGrpcExporterHeader("authorization:Bearer:token");
+        brokerConfig.setMetricsExportBatchSplitEnabled(false);
+        brokerConfig.setMetricsLabel("endpoint:https://collector:4317");
+        brokerConfig.setEnableStatsMetrics(false);
+        brokerConfig.setEnableRequestMetrics(false);
+        brokerConfig.setEnableConnectionMetrics(false);
+        brokerConfig.setEnableLagAndDlqMetrics(false);
+        brokerConfig.setEnableTransactionMetrics(false);
+        brokerConfig.setEnableRemotingMetrics(false);
+        brokerConfig.setEnableMessageStoreMetrics(false);
+        brokerConfig.setEnablePopMetrics(false);
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-"
+                + UUID.randomUUID();
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setListenPort(0);
+
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig,
+                new NettyClientConfig(), messageStoreConfig);
+        brokerController.initialize();
+
+        BrokerMetricsManager metricsManager = brokerController.getBrokerMetricsManager();
+        try {
+            Attributes attributes = metricsManager.newAttributesBuilder().build();
+            assertThat(attributes.get(AttributeKey.stringKey("endpoint")))
+                .isEqualTo("https://collector:4317");
+
+            Field metricExporterField = BrokerMetricsManager.class.getDeclaredField("metricExporter");
+            metricExporterField.setAccessible(true);
+            assertThat(metricExporterField.get(metricsManager).toString())
+                .contains("authorization=OBFUSCATED");
+        } finally {
+            metricsManager.shutdown();
+        }
     }
 }
