@@ -297,6 +297,7 @@ public class SubscriptionGroupConfig {
         SubscriptionGroupConfig other = (SubscriptionGroupConfig) obj;
         return new EqualsBuilder()
             .append(groupName, other.groupName)
+            .append(brokerId, other.brokerId)
             .append(consumeEnable, other.consumeEnable)
             .append(consumeFromMinEnable, other.consumeFromMinEnable)
             .append(consumeBroadcastEnable, other.consumeBroadcastEnable)
