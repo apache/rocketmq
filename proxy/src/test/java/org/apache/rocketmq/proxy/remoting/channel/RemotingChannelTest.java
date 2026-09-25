@@ -77,4 +77,20 @@ public class RemotingChannelTest extends InitConfigTest {
         assertEquals(subscriptionData, RemotingChannel.parseChannelExtendAttribute(this.remotingChannel));
         assertNull(RemotingChannel.parseChannelExtendAttribute(mock(GrpcClientChannel.class)));
     }
+
+    @Test
+    public void testNullParentSocketAddressIsConsumedSafely() {
+        when(parent.remoteAddress()).thenReturn(null);
+        when(parent.localAddress()).thenReturn(null);
+
+        RemotingChannel channel = new RemotingChannel(remotingProxyOutClient, proxyRelayService,
+            parent, clientId, subscriptionData);
+
+        assertNull(channel.remoteAddress());
+        assertNull(channel.localAddress());
+        assertNull(channel.getRemoteAddress());
+        assertNull(channel.getLocalAddress());
+        assertNull(channel.toRemoteChannel().getRemoteAddress());
+        assertNull(channel.toRemoteChannel().getLocalAddress());
+    }
 }
