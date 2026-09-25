@@ -146,7 +146,7 @@ public class ClientActivity extends AbstractMessagingActivity {
 
         try {
             String clientId = ctx.getClientID();
-            LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
+            LanguageCode languageCode = parseLanguage(ctx);
             Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(ctx);
             if (clientSettings == null) {
                 future.complete(NotifyClientTerminationResponse.newBuilder()
@@ -415,7 +415,7 @@ public class ClientActivity extends AbstractMessagingActivity {
 
     protected GrpcClientChannel registerProducer(ProxyContext ctx, String topicName) {
         String clientId = ctx.getClientID();
-        LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
+        LanguageCode languageCode = parseLanguage(ctx);
 
         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, clientId);
         // use topic name as producer group
@@ -431,7 +431,7 @@ public class ClientActivity extends AbstractMessagingActivity {
     protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType,
         List<SubscriptionEntry> subscriptionEntryList, boolean updateSubscription) {
         String clientId = ctx.getClientID();
-        LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
+        LanguageCode languageCode = parseLanguage(ctx);
 
         GrpcClientChannel channel = this.grpcChannelManager.createChannel(ctx, clientId);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, parseClientVersion(ctx.getClientVersion()));
@@ -459,6 +459,18 @@ public class ClientActivity extends AbstractMessagingActivity {
             }
         }
         return clientVersion;
+    }
+
+    private LanguageCode parseLanguage(ProxyContext ctx) {
+        String language = ctx.getLanguage();
+        if (StringUtils.isBlank(language)) {
+            throw new GrpcProxyException(Code.BAD_REQUEST, "language cannot be empty");
+        }
+        try {
+            return LanguageCode.valueOf(language);
+        } catch (IllegalArgumentException e) {
+            throw new GrpcProxyException(Code.BAD_REQUEST, "unsupported language: " + language, e);
+        }
     }
 
     protected void reportThreadStackTrace(ProxyContext ctx, Status status, ThreadStackTrace request) {
