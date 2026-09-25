@@ -43,7 +43,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -123,8 +122,8 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
         }
     }
 
-    private void handleLocalMode(CommandLine commandLine) {
-        ExportRocksDBConfigToJsonRequestHeader.ConfigType type = Objects.requireNonNull(getConfigTypeList(commandLine)).get(0);
+    private void handleLocalMode(CommandLine commandLine) throws SubCommandException {
+        ExportRocksDBConfigToJsonRequestHeader.ConfigType type = getConfigTypeList(commandLine).get(0);
         String path = commandLine.getOptionValue("configPath").trim();
         if (StringUtils.isEmpty(path) || !new File(path).exists()) {
             System.out.print("Rocksdb path is invalid.\n");
@@ -161,7 +160,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
         }
     }
 
-    private List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> getConfigTypeList(CommandLine commandLine) {
+    private List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> getConfigTypeList(CommandLine commandLine) throws SubCommandException {
         List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> typeList = new ArrayList<>();
         if (commandLine.hasOption("configType")) {
             String configType = commandLine.getOptionValue("configType").trim();
@@ -169,7 +168,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 typeList.addAll(ExportRocksDBConfigToJsonRequestHeader.ConfigType.fromString(configType));
             } catch (IllegalArgumentException e) {
                 System.out.print("Invalid configType: " + configType + " please input topics/subscriptionGroups/consumerOffsets \n");
-                return null;
+                throw new SubCommandException("Invalid configType: " + configType);
             }
         } else {
             typeList.addAll(Arrays.asList(ExportRocksDBConfigToJsonRequestHeader.ConfigType.values()));
