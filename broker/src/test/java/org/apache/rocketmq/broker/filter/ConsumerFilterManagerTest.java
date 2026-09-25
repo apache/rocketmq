@@ -22,11 +22,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,6 +57,32 @@ public class ConsumerFilterManagerTest {
 
     public static String expr(int i) {
         return "a is not null and a > " + ((i - 1) * 10) + " and a < " + ((i + 1) * 10);
+    }
+
+    @Test
+    public void testDecodeKeepsFilterDataRegisteredWithoutBloomData() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        TopicConfigManager topicConfigManager = Mockito.mock(TopicConfigManager.class);
+        Mockito.when(topicConfigManager.selectTopicConfig("topic0")).thenReturn(new TopicConfig());
+        Mockito.when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+
+        // enableCalcFilterBitMap defaults to false, so register() persists no
+        // bloom data; decode() must keep such entries instead of discarding the
+        // whole persisted table.
+        ConsumerFilterManager filterManager = new ConsumerFilterManager(brokerController);
+        assertThat(filterManager.register("topic0", "CID_0", expr(0), ExpressionType.SQL92, System.currentTimeMillis()))
+            .isTrue();
+        assertThat(filterManager.get("topic0", "CID_0")).isNotNull();
+
+        String json = filterManager.encode();
+        assertThat(json).isNotEmpty();
+
+        ConsumerFilterManager loaded = new ConsumerFilterManager(brokerController);
+        loaded.decode(json);
+
+        assertThat(loaded.get("topic0", "CID_0")).isNotNull();
     }
 
     @Test
