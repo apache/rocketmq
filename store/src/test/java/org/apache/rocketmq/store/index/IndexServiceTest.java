@@ -24,12 +24,16 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class IndexServiceTest {
 
@@ -80,5 +84,24 @@ public class IndexServiceTest {
         QueryOffsetResult result = indexService.queryOffset("test", "testKey", 0, 0, 100);
         assertNotNull(result);
         assertEquals(Collections.emptyList(), result.getPhyOffsets());
+    }
+
+    @Test
+    public void testGetAndCreateLastIndexFileWhenCreateFileFails() throws Exception {
+        // Point the index store path below a regular file, so creating the index
+        // file is guaranteed to fail: the method must return null instead of
+        // throwing IllegalMonitorStateException from unlocking the write lock
+        // that was never acquired.
+        File blocker = File.createTempFile("index-service-blocker", ".tmp");
+        blocker.deleteOnExit();
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(new File(blocker, "store").getAbsolutePath());
+        DefaultMessageStore store = mock(DefaultMessageStore.class);
+        when(store.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        IndexService service = new IndexService(store);
+
+        IndexFile indexFile = service.getAndCreateLastIndexFile();
+
+        assertNull(indexFile);
     }
 }
