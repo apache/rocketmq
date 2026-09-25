@@ -115,6 +115,34 @@ public class RouteInfoManagerTest {
     }
 
     @Test
+    public void testRegisterTopicWithInterruptedThread() {
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName("default-broker");
+        queueData.setReadQueueNums(8);
+        queueData.setWriteQueueNums(8);
+
+        Thread.currentThread().interrupt();
+        try {
+            // lockInterruptibly() throws before the lock is acquired; the
+            // method must not leak IllegalMonitorStateException from finally
+            routeInfoManager.registerTopic("interrupted-topic", java.util.Collections.singletonList(queueData));
+        } finally {
+            // lockInterruptibly() clears the flag when it throws
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void testGetAllTopicListWithInterruptedThread() {
+        Thread.currentThread().interrupt();
+        try {
+            assertThat(routeInfoManager.getAllTopicList()).isNotNull();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void testRegisterBroker() {
         DataVersion dataVersion = new DataVersion();
         dataVersion.setCounter(new AtomicLong(10L));
