@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
@@ -675,7 +676,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String timestampStr = msg.getProperty(MessageConst.PROPERTY_TIMER_OUT_MS);
         String realTopic = msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
         if (timestampStr != null && realTopic != null && !realTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            timestampStr = String.valueOf(Long.parseLong(timestampStr) + 1); // consider of floor
+            long timerOutMs = NumberUtils.toLong(timestampStr, -1);
+            if (timerOutMs < 0) {
+                return;
+            }
+            timestampStr = String.valueOf(timerOutMs + 1); // consider of floor
             String recallHandle = RecallMessageHandle.HandleV1.buildHandle(realTopic,
                 brokerController.getBrokerConfig().getBrokerName(), timestampStr, MessageClientIDSetter.getUniqID(msg));
             responseHeader.setRecallHandle(recallHandle);
