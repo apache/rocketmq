@@ -330,6 +330,9 @@ public class ClientActivity extends AbstractMessagingActivity {
     }
 
     private void handleGrpcCancel(ProxyContext ctx, Throwable t) {
+        if (ctx == null) {
+            return;
+        }
         final String clientId = ctx.getClientID();
         if (StringUtils.isBlank(clientId)) {
             return;
