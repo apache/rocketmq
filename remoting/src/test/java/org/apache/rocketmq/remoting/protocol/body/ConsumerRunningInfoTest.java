@@ -102,5 +102,47 @@ public class ConsumerRunningInfoTest {
         assertThat(result).isTrue();
     }
 
+    @Test
+    public void testAnalyzeSubscriptionWithMissingStartTimestamp() {
+        // a client that does not report its start timestamp keeps the startup grace
+        // instead of failing the whole analysis
+        Properties properties = new Properties();
+        properties.put(ConsumerRunningInfo.PROP_CONSUME_TYPE, ConsumeType.CONSUME_PASSIVELY.name());
+        consumerRunningInfo.setProperties(properties);
+
+        ConsumerRunningInfo another = new ConsumerRunningInfo();
+        another.setProperties(new Properties(properties));
+        another.setSubscriptionSet(new TreeSet<>());
+
+        TreeMap<String, ConsumerRunningInfo> table = new TreeMap<>();
+        table.put("client_id_1", consumerRunningInfo);
+        table.put("client_id_2", another);
+
+        assertThat(ConsumerRunningInfo.analyzeSubscription(table)).isTrue();
+    }
+
+    @Test
+    public void testAnalyzeMethodsTolerateMissingProperties() {
+        ConsumerRunningInfo empty = new ConsumerRunningInfo();
+        empty.setProperties(new Properties());
+
+        assertThat(ConsumerRunningInfo.isPushType(empty)).isFalse();
+        assertThat(ConsumerRunningInfo.analyzeProcessQueue("client_id", empty)).isEmpty();
+
+        TreeMap<String, ConsumerRunningInfo> table = new TreeMap<>();
+        table.put("client_id", empty);
+        assertThat(ConsumerRunningInfo.analyzeSubscription(table)).isTrue();
+    }
+
+    @Test
+    public void testIsPushType() {
+        assertThat(ConsumerRunningInfo.isPushType(consumerRunningInfo)).isFalse();
+
+        Properties properties = new Properties();
+        properties.put(ConsumerRunningInfo.PROP_CONSUME_TYPE, ConsumeType.CONSUME_PASSIVELY.name());
+        consumerRunningInfo.setProperties(properties);
+        assertThat(ConsumerRunningInfo.isPushType(consumerRunningInfo)).isTrue();
+    }
+
 
 }
