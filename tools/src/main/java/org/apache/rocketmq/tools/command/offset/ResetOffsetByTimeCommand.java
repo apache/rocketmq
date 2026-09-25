@@ -61,7 +61,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "cplus", false, "reset c++ client offset. Deprecated.");
+        opt = new Option(null, "cplus", false, "reset c++ client offset. Deprecated.");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -84,9 +84,13 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         return options;
     }
 
+    protected DefaultMQAdminExt createDefaultMQAdminExt(RPCHook rpcHook) {
+        return new DefaultMQAdminExt(rpcHook);
+    }
+
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = createDefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             String group = commandLine.getOptionValue("g").trim();
@@ -109,7 +113,7 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
             }
 
-            boolean isC = commandLine.hasOption('c');
+            boolean isC = commandLine.hasOption("cplus");
 
             String brokerAddr = null;
             if (commandLine.hasOption('b')) {
