@@ -513,7 +513,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     .getColdDataCheckService().isMsgInColdArea(requestHeader.getConsumerGroup(),
                         requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getQueueOffset());
                 if (isMsgLogicCold) {
-                    ConsumeType consumeType = this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup()).getConsumeType();
+                    // The group may only be known through the compensation table filled a
+                    // few lines above (pull consumers and proxy traffic), so look there
+                    // too; if even that has no record, flow control like a passive
+                    // consumer instead of failing the request with an NPE.
+                    ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager()
+                        .getConsumerGroupInfo(requestHeader.getConsumerGroup(), true);
+                    ConsumeType consumeType = consumerGroupInfo == null
+                        ? ConsumeType.CONSUME_PASSIVELY : consumerGroupInfo.getConsumeType();
                     if (consumeType == ConsumeType.CONSUME_PASSIVELY) {
                         response.setCode(ResponseCode.SYSTEM_BUSY);
                         response.setRemark("This consumer group is reading cold data. It has been flow control");
