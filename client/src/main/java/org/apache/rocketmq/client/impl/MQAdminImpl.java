@@ -426,6 +426,10 @@ public class MQAdminImpl {
                             }, isUniqKey);
                     } catch (Exception e) {
                         log.warn("queryMessage exception", e);
+                        // The callback never fires when the invocation itself
+                        // fails, so release this broker's latch count here or
+                        // await below blocks for the full timeout.
+                        countDownLatch.countDown();
                     }
 
                 }
