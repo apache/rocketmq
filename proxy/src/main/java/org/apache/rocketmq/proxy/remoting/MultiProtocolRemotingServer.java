@@ -28,6 +28,7 @@ import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.remoting.protocol.ProtocolNegotiationHandler;
 import org.apache.rocketmq.proxy.remoting.protocol.http2proxy.Http2ProtocolProxyHandler;
 import org.apache.rocketmq.proxy.remoting.protocol.remoting.RemotingProtocolHandler;
+import org.apache.rocketmq.proxy.service.cert.TlsContextProvider;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
@@ -47,6 +48,7 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
 
     private final RemotingProtocolHandler remotingProtocolHandler;
     protected Http2ProtocolProxyHandler http2ProtocolProxyHandler;
+    private TlsContextProvider tlsContextProvider;
 
     public MultiProtocolRemotingServer(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super(nettyServerConfig, channelEventListener);
@@ -60,6 +62,10 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
         this.http2ProtocolProxyHandler = new Http2ProtocolProxyHandler();
     }
 
+    public void setTlsContextProvider(TlsContextProvider tlsContextProvider) {
+        this.tlsContextProvider = tlsContextProvider;
+    }
+
     @Override
     public void loadSslContext() {
         TlsMode tlsMode = TlsSystemConfig.tlsMode;
@@ -68,6 +74,9 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
         if (tlsMode != TlsMode.DISABLED) {
             try {
                 sslContext = MultiProtocolTlsHelper.buildSslContext();
+                if (tlsContextProvider != null) {
+                    tlsContextProvider.setDefaultSslContext(sslContext);
+                }
                 log.info("SslContext created for multi protocol remoting server");
             } catch (CertificateException | IOException e) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "Failed to create SslContext for server", e);
