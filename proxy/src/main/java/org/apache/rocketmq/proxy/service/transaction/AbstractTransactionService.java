@@ -56,12 +56,8 @@ public abstract class AbstractTransactionService implements TransactionService, 
     }
 
     @Override
-    public EndTransactionRequestData genEndTransactionRequestHeader(ProxyContext ctx, String topic, String producerGroup, Integer commitOrRollback,
+    public EndTransactionRequestData genEndTransactionRequestHeader(ProxyContext ctx, String topic, String producerGroup, Integer commitOrRollback, Long tranStateTableOffset, Long commitLogOffset,
         boolean fromTransactionCheck, String msgId, String transactionId) {
-        TransactionData transactionData = this.transactionDataManager.pollNoExpireTransactionData(producerGroup, transactionId);
-        if (transactionData == null) {
-            return null;
-        }
         EndTransactionRequestHeader header = new EndTransactionRequestHeader();
         header.setTopic(topic);
         header.setProducerGroup(producerGroup);
@@ -69,6 +65,16 @@ public abstract class AbstractTransactionService implements TransactionService, 
         header.setFromTransactionCheck(fromTransactionCheck);
         header.setMsgId(msgId);
         header.setTransactionId(transactionId);
+        TransactionData transactionData = this.transactionDataManager.pollNoExpireTransactionData(producerGroup, transactionId);
+        if (transactionData == null) {
+            if (commitLogOffset != null && commitOrRollback != null) {
+                header.setTranStateTableOffset(tranStateTableOffset);
+                header.setCommitLogOffset(commitLogOffset);
+                return new EndTransactionRequestData(transactionData.getBrokerName(), header);
+            }
+            return null;
+        }
+
         header.setTranStateTableOffset(transactionData.getTranStateTableOffset());
         header.setCommitLogOffset(transactionData.getCommitLogOffset());
         return new EndTransactionRequestData(transactionData.getBrokerName(), header);
