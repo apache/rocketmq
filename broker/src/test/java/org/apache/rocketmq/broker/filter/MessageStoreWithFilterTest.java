@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -49,9 +47,10 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.awaitility.core.ThrowingRunnable;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -63,7 +62,6 @@ public class MessageStoreWithFilterTest {
 
     private static final String TOPIC = "topic";
     private static final int QUEUE_ID = 0;
-    private static final String STORE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int COMMIT_LOG_FILE_SIZE = 1024 * 1024 * 256;
     private static final int CQ_FILE_SIZE = 300000 * 20;
     private static final int CQ_EXT_FILE_SIZE = 300000 * 128;
@@ -73,6 +71,11 @@ public class MessageStoreWithFilterTest {
     private static SocketAddress storeHost;
 
     private DefaultMessageStore master;
+    private BrokerStatsManager brokerStatsManager;
+    private String storePath;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().assureDeletion().build();
 
     private ConsumerFilterManager filterManager;
 
@@ -93,17 +96,26 @@ public class MessageStoreWithFilterTest {
 
     @Before
     public void init() throws Exception {
+        storePath = temporaryFolder.newFolder("store").getAbsolutePath();
         filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
         master = gen(filterManager);
     }
 
     @After
     public void destroy() {
-        if (master != null) {
-            master.shutdown();
-            master.destroy();
+        try {
+            if (master != null) {
+                try {
+                    master.shutdown();
+                } finally {
+                    master.destroy();
+                }
+            }
+        } finally {
+            if (brokerStatsManager != null) {
+                brokerStatsManager.shutdown();
+            }
         }
-        UtilAll.deleteFile(new File(STORE_PATH));
     }
 
     public MessageExtBrokerInner buildMessage() {
@@ -135,8 +147,9 @@ public class MessageStoreWithFilterTest {
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);
 
-        messageStoreConfig.setStorePathRootDir(STORE_PATH);
-        messageStoreConfig.setStorePathCommitLog(STORE_PATH + File.separator + "commitlog");
+        messageStoreConfig.setStorePathRootDir(storePath);
+        messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
+        messageStoreConfig.setHaListenPort(0);
 
         return messageStoreConfig;
     }
@@ -151,9 +164,10 @@ public class MessageStoreWithFilterTest {
         brokerConfig.setMaxErrorRateOfBloomFilter(20);
         brokerConfig.setExpectConsumerNumUseFilter(64);
 
-        DefaultMessageStore master = new DefaultMessageStore(
+        brokerStatsManager = new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat());
+        master = new DefaultMessageStore(
             messageStoreConfig,
-            new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
+            brokerStatsManager,
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
@@ -173,11 +187,7 @@ public class MessageStoreWithFilterTest {
         });
         master.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(brokerConfig, filterManager));
 
-        if (MixAll.isWindows()) {
-            Assume.assumeTrue(master.load());
-        } else {
-            assertThat(master.load()).isTrue();
-        }
+        assertThat(master.load()).isTrue();
 
         master.start();
 
@@ -380,7 +390,11 @@ public class MessageStoreWithFilterTest {
                                 return true;
                             }
                         });
-                    assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
+                    try {
+                        assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
+                    } finally {
+                        getMessageResult.release();
+                    }
                 }
             }
         });
