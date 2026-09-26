@@ -87,9 +87,6 @@ public class RocksDBConsumeQueueTest extends QueueTestBase {
 
     @Test
     public void testIterator() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
         DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
         RocksDBConsumeQueueStore rocksDBConsumeQueueStore = mock(RocksDBConsumeQueueStore.class);
         when(messageStore.getQueueStore()).thenReturn(rocksDBConsumeQueueStore);
@@ -122,9 +119,6 @@ public class RocksDBConsumeQueueTest extends QueueTestBase {
 
     @Test
     public void testIterateFrom_startIndexBelowMinOffset_returnsNull() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
         DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
         RocksDBConsumeQueueStore rocksDBConsumeQueueStore = mock(RocksDBConsumeQueueStore.class);
         when(messageStore.getQueueStore()).thenReturn(rocksDBConsumeQueueStore);

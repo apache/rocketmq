@@ -26,7 +26,6 @@ import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.Attribute;
@@ -65,9 +64,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Before
     public void init() {
-        if (notToBeExecuted()) {
-            return;
-        }
         BrokerConfig brokerConfig = new BrokerConfig();
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -81,9 +77,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @After
     public void destroy() {
-        if (notToBeExecuted()) {
-            return;
-        }
         if (topicConfigManager != null) {
             topicConfigManager.stop();
         }
@@ -91,9 +84,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAddUnsupportedKeyOnCreating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String unsupportedKey = "key4";
         String topicName = "testAddUnsupportedKeyOnCreating-" + System.currentTimeMillis();
 
@@ -117,9 +107,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAddWrongFormatKeyOnCreating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String topicName = "testAddWrongFormatKeyOnCreating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
@@ -141,9 +128,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testDeleteKeyOnCreating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String topicName = "testDeleteKeyOnCreating-" + System.currentTimeMillis();
 
         String key = "enum.key";
@@ -166,9 +150,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAddWrongValueOnCreating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String topicName = "testAddWrongValueOnCreating-" + System.currentTimeMillis();
 
         Map<String, String> attributes = new HashMap<>();
@@ -184,9 +165,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testNormalAddKeyOnCreating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String topic = "testNormalAddKeyOnCreating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
@@ -211,9 +189,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAddDuplicatedKeyOnUpdating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String duplicatedKey = "long.range.key";
         String topicName = "testAddDuplicatedKeyOnUpdating-" + System.currentTimeMillis();
 
@@ -247,9 +222,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testDeleteNonexistentKeyOnUpdating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String key = "nonexisting.key";
         String topicName = "testDeleteNonexistentKeyOnUpdating-" + System.currentTimeMillis();
 
@@ -279,9 +251,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAlterTopicWithoutChangingAttributes() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String topic = "testAlterTopicWithoutChangingAttributes-" + System.currentTimeMillis();
 
         supportAttributes(asList(
@@ -313,9 +282,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testNormalUpdateUnchangeableKeyOnUpdating() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String topic = "testNormalUpdateUnchangeableKeyOnUpdating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
@@ -341,9 +307,6 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testNormalQueryKeyOnGetting() {
-        if (notToBeExecuted()) {
-            return;
-        }
         String topic = "testNormalQueryKeyOnGetting-" + System.currentTimeMillis();
         String unchangeable = "bool.key";
 
@@ -378,7 +341,4 @@ public class RocksdbTopicConfigManagerTest {
         TopicAttributes.ALL.putAll(supportedAttributes);
     }
 
-    private boolean notToBeExecuted() {
-        return MixAll.isMac();
-    }
 }

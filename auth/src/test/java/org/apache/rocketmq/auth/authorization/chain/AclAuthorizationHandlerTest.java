@@ -33,7 +33,6 @@ import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.chain.HandlerChain;
 import org.apache.rocketmq.common.resource.ResourcePattern;
@@ -61,9 +60,6 @@ public class AclAuthorizationHandlerTest {
 
     @Before
     public void setUp() {
-        if (MixAll.isMac()) {
-            return;
-        }
         this.authConfig = AuthTestHelper.createDefaultConfig();
         this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
         this.authorizationMetadataManager = AuthorizationFactory.getMetadataManager(this.authConfig);
@@ -75,9 +71,6 @@ public class AclAuthorizationHandlerTest {
 
     @After
     public void tearDown() {
-        if (MixAll.isMac()) {
-            return;
-        }
         clearAllAcls();
         clearAllUsers();
         this.authenticationMetadataManager.shutdown();
@@ -86,9 +79,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testNoAclThrows() {
-        if (MixAll.isMac()) {
-            return;
-        }
         // Create a user with no ACL entries.
         User user = User.of("noacl", "pwd");
         authenticationMetadataManager.createUser(user).join();
@@ -108,9 +98,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testNoMatchedPolicyThrows() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("no_match_acl", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -137,9 +124,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testDecisionDenyThrows() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("deny", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -165,9 +149,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testAllowDoesNotThrow() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("allow", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -182,9 +163,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testDenyBeatsAllow() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("user", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -212,9 +190,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testPrefixedLongerDenyBeatsPrefixedShorterAllow() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("user", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -242,9 +217,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testLiteralAllowBeatsPrefixedDeny() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("user", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -265,9 +237,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testTopicTypeAllowBeatsAnyTypeDeny() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("user", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -288,9 +257,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testPrefixedPatternAllowBeatsAnyPatternDeny() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("user", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
@@ -311,9 +277,6 @@ public class AclAuthorizationHandlerTest {
 
     @Test
     public void testLiteralPatternDenyBeatsAnyPatternAllow() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("user", "pwd");
         authenticationMetadataManager.createUser(user).join();
 
