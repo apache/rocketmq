@@ -78,6 +78,7 @@ public class ScheduleMessageService extends ConfigManager {
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<>(32);
     private final AtomicBoolean started = new AtomicBoolean(false);
+    private boolean delayOffsetsLoaded;
     private ScheduledExecutorService deliverExecutorService;
     private int maxDelayLevel;
     private DataVersion dataVersion = new DataVersion();
@@ -219,17 +220,29 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     @Override
-    public boolean load() {
+    public synchronized boolean load() {
+        delayOffsetsLoaded = false;
         boolean result = super.load();
         result = result && this.parseDelayLevel();
         result = result && this.correctDelayOffset();
+        delayOffsetsLoaded = result;
         return result;
     }
 
-    public boolean loadWhenSyncDelayOffset() {
+    public synchronized boolean loadWhenSyncDelayOffset() {
+        delayOffsetsLoaded = false;
         boolean result = super.load();
         result = result && this.parseDelayLevel();
+        delayOffsetsLoaded = result;
         return result;
+    }
+
+    @Override
+    public synchronized void persist() {
+        // Shutdown can run before initialization completes. Never replace offsets that failed to load.
+        if (delayOffsetsLoaded) {
+            super.persist();
+        }
     }
 
     public boolean correctDelayOffset() {
@@ -270,7 +283,7 @@ public class ScheduleMessageService extends ConfigManager {
 
     @Override
     public String configFilePath() {
-        return StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController.getMessageStore().getMessageStoreConfig()
+        return StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController.getMessageStoreConfig()
             .getStorePathRootDir());
     }
 
