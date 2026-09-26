@@ -36,13 +36,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageBatch;
@@ -64,7 +62,9 @@ import org.assertj.core.util.Strings;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -77,6 +77,9 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RocksDBMessageStoreTest {
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().assureDeletion().build();
+
     private final String storeMessage = "Once, there was a chance for me!";
     private final String messageTopic = "FooBar";
     private final String storeType = StoreType.DEFAULT_ROCKSDB.getStoreType();
@@ -86,12 +89,10 @@ public class RocksDBMessageStoreTest {
     private SocketAddress storeHost;
     private byte[] messageBody;
     private MessageStore messageStore;
+    private final List<BrokerStatsManager> statsManagers = new ArrayList<>();
 
     @Before
     public void init() throws Exception {
-        if (notExecuted()) {
-            return;
-        }
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
 
@@ -103,9 +104,6 @@ public class RocksDBMessageStoreTest {
 
     @Test(expected = OverlappingFileLockException.class)
     public void test_repeat_restart() throws Exception {
-        if (notExecuted()) {
-            throw new OverlappingFileLockException();
-        }
         queueTotal = 1;
         messageBody = storeMessage.getBytes();
 
@@ -114,7 +112,7 @@ public class RocksDBMessageStoreTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store");
+        messageStoreConfig.setStorePathRootDir(temporaryFolder.newFolder("restart").getAbsolutePath());
         messageStoreConfig.setHaListenPort(0);
         MessageStore master = new RocksDBMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
 
@@ -132,15 +130,19 @@ public class RocksDBMessageStoreTest {
 
     @After
     public void destroy() {
-        if (notExecuted()) {
-            return;
+        try {
+            if (messageStore != null) {
+                try {
+                    messageStore.shutdown();
+                } finally {
+                    messageStore.destroy();
+                }
+            }
+        } finally {
+            for (BrokerStatsManager statsManager : statsManagers) {
+                statsManager.shutdown();
+            }
         }
-        messageStore.shutdown();
-        messageStore.destroy();
-
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        File file = new File(messageStoreConfig.getStorePathRootDir());
-        UtilAll.deleteFile(file);
     }
 
     private MessageStore buildMessageStore() throws Exception {
@@ -158,23 +160,21 @@ public class RocksDBMessageStoreTest {
         messageStoreConfig.setStoreType(storeType);
         messageStoreConfig.setHaListenPort(0);
         if (Strings.isNullOrEmpty(storePathRootDir)) {
-            UUID uuid = UUID.randomUUID();
-            storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-" + uuid.toString();
+            storePathRootDir = temporaryFolder.newFolder("store").getAbsolutePath();
         }
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
         ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
         topicConfigTable.put(topic, new TopicConfig(topic, 1, 1));
+        BrokerStatsManager statsManager = new BrokerStatsManager("simpleTest", true);
+        statsManagers.add(statsManager);
         return new RocksDBMessageStore(messageStoreConfig,
-            new BrokerStatsManager("simpleTest", true),
+            statsManager,
             new MyMessageArrivingListener(),
             new BrokerConfig(), topicConfigTable);
     }
 
     @Test
     public void testWriteAndRead() {
-        if (notExecuted()) {
-            return;
-        }
         long ipv4HostMessages = 10;
         long ipv6HostMessages = 10;
         long totalMessages = ipv4HostMessages + ipv6HostMessages;
@@ -200,9 +200,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testLookMessageByOffset_OffsetIsFirst() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
@@ -219,9 +216,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testLookMessageByOffset_OffsetIsLast() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
@@ -236,9 +230,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testLookMessageByOffset_OffsetIsOutOfBound() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);
         String topic = "FooBar";
@@ -252,9 +243,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -273,9 +261,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime_TimestampIsSkewing() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -295,9 +280,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime_TimestampSkewingIsLarge() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -317,9 +299,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime_ConsumeQueueNotFound1() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         int wrongQueueId = 1;
@@ -336,9 +315,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime_ConsumeQueueNotFound2() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         int wrongQueueId = 1;
@@ -354,9 +330,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime_ConsumeQueueOffsetNotExist() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         int wrongQueueId = 1;
@@ -373,9 +346,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetMessageStoreTimeStamp() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -399,9 +369,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetStoreTime_ParamIsNull() {
-        if (notExecuted()) {
-            return;
-        }
         long storeTime = getStoreTime(null);
 
         assertThat(storeTime).isEqualTo(-1);
@@ -409,9 +376,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetStoreTime_EverythingIsOk() {
-        if (notExecuted()) {
-            return;
-        }
         final int totalCount = 10;
         int queueId = 0;
         String topic = "FooBar";
@@ -436,9 +400,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetStoreTime_PhyOffsetIsLessThanCommitLogMinOffset() {
-        if (notExecuted()) {
-            return;
-        }
         long phyOffset = -10;
         int size = 138;
         CqUnit cqUnit = new CqUnit(0, phyOffset, size, 0);
@@ -449,9 +410,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testPutMessage_whenMessagePropertyIsTooLong() throws ConsumeQueueException {
-        if (notExecuted()) {
-            return;
-        }
         String topicName = "messagePropertyIsTooLongTest";
         MessageExtBrokerInner illegalMessage = buildSpecifyLengthPropertyMessage("123".getBytes(StandardCharsets.UTF_8), topicName, Short.MAX_VALUE + 1);
         assertEquals(messageStore.putMessage(illegalMessage).getPutMessageStatus(), PutMessageStatus.PROPERTIES_SIZE_EXCEEDED);
@@ -598,9 +556,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGroupCommit() {
-        if (notExecuted()) {
-            return;
-        }
         long totalMessages = 10;
         queueTotal = 1;
         messageBody = storeMessage.getBytes();
@@ -618,9 +573,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testMaxOffset() throws ConsumeQueueException {
-        if (notExecuted()) {
-            return;
-        }
         int firstBatchMessages = 3;
         int queueId = 0;
         messageBody = storeMessage.getBytes();
@@ -676,9 +628,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testPullSize() {
-        if (notExecuted()) {
-            return;
-        }
         String topic = "pullSizeTopic";
 
         for (int i = 0; i < 32; i++) {
@@ -710,9 +659,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testRecover() throws Exception {
-        if (notExecuted()) {
-            return;
-        }
         String topic = "recoverTopic";
         messageBody = storeMessage.getBytes();
         for (int i = 0; i < 100; i++) {
@@ -827,9 +773,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testStorePathOK() {
-        if (notExecuted()) {
-            return;
-        }
         if (messageStore instanceof RocksDBMessageStore) {
             assertTrue(fileExists(((RocksDBMessageStore) messageStore).getStorePathPhysic()));
             assertTrue(fileExists(((RocksDBMessageStore) messageStore).getStorePathLogic()));
@@ -865,9 +808,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testPutMsgExceedsMaxLength() {
-        if (notExecuted()) {
-            return;
-        }
         messageBody = new byte[4 * 1024 * 1024 + 1];
         MessageExtBrokerInner msg = buildMessage();
 
@@ -877,9 +817,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testPutMsgBatchExceedsMaxLength() {
-        if (notExecuted()) {
-            return;
-        }
         messageBody = new byte[4 * 1024 * 1024 + 1];
         MessageExtBrokerInner msg1 = buildMessage();
         MessageExtBrokerInner msg2 = buildMessage();
@@ -900,9 +837,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testPutMsgWhenReplicasNotEnough() {
-        if (notExecuted()) {
-            return;
-        }
         MessageStoreConfig messageStoreConfig = this.messageStore.getMessageStoreConfig();
         messageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
         messageStoreConfig.setTotalReplicas(2);
@@ -919,9 +853,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testPutMsgWhenAdaptiveDegradation() {
-        if (notExecuted()) {
-            return;
-        }
         MessageStoreConfig messageStoreConfig = this.messageStore.getMessageStoreConfig();
         messageStoreConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
         messageStoreConfig.setTotalReplicas(2);
@@ -939,9 +870,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testGetBulkCommitLogData() {
-        if (notExecuted()) {
-            return;
-        }
         RocksDBMessageStore defaultMessageStore = (RocksDBMessageStore) messageStore;
 
         messageBody = new byte[2 * 1024 * 1024];
@@ -963,9 +891,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testPutLongMessage() {
-        if (notExecuted()) {
-            return;
-        }
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         CommitLog commitLog = messageStore.getCommitLog();
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
@@ -1004,9 +929,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testDynamicMaxMessageSize() {
-        if (notExecuted()) {
-            return;
-        }
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         int originMaxMessageSize = messageStoreConfig.getMaxMessageSize();
@@ -1029,9 +951,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testDeleteTopics() {
-        if (notExecuted()) {
-            return;
-        }
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
             ((RocksDBMessageStore) messageStore).getConsumeQueueTable();
@@ -1054,9 +973,6 @@ public class RocksDBMessageStoreTest {
 
     @Test
     public void testCleanUnusedTopic() {
-        if (notExecuted()) {
-            return;
-        }
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
             ((RocksDBMessageStore) messageStore).getConsumeQueueTable();
@@ -1084,9 +1000,5 @@ public class RocksDBMessageStoreTest {
         }
     }
 
-    private boolean notExecuted() {
-        return MixAll.isMac();
-    }
 }
-
 
