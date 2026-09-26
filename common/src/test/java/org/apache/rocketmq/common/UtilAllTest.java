@@ -114,6 +114,29 @@ public class UtilAllTest {
     }
 
     @Test
+    public void testLoopbackIPv4IsInternal() throws UnknownHostException {
+        for (String address : Arrays.asList("127.0.0.1", "127.0.1.1", "127.255.255.254")) {
+            assertThat(UtilAll.isInternalIP(InetAddress.getByName(address).getAddress())).as(address).isTrue();
+        }
+    }
+
+    @Test
+    public void testPrivateIPv4IsInternal() throws UnknownHostException {
+        for (String address : Arrays.asList("10.0.0.1", "10.255.255.254", "172.16.0.1", "172.31.255.254",
+            "192.168.0.1", "192.168.255.254")) {
+            assertThat(UtilAll.isInternalIP(InetAddress.getByName(address).getAddress())).as(address).isTrue();
+        }
+    }
+
+    @Test
+    public void testPublicIPv4IsNotInternal() throws UnknownHostException {
+        for (String address : Arrays.asList("8.8.8.8", "126.255.255.254", "128.0.0.1", "172.15.255.254",
+            "172.32.0.1", "192.167.255.254", "192.169.0.1")) {
+            assertThat(UtilAll.isInternalIP(InetAddress.getByName(address).getAddress())).as(address).isFalse();
+        }
+    }
+
+    @Test
     public void testJoin() {
         List<String> list = Arrays.asList("groupA=DENY", "groupB=PUB|SUB", "groupC=SUB");
         String comma = ",";
