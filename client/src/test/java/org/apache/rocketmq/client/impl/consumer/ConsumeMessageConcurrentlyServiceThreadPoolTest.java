@@ -32,6 +32,21 @@ import static org.mockito.Mockito.when;
 public class ConsumeMessageConcurrentlyServiceThreadPoolTest {
 
     @Test
+    public void testFixedSizePoolPreservesUnboundedQueue() {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("fixedThreadPoolTestGroup");
+        DefaultMQPushConsumerImpl consumerImpl = mock(DefaultMQPushConsumerImpl.class);
+        when(consumerImpl.getDefaultMQPushConsumer()).thenReturn(consumer);
+        MessageListenerConcurrently listener = (msgs, context) -> ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        ConsumeMessageConcurrentlyService service = new ConsumeMessageConcurrentlyService(consumerImpl, listener);
+        try {
+            ThreadPoolExecutor executor = (ThreadPoolExecutor) service.consumeExecutor;
+            assertEquals(Integer.MAX_VALUE, executor.getQueue().remainingCapacity());
+        } finally {
+            service.shutdown(1000);
+        }
+    }
+
+    @Test
     public void testConsumeThreadMaxAllowsPoolToGrowAboveMin() throws Exception {
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("threadPoolTestGroup");
         consumer.setConsumeThreadMin(1);

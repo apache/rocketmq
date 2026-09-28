@@ -56,7 +56,10 @@ public class ConsumeMessageConcurrentlyService extends AbstractConsumeMessageSer
         MessageListenerConcurrently messageListener) {
         super(defaultMQPushConsumerImpl.getDefaultMQPushConsumer(), new ThreadFactoryImpl("ConsumeMessageThread_"
             + getConsumerGroupTag(defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumerGroup())),
-            Math.max(1, defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeThreadMin()));
+            defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeThreadMax()
+                > defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeThreadMin()
+                ? Math.max(1, defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeThreadMin())
+                : Integer.MAX_VALUE);
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
