@@ -91,13 +91,13 @@ public class DefaultLitePullConsumerImplTaskRaceTest {
             });
             assertFalse("Second assignment interleaved with task reconciliation",
                 secondUpdateFinished.await(100, TimeUnit.MILLISECONDS));
-            assertEquals(Collections.singleton(firstQueue), consumerImpl.getAssignedMessageQueues());
+            assertEquals(Collections.singleton(firstQueue), consumerImpl.assignment());
 
             continueFirstReconciliation.countDown();
             firstUpdate.get(5, TimeUnit.SECONDS);
             secondUpdate.get(5, TimeUnit.SECONDS);
 
-            assertEquals(secondAssignment, consumerImpl.getAssignedMessageQueues());
+            assertEquals(secondAssignment, consumerImpl.assignment());
             Field taskTableField = DefaultLitePullConsumerImpl.class.getDeclaredField("taskTable");
             taskTableField.setAccessible(true);
             Map<?, ?> taskTable = (Map<?, ?>) taskTableField.get(consumerImpl);
