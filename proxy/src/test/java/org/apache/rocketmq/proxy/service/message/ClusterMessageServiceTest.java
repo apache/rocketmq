@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.proxy.service.message;
 
+import java.util.Collections;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -35,17 +37,20 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ClusterMessageServiceTest {
 
     private TopicRouteService topicRouteService;
+    private MQClientAPIFactory mqClientAPIFactory;
     private ClusterMessageService clusterMessageService;
 
     @Before
     public void before() {
         this.topicRouteService = mock(TopicRouteService.class);
-        MQClientAPIFactory mqClientAPIFactory = mock(MQClientAPIFactory.class);
+        this.mqClientAPIFactory = mock(MQClientAPIFactory.class);
         this.clusterMessageService = new ClusterMessageService(this.topicRouteService, mqClientAPIFactory);
     }
 
@@ -75,5 +80,19 @@ public class ClusterMessageServiceTest {
             ProxyException proxyException = (ProxyException) e;
             assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, proxyException.getCode());
         }
+    }
+
+    @Test
+    public void testBatchAckMessageWithEmptyHandleList() throws Exception {
+        try {
+            this.clusterMessageService.batchAckMessage(
+                ProxyContext.create(), Collections.emptyList(), "consumerGroup", "topic", 3000).join();
+            fail("Expected an invalid receipt handle failure");
+        } catch (CompletionException e) {
+            assertTrue(e.getCause() instanceof ProxyException);
+            assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, ((ProxyException) e.getCause()).getCode());
+        }
+        verify(this.mqClientAPIFactory, never()).getClient();
+        verify(this.topicRouteService, never()).getBrokerAddr(any(), anyString());
     }
 }
