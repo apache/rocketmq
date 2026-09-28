@@ -78,7 +78,14 @@ public class MessageDecoder {
         input.put(addr);
         input.putLong(offset);
 
-        return UtilAll.bytes2string(input.array());
+        if (input.hasArray() && input.arrayOffset() == 0 && input.array().length == msgIDLength) {
+            return UtilAll.bytes2string(input.array());
+        }
+        ByteBuffer messageId = input.duplicate();
+        messageId.flip();
+        byte[] bytes = new byte[msgIDLength];
+        messageId.get(bytes);
+        return UtilAll.bytes2string(bytes);
     }
 
     public static String createMessageId(SocketAddress socketAddress, long transactionIdhashCode) {
