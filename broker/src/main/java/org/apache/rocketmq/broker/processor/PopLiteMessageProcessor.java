@@ -258,8 +258,8 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
                 break;
             }
             if (processed.contains(lmqName)) {
-                // Already handled in this pop; skip the duplicate. A FIFO-blocked lmq is never marked by
-                // popLiteTopic, so its later ack-unblock re-dispatch is retried instead of being deduped away.
+                // Already read in this pop; skip the duplicate. A FIFO-blocked or empty-read lmq is never marked
+                // by popLiteTopic, so its later re-dispatch (ack-unblock or CQ commit) is retried, not deduped away.
                 continue;
             }
             // Tombstone check: reject pull if this client was evicted from the liteTopic (exclusive mode)
@@ -298,10 +298,13 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
                 // Leave this lmq unmarked so a later ack-unblock re-dispatch is retried, not deduped away.
                 return null;
             }
-            // Holding the lock and not blocked: this lmq is handled in this pop, mark it to dedup further events.
-            processed.add(lmqName);
             final long consumeOffset = getPopOffset(group, lmqName);
             GetMessageResult result = getMessage(clientHost, group, lmqName, consumeOffset, (int) maxNum);
+            if (result != null && result.getMessageCount() > 0) {
+                // Mark only after messages are read: an empty read (e.g. CQ entry not yet committed) must not
+                // dedup away a later re-dispatch of this lmq within the same pop.
+                processed.add(lmqName);
+            }
             return handleGetMessageResult(result, parentTopic, group, lmqName, popTime, invisibleTime, attemptId);
         } catch (Throwable e) {
             LOGGER.error("popLiteTopic error. {}, {}", group, lmqName, e);
