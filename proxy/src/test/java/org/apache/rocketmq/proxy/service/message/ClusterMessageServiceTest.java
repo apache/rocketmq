@@ -83,7 +83,7 @@ public class ClusterMessageServiceTest {
     }
 
     @Test
-    public void testBatchAckMessageWithEmptyHandleList() {
+    public void testBatchAckMessageWithEmptyHandleList() throws Exception {
         try {
             this.clusterMessageService.batchAckMessage(
                 ProxyContext.create(), Collections.emptyList(), "consumerGroup", "topic", 3000).join();
