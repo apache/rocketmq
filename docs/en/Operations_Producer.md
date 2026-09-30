@@ -11,7 +11,7 @@ String orderId = "20034568923546";
 message.setKeys(orderId);
 ```
 ###### 1.3 The Log Print
-When sending a message,no matter success or fail, a message log must be printed which contains SendResult and Key. It is assumed that we will always get SEND_OK if no exception is thrown. Below is a list of descriptions about each status:
+When sending a message,no matter success or fail, a message log must be printed which contains SendResult and Key. Note that the absence of an exception does not guarantee SEND_OK: as described below, FLUSH_DISK_TIMEOUT, FLUSH_SLAVE_TIMEOUT and SLAVE_NOT_AVAILABLE are also returned as send statuses without throwing, so always check SendResult.getSendStatus(). Below is a list of descriptions about each status:
 * SEND_OK
 
 SEND_OK means sending message successfully. SEND_OK does not mean it is reliable. To make sure no message would be lost, you should also enable SYNC_MASTER or SYNC_FLUSH.
@@ -27,8 +27,8 @@ SLAVE_NOT_AVAILABLE means sending messages successfully but no slave Broker conf
 
 ##### 2 Operations on Message Sending failed
 The send method of Producer can be retried, the retry  process is illustrated below:
-* The method will retry at most 2 times(2 times in synchronous mode, 0 times in asynchronous mode).
-* If sending failed, it will turn to the next Broker. This strategy will be executed when the total costing time is less then sendMsgTimeout(default is 10 seconds).
+* The method will retry at most 2 times(2 times in synchronous mode, 2 times in asynchronous mode).
+* If sending failed, it will turn to the next Broker. This strategy will be executed when the total costing time is less than sendMsgTimeout (default is 3 seconds).
 * The retry method will be terminated if timeout exception was thrown when sending messages to Broker.
 
 The strategy above could make sure message sending successfully to a certain degree. Some more retry strategies, such as we could try to save the message to database if calling the send synchronous method failed and then retry by background thread's timed tasks, which will make sure the message is sent to Broker,could be improved if asking for high reliability business requirement. 
