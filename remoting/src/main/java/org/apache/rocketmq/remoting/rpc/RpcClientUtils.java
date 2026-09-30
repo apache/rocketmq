@@ -44,11 +44,9 @@ public class RpcClientUtils {
         } else if (body instanceof RemotingSerializable) {
             return ((RemotingSerializable) body).encode();
         } else if (body instanceof ByteBuffer) {
-            ByteBuffer buffer = (ByteBuffer)body;
-            buffer.mark();
+            ByteBuffer buffer = ((ByteBuffer)body).duplicate();
             byte[] data = new byte[buffer.remaining()];
             buffer.get(data);
-            buffer.reset();
             return data;
         } else {
             throw new RuntimeException("Unsupported body type " + body.getClass());
