@@ -36,7 +36,7 @@ public final class MessageStoreFactory {
                     AbstractPluginMessageStore pluginMessageStore = construct.newInstance(context, messageStore);
                     messageStore = pluginMessageStore;
                 } catch (Throwable e) {
-                    throw new RuntimeException("Initialize plugin's class: " + pluginClass + " not found!", e);
+                    throw new RuntimeException("Failed to initialize message store plugin: " + pluginClass, e);
                 }
             }
         }
