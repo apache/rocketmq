@@ -19,9 +19,14 @@ package org.apache.rocketmq.store.plugin;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.MessageStore;
 
 public final class MessageStoreFactory {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
     public static MessageStore build(MessageStorePluginContext context,
         MessageStore messageStore) throws IOException {
         String plugin = context.getBrokerConfig().getMessageStorePlugIn();
@@ -36,6 +41,7 @@ public final class MessageStoreFactory {
                     AbstractPluginMessageStore pluginMessageStore = construct.newInstance(context, messageStore);
                     messageStore = pluginMessageStore;
                 } catch (Throwable e) {
+                    LOGGER.error("Failed to initialize message store plugin: {}", pluginClass, e);
                     throw new RuntimeException("Failed to initialize message store plugin: " + pluginClass, e);
                 }
             }
