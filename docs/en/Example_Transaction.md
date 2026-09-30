@@ -11,12 +11,18 @@ There are three states for transaction message:
 ### 2.1 Create the transactional producer 
 Use ```TransactionMQProducer```class to create producer client, and specify a unique ```ProducerGroup```, and you can set up a custom thread pool to process check requests. After executing the local transaction, you need to reply to MQ according to the execution result, and the reply status is described in the above section.  
 ```java
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.common.message.MessageExt;
-import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 public class TransactionProducer {
    public static void main(String[] args) throws MQClientException, InterruptedException {
        TransactionListener transactionListener = new TransactionListenerImpl();
@@ -58,6 +64,13 @@ The ```executeLocalTransaction``` method is used to execute local transaction wh
 
 The ```checkLocalTransaction``` method is used to check the local transaction status and respond to MQ check requests. It also returns one of three transaction status mentioned in the previous section. 
 ```java
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.client.producer.TransactionListener;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
+
 public class TransactionListenerImpl implements TransactionListener {
   private AtomicInteger transactionIndex = new AtomicInteger(0);
   private ConcurrentHashMap<String, Integer> localTrans = new ConcurrentHashMap<>();
