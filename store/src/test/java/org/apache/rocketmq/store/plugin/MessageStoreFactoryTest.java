@@ -18,7 +18,7 @@
 package org.apache.rocketmq.store.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.CompletableFuture;
@@ -51,33 +51,24 @@ public class MessageStoreFactoryTest {
     @Test
     public void testPluginClassNotExist() throws Exception {
         MessageStorePluginContext context = buildContext(MISSING_PLUGIN_CLASS);
-        try {
-            MessageStoreFactory.build(context, null);
-            fail("build should fail when the plugin class does not exist");
-        } catch (RuntimeException e) {
-            assertThat(e.getMessage())
-                .contains("Failed to initialize message store plugin")
-                .contains("NoSuchPluginClassSurelyMissing");
-            assertThat(e.getCause()).isInstanceOf(ClassNotFoundException.class);
-        }
+        assertThatThrownBy(() -> MessageStoreFactory.build(context, null))
+            .isInstanceOf(RuntimeException.class)
+            .hasMessageContaining("Failed to initialize message store plugin")
+            .hasMessageContaining("NoSuchPluginClassSurelyMissing")
+            .hasCauseInstanceOf(ClassNotFoundException.class);
     }
 
     @Test
     public void testPluginConstructorThrows() throws Exception {
         MessageStorePluginContext context = buildContext(THROWING_PLUGIN);
-        try {
-            MessageStoreFactory.build(context, null);
-            fail("build should fail when the plugin constructor throws");
-        } catch (RuntimeException e) {
-            assertThat(e.getMessage())
-                .contains("Failed to initialize message store plugin")
-                .contains(THROWING_PLUGIN)
-                .doesNotContain("not found");
-            assertThat(e.getCause()).isInstanceOf(InvocationTargetException.class);
-            Throwable rootCause = e.getCause().getCause();
-            assertThat(rootCause).isInstanceOf(IllegalStateException.class);
-            assertThat(rootCause).hasMessage("boom");
-        }
+        assertThatThrownBy(() -> MessageStoreFactory.build(context, null))
+            .isInstanceOf(RuntimeException.class)
+            .hasMessageContaining("Failed to initialize message store plugin")
+            .hasMessageContaining(THROWING_PLUGIN)
+            .hasMessageNotContaining("not found")
+            .hasCauseInstanceOf(InvocationTargetException.class)
+            .hasRootCauseInstanceOf(IllegalStateException.class)
+            .hasRootCauseMessage("boom");
     }
 
     @Test
@@ -118,8 +109,8 @@ public class MessageStoreFactoryTest {
     }
 
     /**
-     * Test-local plugin base. AbstractPluginMessageStore leaves a few MessageStore methods
-     * unimplemented in this branch, so concrete plugins used by the tests fill the gap here.
+     * Test-local plugin base. AbstractPluginMessageStore does not delegate these methods,
+     * so concrete plugins used by the tests fill the gap here.
      */
     private static class TestPlugin extends AbstractPluginMessageStore {
         TestPlugin(MessageStorePluginContext context, MessageStore next) {
