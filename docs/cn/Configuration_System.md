@@ -11,33 +11,33 @@
 
 设置 Direct ByteBuffer 内存大小。当 Direct ByteBuffer 达到指定大小时，将触发 Full GC：
 
-    -XXMaxDirectMemorySize=15g
+    -XX:MaxDirectMemorySize=15g
 
 如果你不在乎 RocketMQ broker 的启动时间，建议启用预分配 Java 堆以确保在 JVM 初始化期间为每个页面分配内存。你可以通过以下方式启用它： 
     
-    -XX+AlwaysPreTouch
+    -XX:+AlwaysPreTouch
 
 禁用偏向锁定可以减少 JVM 停顿： 
 
-    -XX-UseBiasedLocking
+    -XX:-UseBiasedLocking
 
 关于垃圾收集器，推荐使用 JDK 1.8 的 G1 收集器： 
 
-    -XX+UseG1GC -XXG1HeapRegionSize=16m 
-    -XXG1ReservePercent=25
-    -XXInitiatingHeapOccupancyPercent=30
+    -XX:+UseG1GC -XX:G1HeapRegionSize=16m 
+    -XX:G1ReservePercent=25
+    -XX:InitiatingHeapOccupancyPercent=30
 
 这些 GC 选项看起来有点激进，但事实证明它在生产环境中具有良好的性能 
 
 不要把-XXMaxGCPauseMillis 的值设置太小，否则JVM会使用一个小的新生代来实现这个目标，从而导致频繁发生minor GC。因此，建议使用滚动 GC 日志文件：
     
-    -XX+UseGCLogFileRotation 
-    -XXNumberOfGCLogFiles=5 
-    -XXGCLogFileSize=30m
+    -XX:+UseGCLogFileRotation 
+    -XX:NumberOfGCLogFiles=5 
+    -XX:GCLogFileSize=30m
     
 写 GC 文件会增加 broker 的延迟，因此可以考虑将 GC 日志文件重定向到内存文件系统：
     
-    -Xloggcdevshmmq_gc_%p.log123
+    -Xloggc:/dev/shm/mq_gc_%p.log
 
 ## 2 Linux 内核参数 ##
 
