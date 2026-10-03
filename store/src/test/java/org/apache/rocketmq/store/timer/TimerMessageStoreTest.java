@@ -666,6 +666,7 @@ public class TimerMessageStoreTest {
         final long poisonOffsetPy = 100L;
         final long normalOffsetPy = 200L;
         final Map<Long, AtomicInteger> enqueueCalls = new ConcurrentHashMap<>();
+        final List<CountDownLatch> roundLatches = new ArrayList<>();
 
         TimerMessageStore timerMessageStore =
             new TimerMessageStore(messageStore, storeConfig, timerCheckpoint, timerMetrics, null) {
@@ -679,6 +680,13 @@ public class TimerMessageStoreTest {
                         return false;
                     }
                     return super.doEnqueue(offsetPy, sizePy, delayedTime, messageExt, isFromTimeline);
+                }
+
+                @Override
+                public void checkDequeueLatch(CountDownLatch latch, long delayedTime) {
+                    // Record every round's latch instead of waiting: with dequeue not running the
+                    // production wait would mask a retry round that never completes its latch.
+                    roundLatches.add(latch);
                 }
             };
         messageStore.setTimerMessageStore(timerMessageStore);
@@ -701,6 +709,12 @@ public class TimerMessageStoreTest {
         assertEquals(2, enqueueCalls.get(poisonOffsetPy).get());
         // The request that already succeeded in the first round must not be re-enqueued
         assertEquals(1, enqueueCalls.get(normalOffsetPy).get());
+        // Every round completes its own latch: the retry round must count its latch down when the
+        // re-armed request succeeds, otherwise the production checkDequeueLatch times out and
+        // warns on every successful retry.
+        assertEquals(2, roundLatches.size());
+        assertEquals("the first round must complete its latch", 0, roundLatches.get(0).getCount());
+        assertEquals("the retry round must complete its latch", 0, roundLatches.get(1).getCount());
     }
 
     @After

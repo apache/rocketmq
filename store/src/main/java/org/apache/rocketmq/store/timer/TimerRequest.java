@@ -95,6 +95,18 @@ public class TimerRequest {
     public void setLatch(CountDownLatch latch) {
         this.latch = latch;
     }
+
+    /**
+     * Re-arm the request for another enqueue round: the new round's latch must be counted down
+     * when the new attempt completes, so the previous attempt's release must not swallow it.
+     * A request whose previous attempt handed it to the dequeue pipeline is still owned by that
+     * pipeline, and a late release from it may count the new latch down early; that only skips
+     * the completion wait, because callers drive progress from isSucc(), not from the latch.
+     */
+    public void rearmLatch(CountDownLatch latch) {
+        this.latch = latch;
+        this.released = false;
+    }
     public void setEnqueueTime(long enqueueTime) {
         this.enqueueTime = enqueueTime;
     }

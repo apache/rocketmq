@@ -1525,7 +1525,10 @@ public class TimerMessageStore {
                 }
                 CountDownLatch latch = new CountDownLatch(retryList.size());
                 for (TimerRequest req : retryList) {
-                    req.setLatch(latch);
+                    // Re-arm the previous round's release, otherwise this round's latch is never
+                    // counted down by the retried request and checkDequeueLatch falls into its
+                    // timeout/warning path on every successful retry.
+                    req.rearmLatch(latch);
                     if (storeConfig.isTimerWheelSnapshotFlush()) {
                         synchronized (lockWhenFlush) {
                             this.putMessageToTimerWheel(req);
