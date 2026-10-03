@@ -355,10 +355,20 @@ public class SendMessageActivity extends AbstractMessagingActivity {
                 return expandedList;
             }
         }
-        // No per-message ids in the batch result (e.g. an inner-batch message response):
-        // reuse the batch result for every message, same as the client-side expansion
+        // The batch result carries no comma-separated ids (local mode delivers the request as one
+        // inner batch and returns a single uniq id). Reusing the batch result for every message
+        // would repeat one messageId and one offset in all entries, so build each entry from the
+        // id the request already carries and the batch's first offset: every entry keeps its own
+        // identity while status, queue and metadata stay shared, like the branch above.
         for (int i = 0; i < messageCount; i++) {
-            expandedList.add(batchResult);
+            String messageId = request.getMessages(i).getSystemProperties().getMessageId();
+            SendResult expanded = new SendResult(batchResult.getSendStatus(),
+                StringUtils.isNotBlank(messageId) ? messageId : batchResult.getMsgId(),
+                batchResult.getMessageQueue(), batchResult.getQueueOffset() + i,
+                batchResult.getTransactionId(), batchResult.getOffsetMsgId(),
+                batchResult.getRegionId());
+            expanded.setRecallHandle(batchResult.getRecallHandle());
+            expandedList.add(expanded);
         }
         return expandedList;
     }
