@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -111,16 +112,20 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset,
         Integer electionPriority) {
         BrokerIdentityInfo brokerIdentityInfo = new BrokerIdentityInfo(clusterName, brokerName, brokerId);
-        BrokerLiveInfo prev = this.brokerLiveTable.get(brokerIdentityInfo);
         int realEpoch = Optional.ofNullable(epoch).orElse(-1);
         long realBrokerId = Optional.ofNullable(brokerId).orElse(-1L);
         long realMaxOffset = Optional.ofNullable(maxOffset).orElse(-1L);
         long realConfirmOffset = Optional.ofNullable(confirmOffset).orElse(-1L);
         long realTimeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_BROKER_CHANNEL_EXPIRED_TIME);
         int realElectionPriority = Optional.ofNullable(electionPriority).orElse(Integer.MAX_VALUE);
-        if (null == prev) {
-            this.brokerLiveTable.put(brokerIdentityInfo,
-                new BrokerLiveInfo(brokerName,
+        // compute() keeps the create-or-update decision and the channel rebinding atomic per
+        // broker identity, so onBrokerChannelClose can never observe a half-updated entry: a
+        // heartbeat that rebinds the entry and a close of the previous channel serialize on the
+        // same key instead of racing between the match and the removal.
+        this.brokerLiveTable.compute(brokerIdentityInfo, (key, prev) -> {
+            if (prev == null) {
+                log.info("new broker registered, {}, brokerId:{}", brokerIdentityInfo, realBrokerId);
+                return new BrokerLiveInfo(brokerName,
                     brokerAddr,
                     realBrokerId,
                     System.currentTimeMillis(),
@@ -128,9 +133,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                     channel,
                     realEpoch,
                     realMaxOffset,
-                    realElectionPriority));
-            log.info("new broker registered, {}, brokerId:{}", brokerIdentityInfo, realBrokerId);
-        } else {
+                    realElectionPriority);
+            }
             prev.setLastUpdateTimestamp(System.currentTimeMillis());
             prev.setHeartbeatTimeoutMillis(realTimeoutMillis);
             prev.setElectionPriority(realElectionPriority);
@@ -144,24 +148,33 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 prev.setMaxOffset(realMaxOffset);
                 prev.setConfirmOffset(realConfirmOffset);
             }
-        }
-
+            return prev;
+        });
     }
 
     @Override
     public void onBrokerChannelClose(Channel channel) {
-        BrokerIdentityInfo addrInfo = null;
-        for (Map.Entry<BrokerIdentityInfo, BrokerLiveInfo> entry : this.brokerLiveTable.entrySet()) {
-            if (entry.getValue().getChannel() == channel) {
-                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", entry.getValue().getChannel(), entry.getValue().getBrokerName(), entry.getValue().getBrokerAddr(), entry.getValue().getBrokerId());
-                addrInfo = entry.getKey();
-                this.executor.submit(() ->
-                    notifyBrokerInActive(entry.getKey().getClusterName(), entry.getValue().getBrokerName(), entry.getValue().getBrokerId()));
-                break;
+        for (BrokerIdentityInfo brokerIdentity : this.brokerLiveTable.keySet()) {
+            final AtomicReference<BrokerLiveInfo> closedRef = new AtomicReference<>();
+            // Remove the entry only when it still carries the closing channel, atomically with
+            // respect to onBrokerHeartbeat: a heartbeat that rebinds this identity to a new
+            // channel first makes the close a no-op, and a close that removes the entry first
+            // lets the heartbeat create a fresh live entry.
+            this.brokerLiveTable.computeIfPresent(brokerIdentity, (key, live) -> {
+                if (live.getChannel() != channel) {
+                    return live;
+                }
+                closedRef.set(live);
+                return null;
+            });
+            final BrokerLiveInfo closed = closedRef.get();
+            if (closed != null) {
+                log.info("Channel {} inactive, broker {}, addr:{}, id:{}", channel, closed.getBrokerName(),
+                    closed.getBrokerAddr(), closed.getBrokerId());
+                this.executor.submit(() -> notifyBrokerInActive(brokerIdentity.getClusterName(),
+                    closed.getBrokerName(), closed.getBrokerId()));
+                return;
             }
-        }
-        if (addrInfo != null) {
-            this.brokerLiveTable.remove(addrInfo);
         }
     }
 

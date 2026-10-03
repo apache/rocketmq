@@ -85,4 +85,54 @@ public class DefaultBrokerHeartbeatManagerTest {
         }
     }
 
+    @Test
+    public void testConcurrentHeartbeatDuringStaleChannelCloseKeepsBrokerAlive() throws Exception {
+        final EmbeddedChannel oldChannel = new EmbeddedChannel();
+        final EmbeddedChannel newChannel = new EmbeddedChannel();
+        try {
+            for (int round = 0; round < 500; round++) {
+                // Each round starts from a broker live on the old channel, then races the stale
+                // close against the heartbeat rebinding the same identity to the new channel.
+                this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 0L, 3000L,
+                    oldChannel, 1, 1L, -1L, 0);
+
+                final CountDownLatch start = new CountDownLatch(1);
+                final CountDownLatch finished = new CountDownLatch(2);
+                final int currentRound = round;
+                Thread closeThread = new Thread(() -> {
+                    awaitStart(start, currentRound);
+                    heartbeatManager.onBrokerChannelClose(oldChannel);
+                    finished.countDown();
+                });
+                Thread heartbeatThread = new Thread(() -> {
+                    awaitStart(start, currentRound);
+                    heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 0L, 3000L,
+                        newChannel, 1, 1L, -1L, 0);
+                    finished.countDown();
+                });
+                closeThread.start();
+                heartbeatThread.start();
+                start.countDown();
+                assertTrue("round " + round + " did not finish", finished.await(5, TimeUnit.SECONDS));
+
+                final BrokerLiveInfo liveInfo = this.heartbeatManager.getBrokerLiveInfo("cluster1", "broker1", 0L);
+                assertNotNull("round " + round + ": the live entry must survive the stale close", liveInfo);
+                assertEquals("round " + round + ": the live entry must carry the new channel",
+                    newChannel, liveInfo.getChannel());
+            }
+        } finally {
+            oldChannel.finishAndReleaseAll();
+            newChannel.finishAndReleaseAll();
+            this.heartbeatManager.shutdown();
+        }
+    }
+
+    private static void awaitStart(CountDownLatch start, int round) {
+        try {
+            start.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("round " + round + " interrupted", e);
+        }
+    }
 }
