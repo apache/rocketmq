@@ -30,6 +30,11 @@ public abstract class AbstractConsumeMessageService implements ConsumeMessageSer
     private final boolean ownsConsumeExecutor;
 
     protected AbstractConsumeMessageService(DefaultMQPushConsumer defaultMQPushConsumer, ThreadFactory threadFactory) {
+        this(defaultMQPushConsumer, threadFactory, Integer.MAX_VALUE);
+    }
+
+    protected AbstractConsumeMessageService(DefaultMQPushConsumer defaultMQPushConsumer, ThreadFactory threadFactory,
+        int consumeQueueCapacity) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;
         ExecutorService externalExecutor = defaultMQPushConsumer.getConsumeExecutor();
         this.ownsConsumeExecutor = externalExecutor == null;
@@ -39,7 +44,7 @@ public abstract class AbstractConsumeMessageService implements ConsumeMessageSer
                 defaultMQPushConsumer.getConsumeThreadMax(),
                 1000 * 60,
                 TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>(),
+                new LinkedBlockingQueue<>(consumeQueueCapacity),
                 threadFactory);
         } else {
             this.consumeExecutor = externalExecutor;
