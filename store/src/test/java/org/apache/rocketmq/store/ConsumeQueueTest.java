@@ -775,4 +775,62 @@ public class ConsumeQueueTest {
             FileUtils.deleteQuietly(tmpDir);
         }
     }
+
+    @Test
+    public void testDuplicateDispatchDoesNotLeaveConsumeQueueExtOrphan() throws IOException {
+        File tmpDir = Files.createTempDirectory("duplicate-cq-ext").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(4 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+        Mockito.when(messageStore.getStateMachine()).thenReturn(new MessageStoreStateMachine(null));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("duplicateExtTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        try {
+            DispatchRequest first = new DispatchRequest("duplicateExtTopic", 0, 0, 10,
+                100, 1000, 0, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(first);
+            long firstExtAddress = getRawTagsCode(consumeQueue, 0);
+
+            consumeQueue.putMessagePositionInfoWrapper(first);
+
+            DispatchRequest second = new DispatchRequest("duplicateExtTopic", 0, 100, 10,
+                200, 2000, 1, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(second);
+            long secondExtAddress = getRawTagsCode(consumeQueue, 1);
+            long expectedSecondExtAddress = firstExtAddress + ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE;
+            consumeQueue.flush(0);
+
+            reloadedConsumeQueue = new ConsumeQueue("duplicateExtTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+
+            Assert.assertEquals(200, reloadedConsumeQueue.getExt(expectedSecondExtAddress).getTagsCode());
+            Assert.assertEquals(expectedSecondExtAddress, secondExtAddress);
+        } finally {
+            consumeQueue.destroy();
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    private long getRawTagsCode(ConsumeQueue consumeQueue, long queueOffset) {
+        SelectMappedBufferResult result = consumeQueue.getIndexBuffer(queueOffset);
+        Assert.assertNotNull(result);
+        try {
+            return result.getByteBuffer().getLong(12);
+        } finally {
+            result.release();
+        }
+    }
 }
