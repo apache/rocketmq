@@ -54,10 +54,7 @@ public class LmqPullRequestHoldService extends PullRequestHoldService {
                 LOGGER.error("check hold request failed. topic={}, queueId={}", topic, queueId, e);
             }
             if (MixAll.isLmq(topic)) {
-                ManyPullRequest mpr = pullRequestTable.get(key);
-                if (mpr == null || mpr.getPullRequestList() == null || mpr.getPullRequestList().isEmpty()) {
-                    pullRequestTable.remove(key);
-                }
+                pullRequestTable.computeIfPresent(key, (k, mpr) -> mpr.isEmpty() ? null : mpr);
             }
         }
     }
