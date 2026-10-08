@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.remoting;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -27,6 +28,7 @@ import java.util.Properties;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 
@@ -81,9 +83,8 @@ public class Configuration {
 
                 Properties registerProps = MixAll.object2Properties(configObject);
 
-                merge(registerProps, this.allConfigs);
-
                 configObjectList.add(configObject);
+                merge(registerProps, this.allConfigs);
             } finally {
                 readWriteLock.writeLock().unlock();
             }
@@ -112,7 +113,7 @@ public class Configuration {
                 readWriteLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            log.error("register lock error. {}" + extProperties);
+            log.error("register config interrupted while waiting for lock");
         }
 
         return this;
@@ -195,11 +196,28 @@ public class Configuration {
                 readWriteLock.writeLock().unlock();
             }
         } catch (InterruptedException e) {
-            log.error("update lock error, {}", properties);
+            log.error("update config interrupted while waiting for lock");
             return;
         }
 
         persist();
+    }
+
+    /**
+     * Returns a logging-only copy with sensitive values masked using registered configuration metadata.
+     */
+    public Properties getPropertiesForLog(Properties properties) {
+        readWriteLock.readLock().lock();
+        try {
+            Properties masked = new Properties();
+            for (Entry<Object, Object> entry : properties.entrySet()) {
+                masked.put(entry.getKey(), ConfigLogUtils.getValueForLog(configObjectList,
+                    String.valueOf(entry.getKey()), entry.getValue()));
+            }
+            return masked;
+        } finally {
+            readWriteLock.readLock().unlock();
+        }
     }
 
     public void persist() {
@@ -208,8 +226,13 @@ public class Configuration {
 
             try {
                 String allConfigs = getAllConfigsInternal();
-
-                MixAll.string2File(allConfigs, getStorePath());
+                String storePath = getStorePath();
+                File configFile = new File(storePath);
+                if (!checkWritePermission(configFile)
+                    || configFile.exists() && !checkWritePermission(new File(storePath + ".bak"))) {
+                    return;
+                }
+                MixAll.string2File(allConfigs, storePath);
             } catch (IOException e) {
                 log.error("persist string2File error, ", e);
             } finally {
@@ -218,6 +241,18 @@ public class Configuration {
         } catch (InterruptedException e) {
             log.error("persist lock error");
         }
+    }
+
+    private boolean checkWritePermission(File file) {
+        File existingPath = file.getAbsoluteFile();
+        while (!existingPath.exists() && existingPath.getParentFile() != null) {
+            existingPath = existingPath.getParentFile();
+        }
+        if (!existingPath.canWrite()) {
+            log.warn("Skip persisting configuration to {}: {} is not writable", file, existingPath);
+            return false;
+        }
+        return true;
     }
 
     public String getAllConfigsFormatString() {
@@ -337,7 +372,7 @@ public class Configuration {
         for (Entry<Object, Object> next : from.entrySet()) {
             Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
+                logConfigChange(next.getKey(), toObj, fromObj);
             }
             to.put(next.getKey(), fromObj);
         }
@@ -351,10 +386,17 @@ public class Configuration {
 
             Object fromObj = next.getValue(), toObj = to.get(next.getKey());
             if (toObj != null && !toObj.equals(fromObj)) {
-                log.info("Replace, key: {}, value: {} -> {}", next.getKey(), toObj, fromObj);
+                logConfigChange(next.getKey(), toObj, fromObj);
             }
             to.put(next.getKey(), fromObj);
         }
+    }
+
+    private void logConfigChange(Object key, Object oldValue, Object newValue) {
+        String propertyName = String.valueOf(key);
+        Object oldValueForLog = ConfigLogUtils.getValueForLog(configObjectList, propertyName, oldValue);
+        Object newValueForLog = ConfigLogUtils.getValueForLog(configObjectList, propertyName, newValue);
+        log.info("Replace, key: {}, value: {} -> {}", key, oldValueForLog, newValueForLog);
     }
 
 }

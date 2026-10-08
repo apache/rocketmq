@@ -58,6 +58,7 @@ public class PopPriorityIT extends BasePopNormally {
     private final boolean popConsumerKVServiceEnable;
     private final boolean priorityOrderAsc;
     private int writeQueueNum = 8;
+    private boolean originalEnablePopBufferMerge;
 
     public PopPriorityIT(boolean popConsumerKVServiceEnable, boolean priorityOrderAsc) {
         this.popConsumerKVServiceEnable = popConsumerKVServiceEnable;
@@ -79,6 +80,9 @@ public class PopPriorityIT extends BasePopNormally {
         super.setUp();
         // reset default config if changed
         writeQueueNum = 8;
+        originalEnablePopBufferMerge = brokerController1.getBrokerConfig().isEnablePopBufferMerge();
+        // Persist checkpoints promptly so each POP can wait for its offset commits to finish.
+        brokerController1.getBrokerConfig().setEnablePopBufferMerge(false);
         brokerController1.getBrokerConfig().setPopFromRetryProbabilityForPriority(0);
         brokerController1.getBrokerConfig().setUseSeparateRetryQueue(false);
         brokerController1.getBrokerConfig().setPopConsumerKVServiceEnable(popConsumerKVServiceEnable);
@@ -88,7 +92,11 @@ public class PopPriorityIT extends BasePopNormally {
 
     @After
     public void tearDown() {
-        super.tearDown();
+        try {
+            super.tearDown();
+        } finally {
+            brokerController1.getBrokerConfig().setEnablePopBufferMerge(originalEnablePopBufferMerge);
+        }
     }
 
     @Test
@@ -129,6 +137,7 @@ public class PopPriorityIT extends BasePopNormally {
             assertEquals(PopStatus.FOUND, popResult.getPopStatus());
             MessageExt message = popResult.getMsgFoundList().get(0);
             assertEquals(maxPriority, message.getPriority()); // not a coincidence
+            assertEquals(i, message.getQueueOffset());
         }
     }
 
@@ -340,8 +349,9 @@ public class PopPriorityIT extends BasePopNormally {
     }
 
     private PopResult popMessages(long invisibleTime, int maxNums, long timeout) throws Exception {
-        // A response can reach the client before the previous request's queue-lock completion callback runs.
-        await().alias("previous POP locks released")
+        // A response can arrive before lock release, and background offset commits can acquire the lock again.
+        // Drain pending commits first so the next POP cannot skip a higher-priority queue due to contention.
+        await().alias("previous POP offset commits and locks released")
             .pollDelay(0, TimeUnit.MILLISECONDS)
             .pollInterval(10, TimeUnit.MILLISECONDS)
             .atMost(10, TimeUnit.SECONDS)
@@ -353,6 +363,10 @@ public class PopPriorityIT extends BasePopNormally {
                     brokerController1.getPopConsumerService().getConsumerLockService().unlock(group, topic);
                 } else {
                     for (int queueId = 0; queueId < writeQueueNum; queueId++) {
+                        if (brokerController1.getPopMessageProcessor().getPopBufferMergeService()
+                            .getLatestOffset(topic, group, queueId) >= 0) {
+                            return false;
+                        }
                         if (!brokerController1.getPopMessageProcessor().getQueueLockManager().tryLock(topic, group, queueId)) {
                             return false;
                         }

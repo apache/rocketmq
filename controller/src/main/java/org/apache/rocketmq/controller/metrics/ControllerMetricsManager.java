@@ -340,7 +340,7 @@ public class ControllerMetricsManager {
                 for (String header : headerList) {
                     String[] pair = header.split(":");
                     if (pair.length != 2) {
-                        logger.warn("metricsGrpcExporterHeader is not valid: {}", headers);
+                        logger.warn("metricsGrpcExporterHeader is not valid; expected comma-separated key:value pairs");
                         continue;
                     }
                     headerMap.put(pair[0], pair[1]);

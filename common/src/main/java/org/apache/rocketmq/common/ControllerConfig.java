@@ -18,6 +18,7 @@ package org.apache.rocketmq.common;
 
 import java.io.File;
 import java.util.Arrays;
+import org.apache.rocketmq.common.annotation.Sensitive;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 
 public class ControllerConfig {
@@ -80,6 +81,7 @@ public class ControllerConfig {
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
     private String metricsGrpcExporterTarget = "";
+    @Sensitive
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;

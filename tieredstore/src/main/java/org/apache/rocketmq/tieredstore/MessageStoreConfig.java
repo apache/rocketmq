@@ -20,6 +20,7 @@ import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import org.apache.rocketmq.common.annotation.Sensitive;
 
 public class MessageStoreConfig {
 
@@ -142,7 +143,9 @@ public class MessageStoreConfig {
     private String tieredStoreFilePath = "";
     private String objectStoreEndpoint = "";
     private String objectStoreBucket = "";
+    @Sensitive
     private String objectStoreAccessKey = "";
+    @Sensitive
     private String objectStoreSecretKey = "";
     private boolean writeWithoutMmap = false;
 
