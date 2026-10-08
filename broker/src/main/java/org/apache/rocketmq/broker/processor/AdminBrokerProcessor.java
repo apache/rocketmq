@@ -261,6 +261,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         configBlackList.add("brokerConfigPath");
         configBlackList.add("rocketmqHome");
         configBlackList.add("configBlackList");
+        configBlackList.add("reviveQueueNum");
         String[] configArray = brokerController.getBrokerConfig().getConfigBlackList().split(";");
         configBlackList.addAll(Arrays.asList(configArray));
     }

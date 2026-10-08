@@ -43,6 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class BrokerControllerTest {
 
@@ -82,6 +83,21 @@ public class BrokerControllerTest {
         // Verify that brokerMetricsManager is properly initialized and not null
         assertThat(brokerController.getBrokerMetricsManager()).isNotNull();
         brokerController.shutdown();
+    }
+
+    @Test
+    public void testRejectsNonPositiveReviveQueueNum() {
+        brokerConfig.setReviveQueueNum(0);
+        assertThatThrownBy(() -> new BrokerController(
+            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("reviveQueueNum must be greater than 0");
+
+        brokerConfig.setReviveQueueNum(-1);
+        assertThatThrownBy(() -> new BrokerController(
+            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("reviveQueueNum must be greater than 0");
     }
 
     @After
