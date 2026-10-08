@@ -23,7 +23,9 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -45,6 +47,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
 
 @RunWith(MockitoJUnitRunner.class)
 public class LiteConsumerLagCalculatorTest {
@@ -60,12 +63,17 @@ public class LiteConsumerLagCalculatorTest {
     @Mock
     private SubscriptionGroupManager subscriptionGroupManager;
 
+    @Mock
+    private AbstractLiteLifecycleManager liteLifecycleManager;
+
     private final BrokerConfig brokerConfig = new BrokerConfig();
 
     @Before
     public void setUp() {
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(brokerController.getLiteLifecycleManager()).thenReturn(liteLifecycleManager);
+        when(liteLifecycleManager.getMaxOffsetInQueue(anyString())).thenReturn(100L);
 
         liteConsumerLagCalculator = new LiteConsumerLagCalculator(brokerController);
     }
@@ -380,6 +388,100 @@ public class LiteConsumerLagCalculatorTest {
         // The metrics of liteTopic are aggregated under its parent topic
         assertEquals(parentTopic, result[0].topic);
         assertEquals(storeTimestamp, result[0].earliestUnconsumedTimestamp);
+    }
+
+    @Test
+    public void testCalculateLiteLagLatencyRemovesExpiredTopics() {
+        brokerConfig.setLiteLagLatencyMetricsEnable(true);
+        String parentTopic = "parentTopic";
+        String expired = LiteUtil.toLmqName(parentTopic, "expired");
+        String active = LiteUtil.toLmqName(parentTopic, "active");
+        liteConsumerLagCalculator.updateLagInfo("group", parentTopic, expired, 1000L);
+        liteConsumerLagCalculator.updateLagInfo("group", parentTopic, active, 2000L);
+        liteConsumerLagCalculator.updateLagInfo("expiredGroup", parentTopic, expired, 1000L);
+        when(liteLifecycleManager.getMaxOffsetInQueue(expired)).thenReturn(0L);
+
+        List<ConsumerLagCalculator.CalculateLagResult> results = new ArrayList<>();
+        liteConsumerLagCalculator.calculateLiteLagLatency(results::add);
+
+        assertEquals(1, results.size());
+        assertEquals("group", results.get(0).group);
+        assertEquals(2000L, results.get(0).earliestUnconsumedTimestamp);
+        assertEquals(1, liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(parentTopic, "group")).size());
+        assertTrue(liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(parentTopic, "expiredGroup")).isEmpty());
+    }
+
+    @Test
+    public void testGetLagTimestampTopKRemovesExpiredTopicsBeforeSelection() {
+        String group = "group";
+        String parentTopic = "parentTopic";
+        String expired = LiteUtil.toLmqName(parentTopic, "expired");
+        String active = LiteUtil.toLmqName(parentTopic, "active");
+        liteConsumerLagCalculator.updateLagInfo(group, parentTopic, expired, 1000L);
+        liteConsumerLagCalculator.updateLagInfo(group, parentTopic, active, 2000L);
+        when(liteLifecycleManager.getMaxOffsetInQueue(expired)).thenReturn(-1L);
+
+        Pair<List<LiteLagInfo>, Long> result = liteConsumerLagCalculator.getLagTimestampTopK(group, parentTopic, 1);
+
+        assertEquals(1, result.getObject1().size());
+        assertEquals("active", result.getObject1().get(0).getLiteTopic());
+        assertEquals(2000L, result.getObject2().longValue());
+        assertEquals(1, liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(parentTopic, group)).size());
+    }
+
+    @Test
+    public void testExpiredTopicLateUpdateAndRecreation() {
+        brokerConfig.setLiteLagLatencyMetricsEnable(true);
+        String group = "group";
+        String parentTopic = "parentTopic";
+        String lmqName = LiteUtil.toLmqName(parentTopic, "session");
+        liteConsumerLagCalculator.updateLagInfo(group, parentTopic, lmqName, 1000L);
+        when(liteLifecycleManager.getMaxOffsetInQueue(lmqName)).thenReturn(0L);
+
+        Pair<List<LiteLagInfo>, Long> result = liteConsumerLagCalculator.getLagTimestampTopK(group, parentTopic, 1);
+        assertTrue(result.getObject1().isEmpty());
+        assertEquals(-1L, result.getObject2().longValue());
+
+        // A POP that read the timestamp before deletion may publish its sample after cleanup.
+        liteConsumerLagCalculator.updateLagInfo(group, parentTopic, lmqName, 1000L);
+        List<ConsumerLagCalculator.CalculateLagResult> results = new ArrayList<>();
+        liteConsumerLagCalculator.calculateLiteLagLatency(results::add);
+        assertTrue(results.isEmpty());
+        assertTrue(liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(parentTopic, group)).isEmpty());
+
+        when(liteLifecycleManager.getMaxOffsetInQueue(lmqName)).thenReturn(10L);
+        liteConsumerLagCalculator.updateLagInfo(group, parentTopic, lmqName, 3000L);
+        result = liteConsumerLagCalculator.getLagTimestampTopK(group, parentTopic, 1);
+        assertEquals(1, result.getObject1().size());
+        assertEquals(3000L, result.getObject2().longValue());
+    }
+
+    @Test
+    public void testExpiredSampleCleanupPreservesConcurrentReplacement() {
+        String group = "group";
+        String parentTopic = "parentTopic";
+        String lmqName = LiteUtil.toLmqName(parentTopic, "session");
+        liteConsumerLagCalculator.updateLagInfo(group, parentTopic, lmqName, 1000L);
+        AtomicBoolean firstLookup = new AtomicBoolean(true);
+        when(liteLifecycleManager.getMaxOffsetInQueue(lmqName)).thenAnswer(invocation -> {
+            if (firstLookup.compareAndSet(true, false)) {
+                // Recreate and update the session after the reader observed its old queue as absent.
+                liteConsumerLagCalculator.updateLagInfo(group, parentTopic, lmqName, 3000L);
+                return 0L;
+            }
+            return 10L;
+        });
+
+        Pair<List<LiteLagInfo>, Long> result = liteConsumerLagCalculator.getLagTimestampTopK(group, parentTopic, 1);
+        assertTrue(result.getObject1().isEmpty());
+        PriorityBlockingQueue<LiteConsumerLagCalculator.LagTimeInfo> lagHeap =
+            liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(parentTopic, group));
+        assertEquals(1, lagHeap.size());
+        assertEquals(3000L, lagHeap.peek().getLagTimestamp());
+
+        result = liteConsumerLagCalculator.getLagTimestampTopK(group, parentTopic, 1);
+        assertEquals(1, result.getObject1().size());
+        assertEquals(3000L, result.getObject2().longValue());
     }
 
     @Test

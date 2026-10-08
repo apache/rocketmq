@@ -88,6 +88,15 @@ public class LiteConsumerLagCalculator {
         return brokerController.getLiteLifecycleManager().getMaxOffsetInQueue(lmqName);
     }
 
+    private boolean isLagInfoActive(PriorityBlockingQueue<LagTimeInfo> lagHeap, LagTimeInfo lagInfo) {
+        if (getMaxOffset(lagInfo.getLmqName()) > 0) {
+            return true;
+        }
+        // Match the sample by identity so a concurrent replacement for the same LMQ survives.
+        lagHeap.removeIf(current -> current == lagInfo);
+        return false;
+    }
+
     private long offsetDiff(Long offset, String lmqName) {
         long consumerOffset = offset == null ? -1L : offset;
         if (consumerOffset < 0) {
@@ -135,9 +144,13 @@ public class LiteConsumerLagCalculator {
 
             // Find the minimum storeTimestamp in the heap
             long minTimestamp = lagHeap.stream()
+                .filter(lagInfo -> isLagInfoActive(lagHeap, lagInfo))
                 .mapToLong(LagTimeInfo::getLagTimestamp)
                 .min()
                 .orElse(0L);
+            if (minTimestamp <= 0) {
+                return;
+            }
 
             ConsumerLagCalculator.CalculateLagResult lagResult =
                 new ConsumerLagCalculator.CalculateLagResult(topicGroup.group, topicGroup.topic, false);
@@ -170,6 +183,9 @@ public class LiteConsumerLagCalculator {
         // Evict the largest timestamp when heap is full, keeping smallest topK timestamps
         PriorityQueue<LagTimeInfo> maxHeap = new PriorityQueue<>(topK, Comparator.comparingLong(LagTimeInfo::getLagTimestamp).reversed());
         for (LagTimeInfo lagInfo : lagHeap) {
+            if (!isLagInfoActive(lagHeap, lagInfo)) {
+                continue;
+            }
             if (maxHeap.size() < topK) {
                 maxHeap.offer(lagInfo);
             } else if (maxHeap.peek() != null && lagInfo.getLagTimestamp() < maxHeap.peek().getLagTimestamp()) {
