@@ -47,9 +47,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -235,6 +237,33 @@ public class LiteSubscriptionRegistryImplTest {
         verify(mockListener).onRegister(clientId1, group, "lmq1");
         verify(mockListener).onUnregister(clientId1, group, "lmq1");
         verify(mockListener).onRegister(clientId2, group, "lmq1");
+    }
+
+    @Test
+    public void testAddPartialSubscription_ExclusiveModeDoesNotEvictSameClient() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "testTopic";
+        String lmqName = LiteUtil.toLmqName(topic, "liteTopic");
+        Channel channel = mock(Channel.class);
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(topic, lmqName)).thenReturn(true);
+
+        registry.updateClientChannel(clientId, channel);
+        registry.addPartialSubscription(clientId, group, topic, Collections.singleton(lmqName), null);
+        registry.addPartialSubscription(clientId, group, topic, Collections.singleton(lmqName), null);
+
+        assertNotNull(registry.getLiteSubscription(clientId));
+        assertTrue(registry.getLiteSubscription(clientId).getLmqSet().contains(lmqName));
+        assertEquals(1, registry.getActiveSubscriptionNum());
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientId, lmqName));
+        verify(mockBroker2Client, never()).notifyUnsubscribeLite(
+            eq(channel), any(NotifyUnsubscribeLiteRequestHeader.class));
+        verify(mockListener).onRegister(clientId, group, lmqName);
+        verify(mockListener, never()).onUnregister(clientId, group, lmqName);
     }
 
     /**

@@ -333,7 +333,8 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             return;
         }
         List<ClientGroup> toRemove = clientSet.stream()
-            .filter(clientGroup -> Objects.equals(group, clientGroup.group))
+            .filter(clientGroup -> Objects.equals(group, clientGroup.group)
+                && !Objects.equals(newClientId, clientGroup.clientId))
             .collect(Collectors.toList());
 
         toRemove.forEach(clientGroup -> {
