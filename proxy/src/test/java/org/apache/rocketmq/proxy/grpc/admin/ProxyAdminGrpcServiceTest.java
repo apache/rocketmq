@@ -62,6 +62,7 @@ import apache.rocketmq.v2.VerifyMessageResponse;
 import com.alibaba.fastjson2.JSON;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import com.google.protobuf.util.Timestamps;
 import io.grpc.stub.StreamObserver;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -913,6 +914,27 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         verify(adminService).queryMessage(eq(ADDRESS_A), eq(TOPIC), eq("key-1"), anyInt(), anyLong(), anyLong(),
             uniqueKeyCaptor.capture(), anyBoolean(), anyLong());
         assertFalse(uniqueKeyCaptor.getValue());
+    }
+
+    @Test
+    public void queryMessagePreservesSubsecondTimestampsTest() throws Exception {
+        stubRoute(false, ADDRESS_A);
+        when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(messageExt("MSG-1"))));
+
+        SimpleObserver<ListMessageResponse> observer = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setMessageKey("key-1")
+            .setBeginTimestamp(Timestamps.fromMillis(1700000000500L))
+            .setEndTimestamp(Timestamps.fromMillis(1700000001250L))
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.OK, observer.value.getStatus().getCode());
+        verify(adminService).queryMessage(eq(ADDRESS_A), eq(TOPIC), eq("key-1"), anyInt(),
+            eq(1700000000500L), eq(1700000001250L), anyBoolean(), anyBoolean(), anyLong());
     }
 
     @Test
