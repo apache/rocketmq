@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelFuture;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
@@ -86,6 +88,8 @@ public class SendMessageProcessorTest {
     private ChannelHandlerContext handlerContext;
     @Mock
     private Channel channel;
+    @Mock
+    private ChannelFuture channelFuture;
     @Spy
     private BrokerConfig brokerConfig;
     @Spy
@@ -111,6 +115,7 @@ public class SendMessageProcessorTest {
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getPutMessageFutureExecutor()).thenReturn(Executors.newSingleThreadExecutor());
+        when(brokerController.getSendMessageExecutor()).thenReturn(Executors.newSingleThreadExecutor());
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(messageStore.now()).thenReturn(System.currentTimeMillis());
         when(channel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
@@ -124,6 +129,49 @@ public class SendMessageProcessorTest {
         when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
             thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         assertPutResult(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testProcessRequest_AsyncStoreFailureShouldRespondTest() throws Exception {
+        brokerConfig.setAsyncSendEnable(true);
+        CompletableFuture<PutMessageResult> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("store write failed"));
+        when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).thenReturn(failed);
+
+        RemotingCommand request = createSendMsgCommand(RequestCode.SEND_MESSAGE);
+        RemotingCommand[] response = new RemotingCommand[1];
+        doAnswer(invocation -> {
+            response[0] = invocation.getArgument(0);
+            return channelFuture;
+        }).when(channel).writeAndFlush(any(Object.class));
+
+        assertThat(sendMessageProcessor.processRequest(handlerContext, request)).isNull();
+        await().atMost(Duration.ofSeconds(1)).until(() -> response[0] != null);
+        assertThat(response[0].getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testProcessRequest_AsyncBatchStoreFailureShouldRespondTest() throws Exception {
+        brokerConfig.setAsyncSendEnable(true);
+        CompletableFuture<PutMessageResult> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("batch store write failed"));
+        when(messageStore.asyncPutMessages(any(MessageExtBatch.class))).thenReturn(failed);
+
+        SendMessageRequestHeader requestHeader = createSendMsgRequestHeader();
+        requestHeader.setBatch(true);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
+        request.setBody(new byte[] {'a'});
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand[] response = new RemotingCommand[1];
+        doAnswer(invocation -> {
+            response[0] = invocation.getArgument(0);
+            return channelFuture;
+        }).when(channel).writeAndFlush(any(Object.class));
+
+        assertThat(sendMessageProcessor.processRequest(handlerContext, request)).isNull();
+        await().atMost(Duration.ofSeconds(1)).until(() -> response[0] != null);
+        assertThat(response[0].getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
     }
 
     @Test

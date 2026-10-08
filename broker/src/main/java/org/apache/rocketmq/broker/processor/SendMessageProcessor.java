@@ -348,7 +348,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
             final int finalQueueIdInt = queueIdInt;
             final MessageExtBrokerInner finalMsgInner = msgInner;
-            asyncPutMessageFuture.thenAcceptAsync(putMessageResult -> {
+            asyncPutMessageFuture.whenCompleteAsync((putMessageResult, throwable) -> {
+                if (throwable != null) {
+                    handleAsyncPutMessageException(throwable, response, request, requestHeader, sendMessageContext,
+                        ctx, sendMessageCallback);
+                    return;
+                }
                 RemotingCommand responseFuture =
                     handlePutMessageResult(putMessageResult, response, request, finalMsgInner, responseHeader, sendMessageContext,
                         ctx, finalQueueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
@@ -642,7 +647,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 asyncPutMessageFuture = this.brokerController.getMessageStore().asyncPutMessages(messageExtBatch);
             }
             final int finalQueueIdInt = queueIdInt;
-            asyncPutMessageFuture.thenAcceptAsync(putMessageResult -> {
+            asyncPutMessageFuture.whenCompleteAsync((putMessageResult, throwable) -> {
+                if (throwable != null) {
+                    handleAsyncPutMessageException(throwable, response, request, requestHeader, sendMessageContext,
+                        ctx, sendMessageCallback);
+                    return;
+                }
                 RemotingCommand responseFuture =
                     handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader,
                         sendMessageContext, ctx, finalQueueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
@@ -665,6 +675,17 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             sendMessageCallback.onComplete(sendMessageContext, response);
             return response;
         }
+    }
+
+    private void handleAsyncPutMessageException(Throwable throwable, RemotingCommand response, RemotingCommand request,
+        SendMessageRequestHeader requestHeader, SendMessageContext sendMessageContext, ChannelHandlerContext ctx,
+        SendMessageCallback sendMessageCallback) {
+        LOGGER.error("Async put message failed, topic={}, producerGroup={}", requestHeader.getTopic(),
+            requestHeader.getProducerGroup(), throwable);
+        response.setCode(ResponseCode.SYSTEM_ERROR);
+        response.setRemark("store put message future completed exceptionally");
+        doResponse(ctx, request, response);
+        sendMessageCallback.onComplete(sendMessageContext, response);
     }
 
     public void attachRecallHandle(RemotingCommand request, MessageExt msg, SendMessageResponseHeader responseHeader) {
