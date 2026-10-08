@@ -93,7 +93,7 @@ public class TopicQueueMappingManager extends ConfigManager {
                 return;
             }
             if (force) {
-                //bakeup the old items
+                //backup the old items
                 oldDetail.getHostedQueues().forEach((queueId, items) -> {
                     newDetail.getHostedQueues().putIfAbsent(queueId, items);
                 });
