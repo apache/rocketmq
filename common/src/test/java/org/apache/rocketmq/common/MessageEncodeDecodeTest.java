@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.junit.Test;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
 public class MessageEncodeDecodeTest {
@@ -71,5 +72,62 @@ public class MessageEncodeDecodeTest {
             assertTrue(Arrays.equals(newMessage.getBody(), message.getBody()));
 
         }
+    }
+
+    @Test
+    public void testMessageEncodingWireFormatGoldenBytes() {
+        Message message = new Message();
+        message.setBody(new byte[] {0x01, 0x02});
+        message.setFlag(0x01020304);
+
+        byte[] encodedProperties = new byte[0];
+        int storeSize = 4 + 4 + 4 + 4 + 4 + message.getBody().length + 2 + encodedProperties.length;
+        ByteBuffer expected = ByteBuffer.allocate(storeSize);
+        expected.putInt(storeSize);
+        expected.putInt(0);
+        expected.putInt(0);
+        expected.putInt(message.getFlag());
+        expected.putInt(message.getBody().length);
+        expected.put(message.getBody());
+        expected.putShort((short) encodedProperties.length);
+        expected.put(encodedProperties);
+
+        assertArrayEquals(expected.array(), MessageDecoder.encodeMessage(message));
+        assertArrayEquals(expected.array(), MessageDecoder.encodeMessages(Arrays.asList(message)));
+    }
+
+    @Test
+    public void testBatchEncodingMatchesConcatenatedSingleMessages() {
+        Message emptyMessage = new Message();
+        emptyMessage.setBody(new byte[0]);
+        emptyMessage.setFlag(-1);
+
+        Message unicodeMessage = new Message("topic", "payload".getBytes(MessageDecoder.CHARSET_UTF8));
+        unicodeMessage.setFlag(7);
+        unicodeMessage.putUserProperty("region", "\u534e\u4e1c");
+
+        byte[] largeBody = new byte[4096];
+        Arrays.fill(largeBody, (byte) 0x5A);
+        Message largeMessage = new Message("topic", largeBody);
+        largeMessage.setFlag(Integer.MAX_VALUE);
+        largeMessage.putUserProperty("key", "value");
+        largeMessage.putUserProperty("trace", "enabled");
+
+        List<Message> messages = Arrays.asList(emptyMessage, unicodeMessage, largeMessage);
+        List<byte[]> individuallyEncoded = new ArrayList<>(messages.size());
+        int expectedLength = 0;
+        for (Message message : messages) {
+            byte[] encoded = MessageDecoder.encodeMessage(message);
+            individuallyEncoded.add(encoded);
+            expectedLength += encoded.length;
+        }
+
+        ByteBuffer expected = ByteBuffer.allocate(expectedLength);
+        for (byte[] encoded : individuallyEncoded) {
+            expected.put(encoded);
+        }
+
+        assertArrayEquals(expected.array(), MessageDecoder.encodeMessages(messages));
+        assertArrayEquals(new byte[0], MessageDecoder.encodeMessages(new ArrayList<Message>()));
     }
 }
