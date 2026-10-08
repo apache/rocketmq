@@ -170,18 +170,23 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
             return -1;
         }
 
+        long offsetDiff = ackOffset - startOffset;
+        if (offsetDiff < 0 || offsetDiff > Integer.MAX_VALUE) {
+            return -1;
+        }
+
         // old version of checkpoint
         if (queueOffsetDiff == null || queueOffsetDiff.isEmpty()) {
 
-            if (ackOffset - startOffset < num) {
-                return (int) (ackOffset - startOffset);
+            if (offsetDiff < num) {
+                return (int) offsetDiff;
             }
 
             return -1;
         }
 
         // new version of checkpoint
-        return queueOffsetDiff.indexOf((int) (ackOffset - startOffset));
+        return queueOffsetDiff.indexOf((int) offsetDiff);
     }
 
     public long ackOffsetByIndex(byte index) {

@@ -50,4 +50,15 @@ public class PopCheckPointTest {
         Assert.assertEquals(ck.getQueueOffsetDiff(), decoded.getQueueOffsetDiff());
         Assert.assertEquals(ck.getBitMap(), decoded.getBitMap());
     }
+
+    @Test
+    public void testIndexOfAckRejectsWrappedOffsetDifference() {
+        PopCheckPoint ck = new PopCheckPoint();
+        ck.setStartOffset(100L);
+        ck.addDiff(3);
+
+        Assert.assertEquals(0, ck.indexOfAck(103L));
+        Assert.assertEquals(-1, ck.indexOfAck(99L));
+        Assert.assertEquals(-1, ck.indexOfAck(100L + (1L << 32) + 3L));
+    }
 }
