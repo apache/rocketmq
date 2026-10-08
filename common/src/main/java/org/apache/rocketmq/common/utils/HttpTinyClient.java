@@ -32,7 +32,16 @@ public class HttpTinyClient {
     static public HttpResult httpGet(String url, List<String> headers, List<String> paramValues,
         String encoding, long readTimeoutMs) throws IOException {
         String encodedContent = encodingParams(paramValues, encoding);
-        url += (null == encodedContent) ? "" : ("?" + encodedContent);
+        if (encodedContent != null && !encodedContent.isEmpty()) {
+            int fragmentIndex = url.indexOf('#');
+            String fragment = fragmentIndex < 0 ? "" : url.substring(fragmentIndex);
+            String requestUrl = fragmentIndex < 0 ? url : url.substring(0, fragmentIndex);
+            String separator = requestUrl.contains("?") ? "&" : "?";
+            if (requestUrl.endsWith("?") || requestUrl.endsWith("&")) {
+                separator = "";
+            }
+            url = requestUrl + separator + encodedContent + fragment;
+        }
 
         HttpURLConnection conn = null;
         try {
@@ -67,7 +76,7 @@ public class HttpTinyClient {
         }
 
         for (Iterator<String> iter = paramValues.iterator(); iter.hasNext(); ) {
-            sb.append(iter.next()).append("=");
+            sb.append(URLEncoder.encode(iter.next(), encoding)).append("=");
             sb.append(URLEncoder.encode(iter.next(), encoding));
             if (iter.hasNext()) {
                 sb.append("&");
