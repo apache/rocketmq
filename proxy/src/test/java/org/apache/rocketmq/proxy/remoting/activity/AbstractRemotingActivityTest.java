@@ -123,6 +123,28 @@ public class AbstractRemotingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void testRequestWithoutExtFieldsIsInvalid() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.setExtFields(null);
+
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.VERSION_NOT_SUPPORTED);
+        verify(ctx, never()).writeAndFlush(any());
+    }
+
+    @Test
+    public void testSendMessageV2WithoutExtFieldsIsInvalid() throws Exception {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, null);
+        request.setExtFields(null);
+
+        RemotingCommand remotingCommand = remotingActivity.request(ctx, request, null, 10000);
+
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.VERSION_NOT_SUPPORTED);
+        verify(ctx, never()).writeAndFlush(any());
+    }
+
+    @Test
     public void testRequestProxyException() throws Exception {
         ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
         String brokerName = "broker";
