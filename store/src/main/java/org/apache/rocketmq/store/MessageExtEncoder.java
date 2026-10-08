@@ -41,6 +41,11 @@ public class MessageExtEncoder {
     private final int crc32ReservedLength;
     private MessageStoreConfig messageStoreConfig;
 
+    // Cache topic bytes to avoid per-message getBytes() allocation.
+    // Safe without synchronization because MessageExtEncoder is ThreadLocal.
+    private String cachedTopic;
+    private byte[] cachedTopicData;
+
     public MessageExtEncoder(final int maxMessageBodySize, final MessageStoreConfig messageStoreConfig) {
         this(messageStoreConfig);
     }
@@ -82,6 +87,16 @@ public class MessageExtEncoder {
             + 2 + (Math.max(propertiesLength, 0)); //propertiesLength
     }
 
+    private byte[] getTopicBytes(String topic) {
+        if (topic == cachedTopic || topic.equals(cachedTopic)) {
+            return cachedTopicData;
+        }
+        byte[] data = topic.getBytes(MessageDecoder.CHARSET_UTF8);
+        cachedTopic = topic;
+        cachedTopicData = data;
+        return data;
+    }
+
     public static int calMsgLengthNoProperties(MessageVersion messageVersion,
                                                int sysFlag, int bodyLength, int topicLength) {
 
@@ -108,7 +123,7 @@ public class MessageExtEncoder {
 
     public PutMessageResult encodeWithoutProperties(MessageExtBrokerInner msgInner) {
 
-        final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+        final byte[] topicData = getTopicBytes(msgInner.getTopic());
         final int topicLength = topicData.length;
 
         final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
@@ -195,7 +210,7 @@ public class MessageExtEncoder {
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
         }
 
-        final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+        final byte[] topicData = getTopicBytes(msgInner.getTopic());
         final int topicLength = topicData.length;
 
         final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
@@ -312,7 +327,7 @@ public class MessageExtEncoder {
             int propertiesPos = messagesByteBuff.position();
             messagesByteBuff.position(propertiesPos + propertiesLen);
 
-            final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+            final byte[] topicData = getTopicBytes(messageExtBatch.getTopic());
 
             final int topicLength = topicData.length;
             int totalPropLen = propertiesLen;
