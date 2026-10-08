@@ -147,6 +147,41 @@ public class LiteConsumerLagCalculatorTest {
     }
 
     @Test
+    public void testRemoveLagInfoByLmq() {
+        String group1 = "testGroup1";
+        String group2 = "testGroup2";
+        String topic = "testTopic";
+        String otherTopic = "otherTopic";
+        String lmqName = LiteUtil.toLmqName(topic, "lmq1");
+        String keepLmqName = LiteUtil.toLmqName(topic, "lmq2");
+        long storeTimestamp = System.currentTimeMillis();
+
+        // Record the same lmq under two groups, plus another lmq and another topic as controls
+        liteConsumerLagCalculator.updateLagInfo(group1, topic, lmqName, storeTimestamp);
+        liteConsumerLagCalculator.updateLagInfo(group1, topic, keepLmqName, storeTimestamp);
+        liteConsumerLagCalculator.updateLagInfo(group2, topic, lmqName, storeTimestamp);
+        liteConsumerLagCalculator.updateLagInfo(group1, otherTopic, lmqName, storeTimestamp);
+
+        // Remove the lmq for all groups bound to the topic
+        liteConsumerLagCalculator.removeLagInfoByLmq(topic, lmqName);
+
+        // Only the target lmq is removed, other lmq in the same group is kept
+        PriorityBlockingQueue<LiteConsumerLagCalculator.LagTimeInfo> group1Heap =
+            liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(topic, group1));
+        assertEquals(1, group1Heap.size());
+        assertEquals(keepLmqName, group1Heap.peek().getLmqName());
+        // The lmq is also removed from other groups of the same topic
+        assertTrue(liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(topic, group2)).isEmpty());
+        // Lag info under other topics is not affected
+        assertEquals(1, liteConsumerLagCalculator.topicGroupLagTimeMap.get(new TopicGroup(otherTopic, group1)).size());
+
+        // TopK by lag time no longer returns the removed lmq
+        Pair<List<LiteLagInfo>, Long> result = liteConsumerLagCalculator.getLagTimestampTopK(group2, topic, 10);
+        assertTrue(result.getObject1().isEmpty());
+        assertEquals(LiteConsumerLagCalculator.INIT_CONSUME_TIMESTAMP, result.getObject2().longValue());
+    }
+
+    @Test
     public void testOffsetTableForEachByGroup() {
         String testTopic = "testTopic";
         String liteTopic = "lmq1";
