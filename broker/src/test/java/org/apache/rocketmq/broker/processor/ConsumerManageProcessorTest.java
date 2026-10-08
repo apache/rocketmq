@@ -48,6 +48,7 @@ import org.apache.rocketmq.remoting.rpc.RpcException;
 import org.apache.rocketmq.remoting.rpc.RpcResponse;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -167,11 +168,17 @@ public class ConsumerManageProcessorTest {
     }
 
     @Test
-    public void testQueryConsumerOffset() throws RemotingCommandException, ExecutionException, InterruptedException {
+    public void testQueryConsumerOffset() throws RemotingCommandException, ExecutionException, InterruptedException, ConsumeQueueException {
+        // shouldInitConsumeOffsetToZero is a default method on MessageStore; make the mock run its
+        // real body so the getMin/getMax/checkInMem stubs below actually drive the decision.
+        when(messageStore.shouldInitConsumeOffsetToZero(anyString(), anyInt())).thenCallRealMethod();
         RemotingCommand request = buildQueryConsumerOffsetRequest(group, topic, 0, true);
         RemotingCommand response = consumerManageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.QUERY_NOT_FOUND);
+        // No stored offset + empty queue (default mock: minOffset=0, maxOffset=0): the start
+        // offset is initialized to 0 and SUCCESS is returned (previously returning QUERY_NOT_FOUND
+        // triggered the lost-first-message race).
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         when(consumerOffsetManager.queryOffset(anyString(),anyString(),anyInt())).thenReturn(0L);
@@ -180,7 +187,10 @@ public class ConsumerManageProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
         when(consumerOffsetManager.queryOffset(anyString(),anyString(),anyInt())).thenReturn(-1L);
-        when(messageStore.getMinOffsetInQueue(anyString(),anyInt())).thenReturn(-1L);
+        when(messageStore.getMinOffsetInQueue(anyString(),anyInt())).thenReturn(0L);
+        // Non-empty queue (maxOffset>0) with the first message still in memory: start offset is
+        // set to 0 and SUCCESS is returned.
+        when(messageStore.getMaxOffsetInQueue(anyString(),anyInt())).thenReturn(10L);
         when(messageStore.checkInMemByConsumeOffset(anyString(),anyInt(),anyLong(),anyInt())).thenReturn(true);
         response = consumerManageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
@@ -218,6 +228,63 @@ public class ConsumerManageProcessorTest {
         rpcResponse = new RpcResponse(ResponseCode.SUCCESS,queryConsumerOffsetResponseHeader,null);
         when(responseFuture.get()).thenReturn(rpcResponse);
         response = consumerManageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.QUERY_NOT_FOUND);
+    }
+
+    @Test
+    public void testQueryConsumerOffsetInitToZeroForEmptyQueue() throws Exception {
+        // Regression test: with no stored offset + an empty queue (maxOffset==0, checkInMem
+        // returns false), the first query must return SUCCESS offset=0 instead of QUERY_NOT_FOUND;
+        // otherwise it triggers the client's second GET_MAX_OFFSET step and the lost-first-message
+        // race.
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.queryOffset(anyString(), anyString(), anyInt())).thenReturn(-1L);
+        when(messageStore.shouldInitConsumeOffsetToZero(anyString(), anyInt())).thenCallRealMethod();
+        when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+
+        RemotingCommand request = buildQueryConsumerOffsetRequest(group, topic, 0, true);
+        RemotingCommand response = consumerManageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        QueryConsumerOffsetResponseHeader responseHeader =
+            (QueryConsumerOffsetResponseHeader) response.readCustomHeader();
+        assertThat(responseHeader.getOffset()).isEqualTo(0L);
+    }
+
+    @Test
+    public void testQueryConsumerOffsetNotFoundWhenFirstMessageOnDisk() throws Exception {
+        // Non-empty queue (maxOffset>0) whose first message has been swapped out of memory
+        // (checkInMem returns false): still return QUERY_NOT_FOUND so the client starts from the
+        // tail, avoiding re-consumption of already-aged historical messages.
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.queryOffset(anyString(), anyString(), anyInt())).thenReturn(-1L);
+        when(messageStore.shouldInitConsumeOffsetToZero(anyString(), anyInt())).thenCallRealMethod();
+        when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        when(messageStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(false);
+
+        RemotingCommand request = buildQueryConsumerOffsetRequest(group, topic, 0, true);
+        RemotingCommand response = consumerManageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.QUERY_NOT_FOUND);
+    }
+
+    @Test
+    public void testQueryConsumerOffsetFallbackWhenMaxOffsetQueryFails() throws Exception {
+        // When getMaxOffsetInQueue fails we cannot confirm the queue is empty, so the exception is
+        // swallowed and QUERY_NOT_FOUND is returned, letting the client fall back to its own
+        // GET_MAX_OFFSET path (same behavior as before this fix).
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.queryOffset(anyString(), anyString(), anyInt())).thenReturn(-1L);
+        when(messageStore.shouldInitConsumeOffsetToZero(anyString(), anyInt())).thenCallRealMethod();
+        when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt()))
+            .thenThrow(new ConsumeQueueException("mock failure"));
+
+        RemotingCommand request = buildQueryConsumerOffsetRequest(group, topic, 0, true);
+        RemotingCommand response = consumerManageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.QUERY_NOT_FOUND);
     }

@@ -47,6 +47,7 @@ public class BroadcastOffsetManagerTest {
 
     private final ConsumerOffsetManager consumerOffsetManager = mock(ConsumerOffsetManager.class);
     private final ConsumerManager consumerManager = mock(ConsumerManager.class);
+    private final MessageStore messageStore = mock(MessageStore.class);
     private final BrokerConfig brokerConfig = new BrokerConfig();
     private final Set<String> onlineClientIdSet = new HashSet<>();
     private BroadcastOffsetManager broadcastOffsetManager;
@@ -76,12 +77,21 @@ public class BroadcastOffsetManagerTest {
         }).when(consumerOffsetManager).commitOffset(anyString(), anyString(), anyString(), anyInt(), anyLong());
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
 
-        MessageStore messageStore = mock(MessageStore.class);
         doAnswer((Answer<Long>) mock -> maxOffset.get())
             .when(messageStore).getMaxOffsetInQueue(anyString(), anyInt(), anyBoolean());
         when(brokerController.getMessageStore()).thenReturn(messageStore);
 
         broadcastOffsetManager = new BroadcastOffsetManager(brokerController);
+    }
+
+    @Test
+    public void testInitOffsetToZeroWhenFirstMsgInMem() throws ConsumeQueueException {
+        // No stored/committed offset and the first message (offset 0) is still in memory:
+        // init the broadcast offset to 0 rather than the queue tail, so the first message is
+        // not skipped by a message arriving during the init race.
+        when(messageStore.shouldInitConsumeOffsetToZero("topic", 0)).thenReturn(true);
+        long offset = broadcastOffsetManager.queryInitOffset("topic", "group", 0, "client1", -1, true);
+        Assert.assertEquals(0, offset);
     }
 
     @Test

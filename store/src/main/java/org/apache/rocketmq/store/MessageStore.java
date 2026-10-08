@@ -208,6 +208,31 @@ public interface MessageStore {
      */
     long getMinOffsetInQueue(final String topic, final int queueId);
 
+    /**
+     * Decides whether a consumer with no stored offset should start from 0 for this queue.
+     *
+     * <p>Returns true only when the queue's min offset is 0 (no messages have been deleted) and one
+     * of the following holds: the queue is empty (maxOffset == 0, so the "last offset" is 0), or the
+     * first message (offset 0) is still in memory.
+     *
+     * <p>Treating an empty queue as "start from 0" avoids a lost-first-message race: if the callers
+     * instead jumped to the queue tail when the queue looks empty, a message arriving concurrently
+     * would push the tail past offset 0 and that first message would be skipped forever.
+     *
+     * @param topic   Topic name.
+     * @param queueId Queue ID.
+     * @return true if the initial consume offset should be 0.
+     */
+    default boolean shouldInitConsumeOffsetToZero(final String topic, final int queueId) throws ConsumeQueueException {
+        if (getMinOffsetInQueue(topic, queueId) > 0) {
+            return false;
+        }
+        if (getMaxOffsetInQueue(topic, queueId) <= 0) {
+            return true;
+        }
+        return checkInMemByConsumeOffset(topic, queueId, 0, 1);
+    }
+
     TimerMessageStore getTimerMessageStore();
 
     TimerMessageRocksDBStore getTimerMessageRocksDBStore();

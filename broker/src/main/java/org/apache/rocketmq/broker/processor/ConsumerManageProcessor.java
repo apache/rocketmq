@@ -44,6 +44,7 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.rpc.RpcClientUtils;
 import org.apache.rocketmq.remoting.rpc.RpcRequest;
 import org.apache.rocketmq.remoting.rpc.RpcResponse;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -322,15 +323,10 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
         } else {
-            long minOffset =
-                this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(),
-                    requestHeader.getQueueId());
             if (requestHeader.getSetZeroIfNotFound() != null && Boolean.FALSE.equals(requestHeader.getSetZeroIfNotFound())) {
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, do not set to zero, maybe this group boot first");
-            } else if (minOffset <= 0
-                && this.brokerController.getMessageStore().checkInMemByConsumeOffset(
-                requestHeader.getTopic(), requestHeader.getQueueId(), 0, 1)) {
+            } else if (this.shouldInitConsumeOffsetToZero(requestHeader)) {
                 responseHeader.setOffset(0L);
                 response.setCode(ResponseCode.SUCCESS);
                 response.setRemark(null);
@@ -346,5 +342,23 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         }
 
         return response;
+    }
+
+    /**
+     * Delegates to {@link org.apache.rocketmq.store.MessageStore#shouldInitConsumeOffsetToZero(String, int)}.
+     * If the store cannot determine the queue state, falls back to QUERY_NOT_FOUND so the SDK performs
+     * its own GET_MAX_OFFSET step (same as pre-fix behavior).
+     */
+    private boolean shouldInitConsumeOffsetToZero(QueryConsumerOffsetRequestHeader requestHeader) {
+        try {
+            return this.brokerController.getMessageStore().shouldInitConsumeOffsetToZero(
+                requestHeader.getTopic(), requestHeader.getQueueId());
+        } catch (ConsumeQueueException e) {
+            // Cannot confirm the queue is empty when max offset is unavailable; fall back to
+            // QUERY_NOT_FOUND so the SDK performs its GET_MAX_OFFSET step (same as pre-fix behavior).
+            LOGGER.warn("shouldInitConsumeOffsetToZero failed, fallback to QUERY_NOT_FOUND, topic={} queueId={}",
+                requestHeader.getTopic(), requestHeader.getQueueId(), e);
+            return false;
+        }
     }
 }
