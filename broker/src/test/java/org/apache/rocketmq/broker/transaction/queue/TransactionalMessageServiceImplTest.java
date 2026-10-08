@@ -85,6 +85,13 @@ public class TransactionalMessageServiceImplTest {
     }
 
     @Test
+    public void testEscapeRetryBackoffMillisIsExponential() {
+        for (int i = 1; i <= 10; i++) {
+            assertThat(TransactionalMessageServiceImpl.escapeRetryBackoffMillis(i)).isEqualTo(100L * (1L << i));
+        }
+    }
+
+    @Test
     public void testPrepareMessage() {
         MessageExtBrokerInner inner = createMessageBrokerInner();
         when(bridge.putHalfMessage(any(MessageExtBrokerInner.class)))
