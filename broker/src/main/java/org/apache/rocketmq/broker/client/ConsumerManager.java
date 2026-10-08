@@ -300,6 +300,9 @@ public class ConsumerManager {
         if (updateChannelRst && isNotifyConsumerIdsChangedEnable && !isBroadcastMode(consumerGroupInfo.getMessageModel())) {
             callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
         }
+        if (this.brokerConfig != null && this.brokerConfig.isEnableFastChannelEventProcess() && updateChannelRst) {
+            ClientChannelAttributeHelper.addConsumerGroup(clientChannelInfo.getChannel(), group);
+        }
         if (null != this.brokerStatsManager) {
             this.brokerStatsManager.incConsumerRegisterTime((int) (System.currentTimeMillis() - start));
         }
