@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -105,6 +106,68 @@ public class PopConsumerRocksdbStoreTest {
 
         consumerRecords = consumerStore.scanExpiredRecords(0, 20005, 3);
         Assert.assertEquals(2, consumerRecords.size());
+
+        consumerStore.shutdown();
+        deleteStoreDirectory(filePath);
+    }
+
+    @Test
+    public void rocksdbStoreWriteAndDeleteTest() {
+        String filePath = getRandomStorePath();
+        PopConsumerKVStore consumerStore = new PopConsumerRocksdbStore(
+            filePath, 256 * SizeUnit.MB, 32 * SizeUnit.MB);
+        consumerStore.start();
+
+        PopConsumerRecord oldRecord = getConsumerRecord();
+        oldRecord.setOffset(100L);
+        PopConsumerRecord keptRecord = getConsumerRecord();
+        keptRecord.setOffset(101L);
+        consumerStore.writeRecords(IntStream.of(0, 1).mapToObj(i -> i == 0 ? oldRecord : keptRecord)
+            .collect(Collectors.toList()));
+
+        PopConsumerRecord newRecord = getConsumerRecord();
+        newRecord.setPopTime(oldRecord.getPopTime() + 1000);
+        newRecord.setInvisibleTime(oldRecord.getInvisibleTime() + 1000);
+        newRecord.setOffset(oldRecord.getOffset());
+
+        consumerStore.writeAndDeleteRecords(Collections.singletonList(newRecord), Collections.singletonList(oldRecord));
+
+        List<PopConsumerRecord> consumerRecords = consumerStore.scanExpiredRecords(0, Long.MAX_VALUE, 10);
+        Assert.assertEquals(2, consumerRecords.size());
+        Assert.assertTrue(consumerRecords.stream().anyMatch(record ->
+            record.getOffset() == newRecord.getOffset() &&
+                record.getVisibilityTimeout() == newRecord.getVisibilityTimeout()));
+        Assert.assertTrue(consumerRecords.stream().anyMatch(record -> record.getOffset() == keptRecord.getOffset()));
+        Assert.assertFalse(consumerRecords.stream().anyMatch(record ->
+            record.getOffset() == oldRecord.getOffset() &&
+                record.getVisibilityTimeout() == oldRecord.getVisibilityTimeout()));
+
+        consumerStore.shutdown();
+        deleteStoreDirectory(filePath);
+    }
+
+    @Test
+    public void rocksdbStoreWriteAndDeleteShouldKeepWrittenRecordWhenKeyIsSame() {
+        String filePath = getRandomStorePath();
+        PopConsumerKVStore consumerStore = new PopConsumerRocksdbStore(
+            filePath, 256 * SizeUnit.MB, 32 * SizeUnit.MB);
+        consumerStore.start();
+
+        PopConsumerRecord oldRecord = getConsumerRecord();
+        oldRecord.setPopTime(2L);
+        oldRecord.setInvisibleTime(20000L);
+        PopConsumerRecord newRecord = getConsumerRecord();
+        newRecord.setPopTime(4L);
+        newRecord.setInvisibleTime(19998L);
+        Assert.assertEquals(oldRecord.getVisibilityTimeout(), newRecord.getVisibilityTimeout());
+
+        consumerStore.writeRecords(Collections.singletonList(oldRecord));
+        consumerStore.writeAndDeleteRecords(Collections.singletonList(newRecord), Collections.singletonList(oldRecord));
+
+        List<PopConsumerRecord> consumerRecords = consumerStore.scanExpiredRecords(0, Long.MAX_VALUE, 10);
+        Assert.assertEquals(1, consumerRecords.size());
+        Assert.assertEquals(newRecord.getPopTime(), consumerRecords.get(0).getPopTime());
+        Assert.assertEquals(newRecord.getInvisibleTime(), consumerRecords.get(0).getInvisibleTime());
 
         consumerStore.shutdown();
         deleteStoreDirectory(filePath);

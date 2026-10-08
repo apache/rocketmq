@@ -59,6 +59,7 @@ import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.LiteSubscriptionCtlRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
@@ -359,6 +360,16 @@ public class MQClientAPIExt extends MQClientAPIImpl {
             future.completeExceptionally(t);
         }
         return future;
+    }
+
+    public CompletableFuture<List<AckResult>> batchChangeInvisibleTimeAsync(
+        String brokerAddr,
+        String topic,
+        String consumerGroup,
+        BatchChangeInvisibleTimeRequestBody requestBody,
+        long timeoutMillis
+    ) {
+        return super.batchChangeInvisibleTimeAsync(brokerAddr, topic, consumerGroup, requestBody, timeoutMillis);
     }
 
     public CompletableFuture<PullResult> pullMessageAsync(

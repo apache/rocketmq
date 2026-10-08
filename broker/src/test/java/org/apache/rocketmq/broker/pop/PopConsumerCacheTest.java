@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.broker.pop;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,9 +29,11 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 
 public class PopConsumerCacheTest {
 
@@ -142,5 +146,135 @@ public class PopConsumerCacheTest {
         consumerRecordList.clear();
         consumerCache.cleanupRecords(consumerRecordList::add);
         Assert.assertEquals(0, consumerRecordList.size());
+    }
+
+    @Test
+    public void writeAndDeleteRecordsShouldSkipStoreDeleteForBufferedRecords() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
+
+        PopConsumerCache consumerCache =
+            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord bufferedOldRecord = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 100, attemptId);
+        PopConsumerRecord storeOldRecord = new PopConsumerRecord(3L, groupId, topicId, queueId,
+            0, 20000, 101, attemptId);
+        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, topicId, queueId,
+            0, 30000, 100, attemptId);
+        consumerCache.writeRecords(Collections.singletonList(bufferedOldRecord));
+
+        consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord),
+            Arrays.asList(bufferedOldRecord, storeOldRecord));
+
+        ArgumentCaptor<List<PopConsumerRecord>> writeCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<PopConsumerRecord>> deleteCaptor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(consumerKVStore).writeAndDeleteRecords(writeCaptor.capture(), deleteCaptor.capture());
+        Assert.assertEquals(Collections.singletonList(newRecord), writeCaptor.getValue());
+        Assert.assertEquals(Collections.singletonList(storeOldRecord), deleteCaptor.getValue());
+        Assert.assertEquals(0, consumerCache.getCacheSize());
+        Assert.assertEquals(0, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+    }
+
+    @Test
+    public void writeAndDeleteRecordsShouldWriteDirectlyWhenDeleteListIsEmpty() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+
+        PopConsumerCache consumerCache =
+            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, topicId, queueId,
+            0, 30000, 100, attemptId);
+
+        consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord), Collections.emptyList());
+
+        Mockito.verify(consumerKVStore).writeRecords(Collections.singletonList(newRecord));
+        Mockito.verify(consumerKVStore, Mockito.never()).writeAndDeleteRecords(any(), any());
+        Mockito.verify(consumerLockService, Mockito.never()).tryLock(anyString(), anyString());
+    }
+
+    @Test
+    public void writeAndDeleteRecordsShouldDeleteBufferOnlyWhenStoreKeyMatchesNewRecord() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
+
+        PopConsumerCache consumerCache =
+            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord bufferedOldRecord = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 100, attemptId);
+        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, topicId, queueId,
+            0, 19998, 100, attemptId);
+        consumerCache.writeRecords(Collections.singletonList(bufferedOldRecord));
+
+        consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord),
+            Collections.singletonList(bufferedOldRecord));
+
+        ArgumentCaptor<List<PopConsumerRecord>> deleteCaptor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(consumerKVStore).writeAndDeleteRecords(any(), deleteCaptor.capture());
+        Assert.assertEquals(Collections.emptyList(), deleteCaptor.getValue());
+        Assert.assertEquals(0, consumerCache.getCacheSize());
+        Assert.assertEquals(0, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+    }
+
+    @Test
+    public void writeAndDeleteRecordsShouldKeepBufferWhenStoreFails() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
+        Mockito.doThrow(new RuntimeException("store failure"))
+            .when(consumerKVStore).writeAndDeleteRecords(any(), any());
+
+        PopConsumerCache consumerCache =
+            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord bufferedOldRecord = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 100, attemptId);
+        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, topicId, queueId,
+            0, 30000, 100, attemptId);
+        consumerCache.writeRecords(Collections.singletonList(bufferedOldRecord));
+
+        try {
+            consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord),
+                Collections.singletonList(bufferedOldRecord));
+            Assert.fail("Should throw store failure");
+        } catch (RuntimeException e) {
+            Assert.assertEquals("store failure", e.getMessage());
+        }
+
+        Assert.assertEquals(1, consumerCache.getCacheSize());
+        Assert.assertEquals(1, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+    }
+
+    @Test
+    public void writeAndDeleteRecordsShouldSendSameStoreKeyDeleteToStore() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
+
+        PopConsumerCache consumerCache =
+            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord oldRecord = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 100, attemptId);
+        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, topicId, queueId,
+            0, 19998, 100, attemptId);
+
+        consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord),
+            Collections.singletonList(oldRecord));
+
+        ArgumentCaptor<List<PopConsumerRecord>> deleteCaptor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(consumerKVStore).writeAndDeleteRecords(any(), deleteCaptor.capture());
+        Assert.assertEquals(Collections.singletonList(oldRecord), deleteCaptor.getValue());
+        Assert.assertEquals(0, consumerCache.getCacheSize());
+        Assert.assertEquals(0, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
     }
 }

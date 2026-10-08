@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.common.BatchChangeInvisibleTimeResult;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -220,6 +221,14 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     public CompletableFuture<List<BatchAckResult>> batchAckMessage(ProxyContext ctx,
         List<ReceiptHandleMessage> handleMessageList, String consumerGroup, String topic, long timeoutMillis) {
         return this.consumerProcessor.batchAckMessage(ctx, handleMessageList, consumerGroup, topic, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<List<BatchChangeInvisibleTimeResult>> batchChangeInvisibleTime(ProxyContext ctx,
+        List<ReceiptHandleMessage> handleMessageList, String consumerGroup, String topic, long invisibleTime,
+        long timeoutMillis, boolean suspend) {
+        return this.consumerProcessor.batchChangeInvisibleTime(
+            ctx, handleMessageList, consumerGroup, topic, invisibleTime, timeoutMillis, suspend);
     }
 
     @Override

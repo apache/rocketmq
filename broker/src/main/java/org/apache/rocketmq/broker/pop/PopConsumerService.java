@@ -522,7 +522,6 @@ public class PopConsumerService extends ServiceThread {
     public void changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
                                            long changedInvisibleTime, String groupId, String topicId,
                                            int queueId, long offset, boolean suspend) {
-
         if (brokerConfig.isPopConsumerKVServiceLog()) {
             log.info("PopConsumerService change, time={}, invisible={}, " +
                     "groupId={}, topic={}, queueId={}, offset={}, new time={}, new invisible={}",
@@ -543,21 +542,29 @@ public class PopConsumerService extends ServiceThread {
         if (skipWrite) {
             log.info("PopConsumerService change invisibility skip, time={}, " +
                 "groupId={}, topicId={}, queueId={}, offset={}", popTime, groupId, topicId, queueId, offset);
-        } else {
-            this.popConsumerStore.writeRecords(Collections.singletonList(ckRecord));
         }
 
+        List<PopConsumerRecord> ckRecords = skipWrite ? Collections.emptyList() : Collections.singletonList(ckRecord);
+        List<PopConsumerRecord> ackRecords = Collections.singletonList(ackRecord);
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
-            if (popConsumerCache.deleteRecords(Collections.singletonList(ackRecord)).isEmpty()) {
-                return;
-            }
+            popConsumerCache.writeAndDeleteRecords(ckRecords, ackRecords);
+        } else {
+            this.popConsumerStore.writeAndDeleteRecords(ckRecords, ackRecords);
         }
+    }
 
-        // If the new CK has the same key as the old CK (same visibilityTimeout),
-        // the write already overwrites the old record in RocksDB, skip delete
-        // to avoid removing the newly written record.
-        if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
-            this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
+    public void batchChangeInvisibilityDuration(String groupId, List<PopConsumerRecord> ckRecords,
+        List<PopConsumerRecord> ackRecords) {
+        boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent()
+            && !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId);
+        if (brokerConfig.isPopConsumerKVServiceLog()) {
+            log.info("PopConsumerService batch change, groupId={}, size={}, skipWrite={}", groupId, ackRecords.size(), skipWrite);
+        }
+        List<PopConsumerRecord> writes = skipWrite ? Collections.emptyList() : ckRecords;
+        if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
+            popConsumerCache.writeAndDeleteRecords(writes, ackRecords);
+        } else {
+            popConsumerStore.writeAndDeleteRecords(writes, ackRecords);
         }
     }
 

@@ -19,6 +19,10 @@ package org.apache.rocketmq.broker.processor;
 import com.alibaba.fastjson2.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +30,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
+import org.apache.rocketmq.broker.pop.PopConsumerRecord;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
@@ -42,7 +47,13 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeResponseEntry;
+import org.apache.rocketmq.remoting.protocol.header.BatchChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
@@ -98,10 +109,19 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
     public CompletableFuture<RemotingCommand> processRequestAsync(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
-        final ChangeInvisibleTimeRequestHeader requestHeader = (ChangeInvisibleTimeRequestHeader) request.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class);
+        if (request.getCode() == RequestCode.BATCH_CHANGE_MESSAGE_INVISIBLETIME) {
+            return processBatchRequestAsync(channel, request, brokerAllowSuspend);
+        }
+        final ChangeInvisibleTimeRequestHeader requestHeader =
+            (ChangeInvisibleTimeRequestHeader) request.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class);
+        return processSingleRequestAsync(channel, requestHeader, request.getOpaque(), brokerAllowSuspend);
+    }
+
+    protected CompletableFuture<RemotingCommand> processSingleRequestAsync(final Channel channel,
+        ChangeInvisibleTimeRequestHeader requestHeader, int opaque, boolean brokerAllowSuspend) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
-        response.setOpaque(request.getOpaque());
+        response.setOpaque(opaque);
         final ChangeInvisibleTimeResponseHeader responseHeader = (ChangeInvisibleTimeResponseHeader) response.readCustomHeader();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
@@ -178,6 +198,222 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             }
             return CompletableFuture.completedFuture(response);
         });
+    }
+
+    protected CompletableFuture<RemotingCommand> processBatchRequestAsync(final Channel channel,
+        RemotingCommand request, boolean brokerAllowSuspend) {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setOpaque(request.getOpaque());
+
+        BatchChangeInvisibleTimeRequestHeader batchRequestHeader;
+        try {
+            batchRequestHeader = (BatchChangeInvisibleTimeRequestHeader)
+                request.decodeCommandCustomHeader(BatchChangeInvisibleTimeRequestHeader.class);
+        } catch (Throwable t) {
+            response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            response.setRemark("batch change invisible time request header is invalid");
+            return CompletableFuture.completedFuture(response);
+        }
+
+        BatchChangeInvisibleTimeRequestBody requestBody =
+            BatchChangeInvisibleTimeRequestBody.decode(request.getBody(), BatchChangeInvisibleTimeRequestBody.class);
+        List<ChangeInvisibleTimeRequestEntry> requestEntries = requestBody == null || requestBody.getEntries() == null ?
+            Collections.emptyList() : requestBody.getEntries();
+        int batchMaxNum = Math.max(1, brokerController.getBrokerConfig().getBatchChangeInvisibleTimeMaxNum());
+        if (requestEntries.size() > batchMaxNum) {
+            response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            response.setRemark(String.format("batch change invisible time entries exceed limit: %d",
+                batchMaxNum));
+            return CompletableFuture.completedFuture(response);
+        }
+
+        ChangeInvisibleTimeResponseEntry[] responseEntries = new ChangeInvisibleTimeResponseEntry[requestEntries.size()];
+        for (int i = 0; i < requestEntries.size(); i++) {
+            responseEntries[i] = buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR);
+        }
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+        if (StringUtils.isBlank(batchRequestHeader.getConsumerGroup()) || StringUtils.isBlank(batchRequestHeader.getTopic())) {
+            response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            response.setRemark("batch change invisible time requires topic and consumerGroup");
+            return CompletableFuture.completedFuture(response);
+        }
+        if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+            TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(batchRequestHeader.getTopic());
+            List<PopConsumerRecord> kvOldRecords = new ArrayList<>();
+            List<PopConsumerRecord> kvNewRecords = new ArrayList<>();
+            List<Integer> kvIndexes = new ArrayList<>();
+            for (int i = 0; i < requestEntries.size(); i++) {
+                ChangeInvisibleTimeRequestEntry requestEntry = requestEntries.get(i);
+                if (tryAppendBatchKvChange(channel, batchRequestHeader, topicConfig, requestEntry, i, responseEntries,
+                    kvOldRecords, kvNewRecords, kvIndexes)) {
+                    continue;
+                }
+                appendSingleBatchEntry(channel, batchRequestHeader, requestEntry, request.getOpaque(), brokerAllowSuspend,
+                    responseEntries, futures, i);
+            }
+
+            if (!kvOldRecords.isEmpty()) {
+                try {
+                    brokerController.getPopConsumerService().batchChangeInvisibilityDuration(
+                        batchRequestHeader.getConsumerGroup(), kvNewRecords, kvOldRecords);
+                } catch (Throwable t) {
+                    POP_LOGGER.error("batch change invisibility duration failed", t);
+                    for (Integer index : kvIndexes) {
+                        responseEntries[index] = buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR);
+                    }
+                }
+            }
+        } else {
+            for (int i = 0; i < requestEntries.size(); i++) {
+                appendSingleBatchEntry(channel, batchRequestHeader, requestEntries.get(i), request.getOpaque(), brokerAllowSuspend,
+                    responseEntries, futures, i);
+            }
+        }
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(ignored -> {
+            BatchChangeInvisibleTimeResponseBody responseBody = new BatchChangeInvisibleTimeResponseBody();
+            responseBody.setEntries(Arrays.asList(responseEntries));
+            response.setBody(responseBody.encode());
+            return response;
+        });
+    }
+
+    protected boolean tryAppendBatchKvChange(final Channel channel, BatchChangeInvisibleTimeRequestHeader header,
+        TopicConfig topicConfig, ChangeInvisibleTimeRequestEntry requestEntry, int index,
+        ChangeInvisibleTimeResponseEntry[] responseEntries, List<PopConsumerRecord> oldRecords,
+        List<PopConsumerRecord> newRecords, List<Integer> kvIndexes) {
+        if (requestEntry == null) {
+            responseEntries[index] = buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR);
+            return true;
+        }
+        if (StringUtils.isNotBlank(requestEntry.getLiteTopic())) {
+            return false;
+        }
+
+        try {
+            String[] extraInfo = ExtraInfoUtil.split(requestEntry.getExtraInfo());
+            if (ExtraInfoUtil.isOrder(extraInfo)) {
+                return false;
+            }
+
+            ChangeInvisibleTimeResponseEntry failedEntry = validateBatchKvEntry(channel, header.getTopic(), topicConfig, requestEntry);
+            if (failedEntry != null) {
+                responseEntries[index] = failedEntry;
+                return true;
+            }
+
+            long current = System.currentTimeMillis();
+            oldRecords.add(new PopConsumerRecord(ExtraInfoUtil.getPopTime(extraInfo), header.getConsumerGroup(),
+                header.getTopic(), requestEntry.getQueueId(), 0, ExtraInfoUtil.getInvisibleTime(extraInfo),
+                requestEntry.getOffset(), null, requestEntry.isSuspend()));
+            newRecords.add(new PopConsumerRecord(current, header.getConsumerGroup(), header.getTopic(),
+                requestEntry.getQueueId(), 0, requestEntry.getInvisibleTime(), requestEntry.getOffset(), null, requestEntry.isSuspend()));
+            ChangeInvisibleTimeResponseEntry successEntry = new ChangeInvisibleTimeResponseEntry();
+            successEntry.setCode(ResponseCode.SUCCESS);
+            successEntry.setPopTime(current);
+            successEntry.setInvisibleTime(requestEntry.getInvisibleTime());
+            successEntry.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+            kvIndexes.add(index);
+            responseEntries[index] = successEntry;
+            return true;
+        } catch (Throwable t) {
+            responseEntries[index] = buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR);
+            return true;
+        }
+    }
+
+    protected void appendSingleBatchEntry(final Channel channel, BatchChangeInvisibleTimeRequestHeader header,
+        ChangeInvisibleTimeRequestEntry requestEntry, int opaque,
+        boolean brokerAllowSuspend, ChangeInvisibleTimeResponseEntry[] responseEntries,
+        List<CompletableFuture<Void>> futures, int index) {
+        try {
+            ChangeInvisibleTimeRequestHeader requestHeader = buildRequestHeader(header, requestEntry);
+            futures.add(processSingleBatchEntry(channel, requestHeader, opaque, brokerAllowSuspend)
+                .thenAccept(entry -> responseEntries[index] = entry));
+        } catch (Throwable t) {
+            responseEntries[index] = buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR);
+        }
+    }
+
+    protected CompletableFuture<ChangeInvisibleTimeResponseEntry> processSingleBatchEntry(final Channel channel,
+        ChangeInvisibleTimeRequestHeader requestHeader, int opaque, boolean brokerAllowSuspend) {
+        try {
+            return processSingleRequestAsync(channel, requestHeader, opaque, brokerAllowSuspend)
+                .thenApply(this::buildResponseEntry)
+                .exceptionally(throwable -> {
+                    return buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR);
+                });
+        } catch (Throwable t) {
+            return CompletableFuture.completedFuture(buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR));
+        }
+    }
+
+    protected ChangeInvisibleTimeResponseEntry buildFailedResponseEntry(int responseCode) {
+        ChangeInvisibleTimeResponseEntry failedEntry = new ChangeInvisibleTimeResponseEntry();
+        failedEntry.setCode(responseCode);
+        return failedEntry;
+    }
+
+    protected ChangeInvisibleTimeResponseEntry validateBatchKvEntry(final Channel channel, String topic,
+        TopicConfig topicConfig, ChangeInvisibleTimeRequestEntry requestEntry) throws RemotingCommandException {
+        if (null == topicConfig) {
+            POP_LOGGER.error("The topic {} not exist, consumer: {} ", topic, RemotingHelper.parseChannelRemoteAddr(channel));
+            ChangeInvisibleTimeResponseEntry responseEntry = new ChangeInvisibleTimeResponseEntry();
+            responseEntry.setCode(ResponseCode.TOPIC_NOT_EXIST);
+            return responseEntry;
+        }
+
+        if (requestEntry.getQueueId() >= topicConfig.getReadQueueNums() || requestEntry.getQueueId() < 0) {
+            String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
+                requestEntry.getQueueId(), topic, topicConfig.getReadQueueNums(), channel.remoteAddress());
+            POP_LOGGER.warn(errorInfo);
+            ChangeInvisibleTimeResponseEntry responseEntry = new ChangeInvisibleTimeResponseEntry();
+            responseEntry.setCode(ResponseCode.MESSAGE_ILLEGAL);
+            return responseEntry;
+        }
+
+        long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, requestEntry.getQueueId());
+        long maxOffset;
+        try {
+            maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, requestEntry.getQueueId());
+        } catch (ConsumeQueueException e) {
+            throw new RemotingCommandException("Failed to get max consume offset", e);
+        }
+        if (requestEntry.getOffset() < minOffset || requestEntry.getOffset() >= maxOffset) {
+            ChangeInvisibleTimeResponseEntry responseEntry = new ChangeInvisibleTimeResponseEntry();
+            responseEntry.setCode(ResponseCode.NO_MESSAGE);
+            return responseEntry;
+        }
+        return null;
+    }
+
+    protected ChangeInvisibleTimeRequestHeader buildRequestHeader(BatchChangeInvisibleTimeRequestHeader header,
+        ChangeInvisibleTimeRequestEntry entry) {
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setConsumerGroup(header.getConsumerGroup());
+        requestHeader.setTopic(header.getTopic());
+        requestHeader.setQueueId(entry.getQueueId());
+        requestHeader.setExtraInfo(entry.getExtraInfo());
+        requestHeader.setOffset(entry.getOffset());
+        requestHeader.setInvisibleTime(entry.getInvisibleTime());
+        requestHeader.setLiteTopic(entry.getLiteTopic());
+        requestHeader.setSuspend(entry.isSuspend());
+        return requestHeader;
+    }
+
+    protected ChangeInvisibleTimeResponseEntry buildResponseEntry(RemotingCommand singleResponse) {
+        ChangeInvisibleTimeResponseEntry responseEntry = new ChangeInvisibleTimeResponseEntry();
+        responseEntry.setCode(singleResponse.getCode());
+        ChangeInvisibleTimeResponseHeader responseHeader =
+            (ChangeInvisibleTimeResponseHeader) singleResponse.readCustomHeader();
+        if (responseHeader != null) {
+            responseEntry.setPopTime(responseHeader.getPopTime());
+            responseEntry.setInvisibleTime(responseHeader.getInvisibleTime());
+            responseEntry.setReviveQid(responseHeader.getReviveQid());
+        }
+        return responseEntry;
     }
 
     @SuppressWarnings({"StatementWithEmptyBody", "DuplicatedCode"})
