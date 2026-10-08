@@ -38,9 +38,12 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
@@ -53,7 +56,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -135,6 +141,27 @@ public class PopReviveServiceTest {
 
         popReviveService = spy(new PopReviveService(brokerController, REVIVE_TOPIC, REVIVE_QUEUE_ID));
         popReviveService.setShouldRunPopRevive(true);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testDecodeMsgListWithoutQueueOffsets() throws Exception {
+        MessageExt message = new MessageExt();
+        message.setBody("message".getBytes());
+        message.setTopic(TOPIC);
+        message.setBornHost(new InetSocketAddress("127.0.0.1", 9000));
+        message.setStoreHost(new InetSocketAddress("127.0.0.1", 9000));
+
+        GetMessageResult getMessageResult = new GetMessageResult();
+        ByteBuffer buffer = ByteBuffer.wrap(MessageDecoder.encode(message, false));
+        getMessageResult.addMessage(new SelectMappedBufferResult(0, buffer, buffer.remaining(), new DefaultMappedFile()));
+
+        Method decodeMsgList = PopReviveService.class.getDeclaredMethod("decodeMsgList", GetMessageResult.class, boolean.class);
+        decodeMsgList.setAccessible(true);
+        List<MessageExt> decodedMessages = (List<MessageExt>) decodeMsgList.invoke(popReviveService, getMessageResult, false);
+
+        Assert.assertEquals(1, decodedMessages.size());
+        Assert.assertArrayEquals(message.getBody(), decodedMessages.get(0).getBody());
     }
 
     @Test
