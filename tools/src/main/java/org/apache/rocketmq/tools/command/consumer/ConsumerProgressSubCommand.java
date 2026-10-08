@@ -349,7 +349,11 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
             return o.count - this.count;
         }
 
-        return (int) (o.diffTotal - diffTotal);
+        // diffTotal is a message lag that can exceed Integer.MAX_VALUE, so compare the
+        // longs directly. Casting the subtraction to int wraps around for large gaps,
+        // which both reverses the reported ordering and breaks the Comparable contract
+        // that Collections.sort (TimSort) relies on.
+        return Long.compare(o.diffTotal, diffTotal);
     }
 
     public int getConsumeTps() {
