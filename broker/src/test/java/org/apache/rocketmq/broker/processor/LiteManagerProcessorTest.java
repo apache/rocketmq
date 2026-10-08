@@ -479,6 +479,7 @@ public class LiteManagerProcessorTest {
         liteTopicSet.add("lite_topic2");
 
         LiteSubscription liteSubscription = new LiteSubscription();
+        liteSubscription.setGroup("group1").setTopic("parent_topic");
         liteSubscription.setLmqSet(liteTopicSet);
 
         when(topicConfigManager.selectTopicConfig("parent_topic")).thenReturn(topicConfig);
@@ -496,6 +497,72 @@ public class LiteManagerProcessorTest {
         assertEquals("client1", body.getClientId());
         assertEquals(2, body.getLiteTopicCount());
         assertEquals(liteTopicSet, body.getLiteTopicSet());
+    }
+
+    @Test
+    public void testGetLiteClientInfo_SubscriptionOwnershipMismatch() throws Exception {
+        GetLiteClientInfoRequestHeader requestHeader = new GetLiteClientInfoRequestHeader();
+        requestHeader.setParentTopic("parent_topic");
+        requestHeader.setGroup("group1");
+        requestHeader.setClientId("client1");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_LITE_CLIENT_INFO, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        TopicConfig topicConfig = new TopicConfig("parent_topic");
+        topicConfig.setTopicMessageType(TopicMessageType.LITE);
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName("group1");
+        groupConfig.setLiteBindTopic("parent_topic");
+        when(topicConfigManager.selectTopicConfig("parent_topic")).thenReturn(topicConfig);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig("group1")).thenReturn(groupConfig);
+
+        LiteSubscription[] subscriptions = {
+            new LiteSubscription().setGroup("other_group").setTopic("parent_topic"),
+            new LiteSubscription().setGroup("group1").setTopic("other_topic"),
+            new LiteSubscription().setGroup("other_group").setTopic("other_topic")
+        };
+        for (LiteSubscription subscription : subscriptions) {
+            for (boolean withLiteTopic : new boolean[] {false, true}) {
+                if (withLiteTopic) {
+                    subscription.addLmq(LiteUtil.toLmqName(subscription.getTopic(), "other_session"));
+                }
+                when(liteSubscriptionRegistry.getLiteSubscription("client1")).thenReturn(subscription);
+
+                RemotingCommand response = processor.processRequest(ctx, request);
+
+                assertEquals(ResponseCode.INVALID_PARAMETER, response.getCode());
+                assertTrue(response.getRemark().contains("subscription"));
+                assertNull(response.getBody());
+            }
+        }
+        verify(liteEventDispatcher, never()).getClientLastAccessTime("client1");
+    }
+
+    @Test
+    public void testGetLiteClientInfo_EmptyMatchingSubscription() throws Exception {
+        GetLiteClientInfoRequestHeader requestHeader = new GetLiteClientInfoRequestHeader();
+        requestHeader.setParentTopic("parent_topic");
+        requestHeader.setGroup("group1");
+        requestHeader.setClientId("client1");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_LITE_CLIENT_INFO, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        TopicConfig topicConfig = new TopicConfig("parent_topic");
+        topicConfig.setTopicMessageType(TopicMessageType.LITE);
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName("group1");
+        groupConfig.setLiteBindTopic("parent_topic");
+        when(topicConfigManager.selectTopicConfig("parent_topic")).thenReturn(topicConfig);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig("group1")).thenReturn(groupConfig);
+        when(liteSubscriptionRegistry.getLiteSubscription("client1"))
+            .thenReturn(new LiteSubscription().setGroup("group1").setTopic("parent_topic"));
+
+        RemotingCommand response = processor.processRequest(ctx, request);
+
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        GetLiteClientInfoResponseBody body = GetLiteClientInfoResponseBody.decode(response.getBody(), GetLiteClientInfoResponseBody.class);
+        assertEquals(0, body.getLiteTopicCount());
+        assertTrue(body.getLiteTopicSet().isEmpty());
     }
 
     @Test

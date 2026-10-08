@@ -252,6 +252,12 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         Set<String> returnSet = null;
         int liteTopicCount = 0;
         LiteSubscription liteSubscription = brokerController.getLiteSubscriptionRegistry().getLiteSubscription(clientId);
+        if (liteSubscription != null && (!group.equals(liteSubscription.getGroup())
+            || !parentTopic.equals(liteSubscription.getTopic()))) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("Client subscription does not match the requested group and parent topic.");
+            return response;
+        }
         if (liteSubscription != null && liteSubscription.getLmqSet() != null) {
             Set<String> liteTopicSet = liteSubscription.getLmqSet();
             liteTopicCount = liteTopicSet.size();
