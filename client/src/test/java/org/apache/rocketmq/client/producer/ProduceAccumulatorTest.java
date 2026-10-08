@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.producer;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -31,8 +33,17 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class ProduceAccumulatorTest {
+    private void setProducerField(DefaultMQProducer producer, String fieldName, Object value) throws Exception {
+        Field field = DefaultMQProducer.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(producer, value);
+    }
+
     private boolean compareMessageBatch(MessageBatch a, MessageBatch b) {
         if (!a.getTopic().equals(b.getTopic())) {
             return false;
@@ -99,6 +110,61 @@ public class ProduceAccumulatorTest {
         messageBatch2.setBody(messageBatch2.encode());
 
         assertThat(compareMessageBatch(messageBatch1, messageBatch2)).isTrue();
+    }
+
+    @Test
+    public void testSharedAccumulatorRemainsRunningUntilLastProducerShutdown() throws Exception {
+        MockMQProducer mockMQProducer = new MockMQProducer();
+        ProduceAccumulator produceAccumulator = new ProduceAccumulator("shared-client");
+        produceAccumulator.batchMaxDelayMs(50);
+        DefaultMQProducer producerA = new DefaultMQProducer("producer-a");
+        DefaultMQProducer producerB = new DefaultMQProducer("producer-b");
+        producerA.setInstanceName("shared-client");
+        producerB.setInstanceName("shared-client");
+        setProducerField(producerA, "defaultMQProducerImpl", mock(DefaultMQProducerImpl.class));
+        setProducerField(producerB, "defaultMQProducerImpl", mock(DefaultMQProducerImpl.class));
+        setProducerField(producerA, "produceAccumulator", produceAccumulator);
+        setProducerField(producerB, "produceAccumulator", produceAccumulator);
+
+        // Two producers with the same client ID share this accumulator.
+        producerA.start();
+        producerB.start();
+        producerA.shutdown();
+
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        try {
+            produceAccumulator.send(new Message("testTopic", "1".getBytes()), new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    countDownLatch.countDown();
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    countDownLatch.countDown();
+                }
+            }, mockMQProducer);
+
+            assertThat(countDownLatch.await(3, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            producerB.shutdown();
+        }
+    }
+
+    @Test
+    public void testProducerAcquiresAndReleasesSharedAccumulatorOnlyOnce() throws Exception {
+        DefaultMQProducer producer = new DefaultMQProducer("testProducerGroup");
+        ProduceAccumulator produceAccumulator = mock(ProduceAccumulator.class);
+        setProducerField(producer, "defaultMQProducerImpl", mock(DefaultMQProducerImpl.class));
+        setProducerField(producer, "produceAccumulator", produceAccumulator);
+
+        producer.start();
+        producer.start();
+        producer.shutdown();
+        producer.shutdown();
+
+        verify(produceAccumulator, times(1)).start();
+        verify(produceAccumulator, times(1)).shutdown();
     }
 
     @Test
