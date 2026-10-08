@@ -352,6 +352,23 @@ class GroupConsumeInfo implements Comparable<GroupConsumeInfo> {
         return (int) (o.diffTotal - diffTotal);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof GroupConsumeInfo)) {
+            return false;
+        }
+        GroupConsumeInfo that = (GroupConsumeInfo) o;
+        return this.group == null ? that.group == null : this.group.equals(that.group);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.group == null ? 0 : this.group.hashCode();
+    }
+
     public int getConsumeTps() {
         return consumeTps;
     }
