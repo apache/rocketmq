@@ -28,11 +28,11 @@ public class NameServerAddressUtils {
     }
 
     public static boolean validateInstanceEndpoint(String endpoint) {
-        return INST_ENDPOINT_PATTERN.matcher(endpoint).matches();
+        return StringUtils.isNotEmpty(endpoint) && INST_ENDPOINT_PATTERN.matcher(endpoint).matches();
     }
 
     public static String parseInstanceIdFromEndpoint(String endpoint) {
-        if (StringUtils.isEmpty(endpoint)) {
+        if (!validateInstanceEndpoint(endpoint)) {
             return null;
         }
         return endpoint.substring(endpoint.lastIndexOf("/") + 1, endpoint.indexOf('.'));
