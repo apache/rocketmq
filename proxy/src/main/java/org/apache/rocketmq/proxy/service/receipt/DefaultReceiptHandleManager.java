@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -89,7 +90,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             proxyConfig.getReturnHandleGroupThreadPoolNums() * 2,
             1, TimeUnit.MINUTES,
             "ReturnHandleGroupWorkerThread",
-            proxyConfig.getRenewThreadPoolQueueCapacity()
+            proxyConfig.getRenewThreadPoolQueueCapacity(),
+            new ThreadPoolExecutor.AbortPolicy()
         );
         consumerManager.appendConsumerIdsChangeListener(new ConsumerIdsChangeListener() {
             @Override
@@ -251,7 +253,14 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             return;
         }
         ReceiptHandleGroup handleGroup = receiptHandleGroupMap.remove(key);
-        returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup));
+        try {
+            returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup));
+        } catch (RejectedExecutionException e) {
+            if (handleGroup != null) {
+                receiptHandleGroupMap.putIfAbsent(key, handleGroup);
+            }
+            log.warn("submit clear handle group task failed, will retry in the next schedule. key:{}", key, e);
+        }
     }
 
     // There is no longer any waiting for lock, and only the locked handles will be processed immediately,
@@ -266,7 +275,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
                     CompletableFuture<AckResult> future = new CompletableFuture<>();
                     eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
-                    return CompletableFuture.completedFuture(null);
+                    return future.thenApply(ackResult -> null);
                 }, 0);
             } catch (Exception e) {
                 log.error("error when clear handle for group. key:{}", key, e);
