@@ -133,15 +133,15 @@ public class BatchProducer {
                             setTags(tagCount, msgs, sendSucCount);
                             setProperties(propertySize, msgs);
                             SendResult sendResult = producer.send(msgs);
+                            long currentRT = System.currentTimeMillis() - beginTimestamp;
                             if (sendResult.getSendStatus() == SendStatus.SEND_OK) {
                                 statsBenchmark.getSendRequestSuccessCount().increment();
                                 statsBenchmark.getSendMessageSuccessCount().add(msgs.size());
+                                statsBenchmark.getSendMessageSuccessTimeTotal().add(currentRT);
                             } else {
                                 statsBenchmark.getSendRequestFailedCount().increment();
                                 statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             }
-                            long currentRT = System.currentTimeMillis() - beginTimestamp;
-                            statsBenchmark.getSendMessageSuccessTimeTotal().add(currentRT);
                             long prevMaxRT = statsBenchmark.getSendMessageMaxRT().longValue();
                             while (currentRT > prevMaxRT) {
                                 boolean updated = statsBenchmark.getSendMessageMaxRT().compareAndSet(prevMaxRT, currentRT);
@@ -167,8 +167,6 @@ public class BatchProducer {
                                 Thread.sleep(3000);
                             } catch (InterruptedException e1) {
                             }
-                            statsBenchmark.getSendRequestFailedCount().increment();
-                            statsBenchmark.getSendMessageFailedCount().add(msgs.size());
                             logger.error("[BENCHMARK_PRODUCER] Send Exception", e);
                         } catch (MQClientException e) {
                             statsBenchmark.getSendRequestFailedCount().increment();
