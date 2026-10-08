@@ -914,6 +914,14 @@ public class BrokerController {
 
     public boolean initialize() throws CloneNotSupportedException {
 
+        // Fail-closed: the Remoting authorization pipeline derives the caller identity from
+        // the client-supplied AccessKey, which is only trustworthy after authentication, so
+        // authorization must not be enabled without authentication. Validate before the
+        // potentially expensive message store load.
+        if (this.authConfig != null) {
+            this.authConfig.validate();
+        }
+
         boolean result = this.initializeMetadata();
         if (!result) {
             return false;

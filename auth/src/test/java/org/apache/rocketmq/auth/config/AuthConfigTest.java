@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class AuthConfigTest {
 
@@ -69,5 +70,36 @@ public class AuthConfigTest {
         authConfig.setAuthenticationWhitelist("AUTH_C");
         assertThat(cloned.isAuthenticationRequired("AUTH_A")).isFalse();
         assertThat(cloned.isAuthenticationRequired("AUTH_C")).isTrue();
+    }
+
+    @Test
+    public void validateAuthorizationWithoutAuthenticationThrows() {
+        AuthConfig config = new AuthConfig();
+        config.setAuthorizationEnabled(true);
+        config.setAuthenticationEnabled(false);
+        assertThatThrownBy(config::validate)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("authorizationEnabled");
+    }
+
+    @Test
+    public void validateBothDisabledOk() {
+        AuthConfig config = new AuthConfig();
+        config.validate();
+    }
+
+    @Test
+    public void validateAuthenticationOnlyOk() {
+        AuthConfig config = new AuthConfig();
+        config.setAuthenticationEnabled(true);
+        config.validate();
+    }
+
+    @Test
+    public void validateBothEnabledOk() {
+        AuthConfig config = new AuthConfig();
+        config.setAuthenticationEnabled(true);
+        config.setAuthorizationEnabled(true);
+        config.validate();
     }
 }
