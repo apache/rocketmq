@@ -16,8 +16,10 @@
  */
 package org.apache.rocketmq.controller.impl;
 
+import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
+import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
 import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +27,9 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultBrokerHeartbeatManagerTest {
@@ -51,4 +56,83 @@ public class DefaultBrokerHeartbeatManagerTest {
         this.heartbeatManager.shutdown();
     }
 
+    @Test
+    public void testStaleChannelCloseDoesNotEvictReRegisteredBroker() {
+        final EmbeddedChannel oldChannel = new EmbeddedChannel();
+        final EmbeddedChannel newChannel = new EmbeddedChannel();
+        try {
+            // First heartbeat pins the live entry to the old channel
+            this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 0L, 3000L, oldChannel,
+                1, 1L, -1L, 0);
+            // The broker reconnects and keeps heartbeating on a new channel
+            this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 0L, 3000L, newChannel,
+                1, 1L, -1L, 0);
+            // The old channel fires its close event only after the re-registration
+            this.heartbeatManager.onBrokerChannelClose(oldChannel);
+
+            final BrokerLiveInfo liveInfo = this.heartbeatManager.getBrokerLiveInfo("cluster1", "broker1", 0L);
+            assertNotNull("A stale channel close must not evict a broker alive on a new channel", liveInfo);
+            assertEquals("The live entry must be rebound to the current channel",
+                newChannel, liveInfo.getChannel());
+
+            // The close event of the current channel still removes the entry
+            this.heartbeatManager.onBrokerChannelClose(newChannel);
+            assertNull(this.heartbeatManager.getBrokerLiveInfo("cluster1", "broker1", 0L));
+        } finally {
+            oldChannel.finishAndReleaseAll();
+            newChannel.finishAndReleaseAll();
+            this.heartbeatManager.shutdown();
+        }
+    }
+
+    @Test
+    public void testConcurrentHeartbeatDuringStaleChannelCloseKeepsBrokerAlive() throws Exception {
+        final EmbeddedChannel oldChannel = new EmbeddedChannel();
+        final EmbeddedChannel newChannel = new EmbeddedChannel();
+        try {
+            for (int round = 0; round < 500; round++) {
+                // Each round starts from a broker live on the old channel, then races the stale
+                // close against the heartbeat rebinding the same identity to the new channel.
+                this.heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 0L, 3000L,
+                    oldChannel, 1, 1L, -1L, 0);
+
+                final CountDownLatch start = new CountDownLatch(1);
+                final CountDownLatch finished = new CountDownLatch(2);
+                final int currentRound = round;
+                Thread closeThread = new Thread(() -> {
+                    awaitStart(start, currentRound);
+                    heartbeatManager.onBrokerChannelClose(oldChannel);
+                    finished.countDown();
+                });
+                Thread heartbeatThread = new Thread(() -> {
+                    awaitStart(start, currentRound);
+                    heartbeatManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 0L, 3000L,
+                        newChannel, 1, 1L, -1L, 0);
+                    finished.countDown();
+                });
+                closeThread.start();
+                heartbeatThread.start();
+                start.countDown();
+                assertTrue("round " + round + " did not finish", finished.await(5, TimeUnit.SECONDS));
+
+                final BrokerLiveInfo liveInfo = this.heartbeatManager.getBrokerLiveInfo("cluster1", "broker1", 0L);
+                assertNotNull("round " + round + ": the live entry must survive the stale close", liveInfo);
+                assertEquals("round " + round + ": the live entry must carry the new channel",
+                    newChannel, liveInfo.getChannel());
+            }
+        } finally {
+            oldChannel.finishAndReleaseAll();
+            newChannel.finishAndReleaseAll();
+            this.heartbeatManager.shutdown();
+        }
+    }
+
+    private static void awaitStart(CountDownLatch start, int round) {
+        try {
+            start.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("round " + round + " interrupted", e);
+        }
+    }
 }
