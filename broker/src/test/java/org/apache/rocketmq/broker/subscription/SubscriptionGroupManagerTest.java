@@ -240,6 +240,48 @@ public class SubscriptionGroupManagerTest {
 
     }
 
+    @Test
+    public void testSubGroupTableWithNonPositiveMaxGroupNum() {
+        // Drop the constructor's builtin groups so the sorted table starts at group-00000.
+        subscriptionGroupManager.getSubscriptionGroupTable().clear();
+        fillSubscriptionGroupManager(10);
+
+        // maxGroupNum = 0 asks for an empty page; a negative value is nonsensical.
+        // Both must return an empty table instead of indexing out of bounds.
+        assertThat(subscriptionGroupManager.subGroupTable(null, 0, 0)).isEmpty();
+        assertThat(subscriptionGroupManager.subGroupTable(null, 5, 0)).isEmpty();
+        assertThat(subscriptionGroupManager.subGroupTable(null, 0, -1)).isEmpty();
+    }
+
+    @Test
+    public void testSubGroupTableWithNegativeGroupSeqClampsToHead() {
+        subscriptionGroupManager.getSubscriptionGroupTable().clear();
+        fillSubscriptionGroupManager(10);
+
+        // A negative groupSeq with a matching data version must clamp to index 0
+        // instead of indexing out of bounds.
+        Map<String, SubscriptionGroupConfig> result = subscriptionGroupManager.subGroupTable(
+            subscriptionGroupManager.getDataVersion().toJson(), -3, 4);
+
+        Assert.assertEquals(4, result.size());
+        Assert.assertTrue(result.containsKey("group-00000"));
+        Assert.assertFalse(result.containsKey("group-00004"));
+    }
+
+    @Test
+    public void testSubGroupTableWithMalformedDataVersionFallsBackToFullPage() {
+        subscriptionGroupManager.getSubscriptionGroupTable().clear();
+        fillSubscriptionGroupManager(10);
+
+        // A garbage dataVersion string from a client means "unknown version":
+        // degrade to a full page from index 0 instead of failing the request.
+        Map<String, SubscriptionGroupConfig> result = subscriptionGroupManager.subGroupTable("{not-json", 5, 3);
+
+        Assert.assertEquals(3, result.size());
+        Assert.assertTrue(result.containsKey("group-00000"));
+        Assert.assertFalse(result.containsKey("group-00005"));
+    }
+
     private void fillSubscriptionGroupManager(int num) {
         for (int i = num - 1; i >= 0; i--) {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
