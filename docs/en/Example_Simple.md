@@ -14,7 +14,7 @@ maven:
 ```
 gradle: 
 ``` java 
-compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
+implementation 'org.apache.rocketmq:rocketmq-client:5.5.0'
 ```
 ### 2 Send Messages
 ##### 2.1 Use Producer to Send Synchronous Messages

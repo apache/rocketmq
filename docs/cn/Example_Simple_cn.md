@@ -14,7 +14,7 @@ maven:
 ```
 gradle: 
 ``` java 
-compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
+implementation 'org.apache.rocketmq:rocketmq-client:5.5.0'
 ```
 ### 2 发送消息
 ##### 2.1 使用Producer发送同步消息
