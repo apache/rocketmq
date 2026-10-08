@@ -34,7 +34,7 @@ public class LitePullConsumerAssign {
         Collection<MessageQueue> mqSet = litePullConsumer.fetchMessageQueues("TopicTest");
         List<MessageQueue> list = new ArrayList<>(mqSet);
         List<MessageQueue> assignList = new ArrayList<>();
-        for (int i = 0; i < list.size() / 2; i++) {
+        for (int i = 0; i < (list.size() + 1) / 2; i++) {
             assignList.add(list.get(i));
         }
         litePullConsumer.assign(assignList);
