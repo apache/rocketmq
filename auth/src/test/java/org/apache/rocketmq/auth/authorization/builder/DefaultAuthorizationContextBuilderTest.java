@@ -574,6 +574,26 @@ public class DefaultAuthorizationContextBuilderTest {
         Assert.assertEquals("Cluster:DefaultCluster", result.get(0).getResource().getResourceKey());
         Assert.assertTrue(result.get(0).getActions().containsAll(Arrays.asList(Action.GET)));
         Assert.assertEquals(RequestCode.GET_BROKER_CONFIG + "", result.get(0).getRpcCode());
+
+        request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONTROLLER_CONFIG, null);
+        request.setVersion(441);
+        request.addExtField("AccessKey", "rocketmq");
+        request.makeCustomHeaderToNet();
+        result = builder.build(channelHandlerContext, request);
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals("Cluster:DefaultCluster", result.get(0).getResource().getResourceKey());
+        Assert.assertTrue(result.get(0).getActions().containsAll(Arrays.asList(Action.UPDATE)));
+        Assert.assertEquals(RequestCode.UPDATE_CONTROLLER_CONFIG + "", result.get(0).getRpcCode());
+
+        request = RemotingCommand.createRequestCommand(RequestCode.GET_CONTROLLER_CONFIG, null);
+        request.setVersion(441);
+        request.addExtField("AccessKey", "rocketmq");
+        request.makeCustomHeaderToNet();
+        result = builder.build(channelHandlerContext, request);
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals("Cluster:DefaultCluster", result.get(0).getResource().getResourceKey());
+        Assert.assertTrue(result.get(0).getActions().containsAll(Arrays.asList(Action.GET)));
+        Assert.assertEquals(RequestCode.GET_CONTROLLER_CONFIG + "", result.get(0).getRpcCode());
     }
 
     @Test
