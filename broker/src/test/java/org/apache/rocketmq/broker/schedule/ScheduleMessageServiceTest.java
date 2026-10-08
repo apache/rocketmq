@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.schedule;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -38,6 +39,8 @@ import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.util.HookUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -61,8 +64,9 @@ import static org.apache.rocketmq.common.stats.Stats.BROKER_PUT_NUMS;
 import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_NUMS;
 import static org.apache.rocketmq.common.stats.Stats.TOPIC_PUT_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ScheduleMessageServiceTest {
 
@@ -265,6 +269,37 @@ public class ScheduleMessageServiceTest {
         // add mapFile release
         messageResult.release();
 
+    }
+
+    @Test
+    public void testMessageTimeUpPropertiesStringMatchesProperties() throws Exception {
+        MessageExt msgExt = new MessageExt();
+        msgExt.setTopic(topic);
+        msgExt.setTags("schedule_tag");
+        msgExt.setKeys("schedule_key");
+        msgExt.setBody(sendMessage.getBytes());
+        msgExt.setFlag(0);
+        msgExt.setSysFlag(0);
+        msgExt.setBornTimestamp(System.currentTimeMillis());
+        msgExt.setStoreHost(storeHost);
+        msgExt.setBornHost(bornHost);
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_TOPIC, topic);
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(delayLevel));
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_TIMER_DELIVER_MS, "123456");
+
+        Method messageTimeUp = ScheduleMessageService.class.getDeclaredMethod("messageTimeUp", MessageExt.class);
+        messageTimeUp.setAccessible(true);
+        MessageExtBrokerInner delivered = (MessageExtBrokerInner) messageTimeUp.invoke(scheduleMessageService, msgExt);
+
+        // internal properties must be cleared from the property map and the wire data alike
+        assertThat(delivered.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL)).isNull();
+        assertThat(delivered.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS)).isNull();
+        assertFalse(delivered.getPropertiesString().contains(MessageConst.PROPERTY_DELAY_TIME_LEVEL));
+        assertFalse(delivered.getPropertiesString().contains(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+        assertFalse(delivered.getPropertiesString().contains(MessageConst.PROPERTY_TIMER_DELAY_SEC));
+        assertEquals(MessageDecoder.messageProperties2String(delivered.getProperties()),
+            delivered.getPropertiesString());
     }
 
     /**

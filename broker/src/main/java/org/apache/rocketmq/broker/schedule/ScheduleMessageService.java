@@ -341,8 +341,6 @@ public class ScheduleMessageService extends ConfigManager {
         long tagsCodeValue =
             MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
         msgInner.setTagsCode(tagsCodeValue);
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
-
         msgInner.setSysFlag(msgExt.getSysFlag());
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
         msgInner.setBornHost(msgExt.getBornHost());
@@ -353,6 +351,9 @@ public class ScheduleMessageService extends ConfigManager {
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TIMER_DELIVER_MS);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TIMER_DELAY_SEC);
+        // Encode after the properties are finalized so that the wire data stays
+        // consistent with the property map, aligning with TimerMessageStore#convertMessage.
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
         msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
 
