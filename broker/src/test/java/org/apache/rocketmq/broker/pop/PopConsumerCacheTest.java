@@ -70,6 +70,31 @@ public class PopConsumerCacheTest {
     }
 
     @Test
+    public void minimumOffsetIncludesUnstagedRecordsTest() {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        PopConsumerCache.ConsumerRecords records =
+            new PopConsumerCache.ConsumerRecords(brokerConfig, groupId, topicId, queueId);
+        long now = System.currentTimeMillis();
+        long stayBufferTime = brokerConfig.getPopCkStayBufferTime();
+        records.write(new PopConsumerRecord(now, groupId, topicId, queueId,
+            0, 600_000, 100, attemptId));
+        records.write(new PopConsumerRecord(now - stayBufferTime - 1, groupId, topicId, queueId,
+            0, 600_000, 200, attemptId));
+
+        records.stageExpiredRecords(now);
+
+        Assert.assertTrue(records.getRemoveTreeMap().containsKey(200L));
+        Assert.assertEquals(2, records.getInFlightRecordCount());
+        Assert.assertEquals(100L, records.getMinOffsetInBuffer());
+
+        records.delete(new PopConsumerRecord(now, groupId, topicId, queueId,
+            0, 600_000, 100, attemptId));
+        Assert.assertEquals(200L, records.getMinOffsetInBuffer());
+        records.clearStagedRecords();
+        Assert.assertEquals(-1L, records.getMinOffsetInBuffer());
+    }
+
+    @Test
     public void consumerOffsetTest() throws IllegalAccessException {
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
