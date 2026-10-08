@@ -3030,7 +3030,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                     continue;
                 }
 
-                if (groupSeq >= totalGroupNum - 1) {
+                if (groupSeq >= totalGroupNum) {
                     log.info("get all subscription group config, totalGroupNum: {}", totalGroupNum);
                     break;
                 }
@@ -3122,7 +3122,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                     continue;
                 }
 
-                if (topicSeq >= totalTopicNum - 1) {
+                if (topicSeq >= totalTopicNum) {
                     log.info("get all topic config, totalTopicNum: {}", totalTopicNum);
                     break;
                 }
