@@ -78,6 +78,20 @@ public class PolicyEntry {
         return resource.getResourceKey();
     }
 
+    /**
+     * Returns an independent copy of this entry. The referenced {@code resource}, {@code actions} and
+     * {@code environment} are immutable-by-convention and therefore shared, while the entry itself is a
+     * fresh object so that its fields can be replaced without mutating the cached entry.
+     */
+    public PolicyEntry deepCopy() {
+        PolicyEntry policyEntry = new PolicyEntry();
+        policyEntry.setResource(this.resource);
+        policyEntry.setActions(this.actions);
+        policyEntry.setEnvironment(this.environment);
+        policyEntry.setDecision(this.decision);
+        return policyEntry;
+    }
+
     public List<String> toActionsStr() {
         if (CollectionUtils.isEmpty(actions)) {
             return null;
