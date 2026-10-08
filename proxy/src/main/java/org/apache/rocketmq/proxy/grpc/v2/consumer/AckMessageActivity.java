@@ -70,23 +70,35 @@ public class AckMessageActivity extends AbstractMessagingActivity {
 
     protected CompletableFuture<AckMessageResponse> ackMessageInBatch(ProxyContext ctx, String group, String topic, AckMessageRequest request) {
         List<ReceiptHandleMessage> handleMessageList = new ArrayList<>(request.getEntriesCount());
+        List<ReceiptHandleContext> handleContexts = new ArrayList<>(request.getEntriesCount());
 
-        for (AckMessageEntry ackMessageEntry : request.getEntriesList()) {
-            String handleString = getHandleString(ctx, group, request, ackMessageEntry);
-            handleMessageList.add(new ReceiptHandleMessage(ReceiptHandle.decode(handleString), ackMessageEntry.getMessageId()));
+        try {
+            for (AckMessageEntry ackMessageEntry : request.getEntriesList()) {
+                ReceiptHandleContext handleContext = getReceiptHandleContext(ctx, group, ackMessageEntry);
+                handleContexts.add(handleContext);
+                handleMessageList.add(new ReceiptHandleMessage(ReceiptHandle.decode(handleContext.handleString), ackMessageEntry.getMessageId()));
+            }
+            return this.messagingProcessor.batchAckMessage(ctx, handleMessageList, group, topic)
+                .whenComplete((batchAckResultList, throwable) -> {
+                    if (throwable != null) {
+                        restoreReceiptHandles(ctx, group, request, handleContexts);
+                    }
+                })
+                .thenApply(batchAckResultList -> {
+                    AckMessageResponse.Builder responseBuilder = AckMessageResponse.newBuilder();
+                    Set<Code> responseCodes = new HashSet<>();
+                    for (BatchAckResult batchAckResult : batchAckResultList) {
+                        AckMessageResultEntry entry = convertToAckMessageResultEntry(batchAckResult);
+                        responseBuilder.addEntries(entry);
+                        responseCodes.add(entry.getStatus().getCode());
+                    }
+                    setAckResponseStatus(responseBuilder, responseCodes);
+                    return responseBuilder.build();
+                });
+        } catch (Throwable t) {
+            restoreReceiptHandles(ctx, group, request, handleContexts);
+            throw t;
         }
-        return this.messagingProcessor.batchAckMessage(ctx, handleMessageList, group, topic)
-            .thenApply(batchAckResultList -> {
-                AckMessageResponse.Builder responseBuilder = AckMessageResponse.newBuilder();
-                Set<Code> responseCodes = new HashSet<>();
-                for (BatchAckResult batchAckResult : batchAckResultList) {
-                    AckMessageResultEntry entry = convertToAckMessageResultEntry(batchAckResult);
-                    responseBuilder.addEntries(entry);
-                    responseCodes.add(entry.getStatus().getCode());
-                }
-                setAckResponseStatus(responseBuilder, responseCodes);
-                return responseBuilder.build();
-            });
     }
 
     protected AckMessageResultEntry convertToAckMessageResultEntry(BatchAckResult batchAckResult) {
@@ -138,23 +150,28 @@ public class AckMessageActivity extends AbstractMessagingActivity {
         AckMessageEntry ackMessageEntry) {
         CompletableFuture<AckMessageResultEntry> future = new CompletableFuture<>();
 
+        ReceiptHandleContext handleContext = null;
         try {
-            String handleString = this.getHandleString(ctx, group, request, ackMessageEntry);
+            handleContext = getReceiptHandleContext(ctx, group, ackMessageEntry);
             CompletableFuture<AckResult> ackResultFuture = this.messagingProcessor.ackMessage(
                 ctx,
-                ReceiptHandle.decode(handleString),
+                ReceiptHandle.decode(handleContext.handleString),
                 ackMessageEntry.getMessageId(),
                 group,
                 topic,
                 ackMessageEntry.hasLiteTopic() ? ackMessageEntry.getLiteTopic() : null
             );
-            ackResultFuture.thenAccept(result -> {
-                future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
-            }).exceptionally(t -> {
-                future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, t));
-                return null;
+            ReceiptHandleContext removedHandleContext = handleContext;
+            ackResultFuture.whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    restoreReceiptHandle(ctx, group, ackMessageEntry.getMessageId(), removedHandleContext);
+                    future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, throwable));
+                } else {
+                    future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, result));
+                }
             });
         } catch (Throwable t) {
+            restoreReceiptHandle(ctx, group, ackMessageEntry.getMessageId(), handleContext);
             future.complete(convertToAckMessageResultEntry(ctx, ackMessageEntry, t));
         }
         return future;
@@ -195,15 +212,51 @@ public class AckMessageActivity extends AbstractMessagingActivity {
         }
     }
 
-    protected String getHandleString(ProxyContext ctx, String group, AckMessageRequest request, AckMessageEntry ackMessageEntry) {
+    protected ReceiptHandleContext getReceiptHandleContext(ProxyContext ctx, String group, AckMessageEntry ackMessageEntry) {
         String handleString = ackMessageEntry.getReceiptHandle();
         GrpcClientChannel channel = grpcChannelManager.getChannel(ctx.getClientID());
+        MessageReceiptHandle messageReceiptHandle = null;
         if (channel != null) {
-            MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, channel, group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
+            messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, channel, group,
+                ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
             if (messageReceiptHandle != null) {
                 handleString = messageReceiptHandle.getReceiptHandleStr();
             }
         }
-        return handleString;
+        return new ReceiptHandleContext(handleString, channel, messageReceiptHandle);
+    }
+
+    protected void restoreReceiptHandles(ProxyContext ctx, String group, AckMessageRequest request,
+        List<ReceiptHandleContext> handleContexts) {
+        for (int i = 0; i < handleContexts.size(); i++) {
+            restoreReceiptHandle(ctx, group, request.getEntries(i).getMessageId(), handleContexts.get(i));
+        }
+    }
+
+    protected void restoreReceiptHandle(ProxyContext ctx, String group, String messageId,
+        ReceiptHandleContext handleContext) {
+        if (handleContext == null || handleContext.channel == null || handleContext.messageReceiptHandle == null) {
+            return;
+        }
+        try {
+            messagingProcessor.addReceiptHandle(ctx, handleContext.channel, group, messageId,
+                handleContext.messageReceiptHandle);
+        } catch (Throwable restoreError) {
+            log.error("Failed to restore receipt handle after ack failure, group={}, messageId={}",
+                group, messageId, restoreError);
+        }
+    }
+
+    protected static class ReceiptHandleContext {
+        private final String handleString;
+        private final GrpcClientChannel channel;
+        private final MessageReceiptHandle messageReceiptHandle;
+
+        protected ReceiptHandleContext(String handleString, GrpcClientChannel channel,
+            MessageReceiptHandle messageReceiptHandle) {
+            this.handleString = handleString;
+            this.channel = channel;
+            this.messageReceiptHandle = messageReceiptHandle;
+        }
     }
 }
