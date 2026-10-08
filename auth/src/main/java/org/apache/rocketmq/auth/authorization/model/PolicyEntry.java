@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.auth.authorization.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
@@ -39,6 +40,15 @@ public class PolicyEntry {
         policyEntry.setEnvironment(environment);
         policyEntry.setDecision(decision);
         return policyEntry;
+    }
+
+    public PolicyEntry copy() {
+        Resource resourceCopy = this.resource == null ? null : Resource.of(
+            this.resource.getResourceType(), this.resource.getResourceName(), this.resource.getResourcePattern());
+        List<Action> actionsCopy = this.actions == null ? null : new ArrayList<>(this.actions);
+        Environment environmentCopy = this.environment == null ? null : Environment.of(
+            this.environment.getSourceIps() == null ? null : new ArrayList<>(this.environment.getSourceIps()));
+        return PolicyEntry.of(resourceCopy, actionsCopy, environmentCopy, this.decision);
     }
 
     public void updateEntry(List<Action> actions, Environment environment,
