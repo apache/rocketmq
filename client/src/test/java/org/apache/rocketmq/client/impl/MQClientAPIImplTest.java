@@ -65,6 +65,7 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
@@ -110,6 +111,8 @@ import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
@@ -156,6 +159,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -1741,6 +1745,88 @@ public class MQClientAPIImplTest {
     }
 
     @Test
+    public void testGetAllTopicConfigFetchesLastEntryWhenTotalIsOneOverPageSize()
+        throws Exception {
+        final int pageSize = 100;
+        final int total = pageSize + 1;
+        ClientConfig pagedClientConfig = new ClientConfig();
+        pagedClientConfig.setMaxPageSizeInGetMetadata(pageSize);
+        MQClientAPIImpl pagedApi = new MQClientAPIImpl(new NettyClientConfig(), null, null, pagedClientConfig);
+        Field field = MQClientAPIImpl.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(pagedApi, remotingClient);
+
+        DataVersion dataVersion = new DataVersion();
+        TopicConfigSerializeWrapper page1 = new TopicConfigSerializeWrapper();
+        for (int i = 0; i < pageSize; i++) {
+            page1.getTopicConfigTable().put("topic-" + i, new TopicConfig("topic-" + i));
+        }
+        page1.setDataVersion(dataVersion);
+        TopicConfigSerializeWrapper page2 = new TopicConfigSerializeWrapper();
+        page2.getTopicConfigTable().put("topic-" + pageSize, new TopicConfig("topic-" + pageSize));
+        page2.setDataVersion(dataVersion);
+
+        GetAllTopicConfigResponseHeader header1 = new GetAllTopicConfigResponseHeader();
+        header1.setTotalTopicNum(total);
+        RemotingCommand resp1 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header1));
+        resp1.setBody(RemotingSerializable.encode(page1));
+        GetAllTopicConfigResponseHeader header2 = new GetAllTopicConfigResponseHeader();
+        header2.setTotalTopicNum(total);
+        RemotingCommand resp2 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header2));
+        resp2.setBody(RemotingSerializable.encode(page2));
+        when(remotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong()))
+            .thenReturn(resp1, resp2);
+
+        TopicConfigSerializeWrapper actual = pagedApi.getAllTopicConfig(defaultBrokerAddr, defaultTimeout);
+
+        assertEquals(total, actual.getTopicConfigTable().size());
+        assertEquals("topic-" + pageSize, actual.getTopicConfigTable().get("topic-" + pageSize).getTopicName());
+    }
+
+    @Test
+    public void testGetAllSubscriptionGroupFetchesLastEntryWhenTotalIsOneOverPageSize()
+        throws Exception {
+        final int pageSize = 100;
+        final int total = pageSize + 1;
+        ClientConfig pagedClientConfig = new ClientConfig();
+        pagedClientConfig.setMaxPageSizeInGetMetadata(pageSize);
+        MQClientAPIImpl pagedApi = new MQClientAPIImpl(new NettyClientConfig(), null, null, pagedClientConfig);
+        Field field = MQClientAPIImpl.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(pagedApi, remotingClient);
+
+        DataVersion dataVersion = new DataVersion();
+        SubscriptionGroupWrapper page1 = new SubscriptionGroupWrapper();
+        for (int i = 0; i < pageSize; i++) {
+            SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+            config.setGroupName("group-" + i);
+            page1.getSubscriptionGroupTable().put("group-" + i, config);
+        }
+        page1.setDataVersion(dataVersion);
+        SubscriptionGroupWrapper page2 = new SubscriptionGroupWrapper();
+        SubscriptionGroupConfig lastConfig = new SubscriptionGroupConfig();
+        lastConfig.setGroupName("group-" + pageSize);
+        page2.getSubscriptionGroupTable().put("group-" + pageSize, lastConfig);
+        page2.setDataVersion(dataVersion);
+
+        GetAllSubscriptionGroupResponseHeader header1 = new GetAllSubscriptionGroupResponseHeader();
+        header1.setTotalGroupNum(total);
+        RemotingCommand resp1 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header1));
+        resp1.setBody(RemotingSerializable.encode(page1));
+        GetAllSubscriptionGroupResponseHeader header2 = new GetAllSubscriptionGroupResponseHeader();
+        header2.setTotalGroupNum(total);
+        RemotingCommand resp2 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header2));
+        resp2.setBody(RemotingSerializable.encode(page2));
+        when(remotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong()))
+            .thenReturn(resp1, resp2);
+
+        SubscriptionGroupWrapper actual = pagedApi.getAllSubscriptionGroup(defaultBrokerAddr, defaultTimeout);
+
+        assertEquals(total, actual.getSubscriptionGroupTable().size());
+        assertNotNull(actual.getSubscriptionGroupTable().get("group-" + pageSize));
+    }
+
+    @Test
     public void testUpdateNameServerConfig() throws RemotingException, InterruptedException, MQClientException, UnsupportedEncodingException {
         mockInvokeSync();
         mqClientAPI.updateNameServerConfig(createProperties(), Collections.singletonList(defaultNsAddr), defaultTimeout);
@@ -2136,6 +2222,16 @@ public class MQClientAPIImplTest {
 
     private void setResponseBody(Object responseBody) {
         when(response.getBody()).thenReturn(RemotingSerializable.encode(responseBody));
+    }
+
+    /**
+     * Round-trips the response through encode/decode so response headers are carried as extFields,
+     * mirroring the wire format the client actually parses.
+     */
+    private static RemotingCommand wireResponse(RemotingCommand response) throws RemotingCommandException {
+        ByteBuffer frame = response.encode();
+        frame.position(4); // strip the total length the transport decoder consumes
+        return RemotingCommand.decode(frame.slice());
     }
 
     private void mockInvokeSync() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
