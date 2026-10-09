@@ -56,7 +56,7 @@ In order to reduce as much as possible the transformation work of RocketMQ messa
 
 ### 4.1 Opening  the Message Trace when Sending  the Message
 ```
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true);
+        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true,null);
         producer.setNamesrvAddr("XX.XX.XX.XX1");
         producer.start();
             try {
@@ -76,7 +76,7 @@ In order to reduce as much as possible the transformation work of RocketMQ messa
 
 ### 4.2 Opening Message Trace whenSubscribing to a Message
 ```
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true,null);
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         consumer.setConsumeTimestamp("20181109221800");
