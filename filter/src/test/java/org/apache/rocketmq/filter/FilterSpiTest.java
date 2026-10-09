@@ -81,4 +81,71 @@ public class FilterSpiTest {
             assertThat(Boolean.FALSE).isTrue();
         }
     }
+
+    static class AnotherNothingFilter implements FilterSpi {
+        @Override
+        public Expression compile(final String expr) throws MQFilterException {
+            throw new MQFilterException("never compiled in this test", null);
+        }
+
+        @Override
+        public String ofType() {
+            return "Nothing";
+        }
+    }
+
+    @Test
+    public void testRegisterDuplicateTypeIsRejectedAndKeepsOriginal() throws Exception {
+        FilterFactory.INSTANCE.unRegister("Nothing");
+        try {
+            FilterFactory.INSTANCE.register(new NothingFilter());
+
+            try {
+                FilterFactory.INSTANCE.register(new AnotherNothingFilter());
+                assertThat(Boolean.FALSE).isTrue();
+            } catch (IllegalArgumentException expected) {
+                assertThat(expected.getMessage()).contains("Nothing");
+            }
+
+            // the original registration must survive the rejected duplicate
+            assertThat(FilterFactory.INSTANCE.get("Nothing")).isInstanceOf(NothingFilter.class);
+            assertThat(FilterFactory.INSTANCE.get("Nothing").compile("abc")).isNotNull();
+        } finally {
+            FilterFactory.INSTANCE.unRegister("Nothing");
+        }
+    }
+
+    @Test
+    public void testUnRegisterReturnsFilterAndAllowsReRegistration() throws Exception {
+        FilterFactory.INSTANCE.unRegister("Nothing");
+        try {
+            FilterFactory.INSTANCE.register(new NothingFilter());
+
+            assertThat(FilterFactory.INSTANCE.unRegister("Nothing")).isInstanceOf(NothingFilter.class);
+            assertThat(FilterFactory.INSTANCE.get("Nothing")).isNull();
+
+            // after unregistering, the type can be registered again
+            FilterFactory.INSTANCE.register(new AnotherNothingFilter());
+            assertThat(FilterFactory.INSTANCE.get("Nothing")).isInstanceOf(AnotherNothingFilter.class);
+        } finally {
+            FilterFactory.INSTANCE.unRegister("Nothing");
+        }
+    }
+
+    @Test
+    public void testDuplicateBuiltInSqlTypeIsRejected() {
+        try {
+            FilterFactory.INSTANCE.register(new org.apache.rocketmq.filter.SqlFilter());
+            assertThat(Boolean.FALSE).isTrue();
+        } catch (IllegalArgumentException expected) {
+            assertThat(expected.getMessage()).contains(ExpressionType.SQL92);
+        }
+        // the built-in filter must remain functional
+        try {
+            assertThat(FilterFactory.INSTANCE.get(ExpressionType.SQL92)).isNotNull();
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
+        }
+    }
 }
