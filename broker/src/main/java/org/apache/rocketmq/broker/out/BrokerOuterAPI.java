@@ -357,6 +357,13 @@ public class BrokerOuterAPI {
         return brokerMemberGroup;
     }
 
+    /**
+     * Send a data-version heartbeat to every available NameServer, one-way.
+     *
+     * <p>Unlike {@link #sendHeartbeat} this carries the broker's {@link DataVersion} as the request body,
+     * letting each NameServer compare versions and decide whether a full re-registration is needed.
+     * Each NameServer is notified concurrently through {@link #brokerOuterExecutor}.
+     */
     public void sendHeartbeatViaDataVersion(
         final String clusterName,
         final String brokerAddr,
@@ -388,6 +395,13 @@ public class BrokerOuterAPI {
         }
     }
 
+    /**
+     * Send a plain heartbeat to every available NameServer, one-way.
+     *
+     * <p>The heartbeat only carries broker identity (cluster/addr/name), not a {@link DataVersion};
+     * NameServers use it to track liveness.
+     * Each NameServer is notified concurrently through {@link #brokerOuterExecutor}.
+     */
     public void sendHeartbeat(final String clusterName,
         final String brokerAddr,
         final String brokerName,
