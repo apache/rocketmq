@@ -20,11 +20,9 @@ package org.apache.rocketmq.common.lite;
 import java.util.Objects;
 
 /**
- * Strategy descriptor for resetting the consumer offset on a Lite Topic
- * subscription. The pair of {@link Type} and a {@code long} value is
- * consumed by
- * {@code LiteSubscriptionRegistryImpl.resetOffset} to compute and apply
- * a target offset for a (group, lmqName) pair.
+ * Strategy descriptor for resetting the consumer offset on a Lite Topic subscription.
+ * The pair of {@link Type} and a {@code long} value is consumed by {@code LiteSubscriptionRegistryImpl.resetOffset}
+ * to compute and apply a target offset for a (group, lmqName) pair.
  *
  * <p>The {@code value} field is interpreted according to {@link #getType()}:
  * <ul>

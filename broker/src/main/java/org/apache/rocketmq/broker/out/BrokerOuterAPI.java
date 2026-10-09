@@ -160,19 +160,17 @@ import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCC
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
 
 /**
- * Outbound RPC client for the broker.
+ * NameSrv client for the broker.
  *
- * <p>Although a broker is normally the <em>server</em> for producers and
- * consumers, it also plays the <em>client</em> role when talking to the
- * NameServer (registration / heartbeat / route query), to other brokers
- * (HA info exchange, config pull), and to the DLedger controller
- * (master election, replica info). This class wraps that outbound traffic
- * behind a single {@link RemotingClient}.
+ * <p>Although a broker is normally the <em>server</em> for producers and consumers,
+ * it also plays the <em>client</em> role when talking to the NameServer (registration / heartbeat / route query),
+ * to other brokers (HA info exchange, config pull),
+ * and to the DLedger controller (master election, replica info).
+ * This class wraps that outbound traffic behind a single {@link RemotingClient}.
  *
- * <p>Multi-NameServer operations are fanned out concurrently via
- * {@link #brokerOuterExecutor} and joined with a {@link CountDownLatch};
- * large config pulls are paged and guarded by a {@code DataVersion} to
- * detect concurrent changes.
+ * <p>Multi-NameServer operations are fanned out concurrently via {@link #brokerOuterExecutor}
+ * and joined with a {@link CountDownLatch};
+ * large config pulls are paged and guarded by a {@code DataVersion} to detect concurrent changes.
  */
 public class BrokerOuterAPI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
