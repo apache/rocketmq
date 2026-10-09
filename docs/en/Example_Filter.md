@@ -46,7 +46,13 @@ Constant types are:
 ## 2 Usage constraints
 Only push consumer could select messages by SQL92. The interface is:
 ```
-public void subscribe(finalString topic, final MessageSelector messageSelector)
+public void subscribe(final String topic, final MessageSelector messageSelector)
+```
+
+Filtering by SQL92 requires the broker configuration `enablePropertyFilter=true` (the default is `false`). Without it the broker rejects the subscription with a system error: `The broker does not support consumer to filter message by SQL92`. Set it in `broker.conf` and restart the broker, or update a running broker with:
+
+```shell
+sh bin/mqadmin updateBrokerConfig -b <brokerAddr> -n <namesrvAddr> -k enablePropertyFilter -v true
 ```
 
 ## 3 Producer example
