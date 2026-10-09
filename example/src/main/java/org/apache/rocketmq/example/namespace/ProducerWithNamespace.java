@@ -42,7 +42,7 @@ public class ProducerWithNamespace {
             Message message = new Message(TOPIC, TAG, "Hello world".getBytes(StandardCharsets.UTF_8));
             try {
                 SendResult result = producer.send(message);
-                System.out.printf("Topic:%s send success, misId is:%s%n", message.getTopic(), result.getMsgId());
+                System.out.printf("Topic:%s send result: %s, msgId is:%s%n", message.getTopic(), result.getSendStatus(), result.getMsgId());
             } catch (Exception e) {
                 e.printStackTrace();
             }
