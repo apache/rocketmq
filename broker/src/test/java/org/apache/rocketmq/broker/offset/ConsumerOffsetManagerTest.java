@@ -17,15 +17,20 @@
 
 package org.apache.rocketmq.broker.offset;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.mockito.Mockito;
 
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
@@ -34,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ConsumerOffsetManagerTest {
 
     private static final String KEY = "FooBar@FooBarGroup";
+    private static final long TIMEOUT_SECONDS = 10;
 
     private BrokerController brokerController;
 
@@ -47,6 +53,7 @@ public class ConsumerOffsetManagerTest {
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
 
         ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>(512);
         offsetTable.put(KEY,new ConcurrentHashMap<Integer, Long>() {{
@@ -72,7 +79,6 @@ public class ConsumerOffsetManagerTest {
     public void removeOffsetByGroupTest() {
         String topic = "TopicName";
         String group = "GroupName";
-        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
         consumerOffsetManager.commitOffset("Commit", group, topic, 0, 100);
         consumerOffsetManager.assignResetOffset(topic, group, 0, 100);
         consumerOffsetManager.commitPullOffset("Pull", group, topic, 0, 100);
@@ -120,5 +126,75 @@ public class ConsumerOffsetManagerTest {
         consumerOffsetManager.eraseResetOffset(topic, group, 1);
         Assert.assertFalse(consumerOffsetManager.hasOffsetReset(topic, group, 1));
         Assert.assertFalse(consumerOffsetManager.resetOffsetTable.containsKey(key));
+    }
+
+    @Test
+    public void testConcurrentFirstCommitsPreserveAllQueuesDuringJsonRoundTrip() throws Exception {
+        String topic = "ConcurrentTopic";
+        String group = "ConcurrentGroup";
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        FirstReadBarrierMap offsetTable = new FirstReadBarrierMap(key);
+        consumerOffsetManager.setOffsetTable(offsetTable);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> firstCommit = executor.submit(
+                () -> consumerOffsetManager.commitOffset("ClientA", group, topic, 0, 100L));
+            Future<?> secondCommit = executor.submit(
+                () -> consumerOffsetManager.commitOffset("ClientB", group, topic, 1, 200L));
+
+            firstCommit.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            secondCommit.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } finally {
+            offsetTable.releaseReaders();
+            executor.shutdownNow();
+            Assert.assertTrue(executor.awaitTermination(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        }
+
+        assertOffsets(offsetTable.get(key));
+
+        ConsumerOffsetManager decodedManager = new ConsumerOffsetManager(brokerController);
+        decodedManager.decode(consumerOffsetManager.encode());
+        assertOffsets(decodedManager.getOffsetTable().get(key));
+    }
+
+    private static void assertOffsets(ConcurrentMap<Integer, Long> offsets) {
+        Assert.assertNotNull(offsets);
+        Assert.assertEquals(2, offsets.size());
+        Assert.assertEquals(Long.valueOf(100L), offsets.get(0));
+        Assert.assertEquals(Long.valueOf(200L), offsets.get(1));
+    }
+
+    private static class FirstReadBarrierMap
+        extends ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> {
+        private final String targetKey;
+        private final AtomicInteger targetReads = new AtomicInteger();
+        private final CountDownLatch firstReads = new CountDownLatch(2);
+
+        FirstReadBarrierMap(String targetKey) {
+            this.targetKey = targetKey;
+        }
+
+        @Override
+        public ConcurrentMap<Integer, Long> get(Object key) {
+            ConcurrentMap<Integer, Long> storedValue = super.get(key);
+            if (targetKey.equals(key) && targetReads.getAndIncrement() < 2) {
+                firstReads.countDown();
+                try {
+                    Assert.assertTrue("Timed out waiting for both initial reads",
+                        firstReads.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+            }
+            return storedValue;
+        }
+
+        void releaseReaders() {
+            while (firstReads.getCount() > 0) {
+                firstReads.countDown();
+            }
+        }
     }
 }
