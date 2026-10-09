@@ -81,8 +81,14 @@ Message msg = new Message(topic,
                         // send reply message with producer
                         SendResult replyResult = replyProducer.send(replyMessage, 3000);
                         System.out.printf("reply to %s , %s %n", replyTo, replyResult.toString());
-                    } catch (MQClientException | RemotingException | MQBrokerException | InterruptedException e) {
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        // reply not sent: re-consume the request so the reply can be retried
+                        return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+                    } catch (MQClientException | RemotingException | MQBrokerException e) {
                         e.printStackTrace();
+                        // reply not sent: re-consume the request so the reply can be retried
+                        return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                     }
                 }
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
