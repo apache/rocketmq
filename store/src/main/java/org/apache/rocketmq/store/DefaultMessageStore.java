@@ -803,6 +803,10 @@ public class DefaultMessageStore implements MessageStore {
 
         this.recoverTopicQueueTable();
 
+        if (this.timerMessageStore != null) {
+            this.timerMessageStore.onCommitLogDispatchTruncate(offsetToTruncate);
+        }
+
         if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
             this.reputMessageService = new ReputMessageService();
         } else {
