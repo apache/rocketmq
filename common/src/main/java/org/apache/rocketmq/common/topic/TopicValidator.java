@@ -37,6 +37,7 @@ public class TopicValidator {
     public static final String RMQ_SYS_ROCKSDB_OFFSET_TOPIC = "CHECKPOINT_TOPIC";
 
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
+    public static final String RMQ_SYS_WHEEL_TIMER_TOPIC = SYSTEM_TOPIC_PREFIX + "wheel_timer";
     public static final String SYNC_BROKER_MEMBER_GROUP_PREFIX = SYSTEM_TOPIC_PREFIX + "SYNC_BROKER_MEMBER_";
 
     public static final boolean[] VALID_CHAR_BIT_MAP = new boolean[128];
@@ -77,6 +78,7 @@ public class TopicValidator {
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_OFFSET_MOVED_EVENT);
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC);
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC);
+        NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_WHEEL_TIMER_TOPIC);
 
         // regex: ^[%|a-zA-Z0-9_-]+$
         // %
