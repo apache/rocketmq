@@ -44,6 +44,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.junit.Assert;
 import org.junit.Before;
@@ -63,11 +64,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -104,24 +106,32 @@ public class PopReviveServiceTest {
     private BrokerMetricsManager brokerMetricsManager;
     @Mock
     private PopMetricsManager popMetricsManager;
+    @Mock
+    private PopInflightMessageCounter popInflightMessageCounter;
     private PopMessageProcessor popMessageProcessor;
 
     private BrokerConfig brokerConfig;
     private PopReviveService popReviveService;
+    private BrokerStatsManager brokerStatsManager;
 
     @Before
     public void before() {
         brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerClusterName(CLUSTER_NAME);
+        brokerStatsManager = new BrokerStatsManager(brokerConfig);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+        when(brokerController.getPopInflightMessageCounter()).thenReturn(popInflightMessageCounter);
+        when(brokerController.getBrokerStatsManager()).thenReturn(brokerStatsManager);
         when(messageStore.getTimerMessageStore()).thenReturn(timerMessageStore);
         when(timerMessageStore.getDequeueBehind()).thenReturn(0L);
         when(timerMessageStore.getEnqueueBehind()).thenReturn(0L);
+
+        doNothing().when(popInflightMessageCounter).decrementInFlightMessageNum(any());
 
         when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(new TopicConfig());
         when(subscriptionGroupManager.findSubscriptionGroupConfig(anyString())).thenReturn(new SubscriptionGroupConfig());
@@ -239,6 +249,88 @@ public class PopReviveServiceTest {
         popReviveService.mergeAndRevive(consumeReviveObj);
 
         assertEquals(maxReviveOffset, commitOffsetCaptor.getValue().longValue());
+    }
+
+    @Test
+    public void testCheckCKWithLotsOfSameReviveTime() throws Throwable {
+        brokerConfig.setReviveAckWaitMs(TimeUnit.SECONDS.toMillis(2));
+        brokerConfig.setReviveScanTime(10);
+        long maxReviveOffset = 10;
+        StringBuilder actualRetryTopic = new StringBuilder();
+
+        when(escapeBridge.getMessageAsync(anyString(), anyLong(), anyInt(), anyString(), anyBoolean()))
+                .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", false)));
+        when(escapeBridge.putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenAnswer(invocation -> {
+            MessageExtBrokerInner msg = invocation.getArgument(0);
+            actualRetryTopic.append(msg.getTopic());
+            return new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK));
+        });
+
+        when(consumerOffsetManager.queryOffset(PopAckConstants.REVIVE_GROUP, REVIVE_TOPIC, REVIVE_QUEUE_ID))
+                .thenReturn(0L);
+        List<MessageExt> reviveMessageExtList = new ArrayList<>();
+        long basePopTime = System.currentTimeMillis() - brokerConfig.getReviveAckWaitMs() * 2;
+        {
+            for (int i = 1; i <= maxReviveOffset; i++) {
+                PopCheckPoint ck = buildPopCheckPoint(i, basePopTime + 1, i);
+                MessageExtBrokerInner msg = buildCkMsg(ck);
+                reviveMessageExtList.add(msg);
+            }
+        }
+        doReturn(reviveMessageExtList, new ArrayList<>()).when(popReviveService).getReviveMessage(anyLong(), anyInt());
+
+        PopReviveService.ConsumeReviveObj consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        popReviveService.consumeReviveMessage(consumeReviveObj);
+
+        assertEquals(maxReviveOffset, consumeReviveObj.map.size());
+
+        ArgumentCaptor<Long> commitOffsetCaptor = ArgumentCaptor.forClass(Long.class);
+        doNothing().when(consumerOffsetManager).commitOffset(anyString(), anyString(), anyString(), anyInt(), commitOffsetCaptor.capture());
+        Thread.sleep(PopAckConstants.ackTimeInterval * 2);
+        popReviveService.mergeAndRevive(consumeReviveObj);
+        assertEquals(maxReviveOffset, consumeReviveObj.newOffset);
+        assertTrue("newOffset should be greater than oldOffset", consumeReviveObj.newOffset > consumeReviveObj.oldOffset);
+    }
+
+    @Test
+    public void testCheckCKReviveScanTimeAndMaxReviveSize() throws Throwable {
+        brokerConfig.setReviveAckWaitMs(TimeUnit.SECONDS.toMillis(2));
+        brokerConfig.setReviveScanTime(1000);
+        StringBuilder actualRetryTopic = new StringBuilder();
+        when(escapeBridge.getMessageAsync(anyString(), anyLong(), anyInt(), anyString(), anyBoolean()))
+                .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", false)));
+        when(escapeBridge.putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenAnswer(invocation -> {
+            MessageExtBrokerInner msg = invocation.getArgument(0);
+            actualRetryTopic.append(msg.getTopic());
+            return new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK));
+        });
+        when(consumerOffsetManager.queryOffset(PopAckConstants.REVIVE_GROUP, REVIVE_TOPIC, REVIVE_QUEUE_ID))
+                .thenReturn(0L);
+        
+        doReturn(new ArrayList<MessageExt>(), new ArrayList<>()).when(popReviveService).getReviveMessage(anyLong(), anyInt());
+        long beginTs = System.currentTimeMillis();
+        PopReviveService.ConsumeReviveObj consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        popReviveService.consumeReviveMessage(consumeReviveObj);
+        long endTs = System.currentTimeMillis();
+        assertTrue(endTs - beginTs >= brokerConfig.getReviveScanTime());
+        long maxReviveOffset = PopReviveService.MAX_REVIVE_SIZE;
+        List<MessageExt> reviveMessageExtList = new ArrayList<>();
+        long basePopTime = System.currentTimeMillis() - brokerConfig.getReviveAckWaitMs() * 2;
+        {
+            for (int i = 1; i <= maxReviveOffset; i++) {
+                PopCheckPoint ck = buildPopCheckPoint(i, basePopTime + 1, i);
+                MessageExtBrokerInner msg = buildCkMsg(ck);
+                reviveMessageExtList.add(msg);
+            }
+        }
+        doReturn(reviveMessageExtList, new ArrayList<>()).when(popReviveService).getReviveMessage(anyLong(), anyInt());
+        brokerConfig.setReviveScanTime(10000);
+        consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        beginTs = System.currentTimeMillis();
+        popReviveService.consumeReviveMessage(consumeReviveObj);
+        endTs = System.currentTimeMillis();
+        assertTrue(endTs - beginTs < brokerConfig.getReviveScanTime());
+        assertEquals(PopReviveService.MAX_REVIVE_SIZE, consumeReviveObj.map.size());
     }
 
     @Test
