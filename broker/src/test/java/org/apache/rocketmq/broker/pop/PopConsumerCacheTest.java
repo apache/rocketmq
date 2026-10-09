@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.pop;
 
 import java.util.Collections;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -134,13 +135,99 @@ public class PopConsumerCacheTest {
 
         // clean expired records
         Queue<PopConsumerRecord> consumerRecordList = new LinkedBlockingQueue<>();
-        consumerCache.cleanupRecords(consumerRecordList::add);
+        consumerCache.cleanupRecords(expired -> {
+            consumerRecordList.add(expired);
+            return CompletableFuture.completedFuture(true);
+        });
         Assert.assertEquals(2, consumerRecordList.size());
 
         // clean all
         Mockito.when(consumerLockService.isLockTimeout(any(), any())).thenReturn(true);
         consumerRecordList.clear();
-        consumerCache.cleanupRecords(consumerRecordList::add);
+        consumerCache.cleanupRecords(expired -> {
+            consumerRecordList.add(expired);
+            return CompletableFuture.completedFuture(true);
+        });
         Assert.assertEquals(0, consumerRecordList.size());
+    }
+
+    @Test
+    public void failedAsyncReviveRetainsCheckpointForRetryTest() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        PopConsumerCache cache = new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord record = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 100, attemptId);
+        cache.writeRecords(Collections.singletonList(record));
+
+        CompletableFuture<Boolean> firstRevive = new CompletableFuture<>();
+        AtomicInteger attempts = new AtomicInteger();
+        java.util.function.Function<PopConsumerRecord, CompletableFuture<Boolean>> revive = ignored ->
+            attempts.incrementAndGet() == 1 ? firstRevive : CompletableFuture.completedFuture(true);
+
+        cache.cleanupRecords(revive);
+        Assert.assertEquals(1, cache.getPopInFlightMessageCount(groupId, topicId, queueId));
+        cache.cleanupRecords(revive);
+        Assert.assertEquals(1, attempts.get());
+
+        firstRevive.completeExceptionally(new RuntimeException("transient read failure"));
+        cache.cleanupRecords(revive);
+        Assert.assertEquals(2, attempts.get());
+        Assert.assertEquals(0, cache.getPopInFlightMessageCount(groupId, topicId, queueId));
+        Mockito.verify(consumerKVStore, Mockito.never()).writeRecords(Mockito.argThat(list -> !list.isEmpty()));
+    }
+
+    @Test
+    public void offlineCleanupWaitsForPendingReviveTest() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        PopConsumerCache cache = new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord record = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 100, attemptId);
+        cache.writeRecords(Collections.singletonList(record));
+
+        CompletableFuture<Boolean> revive = new CompletableFuture<>();
+        cache.cleanupRecords(ignored -> revive);
+        Mockito.when(consumerLockService.isLockTimeout(groupId, topicId)).thenReturn(true);
+        cache.cleanupRecords(ignored -> CompletableFuture.completedFuture(true));
+        Assert.assertEquals(1, cache.getCacheKeySize());
+        Mockito.verify(consumerKVStore, Mockito.never()).writeRecords(Mockito.argThat(list -> !list.isEmpty()));
+
+        revive.complete(false);
+        cache.cleanupRecords(ignored -> CompletableFuture.completedFuture(true));
+        Assert.assertEquals(0, cache.getCacheKeySize());
+        Mockito.verify(consumerKVStore).writeRecords(Mockito.argThat(list -> list.size() == 1 && list.get(0) == record));
+    }
+
+    @Test
+    public void pendingReviveKeepsCommitOffsetAtOldestCheckpointTest() {
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        ConsumerOffsetManager consumerOffsetManager = Mockito.mock(ConsumerOffsetManager.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        Mockito.when(consumerLockService.tryLock(groupId, topicId)).thenReturn(true);
+        PopConsumerCache cache = new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+        PopConsumerRecord first = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 100, attemptId);
+        PopConsumerRecord second = new PopConsumerRecord(2L, groupId, topicId, queueId,
+            0, 20000, 101, attemptId);
+        cache.writeRecords(java.util.Arrays.asList(first, second));
+
+        CompletableFuture<Boolean> pending = new CompletableFuture<>();
+        cache.cleanupRecords(record -> record.getOffset() == 100
+            ? pending : CompletableFuture.completedFuture(true));
+
+        Mockito.verify(consumerOffsetManager).commitOffset(
+            "PopConsumerCache", groupId, topicId, queueId, 100);
+        Assert.assertEquals(100, cache.getMinOffsetInCache(groupId, topicId, queueId));
+        Assert.assertEquals(1, cache.getPopInFlightMessageCount(groupId, topicId, queueId));
+        pending.completeExceptionally(new RuntimeException("read failed"));
+        Assert.assertEquals(100, cache.getMinOffsetInCache(groupId, topicId, queueId));
     }
 }
