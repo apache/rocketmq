@@ -82,6 +82,10 @@ public class ClusterTransactionService extends AbstractTransactionService {
                     clusterDataSet = Sets.newHashSet();
                 }
                 clusterDataSet.addAll(getClusterDataFromTopic(ctx, topic));
+                long now = System.currentTimeMillis();
+                for (ClusterData clusterData : clusterDataSet) {
+                    clusterData.lastActiveTimestamp = now;
+                }
                 return clusterDataSet;
             });
         } catch (Exception e) {
@@ -131,14 +135,19 @@ public class ClusterTransactionService extends AbstractTransactionService {
                 if (clusterDataSet.isEmpty()) {
                     return null;
                 }
+                long now = System.currentTimeMillis();
                 if (!this.producerManager.groupOnline(groupName)) {
-                    return null;
+                    // A transaction send may precede the producer's first heartbeat.
+                    long timeoutMillis = ConfigurationManager.getProxyConfig().getChannelExpiredTimeout();
+                    clusterDataSet.removeIf(clusterData -> now - clusterData.lastActiveTimestamp >= timeoutMillis);
+                    return clusterDataSet.isEmpty() ? null : clusterDataSet;
                 }
 
                 ProducerData producerData = new ProducerData();
                 producerData.setGroupName(groupName);
 
                 for (ClusterData clusterData : clusterDataSet) {
+                    clusterData.lastActiveTimestamp = now;
                     List<HeartbeatData> heartbeatDataList = clusterHeartbeatData.get(clusterData.cluster);
                     if (heartbeatDataList == null) {
                         heartbeatDataList = new ArrayList<>();
@@ -228,6 +237,8 @@ public class ClusterTransactionService extends AbstractTransactionService {
 
     static class ClusterData {
         private final String cluster;
+        // Epoch milliseconds, refreshed on subscription updates or when the owning group is observed online.
+        private long lastActiveTimestamp = System.currentTimeMillis();
 
         public ClusterData(String cluster) {
             this.cluster = cluster;

@@ -231,8 +231,8 @@ public class TimerMessageRocksDBStore {
             this.expiredMessageQueue = new LinkedBlockingDeque<>(TIME_UP_CAPACITY);
             this.rollMessageQueue = new LinkedBlockingDeque<>(ROLL_CAPACITY);
         }
-        this.expiredMessageReputService = new TimerMessageReputService(expiredMessageQueue, storeConfig.getTimerRocksDBTimeExpiredMaxTps(), true);
-        this.rollMessageReputService = new TimerMessageReputService(rollMessageQueue, storeConfig.getTimerRocksDBRollMaxTps(), false);
+        this.expiredMessageReputService = new TimerMessageReputService(expiredMessageQueue, storeConfig.getTimerRocksDBTimeExpiredMaxTps(), MessageRocksDBStorage.TIMELINE_CHECK_POINT);
+        this.rollMessageReputService = new TimerMessageReputService(rollMessageQueue, storeConfig.getTimerRocksDBRollMaxTps(), MessageRocksDBStorage.TIMELINE_ROLL_CHECK_POINT);
         this.timeline = new Timeline(messageStore, messageRocksDBStorage, this, timerMetrics);
         this.timerSysTopicScanService = new TimerSysTopicScanService();
     }
@@ -506,7 +506,7 @@ public class TimerMessageRocksDBStore {
         private final Logger log = TimerMessageRocksDBStore.log;
         private final BlockingQueue<List<TimerRocksDBRecord>> queue;
         private final RateLimiter rateLimiter;
-        private final boolean writeCheckPoint;
+        private final byte[] checkPointKey;
         private final ExecutorService executor =
                 ThreadUtils.newThreadPoolExecutor(
                         storeConfig.getTimerReputServiceCorePoolSize(),
@@ -518,10 +518,10 @@ public class TimerMessageRocksDBStore {
                         new ThreadPoolExecutor.CallerRunsPolicy()
                 );
 
-        public TimerMessageReputService(BlockingQueue<List<TimerRocksDBRecord>> queue, double maxTps, boolean writeCheckPoint) {
+        public TimerMessageReputService(BlockingQueue<List<TimerRocksDBRecord>> queue, double maxTps, byte[] checkPointKey) {
             this.queue = queue;
             this.rateLimiter = RateLimiter.create(maxTps);
-            this.writeCheckPoint = writeCheckPoint;
+            this.checkPointKey = checkPointKey;
         }
 
         @Override
@@ -545,9 +545,9 @@ public class TimerMessageRocksDBStore {
                     }
                     countDownLatch.await();
                     log.info("TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}, checkPoint: {}", System.currentTimeMillis() - start, trs.size(), trs.get(trs.size() - 1).getCheckPoint());
-                    if (this.writeCheckPoint && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint() > 0L) {
+                    if (null != this.checkPointKey && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint() > 0L) {
                         log.info("TimerMessageReputService reput messages to commitlog, checkPoint: {}", trs.get(trs.size() - 1).getCheckPoint());
-                        messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());
+                        messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, this.checkPointKey, trs.get(trs.size() - 1).getCheckPoint());
                     }
                 } catch (Exception e) {
                     logError.error("TimerMessageReputService error: {}", e.getMessage());
@@ -560,7 +560,7 @@ public class TimerMessageRocksDBStore {
             if (null == msg) {
                 return;
             }
-            for (int retryCount = 0; !isStopped() && retryCount <= MAX_PUT_MSG_TIMES; retryCount++) {
+            for (int retryCount = 0; !isStopped(); retryCount++) {
                 int result = doPut(msg);
                 switch (result) {
                     case PUT_OK:
@@ -569,13 +569,12 @@ public class TimerMessageRocksDBStore {
                         logError.warn("Skipping message due to unrecoverable error. Msg: {}", msg);
                         return;
                     default:
-                        if (retryCount == MAX_PUT_MSG_TIMES) {
+                        if (!storeConfig.isTimerEnableRetryUntilSuccess() && retryCount >= MAX_PUT_MSG_TIMES) {
                             logError.error("Message processing failed after {} retries. Msg: {}", retryCount, msg);
                             return;
-                        } else {
-                            Thread.sleep(100L);
-                            logError.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
                         }
+                        Thread.sleep(100L);
+                        logError.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
                 }
             }
         }

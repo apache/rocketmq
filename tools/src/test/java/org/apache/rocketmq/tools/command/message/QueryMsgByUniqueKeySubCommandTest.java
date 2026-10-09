@@ -19,6 +19,7 @@ package org.apache.rocketmq.tools.command.message;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +59,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.assertj.core.util.Lists;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -252,5 +254,32 @@ public class QueryMsgByUniqueKeySubCommandTest {
             new DefaultParser());
         cmd.execute(commandLine, options, null);
 
+    }
+
+    @Test
+    public void testStoreTimestampComparatorKeepsOlderMessageFirstAcrossIntRange() {
+        MessageExt newer = new MessageExt();
+        newer.setMsgId("newer-message");
+        newer.setStoreTimestamp(System.currentTimeMillis());
+
+        MessageExt older = new MessageExt();
+        older.setMsgId("older-message");
+        // More than Integer.MAX_VALUE milliseconds (roughly 24.8 days) separate the two
+        // messages, so the old (int) (o1 - o2) lambda wrapped and reversed their order.
+        long gap = (long) Integer.MAX_VALUE + 1L;
+        older.setStoreTimestamp(newer.getStoreTimestamp() - gap);
+
+        // The comparator itself must report the older message as smaller in both directions.
+        Assert.assertTrue(QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR.compare(older, newer) < 0);
+        Assert.assertTrue(QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR.compare(newer, older) > 0);
+
+        List<MessageExt> messages = new ArrayList<>();
+        messages.add(newer);
+        messages.add(older);
+        Collections.sort(messages, QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR);
+
+        Assert.assertSame(older, messages.get(0));
+        Assert.assertSame(newer, messages.get(1));
+        Assert.assertEquals(0, QueryMsgByUniqueKeySubCommand.STORE_TIMESTAMP_COMPARATOR.compare(older, older));
     }
 }

@@ -434,7 +434,7 @@
             </appender>
         </sift>
     </appender>
-    <appender name="RocketmqRebalanceLockSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+    <appender name="RocketmqFilterSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqFilterSiftingAppender_inner"/>
     </appender>
 

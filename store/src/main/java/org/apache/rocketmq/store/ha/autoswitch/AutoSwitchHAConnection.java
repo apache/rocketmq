@@ -310,7 +310,12 @@ public class AutoSwitchHAConnection implements HAConnection {
                     int diff = byteBufferRead.position() - ReadSocketService.this.processPosition;
                     if (diff >= AutoSwitchHAClient.MIN_HEADER_SIZE) {
                         int readPosition = ReadSocketService.this.processPosition;
-                        HAConnectionState slaveState = HAConnectionState.values()[byteBufferRead.getInt(readPosition)];
+                        int slaveStateOrdinal = byteBufferRead.getInt(readPosition);
+                        HAConnectionState slaveState = HAConnectionState.fromOrdinal(slaveStateOrdinal);
+                        if (slaveState == null) {
+                            LOGGER.error("Received illegal slave state ordinal {}", slaveStateOrdinal);
+                            return false;
+                        }
 
                         switch (slaveState) {
                             case HANDSHAKE:
