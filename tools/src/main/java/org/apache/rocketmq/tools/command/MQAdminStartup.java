@@ -88,6 +88,7 @@ import org.apache.rocketmq.tools.command.lite.GetParentTopicInfoSubCommand;
 import org.apache.rocketmq.tools.command.lite.TriggerLiteDispatchSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
+import org.apache.rocketmq.tools.command.message.DecodeMessageIdCommand;
 import org.apache.rocketmq.tools.command.message.DumpCompactionLogCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageSubCommand;
@@ -262,6 +263,7 @@ public class MQAdminStartup {
         initCommand(new QueryConsumeQueueCommand());
         initCommand(new SendMessageCommand());
         initCommand(new ConsumeMessageCommand());
+        initCommand(new DecodeMessageIdCommand());
 
         initCommand(new UpdateStaticTopicSubCommand());
         initCommand(new RemappingStaticTopicSubCommand());
