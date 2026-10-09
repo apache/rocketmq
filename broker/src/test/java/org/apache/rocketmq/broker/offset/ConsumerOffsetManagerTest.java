@@ -85,6 +85,30 @@ public class ConsumerOffsetManagerTest {
     }
 
     @Test
+    public void removeOffsetByGroupAndTopicTest() {
+        String group = "GroupName";
+        String topic = "TopicName";
+        String otherTopic = "OtherTopic";
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        ConsumerOffsetManager manager = Mockito.spy(consumerOffsetManager);
+
+        manager.commitOffset("Commit", group, topic, 0, 100L);
+        manager.assignResetOffset(topic, group, 0, 90L);
+        manager.commitPullOffset("Pull", group, topic, 0, 110L);
+        manager.commitOffset("Commit", group, otherTopic, 0, 200L);
+        manager.commitPullOffset("Pull", group, otherTopic, 0, 210L);
+
+        manager.removeOffset(group, topic);
+
+        Assert.assertEquals(-1L, manager.queryOffset(group, topic, 0));
+        Assert.assertEquals(-1L, manager.queryPullOffset(group, topic, 0));
+        Assert.assertFalse(manager.hasOffsetReset(topic, group, 0));
+        Assert.assertEquals(200L, manager.queryOffset(group, otherTopic, 0));
+        Assert.assertEquals(210L, manager.queryPullOffset(group, otherTopic, 0));
+        Mockito.verify(manager).removeConsumerOffset(topic + TOPIC_GROUP_SEPARATOR + group);
+    }
+
+    @Test
     public void testOffsetPersistInMemory() {
         ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = consumerOffsetManager.getOffsetTable();
         ConcurrentMap<Integer, Long> table = new ConcurrentHashMap<>();

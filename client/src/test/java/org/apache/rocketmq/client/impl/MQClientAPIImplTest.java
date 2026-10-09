@@ -106,6 +106,7 @@ import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
@@ -1362,6 +1363,41 @@ public class MQClientAPIImplTest {
     public void testDeleteSubscriptionGroup() throws RemotingException, InterruptedException, MQClientException {
         mockInvokeSync();
         mqClientAPI.deleteSubscriptionGroup(defaultBrokerAddr, "", true, defaultTimeout);
+    }
+
+    @Test
+    public void testDeleteConsumerOffset() throws Exception {
+        mockInvokeSync();
+        org.mockito.ArgumentCaptor<RemotingCommand> captor = org.mockito.ArgumentCaptor.forClass(RemotingCommand.class);
+
+        mqClientAPI.deleteConsumerOffset(defaultBrokerAddr, group, topic, defaultTimeout);
+
+        org.mockito.Mockito.verify(remotingClient).invokeSync(any(), captor.capture(), anyLong());
+        RemotingCommand captured = captor.getValue();
+        captured.makeCustomHeaderToNet();
+        DeleteConsumerOffsetRequestHeader requestHeader =
+            captured.decodeCommandCustomHeader(DeleteConsumerOffsetRequestHeader.class);
+        assertEquals(RequestCode.DELETE_CONSUMER_OFFSET, captured.getCode());
+        assertEquals(group, requestHeader.getConsumerGroup());
+        assertEquals(topic, requestHeader.getTopic());
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testDeleteConsumerOffsetFail()
+        throws RemotingException, InterruptedException, MQClientException {
+        when(response.getCode()).thenReturn(ResponseCode.SYSTEM_ERROR);
+        when(response.getRemark()).thenReturn("error");
+        when(remotingClient.invokeSync(any(), any(), anyLong())).thenReturn(response);
+
+        mqClientAPI.deleteConsumerOffset(defaultBrokerAddr, group, topic, defaultTimeout);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testDeleteConsumerOffsetNullResponse()
+        throws RemotingException, InterruptedException, MQClientException {
+        when(remotingClient.invokeSync(any(), any(), anyLong())).thenReturn(null);
+
+        mqClientAPI.deleteConsumerOffset(defaultBrokerAddr, group, topic, defaultTimeout);
     }
 
     @Test

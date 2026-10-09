@@ -212,6 +212,9 @@ public interface MQAdminExt extends MQAdmin {
         boolean removeOffset) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
+    void deleteConsumerOffset(final String addr, final String consumerGroup, final String topic)
+        throws RemotingException, InterruptedException, MQClientException;
+
     void createAndUpdateKvConfig(String namespace, String key,
         String value) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
