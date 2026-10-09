@@ -39,12 +39,24 @@ public class Producer {
             String keys = commandLine.getOptionValue('k');
             String msgCount = commandLine.getOptionValue('c');
 
+            int messageCount;
+            try {
+                messageCount = Integer.parseInt(msgCount);
+            } catch (NumberFormatException e) {
+                System.out.printf("Invalid message count: %s%n", msgCount);
+                return;
+            }
+            if (messageCount < 0) {
+                System.out.printf("Message count must not be negative: %d%n", messageCount);
+                return;
+            }
+
             DefaultMQProducer producer = new DefaultMQProducer(group);
             producer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
             producer.start();
 
-            for (int i = 0; i < Integer.parseInt(msgCount); i++) {
+            for (int i = 0; i < messageCount; i++) {
                 try {
                     Message msg = new Message(
                         topic,
