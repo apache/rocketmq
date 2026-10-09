@@ -48,7 +48,7 @@ public class SimpleProducer {
 
             SendResult sendResult = producer.send(message);
             //final Void aVoid = result.get(3000L);
-            System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
+            System.out.printf("Send sync message OK, msgId: %s%n", sendResult.messageId());
         }
 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
