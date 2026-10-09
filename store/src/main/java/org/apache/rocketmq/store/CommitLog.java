@@ -651,7 +651,7 @@ public class CommitLog implements Swappable {
                         fullMessageBuffer.limit(messageStartPos + totalSize);
                         byte[] fullMessageBytes = new byte[totalSize];
                         fullMessageBuffer.get(fullMessageBytes, 0, totalSize);
-                        
+
                         // Print full message and especially properties
                         log.warn(
                             "CommitLog#checkAndDispatchMessage: failed to check message CRC, not found CRC in properties. topic={}, properties={}, propertiesLength={}, fullMessageHex={}",
@@ -996,7 +996,26 @@ public class CommitLog implements Swappable {
         }
     }
 
+    /**
+     * Asynchronously encode and append a single message to the commit log.
+     *
+     * <p>The method:
+     * <ol>
+     *   <li>Encodes the message and validates compat flags (V1/V2, IPv6)</li>
+     *   <li>Acquires a per-topic-queue-lock for offset assignment, then the
+     *       global put-message lock for the append</li>
+     *   <li>Acquires the commitLog write lock for MappedFile writing </li>
+     *   <li>Appends to the current mapped file; if full, opens a new file
+     *       and retries</li>
+     *   <li>After the append, increments the consume queue offset and
+     *       triggers HA replication if configured</li>
+     * </ol>
+     *
+     * @param msg the message to write
+     * @return a future that completes with the append result
+     */
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
+        // format message and int context params
         // Set the storage time
         if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             msg.setStoreTimestamp(System.currentTimeMillis());
@@ -1034,6 +1053,8 @@ public class CommitLog implements Swappable {
         updateMaxMessageSize(putMessageThreadLocal);
         String topicQueueKey = generateKey(putMessageThreadLocal.getKeyBuilder(), msg);
         long elapsedTimeInLock = 0;
+
+        // locate mappedFile and get write position
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
@@ -1044,6 +1065,7 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
+        // handle HA
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
         boolean needHandleHA = needHandleHA(msg);
 
@@ -1067,7 +1089,7 @@ public class CommitLog implements Swappable {
 
         topicQueueLock.lock(topicQueueKey);
         try {
-
+            // assign consume queue offset
             boolean needAssignOffset = true;
             if (defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()
                 && defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
@@ -1077,6 +1099,7 @@ public class CommitLog implements Swappable {
                 defaultMessageStore.assignOffset(msg);
             }
 
+            // encode message and ...
             PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
             if (encodeResult != null) {
                 return CompletableFuture.completedFuture(encodeResult);
@@ -1086,6 +1109,7 @@ public class CommitLog implements Swappable {
 
             putMessageLock.lock(); //spin or ReentrantLock, depending on store config
             try {
+                // validate and init some context params
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
                 this.beginTimeInLock = beginLockTimestamp;
 
@@ -1106,7 +1130,10 @@ public class CommitLog implements Swappable {
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
 
+                // append to mappedFile
                 result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
+
+                // check result, retry if needed,
                 switch (result.getStatus()) {
                     case PUT_OK:
                         onCommitLogAppend(msg, result, mappedFile);
@@ -1142,6 +1169,7 @@ public class CommitLog implements Swappable {
                 beginTimeInLock = 0;
                 putMessageLock.unlock();
             }
+
             // Increase queue offset when messages are successfully written
             if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
                 this.defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
@@ -1152,6 +1180,7 @@ public class CommitLog implements Swappable {
             topicQueueLock.unlock(topicQueueKey);
         }
 
+        // unlock MappedFile and metrics
         if (elapsedTimeInLock > 500) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
         }
@@ -1357,6 +1386,20 @@ public class CommitLog implements Swappable {
         return true;
     }
 
+    /**
+     * Wait for both disk flush and HA replication to complete, then merge results.
+     *
+     * <p>Disk flush and HA replication run in parallel via
+     * {@link CompletableFuture#thenCombine}. If either fails, the combined
+     * result is updated with the failure status — both must succeed for
+     * the overall result to be {@code PUT_OK}.
+     *
+     * @param putMessageResult the append result to update
+     * @param messageExt       the original message (needed by flush)
+     * @param needAckNums      number of slave acks required (0/1 = no HA)
+     * @param needHandleHA     whether HA replication is configured
+     * @return a future completing with the merged result
+     */
     private CompletableFuture<PutMessageResult> handleDiskFlushAndHA(PutMessageResult putMessageResult,
         MessageExt messageExt, int needAckNums, boolean needHandleHA) {
         CompletableFuture<PutMessageStatus> flushResultFuture = handleDiskFlush(putMessageResult.getAppendMessageResult(), messageExt);
@@ -1436,6 +1479,20 @@ public class CommitLog implements Swappable {
         return -1;
     }
 
+    /**
+     * Read a message body from the commit log at the given physical offset.
+     *
+     * <p>The difference between getData is:
+     *    getMessage add process: setInCache
+     *
+     * <p>Finds the mapped file containing the offset and selects a buffer
+     * for the given size. The returned buffer includes cache-status metadata
+     * for cold-data flow control.
+     *
+     * @param offset physical offset in the commit log
+     * @param size   number of bytes to read
+     * @return the mapped buffer, or {@code null} if the file is unavailable
+     */
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
@@ -1933,6 +1990,26 @@ public class CommitLog implements Swappable {
             this.crc32ReservedLength = messageStoreConfig.isEnabledAppendPropCRC() ? CommitLog.CRC32_RESERVED_LEN : 0;
         }
 
+        /**
+         *  assign lmq offset and finalize the pre-encoded buffer
+         *  For LMQ multi-dispatch messages.
+         *
+         * <p>Steps:
+         * <ol>
+         *   <li>{@link LmqDispatch#wrapLmqDispatch} — record per-lmq offsets in
+         *   {@code INNER_MULTI_QUEUE_OFFSET} (no CommitLog write yet)</li>
+         *   <li>Serialize properties to bytes and append the properties
+         *   section (length, payload, optional separator, optional CRC32
+         *   reservation) to the pre-encoded buffer</li>
+         *   <li>Patch the total message length in the buffer's first 4 bytes</li>
+         * </ol>
+         *
+         * <p>Returns {@code null} if the message was already encoded (e.g. on
+         * the async retry path). Returns a non-null
+         * {@link AppendMessageResult} with the appropriate failure status on
+         * errors ({@code ROCKSDB_ERROR}, {@code UNKNOWN_ERROR},
+         * {@code PROPERTIES_SIZE_EXCEEDED}, {@code MESSAGE_SIZE_EXCEEDED}).
+         */
         public AppendMessageResult handlePropertiesForLmqMsg(ByteBuffer preEncodeBuffer,
             final MessageExtBrokerInner msgInner) {
             if (msgInner.isEncodeCompleted()) {
@@ -1992,6 +2069,7 @@ public class CommitLog implements Swappable {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
+            // enableLmq and has multi-dispatch property and not system topic
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
             String[] lmqQueueNames = null;
             if (isMultiDispatchMsg) {

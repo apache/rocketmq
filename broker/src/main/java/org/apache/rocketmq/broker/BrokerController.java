@@ -197,133 +197,254 @@ public class BrokerController {
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final Logger LOG_PROTECTION = LoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final Logger LOG_WATER_MARK = LoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
+    /** Minimum length for a valid HA master address. */
     protected static final int HA_ADDRESS_MIN_LENGTH = 6;
 
+    /** Broker configuration including network addresses, thread pool sizes, and feature flags. */
     protected final BrokerConfig brokerConfig;
+    /** Netty server configuration (listen port, worker threads, TLS settings). */
     private final NettyServerConfig nettyServerConfig;
+    /** Netty client configuration for outbound connections to NameServer and other brokers. */
     private final NettyClientConfig nettyClientConfig;
+    /** Message store configuration (CommitLog, ConsumeQueue, flush policy, HA). */
     protected final MessageStoreConfig messageStoreConfig;
+    /** Authentication and authorization configuration. */
     private final AuthConfig authConfig;
+    /** Manager for persisting and querying consumer offsets for cluster-mode consumption. */
     protected ConsumerOffsetManager consumerOffsetManager;
+    /** Manager for broadcast-mode consumer offsets (stored locally on the broker). */
     protected final BroadcastOffsetManager broadcastOffsetManager;
+    /** Manager for consumer group subscriptions, channels, and rebalance metadata. */
     protected final ConsumerManager consumerManager;
+    /** Manager for per-consumer-group message filter data (BloomFilter for SQL92 filter). */
     protected final ConsumerFilterManager consumerFilterManager;
+    /** Manager for Pop orderly consumption lock state and offset tracking. */
     protected final ConsumerOrderInfoManager consumerOrderInfoManager;
+    /** Counter tracking inflight Pop messages (not yet acked) per consumer group. */
     protected final PopInflightMessageCounter popInflightMessageCounter;
+    /** KV-service backed Pop consumer state (alternative to file-system ack mode). */
     protected final PopConsumerService popConsumerService;
+    /** Manager for producer channels and heartbeat-based availability tracking. */
     protected final ProducerManager producerManager;
+    /** Service for managing scheduled/delayed message delivery. */
     protected final ScheduleMessageService scheduleMessageService;
+    /** Service for detecting and cleaning up inactive client channels. */
     protected final ClientHousekeepingService clientHousekeepingService;
+    /** Processor for Pull message requests (traditional pull consumer). */
     protected final PullMessageProcessor pullMessageProcessor;
+    /** Processor for message peek (read-only preview without consuming). */
     protected final PeekMessageProcessor peekMessageProcessor;
+    /** Processor for Pop message requests (new lightweight consumer). */
     protected final PopMessageProcessor popMessageProcessor;
+    /** Processor for Pop message requests on Lite Topics. */
     protected final PopLiteMessageProcessor popLiteMessageProcessor;
+    /** Processor for Pop message ack (acknowledgment after consumption). */
     protected final AckMessageProcessor ackMessageProcessor;
+    /** Processor for changing message invisible time in Pop mode. */
     protected final ChangeInvisibleTimeProcessor changeInvisibleTimeProcessor;
+    /** Processor for push notification to consumers. */
     protected final NotificationProcessor notificationProcessor;
+    /** Processor for consumer polling info queries. */
     protected final PollingInfoProcessor pollingInfoProcessor;
+    /** Processor for querying assignment info (queue allocation for consumers). */
     protected final QueryAssignmentProcessor queryAssignmentProcessor;
+    /** Processor for producer and consumer registration/heartbeat. */
     protected final ClientManageProcessor clientManageProcessor;
+    /** Processor for Lite Topic subscription control requests. */
     protected final LiteSubscriptionCtlProcessor liteSubscriptionCtlProcessor;
+    /** Strategy for distributing LMQ queues across brokers via hash-based sharding. */
     protected final LiteSharding liteSharding;
+    /** Manager for LMQ lifecycle: creation, activation, expiration, and cleanup. */
     protected final AbstractLiteLifecycleManager liteLifecycleManager;
+    /** Registry maintaining client-to-LMQ subscription forward and reverse indexes. */
     protected final LiteSubscriptionRegistry liteSubscriptionRegistry;
+    /** Dispatcher for Lite Topic events (Pop notification with exclusivity and blacklisting). */
     protected final LiteEventDispatcher liteEventDispatcher;
+    /** Processor for LMQ management API (create, delete, check existence). */
     protected final LiteManagerProcessor liteManagerProcessor;
+    /** Processor for message send requests from producers. */
     protected final SendMessageProcessor sendMessageProcessor;
+    /** Processor for message recall requests (pull back previously delivered messages). */
     protected final RecallMessageProcessor recallMessageProcessor;
+    /** Processor for RPC reply messages (request-reply pattern). */
     protected final ReplyMessageProcessor replyMessageProcessor;
+    /** Service that holds suspended Pull requests for long-polling. */
     protected final PullRequestHoldService pullRequestHoldService;
+    /** Listener notified when new messages arrive and suspended consumers should be woken. */
     protected final MessageArrivingListener messageArrivingListener;
+    /** Client for broker-to-client communication (notify, check transaction, unsubscribe). */
     protected final Broker2Client broker2Client;
+    /** Listener for consumer group join/leave events (used for rebalance notification). */
     protected final ConsumerIdsChangeListener consumerIdsChangeListener;
+    /** Processor for transaction message commit/rollback. */
     protected final EndTransactionProcessor endTransactionProcessor;
+    /** Lock manager for consumer-side rebalance coordination. */
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
+    /** Manager for topic-level routing information caching. */
     private final TopicRouteInfoManager topicRouteInfoManager;
+    /** API client for outbound communication with NameServer, other Brokers, and Controllers. */
     protected BrokerOuterAPI brokerOuterAPI;
+    /** Scheduled executor for generic periodic tasks (stats recording, offset persistence). */
     protected ScheduledExecutorService scheduledExecutorService;
+    /** Scheduled executor for syncing broker member group information. */
     protected ScheduledExecutorService syncBrokerMemberGroupExecutorService;
+    /** Scheduled executor for broker-to-NameServer heartbeats. */
     protected ScheduledExecutorService brokerHeartbeatExecutorService;
+    /** Service for syncing configuration from master to slave. */
     protected final SlaveSynchronize slaveSynchronize;
+    /** Queue for buffering SendMessageProcessor requests. */
     protected final BlockingQueue<Runnable> sendThreadPoolQueue;
+    /** Queue for buffering async put-message future completions. */
     protected final BlockingQueue<Runnable> putThreadPoolQueue;
+    /** Queue for buffering AckMessageProcessor requests. */
     protected final BlockingQueue<Runnable> ackThreadPoolQueue;
+    /** Queue for buffering PullMessageProcessor requests. */
     protected final BlockingQueue<Runnable> pullThreadPoolQueue;
+    /** Queue for buffering PopLiteMessageProcessor requests. */
     protected final BlockingQueue<Runnable> litePullThreadPoolQueue;
+    /** Queue for buffering ReplyMessageProcessor requests. */
     protected final BlockingQueue<Runnable> replyThreadPoolQueue;
+    /** Queue for buffering QueryMessageProcessor requests. */
     protected final BlockingQueue<Runnable> queryThreadPoolQueue;
+    /** Queue for buffering ClientManageProcessor requests. */
     protected final BlockingQueue<Runnable> clientManagerThreadPoolQueue;
+    /** Queue for buffering heartbeat processing requests. */
     protected final BlockingQueue<Runnable> heartbeatThreadPoolQueue;
+    /** Queue for buffering ConsumerManageProcessor requests. */
     protected final BlockingQueue<Runnable> consumerManagerThreadPoolQueue;
+    /** Queue for buffering EndTransactionProcessor requests. */
     protected final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
+    /** Queue for buffering AdminBrokerProcessor requests. */
     protected final BlockingQueue<Runnable> adminBrokerThreadPoolQueue;
+    /** Queue for buffering load balance requests. */
     protected final BlockingQueue<Runnable> loadBalanceThreadPoolQueue;
+    /** Broker statistics manager (TpsStats, latency distribution, queue-level metrics). */
     protected BrokerStatsManager brokerStatsManager;
+    /** Hooks for intercepting message send events (tracing, auditing). */
     protected final List<SendMessageHook> sendMessageHookList = new ArrayList<>();
+    /** Hooks for intercepting message consume events (tracing, auditing). */
     protected final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+    /** Core message store interface (CommitLog plus ConsumeQueue). */
     protected MessageStore messageStore;
+    /** Remoting server identifier for the main TCP server. */
     protected static final String TCP_REMOTING_SERVER = "TCP_REMOTING_SERVER";
+    /** Remoting server identifier for the fast server (port -2). */
     protected static final String FAST_REMOTING_SERVER = "FAST_REMOTING_SERVER";
+    /** Map of server name to RemotingServer instances (TCP and FAST). */
     protected final Map<String, RemotingServer> remotingServerMap = new ConcurrentHashMap<>();
+    /** Latch used to coordinate the startup of remoting servers. */
     protected CountDownLatch remotingServerStartLatch;
     /**
      * If {Topic, SubscriptionGroup, Offset}ManagerV2 are used, config entries are stored in RocksDB.
      */
     protected ConfigStorage configStorage;
+    /** Manager for topic configuration (create, update, delete topics). */
     protected TopicConfigManager topicConfigManager;
+    /** Manager for subscription group configuration (create, update, delete groups). */
     protected SubscriptionGroupManager subscriptionGroupManager;
+    /** Manager for static topic queue-to-broker mappings. */
     protected TopicQueueMappingManager topicQueueMappingManager;
+    /** Executor for SendMessageProcessor. */
     protected ExecutorService sendMessageExecutor;
+    /** Executor for PullMessageProcessor. */
     protected ExecutorService pullMessageExecutor;
+    /** Executor for PopLiteMessageProcessor. */
     protected ExecutorService litePullMessageExecutor;
+    /** Executor for async put-message future completions. */
     protected ExecutorService putMessageFutureExecutor;
+    /** Executor for AckMessageProcessor. */
     protected ExecutorService ackMessageExecutor;
+    /** Executor for ReplyMessageProcessor. */
     protected ExecutorService replyMessageExecutor;
+    /** Executor for QueryMessageProcessor. */
     protected ExecutorService queryMessageExecutor;
+    /** Executor for AdminBrokerProcessor. */
     protected ExecutorService adminBrokerExecutor;
+    /** Executor for ClientManageProcessor. */
     protected ExecutorService clientManageExecutor;
+    /** Executor for heartbeat processing. */
     protected ExecutorService heartbeatExecutor;
+    /** Executor for ConsumerManageProcessor. */
     protected ExecutorService consumerManageExecutor;
+    /** Executor for load balance processing. */
     protected ExecutorService loadBalanceExecutor;
+    /** Executor for EndTransactionProcessor. */
     protected ExecutorService endTransactionExecutor;
+    /** Whether to periodically update the master HA address (auto-detect or fixed). */
     protected boolean updateMasterHAServerAddrPeriodically = false;
+    /** Broker stats utility wrapping DefaultMessageStore for metric queries. */
     private BrokerStats brokerStats;
+    /** InetSocketAddress of the store (used for msgId generation). */
     private InetSocketAddress storeHost;
+    /** Timer message store for precise delayed messages. */
     private TimerMessageStore timerMessageStore;
+    /** Timer message store backed by RocksDB. */
     private TimerMessageRocksDBStore timerMessageRocksDBStore;
+    /** Transaction message store backed by RocksDB. */
     private TransMessageRocksDBStore transMessageRocksDBStore;
+    /** Checkpoint for timer wheel position recovery. */
     private TimerCheckpoint timerCheckpoint;
+    /** Service for fast-failing requests when queue wait times exceed thresholds. */
     protected BrokerFastFailure brokerFastFailure;
+    /** Configuration loader for broker properties file. */
     private Configuration configuration;
+    /** Background service that cleans up stale static topic queue mappings. */
     protected TopicQueueMappingCleanService topicQueueMappingCleanService;
+    /** File watcher for detecting changes to broker configuration file. */
     protected FileWatchService fileWatchService;
+    /** Service that periodically scans half-messages for transaction status checking. */
     protected TransactionalMessageCheckService transactionalMessageCheckService;
+    /** Interface for transactional message storage (queue-file or RocksDB backend). */
     protected TransactionalMessageService transactionalMessageService;
+    /** Listener for processing half-message check results (resolve/discard). */
     protected AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
+    /** RocksDB-backed implementation of transactional message service. */
     protected TransactionalMessageRocksDBService transactionalMessageRocksDBService;
+    /** Flag indicating the broker is in shutdown process. */
     protected volatile boolean shutdown = false;
+    /** Hook for custom shutdown logic invoked during broker termination. */
     protected ShutdownHook shutdownHook;
+    /** Whether the schedule message service has been started. */
     private volatile boolean isScheduleServiceStart = false;
+    /** Whether the transaction check service has been started. */
     private volatile boolean isTransactionCheckServiceStart = false;
+    /** Broker member group information for controller-based HA. */
     protected volatile BrokerMemberGroup brokerMemberGroup;
+    /** Bridge for escaping messages from slave to master during failover. */
     protected EscapeBridge escapeBridge;
+    /** List of broker attached plugins loaded via SPI. */
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
+    /** Timestamp when the broker should start accepting requests. */
     protected volatile long shouldStartTime;
+    /** Service for pre-online verification before broker starts serving traffic. */
     private BrokerPreOnlineService brokerPreOnlineService;
+    /** Whether this broker is in isolated mode (suspended from the cluster). */
     protected volatile boolean isIsolated = false;
+    /** Minimum broker ID in the group (used in controller election). */
     protected volatile long minBrokerIdInGroup = 0;
+    /** Address of the broker with the minimum ID in the group. */
     protected volatile String minBrokerAddrInGroup = null;
+    /** Reentrant lock for synchronized broker operations. */
     private final Lock lock = new ReentrantLock();
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
+    /** Manager for broker replicas in controller-based HA mode. */
     protected ReplicasManager replicasManager;
+    /** Timestamp of the last configuration sync (used by slave). */
     private long lastSyncTimeMs = System.currentTimeMillis();
+    /** Broker metrics manager for Prometheus/OTel telemetry. */
     protected BrokerMetricsManager brokerMetricsManager;
+    /** Service that holds suspended pull requests for cold data. */
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
+    /** Service for cold data consumer group control. */
     private ColdDataCgCtrService coldDataCgCtrService;
+    /** Service for periodic flushing of transaction message metrics. */
     private TransactionMetricsFlushService transactionMetricsFlushService;
+    /** Manager for authentication metadata (users, roles). */
     private AuthenticationMetadataManager authenticationMetadataManager;
+    /** Manager for authorization metadata (ACL policies). */
     private AuthorizationMetadataManager authorizationMetadataManager;
 
+    /** Context for broker configuration (used in broker container mode). */
     private ConfigContext configContext;
 
     public BrokerController(
@@ -377,20 +498,26 @@ public class BrokerController {
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
+
+        // V2: ConfigStorage — RocksDB with version header for forward-compatible migration
+        // V2 is recommended, especially for LMQ, which has a lot of data
         if (ConfigManagerVersion.V2.getVersion().equals(brokerConfig.getConfigManagerVersion())) {
             this.configStorage = new ConfigStorage(messageStoreConfig);
             this.topicConfigManager = new TopicConfigManagerV2(this, configStorage);
             this.subscriptionGroupManager = new SubscriptionGroupManagerV2(this, configStorage);
             this.consumerOffsetManager = new ConsumerOffsetManagerV2(this, configStorage);
+        // V1 + RocksDB: use RocksDB as KV store but still V1 data format
         } else if (this.messageStoreConfig.isEnableRocksDBStore()) {
             this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
             this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
             this.consumerOffsetManager = new RocksDBConsumerOffsetManager(this);
+        // V1 traditional: JSON file persistence
         } else {
             this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
             this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
             this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
         }
+
         this.topicQueueMappingManager = new TopicQueueMappingManager(this);
         this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
         this.authorizationMetadataManager = AuthorizationFactory.getMetadataManager(this.authConfig);
@@ -1027,6 +1154,17 @@ public class BrokerController {
         return result;
     }
 
+    /**
+     * Register pre-put hooks and the send-message-back hook into the message
+     * store. The hooks are executed in order before every {@code putMessage}:
+     * <ol>
+     *   <li>{@code checkBeforePutMessage} — validate topic, body, and queue</li>
+     *   <li>{@code innerBatchChecker} — process inner-batch envelope messages</li>
+     *   <li>{@code handleScheduleMessage} — convert delayed messages into
+     *   timer-queue entries</li>
+     *   <li>{@code handleLmqQuota} — enforce light message queue quota</li>
+     * </ol>
+     */
     public void registerMessageStoreHook() {
         List<PutMessageHook> putMessageHookList = messageStore.getPutMessageHookList();
 

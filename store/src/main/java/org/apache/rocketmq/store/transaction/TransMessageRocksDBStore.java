@@ -48,6 +48,20 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.rocksdb.RocksDBException;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TRANS_COLUMN_FAMILY;
 
+/**
+ * RocksDB-based transactional half-message index store.
+ *
+ * <p>Replaces the CommitLog-based HALF/OP Topic approach with a RocksDB
+ * column family ({@link MessageRocksDBStorage#TRANS_COLUMN_FAMILY}). When
+ * a half or OP message is dispatched from the CommitLog, this store builds
+ * an index entry (or tombstone) in RocksDB, enabling O(1) state lookups
+ * during transaction check-back instead of scanning HALF/OP queues.
+ *
+ * <p>Index building is asynchronous: {@link #buildTransIndex} enqueues
+ * {@link TransRocksDBRecord}s into a bounded blocking queue, and a
+ * background {@link TransIndexBuildService} batches them into RocksDB
+ * writes.
+ */
 public class TransMessageRocksDBStore implements CommitLogDispatchStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
@@ -64,8 +78,29 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
     private final MessageRocksDBStorage messageRocksDBStorage;
     private final BrokerStatsManager brokerStatsManager;
     private final SocketAddress storeHost;
+    // Thread-local buffer for reading messages from CommitLog, grown on demand
     private ThreadLocal<ByteBuffer> bufferLocal = null;
     private TransIndexBuildService transIndexBuildService;
+    /**
+     * In-memory staging queue between the CommitLog dispatch thread
+     * and the {@link TransIndexBuildService} background writer.
+     *
+     * <p>This is a bounded {@link LinkedBlockingDeque} (capacity {@value #DEFAULT_CAPACITY})
+     * holding {@link TransRocksDBRecord}s that have been produced by {@link #buildTransIndex}
+     * but not yet flushed to RocksDB.
+     * Decoupling the two stages lets the hot dispatch path enqueue in O(1)
+     * without blocking on RocksDB write latency,
+     * while the background service drains records in batches ({@link #BATCH_SIZE} at a time)
+     * for a single {@code writeRecordsForTrans} call.
+     *
+     * <p>Boundedness provides back-pressure: when the queue is full,
+     * {@link #buildTransIndex} blocks in {@code offer(record, 3, SECONDS)} and keeps retrying,
+     * trading a slow dispatch thread for guaranteed delivery of transaction index records (no silent drop).
+     *
+     * <p>The {@link TransIndexBuildService} continues draining this queue
+     * even after shutdown is requested,
+     * so every enqueued record is eventually written before the broker exits.
+     */
     protected BlockingQueue<TransRocksDBRecord> originTransMsgQueue;
 
     public TransMessageRocksDBStore(final MessageStore messageStore, final BrokerStatsManager brokerStatsManager, final SocketAddress storeHost) {
@@ -103,7 +138,20 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         log.info("TransMessageRocksDBStore shutdown success");
     }
 
+    /**
+     * CommitLog dispatch hook: build a transaction index record for half or OP messages.
+     *
+     * <p>Skips records whose CommitLog offset is already covered by the RocksDB
+     * {@code lastOffsetPy} watermark (idempotent on re-dispatch).
+     *
+     * <p>For {@code RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC}: creates a half-message
+     * record (offsetPy, topic, uniqKey, size, checkTimes=0).
+     * For {@code RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC}: creates a tombstone
+     * record referencing the half-message's offset via
+     * {@code PROPERTY_TRANS_OFFSET}.
+     */
     public void buildTransIndex(DispatchRequest dispatchRequest) {
+        // validate request and init context params
         if (null == dispatchRequest || dispatchRequest.getCommitLogOffset() < 0L || dispatchRequest.getMsgSize() <= 0 || state != RUNNING || null == this.originTransMsgQueue) {
             logError.error("TransMessageRocksDBStore buildTransIndex error, dispatchRequest: {}, state: {}, originTransMsgQueue: {}", dispatchRequest, state, originTransMsgQueue);
             return;
@@ -119,6 +167,8 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         int reqMsgSize = dispatchRequest.getMsgSize();
         try {
             MessageExt msgInner = getMessage(reqOffsetPy, reqMsgSize);
+
+            // parse and validate msgInner
             if (null == msgInner) {
                 logError.error("TransMessageRocksDBStore buildTransIndex error, msgInner is not found, reqOffsetPy: {}, reqMsgSize: {}", reqOffsetPy, reqMsgSize);
                 return;
@@ -131,6 +181,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
             }
             TransRocksDBRecord transRocksDBRecord = null;
             String reqTopic = dispatchRequest.getTopic();
+
             if (TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC.equals(reqTopic)) {
                 transRocksDBRecord = new TransRocksDBRecord(reqOffsetPy, topic, uniqKey, reqMsgSize, 0);
             } else if (TopicValidator.RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC.equals(reqTopic)) {
@@ -148,6 +199,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
                     logError.error("TransMessageRocksDBStore buildTransIndex error, transOffsetPy: {}, error: {}", transOffsetPy, e.getMessage());
                 }
             }
+
             if (null != transRocksDBRecord) {
                 while (!originTransMsgQueue.offer(transRocksDBRecord, 3, TimeUnit.SECONDS)) {
                     if (System.currentTimeMillis() % 1000 == 0) {
@@ -160,6 +212,13 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         }
     }
 
+    /**
+     * Persist an OP (commit/rollback) message to CommitLog. The message is
+     * written to {@code RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC} with
+     * {@code PROPERTY_TRANS_OFFSET} pointing back to the half message's
+     * commitLog offset. When the CommitLog dispatcher processes it,
+     * {@link #buildTransIndex} converts it into a RocksDB tombstone delete.
+     */
     public void deletePrepareMessage(MessageExt messageExt) {
         if (null == messageExt) {
             logError.error("TransMessageRocksDBStore deletePrepareMessage error, messageExt is null");
@@ -214,6 +273,13 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         return messageRocksDBStorage;
     }
 
+    /**
+     * Build an OP message for the RocksDB trans OP half topic.
+     *
+     * <p>Body is a single fill byte (actual data is in properties).
+     * {@code PROPERTY_TRANS_OFFSET} carries the half message's commitLog
+     * offset so {@link #buildTransIndex} can issue a RocksDB delete.
+     */
     private MessageExtBrokerInner makeOpMessageInner(MessageExt messageExt) {
         if (null == messageExt) {
             logError.error("TransMessageRocksDBStore makeOpMessageInner messageExt is null");
@@ -246,6 +312,11 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         }
     }
 
+    /**
+     * Look up how many times a half message has been checked by the
+     * transaction checker. Returns null if the record does not exist
+     * (e.g. already committed/rolled back or never indexed).
+     */
     public Integer getCheckTimes(String topic, String uniqKey, Long offsetPy) {
         if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(uniqKey) || null == offsetPy || offsetPy < 0L) {
             return null;
@@ -262,6 +333,13 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         }
     }
 
+    /**
+     * Called during CommitLog recovery to decide whether a mapped file's
+     * data has already been indexed in RocksDB.
+     *
+     * @return true if the file's phyOffset is covered by the trans column
+     *         family's lastOffsetPy watermark, meaning no re-dispatch needed.
+     */
     public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
         boolean recoverNormally) throws RocksDBException {
         if (!storeConfig.isTransRocksDBEnable()) {
@@ -287,6 +365,14 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         return brokerIdentifier;
     }
 
+    /**
+     * Background service that drains {@link #originTransMsgQueue} in batches
+     * and writes them to the trans column family via
+     * {@link MessageRocksDBStorage#writeRecordsForTrans}.
+     *
+     * <p>Polls up to {@link #BATCH_SIZE} records per iteration. Continues
+     * draining even after shutdown is requested to avoid data loss.
+     */
     public class TransIndexBuildService extends ServiceThread {
         private final Logger log = TransMessageRocksDBStore.log;
         private List<TransRocksDBRecord> trs;
@@ -345,6 +431,11 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         }
     }
 
+    /**
+     * Returns the starting CommitLog phy offset from which dispatch should
+     * resume after a restart. Reads the {@code lastOffsetPy} watermark from
+     * the trans column family.
+     */
     @Override
     public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
         if (!storeConfig.isTransRocksDBEnable()) {

@@ -21,24 +21,62 @@ import com.alibaba.fastjson2.annotation.JSONField;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * state check info for multi-messages pop from consume queue
+ */
 public class PopCheckPoint implements Comparable<PopCheckPoint> {
     @JSONField(name = "so")
     private long startOffset;
+    /**
+     * pop time, which is the time when message is popped
+     * reviveTime = popTime + invisibleTime
+     */
     @JSONField(name = "pt")
     private long popTime;
+    /**
+     * the invisible time of messages
+     * default is 60s, it can be changed by MQ client
+     */
     @JSONField(name = "it")
     private long invisibleTime;
+    /**
+     * store ack states of messages
+     * one byte for each message
+     */
     @JSONField(name = "bm")
     private int bitMap;
+    /**
+     * total number of messages
+     */
     @JSONField(name = "n")
     private byte num;
     @JSONField(name = "q")
     private int queueId;
     @JSONField(name = "t")
     private String topic;
+    /**
+     * consumer group
+     */
     private String cid;
+    /**
+     * revive offset, which is the consume queue offset of messageExt
+     */
     @JSONField(name = "ro")
     private long reviveOffset;
+    /**
+     * Per-message offset differences from {@link #startOffset}.
+     * queueOffsetDiff will not be null or empty in 5.*
+     *
+     * <p>When a batch of messages is popped, the queue offsets of the messages may not
+     * be contiguous (e.g. batch messages, ConsumeQueue compaction, filter mismatch gaps).
+     * This list records {@code actualQueueOffset - startOffset} for each message in the
+     * batch, so that the system can correctly map an ack offset back to its index within
+     * the checkpoint via {@link #indexOfAck}, and reconstruct the original offset via
+     * {@link #ackOffsetByIndex}.
+     *
+     * <p>When this field is null or empty (old-version CK), offsets are assumed to be
+     * {@code startOffset + index}.
+     */
     @JSONField(name = "d")
     private List<Integer> queueOffsetDiff;
     @JSONField(name = "bn")
@@ -165,12 +203,23 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         this.queueOffsetDiff.add(diff);
     }
 
+    /**
+     * Map an ack offset to its index within the checkpoint batch.
+     *
+     * <p>The index is used to look up the corresponding bit in the {@link #bitMap}
+     * (or in {@code PopCheckPointWrapper.bits}) and to retrieve the original
+     * queue offset via {@link #ackOffsetByIndex}.
+     *
+     * @param ackOffset the queue offset being acked
+     * @return the sub-message index (0-based), or -1 if the offset is not found
+     *         in this checkpoint
+     */
     public int indexOfAck(long ackOffset) {
         if (ackOffset < startOffset) {
             return -1;
         }
 
-        // old version of checkpoint
+        // old version of checkpoint, this will not happen in 5.*
         if (queueOffsetDiff == null || queueOffsetDiff.isEmpty()) {
 
             if (ackOffset - startOffset < num) {
@@ -184,8 +233,16 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         return queueOffsetDiff.indexOf((int) (ackOffset - startOffset));
     }
 
+    /**
+     * get original queue offset by index.
+     * the method name is miss-leading, it should be getQueueOffsetByIndex.
+     * queueOffset  = startOffset + queueOffsetDiff[index]
+     *
+     * @param index sub-message index within this checkpoint (0-based)
+     * @return the original queue offset in the consume queue
+     */
     public long ackOffsetByIndex(byte index) {
-        // old version of checkpoint
+        // old version of checkpoint, this will not happen in 5.*
         if (queueOffsetDiff == null || queueOffsetDiff.isEmpty()) {
             return startOffset + index;
         }

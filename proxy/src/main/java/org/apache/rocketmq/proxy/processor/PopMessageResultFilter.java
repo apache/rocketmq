@@ -26,6 +26,7 @@ public interface PopMessageResultFilter {
         TO_DLQ,
         NO_MATCH,
         MATCH,
+        // useless for now(2026)
         TO_RETURN
     }
 

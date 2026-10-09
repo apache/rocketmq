@@ -188,6 +188,13 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         consumeQueue.correctMinOffset(minCommitLogOffset);
     }
 
+    /**
+     * consume queue api from commitLog dispatching, the process is below:
+     * ReputMessageService -> messageStore.doDispatch() -> CommitLogDispatcherBuildConsumeQueue.dispatch()
+     * enqueueMessage may be a better name
+     *
+     * @param dispatchRequest DispatchRequest create by ReputMessageService
+     */
     public void putMessagePositionInfoWrapper(DispatchRequest dispatchRequest) {
         ConsumeQueueInterface cq = this.findOrCreateConsumeQueue(dispatchRequest.getTopic(), dispatchRequest.getQueueId());
         this.putMessagePositionInfoWrapper(cq, dispatchRequest);
