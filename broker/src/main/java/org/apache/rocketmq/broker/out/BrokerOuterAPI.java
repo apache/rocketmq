@@ -159,14 +159,35 @@ import org.apache.rocketmq.store.timer.TimerMetrics;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
 
+/**
+ * Outbound RPC client for the broker.
+ *
+ * <p>Although a broker is normally the <em>server</em> for producers and
+ * consumers, it also plays the <em>client</em> role when talking to the
+ * NameServer (registration / heartbeat / route query), to other brokers
+ * (HA info exchange, config pull), and to the DLedger controller
+ * (master election, replica info). This class wraps that outbound traffic
+ * behind a single {@link RemotingClient}.
+ *
+ * <p>Multi-NameServer operations are fanned out concurrently via
+ * {@link #brokerOuterExecutor} and joined with a {@link CountDownLatch};
+ * large config pulls are paged and guarded by a {@code DataVersion} to
+ * detect concurrent changes.
+ */
 public class BrokerOuterAPI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    /** Netty remoting client used for all outbound invocations. */
     private final RemotingClient remotingClient;
+    /** Resolves the NameServer address list from the default web-service endpoint. */
     private final TopAddressing topAddressing = new DefaultTopAddressing(MixAll.getWSAddr());
+    /** Dedicated executor for fanned-out, one-way name-server/controller tasks. */
     private final ExecutorService brokerOuterExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("brokerOutApi_thread_", true));
+    /** Cached cluster metadata (broker/queue addressing) refreshed from the cluster. */
     private final ClientMetadata clientMetadata;
+    /** Higher-level RPC facade built on top of {@link #remotingClient}. */
     private final RpcClient rpcClient;
+    /** Last-known NameServer address string, used to detect address changes. */
     private String nameSrvAddr = null;
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, AuthConfig authConfig) {
@@ -445,6 +466,14 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * Register this broker with every NameServer in parallel.
+     *
+     * <p>Each NameServer is contacted concurrently through
+     * {@link #brokerOuterExecutor}; a {@link CountDownLatch} sized to the
+     * number of name servers bounds the total wait to {@code timeoutMills}.
+     * Results are accumulated into a thread-safe {@link CopyOnWriteArrayList}.
+     */
     public List<RegisterBrokerResult> registerBrokerAll(
         final String clusterName,
         final String brokerAddr,
@@ -767,6 +796,15 @@ public class BrokerOuterAPI {
         return changedList;
     }
 
+    /**
+     * Page through all topic configs from a broker.
+     *
+     * <p>Configs are fetched in pages keyed by {@code topicSeq}. A
+     * {@link DataVersion} snapshot guards against concurrent modification:
+     * if the version changes mid-pagination, the accumulated result is
+     * cleared and the loop restarts from {@code seq = 0}. Old servers that
+     * do not report {@code totalTopicNum} return everything in one page.
+     */
     public TopicConfigAndMappingSerializeWrapper getAllTopicConfig(final String addr)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         InterruptedException, MQBrokerException, RemotingCommandException {
@@ -919,10 +957,16 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
+    /**
+     * Page through all subscription group configs from a broker.
+     *
+     * <p>Mirrors {@link #getAllTopicConfig}: pages keyed by {@code groupSeq}
+     * with a {@link DataVersion} snapshot to restart pagination on concurrent
+     * change. Also accumulates the per-group forbidden-client table.
+     */
     public SubscriptionGroupWrapper getAllSubscriptionGroupConfig(final String addr)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException, RemotingCommandException {
-
         long timeoutMills = getTimeoutMillis();
         DataVersion currentDataVersion = null;
         int groupSeq = 0;
