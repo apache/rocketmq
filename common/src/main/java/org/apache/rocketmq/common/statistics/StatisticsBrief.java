@@ -112,7 +112,7 @@ public class StatisticsBrief {
         }
 
         int tmp = 0;
-        for (int i = counts.length - 1; i > 0; i--) {
+        for (int i = counts.length - 1; i >= 0; i--) {
             tmp += counts[i].get();
             if (tmp > excludes) {
                 return Math.min(getSlotTPValue(i), getMax());
