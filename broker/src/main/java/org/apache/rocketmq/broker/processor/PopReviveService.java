@@ -341,7 +341,9 @@ public class PopReviveService extends ServiceThread {
         long consumeOffset = this.brokerController.getConsumerOffsetManager().queryOffset(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId);
         long oldOffset = Math.max(reviveOffset, consumeOffset);
         consumeReviveObj.oldOffset = oldOffset;
-        POP_LOGGER.info("reviveQueueId={}, old offset is {} ", queueId, oldOffset);
+        if (brokerController.getBrokerConfig().isEnablePopLog()) {
+            POP_LOGGER.info("reviveQueueId={}, old offset is {} ", queueId, oldOffset);
+        }
         long offset = oldOffset + 1;
         int noMsgCount = 0;
         long firstRt = 0;
@@ -495,10 +497,12 @@ public class PopReviveService extends ServiceThread {
 
     protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
         ArrayList<PopCheckPoint> sortList = consumeReviveObj.genSortList();
-        POP_LOGGER.info("reviveQueueId={}, ck listSize={}", queueId, sortList.size());
-        if (sortList.size() != 0) {
-            POP_LOGGER.info("reviveQueueId={}, 1st ck, startOffset={}, reviveOffset={}; last ck, startOffset={}, reviveOffset={}", queueId, sortList.get(0).getStartOffset(),
-                sortList.get(0).getReviveOffset(), sortList.get(sortList.size() - 1).getStartOffset(), sortList.get(sortList.size() - 1).getReviveOffset());
+        if (brokerController.getBrokerConfig().isEnablePopLog()) {
+            POP_LOGGER.info("reviveQueueId={}, ck listSize={}", queueId, sortList.size());
+            if (!sortList.isEmpty()) {
+                POP_LOGGER.info("reviveQueueId={}, 1st ck, startOffset={}, reviveOffset={}; last ck, startOffset={}, reviveOffset={}", queueId, sortList.get(0).getStartOffset(),
+                    sortList.get(0).getReviveOffset(), sortList.get(sortList.size() - 1).getStartOffset(), sortList.get(sortList.size() - 1).getReviveOffset());
+            }
         }
         long newOffset = consumeReviveObj.oldOffset;
         for (PopCheckPoint popCheckPoint : sortList) {
@@ -663,7 +667,9 @@ public class PopReviveService extends ServiceThread {
                 }
                 this.waitForRunning(brokerController.getBrokerConfig().getReviveInterval());
                 if (!shouldRunPopRevive) {
-                    POP_LOGGER.info("skip start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+                    if (brokerController.getBrokerConfig().isEnablePopLog()) {
+                        POP_LOGGER.info("skip start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+                    }
                     continue;
                 }
 
@@ -672,7 +678,9 @@ public class PopReviveService extends ServiceThread {
                     continue;
                 }
 
-                POP_LOGGER.info("start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+                if (brokerController.getBrokerConfig().isEnablePopLog()) {
+                    POP_LOGGER.info("start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+                }
                 ConsumeReviveObj consumeReviveObj = new ConsumeReviveObj();
                 consumeReviveMessage(consumeReviveObj);
 
@@ -693,11 +701,15 @@ public class PopReviveService extends ServiceThread {
                     currentReviveMessageTimestamp = System.currentTimeMillis();
                 }
 
-                POP_LOGGER.info("reviveQueueId={}, revive finish,old offset is {}, new offset is {}, ckDelay={}  ",
-                    queueId, consumeReviveObj.oldOffset, consumeReviveObj.newOffset, delay);
+                if (brokerController.getBrokerConfig().isEnablePopLog()) {
+                    POP_LOGGER.info("reviveQueueId={}, revive finish,old offset is {}, new offset is {}, ckDelay={}  ",
+                        queueId, consumeReviveObj.oldOffset, consumeReviveObj.newOffset, delay);
+                }
 
                 if (sortList == null || sortList.isEmpty()) {
-                    POP_LOGGER.info("reviveQueueId={}, has no new msg, take a rest {}", queueId, slow);
+                    if (brokerController.getBrokerConfig().isEnablePopLog()) {
+                        POP_LOGGER.info("reviveQueueId={}, has no new msg, take a rest {}", queueId, slow);
+                    }
                     this.waitForRunning(slow * brokerController.getBrokerConfig().getReviveInterval());
                     if (slow < brokerController.getBrokerConfig().getReviveMaxSlow()) {
                         slow++;
