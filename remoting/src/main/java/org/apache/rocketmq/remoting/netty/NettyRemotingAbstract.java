@@ -784,7 +784,7 @@ public abstract class NettyRemotingAbstract {
             while (!this.isStopped()) {
                 try {
                     NettyEvent event = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
-                    if (event != null && listener != null) {
+                    if (event != null && event.getType() != null && listener != null) {
                         switch (event.getType()) {
                             case IDLE:
                                 listener.onChannelIdle(event.getRemoteAddr(), event.getChannel());
@@ -812,6 +812,14 @@ public abstract class NettyRemotingAbstract {
             }
 
             log.info(this.getServiceName() + " service end");
+        }
+
+        @Override
+        public void shutdown(final boolean interrupt) {
+            // wake up the thread blocked on eventQueue.poll() so it observes the stopped flag
+            // immediately instead of waiting for the next poll timeout
+            this.eventQueue.offer(new NettyEvent(null, null, null));
+            super.shutdown(interrupt);
         }
 
         @Override
