@@ -311,6 +311,9 @@ public class CommitLog implements Swappable {
                 bufferResultList.add(bufferResult);
                 remainSize -= readSize;
                 startOffset += readSize;
+            } else {
+                log.warn("getBulkData: can not find mapped file by offset, break to avoid infinite loop. offset: {}, size: {}", startOffset, remainSize);
+                break;
             }
         }
 

@@ -253,8 +253,8 @@ public class Broker2Client {
                 requestHeader);
 
         Map<String, Map<MessageQueue, Long>> consumerStatusTable = new HashMap<>();
-        ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
-            this.brokerController.getConsumerManager().getConsumerGroupInfo(group).getChannelInfoTable();
+        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(group);
+        ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable = consumerGroupInfo == null ? null : consumerGroupInfo.getChannelInfoTable();
         if (null == channelInfoTable || channelInfoTable.isEmpty()) {
             result.setCode(ResponseCode.SYSTEM_ERROR);
             result.setRemark(String.format("No Any Consumer online in the consumer group: [%s]", group));
