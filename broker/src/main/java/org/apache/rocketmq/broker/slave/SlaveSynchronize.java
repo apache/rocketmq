@@ -17,7 +17,8 @@
 package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -87,14 +88,13 @@ public class SlaveSynchronize {
                     ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigManager.getTopicConfigTable();
 
                     //delete
-                    Iterator<Map.Entry<String, TopicConfig>> iterator = topicConfigTable.entrySet().iterator();
-                    while (iterator.hasNext()) {
-                        Map.Entry<String, TopicConfig> entry = iterator.next();
+                    List<String> toRemoveTopic = new ArrayList<>();
+                    for (Map.Entry<String, TopicConfig> entry : topicConfigTable.entrySet()) {
                         if (!newTopicConfigTable.containsKey(entry.getKey())) {
-                            iterator.remove();
-                            topicConfigManager.deleteTopicConfig(entry.getKey());
+                            toRemoveTopic.add(entry.getKey());
                         }
                     }
+                    toRemoveTopic.forEach(topicConfigManager::deleteTopicConfig);
 
                     //update
                     newTopicConfigTable.values().forEach(topicConfigManager::putTopicConfig);
@@ -181,14 +181,14 @@ public class SlaveSynchronize {
                     ConcurrentMap<String, SubscriptionGroupConfig> newSubscriptionGroupTable =
                             subscriptionWrapper.getSubscriptionGroupTable();
                     // delete
-                    Iterator<Map.Entry<String, SubscriptionGroupConfig>> iterator = curSubscriptionGroupTable.entrySet().iterator();
-                    while (iterator.hasNext()) {
-                        Map.Entry<String, SubscriptionGroupConfig> configEntry = iterator.next();
+                    List<String> toRemoveSubscriptionGroup = new ArrayList<>();
+                    for (Map.Entry<String, SubscriptionGroupConfig> configEntry : curSubscriptionGroupTable.entrySet()) {
                         if (!newSubscriptionGroupTable.containsKey(configEntry.getKey())) {
-                            iterator.remove();
-                            subscriptionGroupManager.deleteSubscriptionGroupConfig(configEntry.getKey());
+                            toRemoveSubscriptionGroup.add(configEntry.getKey());
                         }
                     }
+                    toRemoveSubscriptionGroup.forEach(subscriptionGroupManager::deleteSubscriptionGroupConfig);
+
                     // update
                     newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::putSubscriptionGroupConfig);
                     subscriptionGroupManager.setDataVersion(subscriptionWrapper.getDataVersion());
