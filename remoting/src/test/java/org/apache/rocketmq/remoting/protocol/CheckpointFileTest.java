@@ -85,6 +85,14 @@ public class CheckpointFileTest {
     }
 
     @Test
+    public void testEmptyCheckpointOverridesOldState() throws IOException {
+        this.checkpoint.write(entryList);
+        this.checkpoint.write(new ArrayList<>());
+
+        Assert.assertTrue(checkpoint.read().isEmpty());
+    }
+
+    @Test
     public void testAbNormalWriteAndRead() throws IOException {
         this.checkpoint.write(entryList);
         UtilAll.deleteFile(new File(FILE_PATH));
