@@ -23,6 +23,7 @@ import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 
 public class ProxyAuthorizationMetadataProvider implements AuthorizationMetadataProvider {
@@ -46,17 +47,17 @@ public class ProxyAuthorizationMetadataProvider implements AuthorizationMetadata
 
     @Override
     public CompletableFuture<Void> createAcl(Acl acl) {
-        return null;
+        return unsupported("createAcl");
     }
 
     @Override
     public CompletableFuture<Void> deleteAcl(Subject subject) {
-        return null;
+        return unsupported("deleteAcl");
     }
 
     @Override
     public CompletableFuture<Void> updateAcl(Acl acl) {
-        return null;
+        return unsupported("updateAcl");
     }
 
     @Override
@@ -66,6 +67,11 @@ public class ProxyAuthorizationMetadataProvider implements AuthorizationMetadata
 
     @Override
     public CompletableFuture<List<Acl>> listAcl(String subjectFilter, String resourceFilter) {
-        return null;
+        return unsupported("listAcl");
+    }
+
+    private static <T> CompletableFuture<T> unsupported(String operation) {
+        return FutureUtils.completeExceptionally(new UnsupportedOperationException(
+            "Proxy authorization metadata provider does not support " + operation));
     }
 }
