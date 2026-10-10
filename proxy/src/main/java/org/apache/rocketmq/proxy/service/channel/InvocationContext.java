@@ -40,4 +40,9 @@ public class InvocationContext implements InvocationContextInterface {
     public void handle(RemotingCommand remotingCommand) {
         response.complete(remotingCommand);
     }
+
+    @Override
+    public void expire(Throwable throwable) {
+        response.completeExceptionally(throwable);
+    }
 }
