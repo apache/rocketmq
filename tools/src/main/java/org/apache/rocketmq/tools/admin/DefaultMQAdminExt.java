@@ -979,6 +979,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void deleteAcl(String brokerAddr, String subject, String policyType, String resource)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.deleteAcl(brokerAddr, subject, policyType, resource);
+    }
+
+    @Override
     public AclInfo getAcl(String brokerAddr,
         String subject) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         return defaultMQAdminExtImpl.getAcl(brokerAddr, subject);

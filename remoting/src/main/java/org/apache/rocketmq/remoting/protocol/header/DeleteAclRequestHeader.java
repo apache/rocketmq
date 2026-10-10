@@ -36,7 +36,12 @@ public class DeleteAclRequestHeader implements CommandCustomHeader {
     }
 
     public DeleteAclRequestHeader(String subject, String resource) {
+        this(subject, null, resource);
+    }
+
+    public DeleteAclRequestHeader(String subject, String policyType, String resource) {
         this.subject = subject;
+        this.policyType = policyType;
         this.resource = resource;
     }
 

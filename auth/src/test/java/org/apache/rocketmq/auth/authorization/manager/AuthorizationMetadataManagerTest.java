@@ -17,6 +17,7 @@
 package org.apache.rocketmq.auth.authorization.manager;
 
 import java.util.List;
+import java.util.Arrays;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
@@ -157,19 +158,34 @@ public class AuthorizationMetadataManagerTest {
             "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.createAcl(acl1).join();
 
-        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM, Resource.ofTopic("abc")).join();
+        Acl defaultAcl = Acl.of(Subject.of("User:test"), Arrays.asList(
+            AuthTestHelper.buildPolicy(PolicyType.CUSTOM, "Topic:test,Group:test", "PUB,SUB",
+                "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW),
+            AuthTestHelper.buildPolicy(PolicyType.DEFAULT, "Topic:defaultTopic", "PUB,SUB",
+                "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW)
+        ));
+        this.authorizationMetadataManager.createAcl(AuthTestHelper.buildAcl("User:test", PolicyType.DEFAULT,
+            "Topic:defaultTopic", "PUB,SUB", "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW)).join();
+        Acl aclWithDefault = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
+        Assert.assertTrue(AuthTestHelper.isEquals(defaultAcl, aclWithDefault));
+
+        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.DEFAULT, Resource.ofTopic("defaultTopic")).join();
         Acl acl2 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
         Assert.assertTrue(AuthTestHelper.isEquals(acl1, acl2));
 
+        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM, Resource.ofTopic("abc")).join();
+        Acl acl3 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
+        Assert.assertTrue(AuthTestHelper.isEquals(acl1, acl3));
+
         this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM, Resource.ofTopic("test")).join();
-        Acl acl3 = AuthTestHelper.buildAcl("User:test", "Group:test", "PUB,SUB",
+        Acl acl4 = AuthTestHelper.buildAcl("User:test", "Group:test", "PUB,SUB",
             "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
-        Acl acl4 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
-        Assert.assertTrue(AuthTestHelper.isEquals(acl3, acl4));
+        Acl acl5 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
+        Assert.assertTrue(AuthTestHelper.isEquals(acl4, acl5));
 
         this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"));
-        Acl acl5 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
-        Assert.assertNull(acl5);
+        Acl acl6 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
+        Assert.assertNull(acl6);
 
         Assert.assertThrows(AuthorizationException.class, () -> {
             try {

@@ -2039,7 +2039,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public void deleteAcl(String brokerAddr, String subject,
         String resource) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        this.mqClientInstance.getMQClientAPIImpl().deleteAcl(brokerAddr, subject, resource, timeoutMillis);
+        this.deleteAcl(brokerAddr, subject, null, resource);
+    }
+
+    @Override
+    public void deleteAcl(String brokerAddr, String subject, String policyType, String resource)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        this.mqClientInstance.getMQClientAPIImpl().deleteAcl(brokerAddr, subject, policyType, resource, timeoutMillis);
     }
 
     @Override
