@@ -14,14 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.common;
 
-public enum ProxyExceptionCode {
-    INVALID_BROKER_NAME,
-    INVALID_REQUEST,
-    TRANSACTION_DATA_NOT_FOUND,
-    FORBIDDEN,
-    MESSAGE_PROPERTY_CONFLICT_WITH_TYPE,
-    INVALID_RECEIPT_HANDLE,
-    INTERNAL_SERVER_ERROR,
+package org.apache.rocketmq.proxy.grpc.v2.common;
+
+import apache.rocketmq.v2.Code;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+
+public class GrpcProxyExceptionTest {
+
+    @Test
+    public void testInvalidRequestMapsToBadRequest() {
+        GrpcProxyException exception = new GrpcProxyException(
+            new ProxyException(ProxyExceptionCode.INVALID_REQUEST, "message list is empty"));
+
+        assertEquals(Code.BAD_REQUEST, exception.getCode());
+    }
 }

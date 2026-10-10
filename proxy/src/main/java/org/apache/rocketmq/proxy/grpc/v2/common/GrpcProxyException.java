@@ -31,6 +31,7 @@ public class GrpcProxyException extends RuntimeException {
 
     static {
         CODE_MAPPING.put(ProxyExceptionCode.INVALID_BROKER_NAME, Code.BAD_REQUEST);
+        CODE_MAPPING.put(ProxyExceptionCode.INVALID_REQUEST, Code.BAD_REQUEST);
         CODE_MAPPING.put(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, Code.INVALID_RECEIPT_HANDLE);
         CODE_MAPPING.put(ProxyExceptionCode.FORBIDDEN, Code.FORBIDDEN);
         CODE_MAPPING.put(ProxyExceptionCode.INTERNAL_SERVER_ERROR, Code.INTERNAL_SERVER_ERROR);

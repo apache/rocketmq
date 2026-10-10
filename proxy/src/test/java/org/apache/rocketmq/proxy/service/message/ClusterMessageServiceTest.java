@@ -76,4 +76,33 @@ public class ClusterMessageServiceTest {
             assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, proxyException.getCode());
         }
     }
+
+    @Test
+    public void testBatchAckMessageByEmptyHandleList() throws Exception {
+        assertInvalidBatchAckHandleList(Collections.emptyList());
+    }
+
+    @Test
+    public void testBatchAckMessageByNullHandleList() throws Exception {
+        assertInvalidBatchAckHandleList(null);
+    }
+
+    private void assertInvalidBatchAckHandleList(java.util.List<ReceiptHandleMessage> handleList) throws Exception {
+        try {
+            this.clusterMessageService.batchAckMessage(
+                ProxyContext.create(),
+                handleList,
+                "consumerGroup",
+                "topic",
+                3000
+            ).get();
+            fail();
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof ProxyException);
+            ProxyException proxyException = (ProxyException) e.getCause();
+            assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, proxyException.getCode());
+            assertEquals("receipt handle list is null or empty", proxyException.getMessage());
+        }
+        verify(this.mqClientAPIFactory, never()).getClient();
+    }
 }
