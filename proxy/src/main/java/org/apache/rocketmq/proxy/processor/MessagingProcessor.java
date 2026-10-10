@@ -331,6 +331,13 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    CompletableFuture<Long> searchOffset(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        long timestamp,
+        long timeoutMillis
+    );
+
     CompletableFuture<String> recallMessage(
         ProxyContext ctx,
         String topic,
