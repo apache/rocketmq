@@ -195,6 +195,9 @@ public class NetworkUtil {
         int split = addr.lastIndexOf(":");
         String host = addr.substring(0, split);
         String port = addr.substring(split + 1);
+        if (host.startsWith("[") && host.endsWith("]")) {
+            host = host.substring(1, host.length() - 1);
+        }
         return new InetSocketAddress(host, Integer.parseInt(port));
     }
 
