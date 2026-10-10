@@ -169,11 +169,11 @@ public class PolishExpr {
     }
 
     public static boolean isLeftParenthesis(Op token) {
-        return token instanceof Operator && LEFTPARENTHESIS == (Operator) token;
+        return token instanceof Operator && LEFTPARENTHESIS == token;
     }
 
     public static boolean isRightParenthesis(Op token) {
-        return token instanceof Operator && RIGHTPARENTHESIS == (Operator) token;
+        return token instanceof Operator && RIGHTPARENTHESIS == token;
     }
 
     public static boolean isOperator(Op token) {
