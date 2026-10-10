@@ -206,7 +206,8 @@ public class ProducerManager {
     public void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
 
         long start = System.currentTimeMillis();
-        ClientChannelInfo clientChannelInfoFound;
+        ClientChannelInfo clientChannelInfoFound = null;
+        boolean newChannel = false;
 
         ConcurrentMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
         // note that we must take care of the exist groups and channels,
@@ -232,24 +233,30 @@ public class ProducerManager {
         }
 
         if (null == channelTable) {
-            channelTable = new ConcurrentHashMap<>();
-            ConcurrentMap<Channel, ClientChannelInfo> prev = this.groupChannelTable.putIfAbsent(group, channelTable);
-            channelTable = prev != null ? prev : channelTable;
+            ConcurrentMap<Channel, ClientChannelInfo> newChannelTable = new ConcurrentHashMap<>();
+            newChannelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
+            ConcurrentMap<Channel, ClientChannelInfo> prev =
+                this.groupChannelTable.putIfAbsent(group, newChannelTable);
+            if (prev == null) {
+                channelTable = newChannelTable;
+                newChannel = true;
+            } else {
+                channelTable = prev;
+            }
         }
 
-        clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel());
-        // Add client-channel info to existing producer group
-        if (null == clientChannelInfoFound) {
-            channelTable.put(clientChannelInfo.getChannel(), clientChannelInfo);
+        if (!newChannel) {
+            clientChannelInfoFound = channelTable.putIfAbsent(clientChannelInfo.getChannel(), clientChannelInfo);
+            newChannel = clientChannelInfoFound == null;
+        }
+
+        if (newChannel) {
             clientChannelTable.put(clientChannelInfo.getClientId(), clientChannelInfo.getChannel());
             log.info("new producer connected, group: {} channel: {}", group, clientChannelInfo.toString());
             if (this.brokerConfig != null && this.brokerConfig.isEnableFastChannelEventProcess()) {
                 ClientChannelAttributeHelper.addProducerGroup(clientChannelInfo.getChannel(), group);
             }
-        }
-
-        // Refresh existing client-channel-info update-timestamp
-        if (clientChannelInfoFound != null) {
+        } else {
             clientChannelInfoFound.setLastUpdateTimestamp(System.currentTimeMillis());
         }
 
