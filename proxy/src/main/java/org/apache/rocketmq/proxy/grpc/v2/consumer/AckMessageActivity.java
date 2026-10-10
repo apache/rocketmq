@@ -36,6 +36,7 @@ import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.BatchAckResult;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -55,6 +56,9 @@ public class AckMessageActivity extends AbstractMessagingActivity {
             validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
             String group = request.getGroup().getName();
             String topic = request.getTopic().getName();
+            if (request.getEntriesCount() == 0) {
+                throw new GrpcProxyException(Code.BAD_REQUEST, "ack message entries cannot be empty");
+            }
             boolean isBatchAck = ConfigurationManager.getProxyConfig().isEnableBatchAck()
                 && !request.getEntries(0).hasLiteTopic();
             if (isBatchAck) {

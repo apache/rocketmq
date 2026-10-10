@@ -28,12 +28,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.processor.BatchAckResult;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.junit.Before;
@@ -41,6 +43,7 @@ import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -151,6 +154,28 @@ public class AckMessageActivityTest extends BaseActivityTest {
             assertEquals(Code.OK, response.getEntries(1).getStatus().getCode());
             assertEquals(Code.INTERNAL_SERVER_ERROR, response.getEntries(2).getStatus().getCode());
         }
+    }
+
+    @Test
+    public void testAckMessageWithEmptyEntries() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(true);
+
+        try {
+            this.ackMessageActivity.ackMessage(
+                createContext(),
+                AckMessageRequest.newBuilder()
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .setGroup(Resource.newBuilder().setName(GROUP).build())
+                    .build()
+            ).get();
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof GrpcProxyException);
+            GrpcProxyException exception = (GrpcProxyException) e.getCause();
+            assertEquals(Code.BAD_REQUEST, exception.getCode());
+            assertEquals("ack message entries cannot be empty", exception.getMessage());
+            return;
+        }
+        throw new AssertionError("empty ack entries should be rejected");
     }
 
     @Test
