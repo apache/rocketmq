@@ -19,11 +19,14 @@ package org.apache.rocketmq.namesrv.routeinfo;
 
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,7 +34,10 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -47,8 +53,12 @@ import org.mockito.Spy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class RouteInfoManagerNewTest {
     private RouteInfoManager routeInfoManager;
@@ -600,6 +610,29 @@ public class RouteInfoManagerNewTest {
         await().atMost(Duration.ofSeconds(5)).until(() -> routeInfoManager.blockedUnRegisterRequests() == 0);
         assertThat(routeInfoManager.pickupTopicRouteData("TestTopic")).isNull();
         assertThat(routeInfoManager.pickupTopicRouteData("TestTopic1")).isNull();
+    }
+
+    @Test
+    public void notifyMinBrokerIdChangedUsesBrokerNotificationTimeout() throws Exception {
+        NamesrvController namesrvController = mock(NamesrvController.class);
+        RemotingClient remotingClient = mock(RemotingClient.class);
+        when(namesrvController.getRemotingClient()).thenReturn(remotingClient);
+
+        RouteInfoManager manager = new RouteInfoManager(config, namesrvController);
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(0L, DEFAULT_ADDR);
+
+        Method notifyMinBrokerIdChanged = RouteInfoManager.class.getDeclaredMethod("notifyMinBrokerIdChanged",
+            Map.class, String.class, String.class);
+        notifyMinBrokerIdChanged.setAccessible(true);
+        notifyMinBrokerIdChanged.invoke(manager, brokerAddrs, null, null);
+
+        verify(remotingClient).invokeOneway(eq(DEFAULT_ADDR), any(RemotingCommand.class), eq(3000L));
+
+        config.setNotifyMinBrokerIdChangeTimeoutMillis(1234L);
+        notifyMinBrokerIdChanged.invoke(manager, brokerAddrs, null, null);
+
+        verify(remotingClient).invokeOneway(eq(DEFAULT_ADDR), any(RemotingCommand.class), eq(1234L));
     }
 
     @Test
