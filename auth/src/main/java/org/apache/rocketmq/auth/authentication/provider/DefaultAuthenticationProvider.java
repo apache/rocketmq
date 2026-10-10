@@ -35,6 +35,9 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultAuthenticationProvider implements AuthenticationProvider<DefaultAuthenticationContext> {
 
+    private static final int SIGNATURE_VISIBLE_CHARS = 4;
+    private static final String REDACTED_SIGNATURE = "****";
+
     protected final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_AUTH_AUDIT_LOGGER_NAME);
     protected AuthConfig authConfig;
     protected Supplier<?> metadataService;
@@ -72,10 +75,23 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
         if (StringUtils.isBlank(context.getUsername())) {
             return;
         }
+        String signature = maskSignature(context.getSignature());
         if (ex != null) {
-            log.info("[AUTHENTICATION] User:{} is authenticated failed with Signature = {}.", context.getUsername(), context.getSignature());
+            log.info("[AUTHENTICATION] User:{} is authenticated failed with Signature = {}.", context.getUsername(), signature);
         } else {
-            log.debug("[AUTHENTICATION] User:{} is authenticated success with Signature = {}.", context.getUsername(), context.getSignature());
+            log.debug("[AUTHENTICATION] User:{} is authenticated success with Signature = {}.", context.getUsername(), signature);
         }
+    }
+
+    static String maskSignature(String signature) {
+        if (StringUtils.isBlank(signature)) {
+            return REDACTED_SIGNATURE;
+        }
+        if (signature.length() <= SIGNATURE_VISIBLE_CHARS * 2) {
+            return REDACTED_SIGNATURE;
+        }
+        return signature.substring(0, SIGNATURE_VISIBLE_CHARS)
+            + REDACTED_SIGNATURE
+            + signature.substring(signature.length() - SIGNATURE_VISIBLE_CHARS);
     }
 }
