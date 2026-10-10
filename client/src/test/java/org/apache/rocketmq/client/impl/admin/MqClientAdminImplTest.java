@@ -66,6 +66,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -523,6 +524,76 @@ public class MqClientAdminImplTest {
         MQClientException mqException = (MQClientException) thrown.getCause();
         assertEquals(ResponseCode.SYSTEM_ERROR, mqException.getResponseCode());
         assertTrue(mqException.getMessage().contains("CODE: 1  DESC: null"));
+    }
+
+    @Test
+    public void allOperationsShouldPropagateRemotingFailure() throws Exception {
+        CompletableFuture<RemotingCommand> remotingFuture = new CompletableFuture<>();
+        when(remotingClient.invoke(any(String.class), any(RemotingCommand.class), any(Long.class)))
+            .thenReturn(remotingFuture);
+
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+        futures.add(mqClientAdminImpl.queryMessage(defaultBrokerAddr, false, false,
+            mock(QueryMessageRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.getTopicStatsInfo(defaultBrokerAddr,
+            mock(GetTopicStatsInfoRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.queryConsumeTimeSpan(defaultBrokerAddr,
+            mock(QueryConsumeTimeSpanRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.updateOrCreateTopic(defaultBrokerAddr,
+            mock(CreateTopicRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.updateOrCreateSubscriptionGroup(defaultBrokerAddr,
+            new SubscriptionGroupConfig(), defaultTimeout));
+        futures.add(mqClientAdminImpl.deleteTopicInBroker(defaultBrokerAddr,
+            mock(DeleteTopicRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.deleteTopicInNameserver(defaultBrokerAddr,
+            mock(DeleteTopicFromNamesrvRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.deleteKvConfig(defaultBrokerAddr,
+            mock(DeleteKVConfigRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.deleteSubscriptionGroup(defaultBrokerAddr,
+            mock(DeleteSubscriptionGroupRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.invokeBrokerToResetOffset(defaultBrokerAddr,
+            mock(ResetOffsetRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.viewMessage(defaultBrokerAddr,
+            mock(ViewMessageRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.getBrokerClusterInfo(defaultBrokerAddr, defaultTimeout));
+        futures.add(mqClientAdminImpl.getConsumerConnectionList(defaultBrokerAddr,
+            mock(GetConsumerConnectionListRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.queryTopicsByConsumer(defaultBrokerAddr,
+            mock(QueryTopicsByConsumerRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.querySubscriptionByConsumer(defaultBrokerAddr,
+            mock(QuerySubscriptionByConsumerRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.getConsumeStats(defaultBrokerAddr,
+            mock(GetConsumeStatsRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.queryTopicConsumeByWho(defaultBrokerAddr,
+            mock(QueryTopicConsumeByWhoRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.getConsumerRunningInfo(defaultBrokerAddr,
+            mock(GetConsumerRunningInfoRequestHeader.class), defaultTimeout));
+        futures.add(mqClientAdminImpl.consumeMessageDirectly(defaultBrokerAddr,
+            mock(ConsumeMessageDirectlyResultRequestHeader.class), defaultTimeout));
+
+        RemotingException expected = new RemotingException("invoke failed");
+        remotingFuture.completeExceptionally(expected);
+
+        assertEquals(19, futures.size());
+        for (CompletableFuture<?> future : futures) {
+            assertTrue("The returned future must complete after its remoting request fails", future.isDone());
+            assertTrue(future.isCompletedExceptionally());
+            ExecutionException actual = assertThrows(ExecutionException.class, future::get);
+            assertEquals(expected, actual.getCause());
+        }
+    }
+
+    @Test
+    public void operationShouldPropagateResponseHandlerFailure() throws Exception {
+        setResponseSuccess(null);
+
+        CompletableFuture<MessageExt> actual = mqClientAdminImpl.viewMessage(defaultBrokerAddr,
+            mock(ViewMessageRequestHeader.class), defaultTimeout);
+
+        assertTrue("The returned future must complete when response decoding fails", actual.isDone());
+        assertTrue(actual.isCompletedExceptionally());
+        ExecutionException thrown = assertThrows(ExecutionException.class, actual::get);
+        assertTrue(thrown.getCause() instanceof NullPointerException);
     }
 
     private byte[] getMessageResult() throws Exception {
