@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.remoting.activity;
 
 import io.netty.channel.ChannelHandlerContext;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
@@ -63,7 +64,12 @@ public class TransactionActivity extends AbstractRemotingActivity {
             requestHeader.getProducerGroup(),
             transactionStatus,
             requestHeader.getFromTransactionCheck()
-        );
-        return response;
+        ).thenRun(() -> writeResponse(ctx, context, request, response))
+            .exceptionally(t -> {
+                Throwable cause = t instanceof CompletionException && t.getCause() != null ? t.getCause() : t;
+                writeErrResponse(ctx, context, request, cause);
+                return null;
+            });
+        return null;
     }
 }
