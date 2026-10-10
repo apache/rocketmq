@@ -21,8 +21,10 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class RemoteChannelTest {
 
@@ -46,5 +48,23 @@ public class RemoteChannelTest {
         assertEquals(extendAttribute, decodedChannel.extendAttribute);
 
         assertNull(RemoteChannel.decode(""));
+    }
+
+    @Test
+    public void testToStringDoesNotExposeExtendAttribute() {
+        String extendAttribute = "sensitive-client-settings";
+        RemoteChannel remoteChannel = new RemoteChannel(
+            "11.193.0.1",
+            "10.152.39.53:9768",
+            "11.193.0.1:1210",
+            ChannelProtocolType.GRPC_V2,
+            extendAttribute
+        );
+
+        String output = remoteChannel.toString();
+
+        assertFalse(output.contains(extendAttribute));
+        assertTrue(output.contains("extendAttributePresent=true"));
+        assertTrue(output.contains("extendAttributeLength=" + extendAttribute.length()));
     }
 }

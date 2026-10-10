@@ -106,11 +106,13 @@ public class RemoteChannel extends SimpleChannel implements ChannelExtendAttribu
 
     @Override
     public String toString() {
+        String extendAttributeSnapshot = this.extendAttribute;
         return MoreObjects.toStringHelper(this)
             .add("channelId", id())
             .add("type", type)
             .add("remoteProxyIp", remoteProxyIp)
-            .add("extendAttribute", extendAttribute)
+            .add("extendAttributePresent", extendAttributeSnapshot != null)
+            .add("extendAttributeLength", extendAttributeSnapshot == null ? 0 : extendAttributeSnapshot.length())
             .toString();
     }
 }
