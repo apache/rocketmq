@@ -120,6 +120,29 @@ public class RouteActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testQueryRouteSkipsMissingBrokerAndContinues() throws Throwable {
+        when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
+            .thenReturn(createProxyTopicRouteDataWithMissingBrokerBeforeValidBroker());
+        when(this.messagingProcessor.getMetadataService().getTopicMessageType(any(), anyString()))
+            .thenReturn(TopicMessageType.NORMAL);
+
+        QueryRouteResponse response = this.routeActivity.queryRoute(
+            createContext(),
+            QueryRouteRequest.newBuilder()
+                .setEndpoints(grpcEndpoints)
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(4, response.getMessageQueuesCount());
+        for (MessageQueue messageQueue : response.getMessageQueuesList()) {
+            assertEquals(BROKER_NAME, messageQueue.getBroker().getName());
+            assertEquals(grpcEndpoints, messageQueue.getBroker().getEndpoints());
+        }
+    }
+
+    @Test
     public void testQueryRouteTopicExist() throws Throwable {
         when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
             .thenThrow(new MQBrokerException(ResponseCode.TOPIC_NOT_EXIST, ""));
@@ -174,6 +197,24 @@ public class RouteActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testQueryAssignmentWithMissingMasterBroker() throws Throwable {
+        when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
+            .thenReturn(createProxyTopicRouteDataWithoutMasterBroker());
+
+        QueryAssignmentResponse response = this.routeActivity.queryAssignment(
+            createContext(),
+            QueryAssignmentRequest.newBuilder()
+                .setEndpoints(grpcEndpoints)
+                .setTopic(GRPC_TOPIC)
+                .setGroup(GRPC_GROUP)
+                .build()
+        ).get();
+
+        assertEquals(Code.FORBIDDEN, response.getStatus().getCode());
+        assertEquals(0, response.getAssignmentsCount());
+    }
+
+    @Test
     public void testQueryAssignment() throws Throwable {
         when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
             .thenReturn(createProxyTopicRouteData(2, 2, 6));
@@ -223,6 +264,25 @@ public class RouteActivityTest extends BaseActivityTest {
         proxyBrokerData.getBrokerAddrs().put(0L, addressArrayList);
         proxyBrokerData.getBrokerAddrs().put(1L, addressArrayList);
         proxyTopicRouteData.getBrokerDatas().add(proxyBrokerData);
+        return proxyTopicRouteData;
+    }
+
+    private static ProxyTopicRouteData createProxyTopicRouteDataWithoutMasterBroker() {
+        ProxyTopicRouteData proxyTopicRouteData = new ProxyTopicRouteData();
+        proxyTopicRouteData.getQueueDatas().add(createQueueData(2, 2, PermName.PERM_READ | PermName.PERM_WRITE));
+        ProxyTopicRouteData.ProxyBrokerData proxyBrokerData = new ProxyTopicRouteData.ProxyBrokerData();
+        proxyBrokerData.setCluster(CLUSTER);
+        proxyBrokerData.setBrokerName(BROKER_NAME);
+        proxyBrokerData.getBrokerAddrs().put(1L, addressArrayList);
+        proxyTopicRouteData.getBrokerDatas().add(proxyBrokerData);
+        return proxyTopicRouteData;
+    }
+
+    private static ProxyTopicRouteData createProxyTopicRouteDataWithMissingBrokerBeforeValidBroker() {
+        ProxyTopicRouteData proxyTopicRouteData = createProxyTopicRouteData(2, 2, PermName.PERM_READ | PermName.PERM_WRITE);
+        QueueData missingBrokerQueueData = createQueueData(2, 2, PermName.PERM_READ | PermName.PERM_WRITE);
+        missingBrokerQueueData.setBrokerName("missingBrokerName");
+        proxyTopicRouteData.getQueueDatas().add(0, missingBrokerQueueData);
         return proxyTopicRouteData;
     }
 
