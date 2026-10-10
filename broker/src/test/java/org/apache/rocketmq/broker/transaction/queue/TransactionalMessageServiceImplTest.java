@@ -174,6 +174,19 @@ public class TransactionalMessageServiceImplTest {
     }
 
     @Test
+    public void testBatchSendOpMessage_noPendingDataReturnsFutureWakeup() {
+        // Reproduce #10966: a drained context (all offsets already batched and sent)
+        // stays in deleteContext forever with a stale lastWriteTimestamp. Previously
+        // batchSendOpMessage() returned 0 in this state, which made
+        // TransactionalOpBatchService busy-loop at ~100% CPU.
+        ((TransactionalMessageServiceImpl) queueTransactionMsgService).getDeleteContext()
+            .put(0, new MessageQueueOpContext(0L, 1));
+        long wakeup = ((TransactionalMessageServiceImpl) queueTransactionMsgService).batchSendOpMessage();
+        // Should schedule the next scan after the batch interval, not 0.
+        assertThat(wakeup).isGreaterThan(System.currentTimeMillis());
+    }
+
+    @Test
     public void testOpen() {
         boolean isOpen = queueTransactionMsgService.open();
         assertThat(isOpen).isTrue();
