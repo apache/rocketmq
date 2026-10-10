@@ -70,6 +70,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -793,6 +794,90 @@ public class DefaultMessageStoreTest {
             messageExtBrokerInner.setTopic(topic);
             messageExtBrokerInner.setQueueId(0);
             messageStore.putMessage(messageExtBrokerInner);
+        }
+    }
+
+    @Test
+    public void testTruncateMarkerSurvivesNormalRecovery() throws Exception {
+        verifyTruncateMarkerRecovery(false, false);
+    }
+
+    @Test
+    public void testTruncateMarkerSurvivesAbnormalRecovery() throws Exception {
+        verifyTruncateMarkerRecovery(true, false);
+    }
+
+    @Test
+    public void testTruncateMarkerAtFirstMessageSurvivesAbnormalRecovery() throws Exception {
+        verifyTruncateMarkerRecovery(true, true);
+    }
+
+    @Test
+    public void testPersistTruncateMarkerRejectsNonMessageBoundary() {
+        queueTotal = 1;
+        messageBody = storeMessage.getBytes(StandardCharsets.UTF_8);
+        PutMessageResult firstResult = messageStore.putMessage(buildMessage());
+        PutMessageResult secondResult = messageStore.putMessage(buildMessage());
+        assertThat(firstResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+        assertThat(secondResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+
+        long secondMessageOffset = secondResult.getAppendMessageResult().getWroteOffset();
+        IllegalStateException exception = Assert.assertThrows(IllegalStateException.class,
+            () -> getDefaultMessageStore().getCommitLog().persistTruncateMarker(secondMessageOffset + 1));
+        assertThat(exception.getMessage()).contains("Failed to persist CommitLog truncate marker");
+        assertThat(exception.getCause().getMessage()).contains("not a CommitLog message boundary");
+    }
+
+    private void verifyTruncateMarkerRecovery(boolean recoverAbnormally, boolean truncateFirstMessage)
+        throws Exception {
+        queueTotal = 1;
+        messageBody = storeMessage.getBytes(StandardCharsets.UTF_8);
+        PutMessageResult firstResult = messageStore.putMessage(buildMessage());
+        PutMessageResult secondResult = messageStore.putMessage(buildMessage());
+        PutMessageResult thirdResult = messageStore.putMessage(buildMessage());
+        assertThat(firstResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+        assertThat(secondResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+        assertThat(thirdResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+
+        long firstMessageOffset = firstResult.getAppendMessageResult().getWroteOffset();
+        long truncateOffset = truncateFirstMessage ? firstMessageOffset
+            : secondResult.getAppendMessageResult().getWroteOffset();
+        assertThat(messageStore.truncateFiles(truncateOffset)).isTrue();
+        assertThat(messageStore.getMaxPhyOffset()).isEqualTo(truncateOffset);
+
+        DefaultMessageStore defaultMessageStore = getDefaultMessageStore();
+        MappedFile mappedFile = defaultMessageStore.getCommitLog().getMappedFileQueue()
+            .findMappedFileByOffset(truncateOffset, false);
+        assertThat(mappedFile).isNotNull();
+        int relativeOffset = (int) (truncateOffset - mappedFile.getFileFromOffset());
+        assertThat(mappedFile.getMappedByteBuffer().getLong(relativeOffset)).isZero();
+
+        String storeRootDir = defaultMessageStore.getMessageStoreConfig().getStorePathRootDir();
+        messageStore.shutdown();
+        if (recoverAbnormally) {
+            File abortFile = new File(StorePathConfigHelper.getAbortFile(storeRootDir));
+            UtilAll.ensureDirOK(abortFile.getParent());
+            assertThat(abortFile.createNewFile()).isTrue();
+        }
+
+        MessageStore recoveredMessageStore = null;
+        try {
+            recoveredMessageStore = buildMessageStore(storeRootDir);
+            assertThat(recoveredMessageStore.load()).isTrue();
+            recoveredMessageStore.start();
+            assertThat(recoveredMessageStore.getMaxPhyOffset()).isEqualTo(truncateOffset);
+            if (!truncateFirstMessage) {
+                assertThat(recoveredMessageStore.lookMessageByOffset(firstMessageOffset)).isNotNull();
+            }
+            assertThat(recoveredMessageStore.lookMessageByOffset(truncateOffset)).isNull();
+        } finally {
+            if (recoveredMessageStore != null) {
+                try {
+                    recoveredMessageStore.shutdown();
+                } finally {
+                    recoveredMessageStore.destroy();
+                }
+            }
         }
     }
 
