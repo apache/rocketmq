@@ -127,7 +127,10 @@ public class PopReviveService extends ServiceThread {
         } else {
             msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
         }
-        msgInner.getProperties().putAll(messageExt.getProperties());
+        Map<String, String> sourceProperties = messageExt.getProperties();
+        if (sourceProperties != null) {
+            msgInner.getProperties().putAll(sourceProperties);
+        }
         if (messageExt.getReconsumeTimes() == 0 || msgInner.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(popCheckPoint.getPopTime()));
         }
