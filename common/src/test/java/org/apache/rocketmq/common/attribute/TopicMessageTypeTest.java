@@ -137,4 +137,10 @@ public class TopicMessageTypeTest {
         properties.clear();
         Assert.assertEquals(TopicMessageType.NORMAL, TopicMessageType.parseFromMessageProperty(properties));
     }
+
+    @Test
+    public void testParseFromMessageProperty_Null() {
+        // null map should be treated as empty - return NORMAL default
+        assertEquals(TopicMessageType.NORMAL, TopicMessageType.parseFromMessageProperty(null));
+    }
 }
