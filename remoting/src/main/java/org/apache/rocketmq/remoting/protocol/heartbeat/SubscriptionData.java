@@ -24,6 +24,7 @@ import com.alibaba.fastjson2.annotation.JSONField;
 import org.apache.rocketmq.common.filter.ExpressionType;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class SubscriptionData implements Comparable<SubscriptionData> {
@@ -165,6 +166,20 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
         } else if (!expressionType.equals(other.expressionType))
             return false;
         return true;
+    }
+
+    /**
+     * Compare subscription content without considering its version.
+     */
+    public boolean equalsIgnoreSubVersion(SubscriptionData other) {
+        return other != null
+            && getClass() == other.getClass()
+            && classFilterMode == other.classFilterMode
+            && Objects.equals(topic, other.topic)
+            && Objects.equals(subString, other.subString)
+            && Objects.equals(expressionType, other.expressionType)
+            && Objects.equals(tagsSet, other.tagsSet)
+            && Objects.equals(codeSet, other.codeSet);
     }
 
     @Override
