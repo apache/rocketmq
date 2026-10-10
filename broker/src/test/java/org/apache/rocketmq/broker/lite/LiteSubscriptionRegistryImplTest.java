@@ -770,6 +770,75 @@ public class LiteSubscriptionRegistryImplTest {
     }
 
     /**
+     * Test: when exclusive eviction removes the evicted client's last liteTopic, its
+     * channel entry must be reclaimed too. The expiry cleaner only walks
+     * client2Subscription, so a channel left behind after the subscription was removed
+     * can never be cleaned up and leaks under exclusive-mode client churn.
+     */
+    @Test
+    public void testExclusiveEviction_RemovesEvictedClientChannel() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+        String lmqName = "lmq1";
+        Set<String> lmqNameSet = Collections.singleton(lmqName);
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(topic, lmqName)).thenReturn(true);
+
+        Channel channelA = mock(Channel.class);
+        Channel channelB = mock(Channel.class);
+        registry.updateClientChannel(clientA, channelA);
+        registry.addPartialSubscription(clientA, group, topic, lmqNameSet, null);
+        assertNotNull(registry.clientChannels.get(clientA));
+
+        // clientB takes over: clientA loses its only liteTopic and is evicted entirely
+        registry.updateClientChannel(clientB, channelB);
+        registry.addPartialSubscription(clientB, group, topic, lmqNameSet, null);
+
+        assertNull(registry.getLiteSubscription(clientA));
+        assertNull(registry.clientChannels.get(clientA));
+        assertEquals(channelB, registry.clientChannels.get(clientB));
+    }
+
+    /**
+     * Test: exclusive eviction of one liteTopic must keep the evicted client's channel
+     * while it still subscribes to other liteTopics.
+     */
+    @Test
+    public void testExclusiveEviction_KeepsChannelWhenClientRetainsOtherLmqs() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        Set<String> clientASet = new HashSet<>();
+        clientASet.add("lmq1");
+        clientASet.add("lmq2");
+        Channel channelA = mock(Channel.class);
+        registry.updateClientChannel(clientA, channelA);
+        registry.addPartialSubscription(clientA, group, topic, clientASet, null);
+
+        // clientB takes over only lmq1; clientA still holds lmq2
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton("lmq1"), null);
+
+        assertNotNull(registry.getLiteSubscription(clientA));
+        assertTrue(registry.getLiteSubscription(clientA).getLmqSet().contains("lmq2"));
+        assertEquals(channelA, registry.clientChannels.get(clientA));
+    }
+
+    /**
      * Test: addCompleteSubscription clears stale tombstones but keeps active ones
      */
     @Test
@@ -946,7 +1015,11 @@ public class LiteSubscriptionRegistryImplTest {
 
         assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
 
-        // clientA does full sync still reporting lmq1 → re-notify should be triggered
+        // clientA does full sync still reporting lmq1 → re-notify should be triggered.
+        // A real full sync goes through LiteSubscriptionCtlProcessor, which re-registers the
+        // client's channel (updateClientChannel) before addCompleteSubscription; the eviction
+        // reclaimed the stale channel entry together with clientA's subscription.
+        registry.updateClientChannel(clientA, clientAChannel);
         Set<String> fullSet = new HashSet<>();
         fullSet.add(lmqName);
         registry.addCompleteSubscription(clientA, group, topic, fullSet, 2L);
