@@ -21,6 +21,8 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import com.google.common.base.Stopwatch;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -258,6 +260,26 @@ public class RemotingCommandTest {
         remotingCommand.makeCustomHeaderToNet();
         SubExtFieldsHeader other = (SubExtFieldsHeader) remotingCommand.decodeCommandCustomHeader(subExtFieldsHeader.getClass());
         Assert.assertEquals(other, subExtFieldsHeader);
+    }
+
+    @Test
+    public void testSetProcessTimerStopwatchKeepsElapsed() throws Exception {
+        // The deprecated setProcessTimer(Stopwatch) carries an already-elapsed duration, while
+        // processTimerElapsedMs() treats processTimerNanos as a System.nanoTime() start timestamp.
+        // The compatibility adapter must reconstruct the start (now - elapsed) so the reported
+        // elapsed stays close to the real duration, not a near-JVM-uptime value.
+        RemotingCommand cmd = RemotingCommand.createRequestCommand(0, null);
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        Thread.sleep(30);
+        stopwatch.stop();
+        long expectedMs = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+
+        cmd.setProcessTimer(stopwatch);
+        long reported = cmd.processTimerElapsedMs();
+
+        // Correct behavior: reported ~= stopwatch elapsed (plus microseconds of overhead).
+        // Buggy behavior (storing elapsed as a start timestamp) would yield ~JVM uptime.
+        assertThat(reported).isBetween(expectedMs, expectedMs + 500);
     }
 }
 
