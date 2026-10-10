@@ -136,7 +136,7 @@ public class ProcessQueue {
                     MessageExt old = msgTreeMap.put(msg.getQueueOffset(), msg);
                     if (null == old) {
                         validMsgCnt++;
-                        this.queueOffsetMax = msg.getQueueOffset();
+                        this.queueOffsetMax = Math.max(this.queueOffsetMax, msg.getQueueOffset());
                         msgSize.addAndGet(null == msg.getBody() ? 0 : msg.getBody().length);
                     }
                 }
