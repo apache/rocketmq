@@ -212,6 +212,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
 
     @Override
     public int compareTo(PopCheckPoint o) {
-        return (int) (this.getStartOffset() - o.getStartOffset());
+        // Avoid long-subtraction-cast-to-int overflow — mirrors the #10579 fix.
+        return Long.compare(this.getStartOffset(), o.getStartOffset());
     }
 }
