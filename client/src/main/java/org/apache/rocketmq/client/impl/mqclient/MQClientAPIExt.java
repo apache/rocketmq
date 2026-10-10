@@ -89,7 +89,6 @@ import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.UnlockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
@@ -176,8 +175,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeader);
         request.setBody(msg.getBody());
 
         return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
@@ -198,8 +196,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         SendMessageRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, requestHeaderV2);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, requestHeader);
 
         CompletableFuture<SendResult> future = new CompletableFuture<>();
         try {
