@@ -47,12 +47,14 @@ import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.LmqDispatch;
 import org.apache.rocketmq.store.MessageExtEncoder;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.rocksdb.RocksDBException;
 
@@ -561,6 +563,21 @@ public class DLedgerCommitLog extends CommitLog {
         AppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
 
+        final MessageStoreConfig storeConfig = this.defaultMessageStore.getMessageStoreConfig();
+        final boolean isMultiDispatchMsg = storeConfig.isEnableLmq() && msg.needDispatchLMQ();
+        if (isMultiDispatchMsg) {
+            try {
+                LmqDispatch.wrapLmqDispatch(this.defaultMessageStore, msg);
+            } catch (ConsumeQueueException e) {
+                log.error("Failed to wrap multi-dispatch for DLedger", e);
+                AppendMessageStatus status = e.getCause() instanceof RocksDBException
+                    ? AppendMessageStatus.ROCKSDB_ERROR
+                    : AppendMessageStatus.UNKNOWN_ERROR;
+                return CompletableFuture.completedFuture(
+                    new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(status)));
+            }
+        }
+
         encodeResult = this.messageSerializer.serialize(msg);
         if (encodeResult.status != AppendMessageStatus.PUT_OK) {
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
@@ -604,6 +621,13 @@ public class DLedgerCommitLog extends CommitLog {
             }
 
             defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
+            if (isMultiDispatchMsg) {
+                try {
+                    LmqDispatch.updateLmqOffsets(this.defaultMessageStore, msg);
+                } catch (ConsumeQueueException e) {
+                    log.error("Failed to update LMQ offsets for DLedger", e);
+                }
+            }
         } catch (Exception e) {
             log.error("Put message error", e);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
