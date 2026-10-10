@@ -176,7 +176,7 @@ public class CommandUtil {
         while (it.hasNext()) {
             Map.Entry<String, BrokerData> entry = it.next();
             HashMap<Long, String> brokerAddrs = entry.getValue().getBrokerAddrs();
-            if (brokerAddrs.containsValue(addr)) {
+            if (brokerAddrs != null && brokerAddrs.containsValue(addr)) {
                 return entry.getKey();
             }
         }
