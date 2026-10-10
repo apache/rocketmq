@@ -45,7 +45,7 @@ public class BrokerStats {
         this.msgPutTotalTodayMorning =
             this.defaultMessageStore.getBrokerStatsManager().getBrokerPutNumsWithoutSystemTopic();
         this.msgGetTotalTodayMorning =
-            this.defaultMessageStore.getBrokerStatsManager().getBrokerGetNumsWithoutSystemTopic();
+            this.defaultMessageStore.getBrokerStatsManager().getBrokerGetNumsWithoutSystemTopicAndSystemGroup();
 
         log.info("yesterday put message total: {}", msgPutTotalTodayMorning - msgPutTotalYesterdayMorning);
         log.info("yesterday get message total: {}", msgGetTotalTodayMorning - msgGetTotalYesterdayMorning);
@@ -88,6 +88,6 @@ public class BrokerStats {
     }
 
     public long getMsgGetTotalTodayNow() {
-        return this.defaultMessageStore.getBrokerStatsManager().getBrokerGetNumsWithoutSystemTopic();
+        return this.defaultMessageStore.getBrokerStatsManager().getBrokerGetNumsWithoutSystemTopicAndSystemGroup();
     }
 }
