@@ -283,6 +283,40 @@ public class MessageQueuePenalizerTest {
     }
 
     /**
+     * Test selectLeastPenaltyWithPriority with only empty priority groups should return null
+     */
+    @Test
+    public void testSelectLeastPenaltyWithPriority_AllEmptyPriorityGroups() {
+        List<MessageQueuePenalizer<MessageQueue>> penalizers = Collections.singletonList(mq -> 10);
+        AtomicInteger startIndex = new AtomicInteger(0);
+        Pair<MessageQueue, Integer> result = MessageQueuePenalizer.selectLeastPenaltyWithPriority(
+            Arrays.asList(Collections.emptyList(), Collections.emptyList()), penalizers, startIndex);
+        assertNull(result);
+    }
+
+    /**
+     * Test selectLeastPenaltyWithPriority skips empty priority groups and selects from non-empty groups
+     */
+    @Test
+    public void testSelectLeastPenaltyWithPriority_SkipEmptyPriorityGroup() {
+        MessageQueue mq0 = new MessageQueue("topic", "broker", 0);
+        MessageQueue mq1 = new MessageQueue("topic", "broker", 1);
+        List<MessageQueue> queues = Arrays.asList(mq0, mq1);
+
+        List<MessageQueuePenalizer<MessageQueue>> penalizers = Collections.singletonList(
+            mq -> mq.getQueueId() == 0 ? 20 : 10
+        );
+
+        AtomicInteger startIndex = new AtomicInteger(0);
+        Pair<MessageQueue, Integer> result = MessageQueuePenalizer.selectLeastPenaltyWithPriority(
+            Arrays.asList(Collections.emptyList(), queues), penalizers, startIndex);
+
+        assertNotNull(result);
+        assertEquals(mq1, result.getLeft());
+        assertEquals(10, result.getRight().intValue());
+    }
+
+    /**
      * Test selectLeastPenaltyWithPriority with single priority group delegates to selectLeastPenalty
      */
     @Test
