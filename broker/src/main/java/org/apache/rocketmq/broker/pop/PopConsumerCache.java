@@ -116,6 +116,27 @@ public class PopConsumerCache extends ServiceThread {
         return remain;
     }
 
+    /**
+     * Ack-flavored deletion of records from the cache.
+     * <p>
+     * Behaves like {@link #deleteRecords(List)}, and additionally drops records that
+     * {@link #cleanupRecords(Consumer)} has already staged for its next store write. Such a
+     * record is no longer visible in {@link #deleteRecords(List)} (it left
+     * {@code recordTreeMap}), so the ack would otherwise return it as remaining and delete it
+     * from the durable store, only to see cleanup re-persist the stale staged copy afterwards.
+     * Removing it from the staged set lets cleanup detect the concurrent ack and re-delete the
+     * record it has just written, keeping the ack effective.
+     */
+    public List<PopConsumerRecord> ackRecords(List<PopConsumerRecord> consumerRecordList) {
+        consumerRecordList.forEach(consumerRecord -> {
+            ConsumerRecords consumerRecords = consumerRecordTable.get(this.getKey(consumerRecord));
+            if (consumerRecords != null) {
+                consumerRecords.removeStaged(consumerRecord);
+            }
+        });
+        return deleteRecords(consumerRecordList);
+    }
+
     public int cleanupRecords(Consumer<PopConsumerRecord> consumer) {
         int remain = 0;
         Iterator<Map.Entry<String, ConsumerRecords>> iterator = consumerRecordTable.entrySet().iterator();
@@ -131,6 +152,7 @@ public class PopConsumerCache extends ServiceThread {
                     new ArrayList<>(records.getRemoveTreeMap().values());
                 if (!writeConsumerRecords.isEmpty()) {
                     consumerRecordStore.writeRecords(writeConsumerRecords);
+                    deleteAckedStagedRecords(records, writeConsumerRecords);
                 }
                 records.clearStagedRecords();
                 log.info("PopConsumerOffline, so clean expire records, groupId={}, topic={}, queueId={}, records={}",
@@ -152,6 +174,7 @@ public class PopConsumerCache extends ServiceThread {
 
             // write to store and handle it later
             consumerRecordStore.writeRecords(writeConsumerRecords);
+            deleteAckedStagedRecords(records, writeConsumerRecords);
             records.clearStagedRecords();
 
             // commit min offset in buffer to offset store
@@ -164,6 +187,26 @@ public class PopConsumerCache extends ServiceThread {
             remain += records.getInFlightRecordCount();
         }
         return remain;
+    }
+
+    /**
+     * A staged record that left the staged set while {@code #cleanupRecords(Consumer)} was
+     * writing it to the store was acked concurrently; the ack path has already deleted the
+     * durable record, so delete it once more here to undo the re-persist above.
+     */
+    private void deleteAckedStagedRecords(ConsumerRecords records, List<PopConsumerRecord> writtenRecords) {
+        List<PopConsumerRecord> ackedList = null;
+        for (PopConsumerRecord record : writtenRecords) {
+            if (records.getRemoveTreeMap().get(record.getOffset()) != record) {
+                if (ackedList == null) {
+                    ackedList = new ArrayList<>();
+                }
+                ackedList.add(record);
+            }
+        }
+        if (ackedList != null) {
+            consumerRecordStore.deleteRecords(ackedList);
+        }
     }
 
     public void commitOffset(String clientHost, String groupId, String topicId, int queueId, long offset) {
@@ -229,6 +272,10 @@ public class PopConsumerCache extends ServiceThread {
 
         public boolean delete(PopConsumerRecord record) {
             return recordTreeMap.remove(record.getOffset()) != null;
+        }
+
+        public void removeStaged(PopConsumerRecord record) {
+            removeTreeMap.remove(record.getOffset());
         }
 
         public long getMinOffsetInBuffer() {
