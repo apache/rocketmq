@@ -17,20 +17,24 @@
 package org.apache.rocketmq.remoting.rpc;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -119,5 +123,81 @@ public class ClientMetadataTest {
 
         ConcurrentMap<MessageQueue, String> actual = ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
         assertEquals(1, actual.size());
+    }
+
+    @Test
+    public void testTopicRouteData2EndpointsForStaticTopicUsesLatestEpoch() {
+        String scope = "scope";
+        String oldBroker = "oldBroker";
+        String newBroker = "newBroker";
+        long oldEpoch = 0L;
+        long newEpoch = (long) Integer.MAX_VALUE + 1L;
+        TopicRouteData topicRouteData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new LinkedHashMap<>();
+        mappingInfos.put(oldBroker, buildMappingInfo(scope, oldBroker, oldEpoch));
+        mappingInfos.put(newBroker, buildMappingInfo(scope, newBroker, newEpoch));
+        topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
+
+        ConcurrentMap<MessageQueue, String> actual =
+            ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
+
+        MessageQueue mq = new MessageQueue(defaultTopic, TopicQueueMappingUtils.getMockBrokerName(scope), 0);
+        assertEquals(newBroker, actual.get(mq));
+    }
+
+    @Test
+    public void testTopicRouteData2EndpointsForStaticTopicUsesLatestEpochTotalQueues() {
+        String scope = "scope";
+        String oldBroker = "oldBroker";
+        String newBroker = "newBroker";
+        long oldEpoch = 0L;
+        long newEpoch = (long) Integer.MAX_VALUE + 1L;
+        TopicRouteData topicRouteData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new LinkedHashMap<>();
+        mappingInfos.put(oldBroker, buildMappingInfo(scope, oldBroker, oldEpoch, 2));
+        mappingInfos.put(newBroker, buildMappingInfo(scope, newBroker, newEpoch, 1));
+        topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
+
+        ConcurrentMap<MessageQueue, String> actual =
+            ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
+
+        MessageQueue staleQueue = new MessageQueue(defaultTopic, TopicQueueMappingUtils.getMockBrokerName(scope), 1);
+        assertEquals(1, actual.size());
+        assertFalse(actual.containsKey(staleQueue));
+    }
+
+    @Test
+    public void testTopicRouteData2EndpointsForStaticTopicUsesMaxTotalQueuesInSameEpoch() {
+        String scope = "scope";
+        String brokerA = "brokerA";
+        String brokerB = "brokerB";
+        long epoch = (long) Integer.MAX_VALUE + 1L;
+        TopicRouteData topicRouteData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new LinkedHashMap<>();
+        mappingInfos.put(brokerA, buildMappingInfo(scope, brokerA, epoch, 1));
+        mappingInfos.put(brokerB, buildMappingInfo(scope, brokerB, epoch, 2));
+        topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
+
+        ConcurrentMap<MessageQueue, String> actual =
+            ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
+
+        MessageQueue missingQueue = new MessageQueue(defaultTopic, TopicQueueMappingUtils.getMockBrokerName(scope), 1);
+        assertEquals(2, actual.size());
+        assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST, actual.get(missingQueue));
+    }
+
+    private TopicQueueMappingInfo buildMappingInfo(String scope, String brokerName, long epoch) {
+        return buildMappingInfo(scope, brokerName, epoch, 1);
+    }
+
+    private TopicQueueMappingInfo buildMappingInfo(String scope, String brokerName, long epoch, int totalQueues) {
+        TopicQueueMappingInfo info = new TopicQueueMappingInfo();
+        info.setScope(scope);
+        info.setCurrIdMap(new ConcurrentHashMap<>());
+        info.getCurrIdMap().put(0, 0);
+        info.setTotalQueues(totalQueues);
+        info.setBname(brokerName);
+        info.setEpoch(epoch);
+        return info;
     }
 }
