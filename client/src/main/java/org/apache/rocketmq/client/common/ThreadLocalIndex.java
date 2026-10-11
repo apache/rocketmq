@@ -33,7 +33,7 @@ public class ThreadLocalIndex {
     }
 
     public void reset() {
-        int index = Math.abs(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE));
+        int index = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
         this.threadLocalIndex.set(index);
     }
 
