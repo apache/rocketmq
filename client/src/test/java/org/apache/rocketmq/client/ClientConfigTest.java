@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -63,6 +64,70 @@ public class ClientConfigTest {
         Collection<MessageQueue> messageQueues = clientConfig.queuesWithNamespace(Collections.singleton(messageQueue));
         assertTrue(messageQueues.contains(messageQueue));
         assertEquals("lmq%defaultTopic", messageQueues.iterator().next().getTopic());
+    }
+
+    @Test
+    public void testGetNamespaceFallbackToNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespaceV2("InstanceTest");
+        assertEquals("InstanceTest", config.getNamespace());
+    }
+
+    @Test
+    public void testWithNamespaceUsesNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespaceV2("InstanceTest");
+        assertEquals("InstanceTest%resource", config.withNamespace(resource));
+        assertEquals("InstanceTest%resource",
+            config.withNamespace("InstanceTest%resource"));
+    }
+
+    @Test
+    public void testWithoutNamespaceUsesNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespaceV2("InstanceTest");
+        assertEquals(resource, config.withoutNamespace("InstanceTest%resource"));
+    }
+
+    @Test
+    public void testNamespaceV1PrecedesNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespace("lmq");
+        config.setNamespaceV2("InstanceTest");
+        assertEquals("lmq", config.getNamespace());
+        assertEquals("lmq%resource", config.withNamespace(resource));
+    }
+
+    // Regression guard for the cross-namespace isolation symptom reported in
+    // #9341: two clients configured with different namespaceV2 values must
+    // resolve the same resource to *different* fully-qualified names, so a
+    // consumer in ns-A cannot accidentally address ns-B's resources. Before
+    // the fix, namespaceV2 was ignored and both clients would resolve
+    // "resource" (no namespace prefix at all), collapsing the two namespaces.
+    @Test
+    public void testNamespaceV2IsolatesResourcesAcrossNamespaces() {
+        ClientConfig configA = new ClientConfig();
+        configA.setNamespaceV2("InstanceA");
+
+        ClientConfig configB = new ClientConfig();
+        configB.setNamespaceV2("InstanceB");
+
+        String resolvedA = configA.withNamespace(resource);
+        String resolvedB = configB.withNamespace(resource);
+
+        // Each client pins its own namespace prefix.
+        assertEquals("InstanceA%resource", resolvedA);
+        assertEquals("InstanceB%resource", resolvedB);
+
+        // Negative case: the two resolutions must not collide. If they did,
+        // a consumer in InstanceA could subscribe to / pull from InstanceB.
+        assertNotEquals(resolvedA, resolvedB);
+
+        // And each client must reject the other namespace's prefixed resource
+        // when stripping its own namespace — i.e. configA cannot "claim" a
+        // resource that belongs to configB.
+        assertNotEquals(resource, configA.withoutNamespace(resolvedB));
+        assertEquals(resource, configA.withoutNamespace(resolvedA));
     }
 
     private ClientConfig createClientConfig() {
