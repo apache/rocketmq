@@ -112,6 +112,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -2642,13 +2643,24 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest) {
+        // keeps original parameters and behavior by always passing true here
+        notifyMessageArrive(dispatchRequest, true);
+    }
+
+    /**
+     * Notify message arrival, optionally including the multi-queue (LMQ) part.
+     * @param notifyMultiQueue whether to also notify the multi-queue arrival
+     */
+    private void notifyMessageArrive(DispatchRequest dispatchRequest, boolean notifyMultiQueue) {
         if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
             && DefaultMessageStore.this.messageArrivingListener != null) {
             DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                 dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
                 dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
                 dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+            if (notifyMultiQueue) {
+                DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+            }
         }
     }
 
@@ -2745,7 +2757,10 @@ public class DefaultMessageStore implements MessageStore {
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                 if (isNotifyMessageArriveWhenReput()) {
-                                    notifyMessageArriveIfNecessary(dispatchRequest);
+                                    // only notify multi-queue when we do real LMQ dispatch action.
+                                    boolean notifyMultiQueue = MultiDispatchUtils.checkMultiDispatchQueue(
+                                        DefaultMessageStore.this.messageStoreConfig, dispatchRequest);
+                                    notifyMessageArrive(dispatchRequest, notifyMultiQueue);
                                 }
 
                                 this.reputFromOffset += size;
@@ -2929,7 +2944,9 @@ public class DefaultMessageStore implements MessageStore {
                     for (DispatchRequest dispatchRequest : dispatchRequests) {
                         DefaultMessageStore.this.doDispatch(dispatchRequest);
                         // wake up long-polling
-                        DefaultMessageStore.this.notifyMessageArriveIfNecessary(dispatchRequest);
+                        boolean notifyMultiQueue = MultiDispatchUtils.checkMultiDispatchQueue(
+                            DefaultMessageStore.this.messageStoreConfig, dispatchRequest);
+                        notifyMessageArrive(dispatchRequest, notifyMultiQueue);
 
                         if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
                             DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
