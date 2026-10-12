@@ -289,6 +289,8 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         if (!(o instanceof PopCheckPoint)) {
             return false;
         }
+        // Keep this field list identical to the compareTo tie-breakers above: equals/hashCode and
+        // compareTo must agree on identity, or a TreeMap keyed by this type drops distinct entries.
         PopCheckPoint other = (PopCheckPoint) o;
         return startOffset == other.startOffset
             && queueId == other.queueId
