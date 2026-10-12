@@ -20,6 +20,7 @@ import com.alibaba.fastjson2.annotation.JSONField;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class PopCheckPoint implements Comparable<PopCheckPoint> {
     @JSONField(name = "so")
@@ -210,8 +211,96 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
             + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + ", rePutTimes=" + rePutTimes + ", suspend=" + suspend + "]";
     }
 
+    /**
+     * Orders checkpoints by start offset, then by the fields that identify a checkpoint.
+     * <p>
+     * The previous implementation was {@code (int) (this.startOffset - o.startOffset)}. startOffset is a
+     * 64-bit queue offset, so the subtraction is 64-bit and casting the result to int discards the high
+     * 32 bits; whenever two offsets differ by more than {@link Integer#MAX_VALUE} the sign of the result
+     * can be inverted. That breaks the total-order contract (antisymmetry/transitivity) that sorted
+     * structures rely on. The ordering is load-bearing: {@code inflightReviveRequestMap} in
+     * PopReviveService is a {@code TreeMap} keyed by this type and uses containsKey/get/remove/firstKey
+     * on it, so a non-transitive comparator makes it miss present keys, fail to evict entries and pick
+     * the wrong entry to commit, which in turn advances the revive offset incorrectly. {@link Long#compare}
+     * keeps the full 64-bit ordering.
+     * <p>
+     * Comparing only startOffset is also not enough to identify a checkpoint: PopReviveService processes
+     * a single revive queue that carries checkpoints from many original topics and consumer groups whose
+     * independent startOffsets can legitimately collide. The remaining fields are deterministic
+     * tie-breakers that mirror the merge key used when the checkpoints are read back (topic, cid,
+     * queueId, popTime, brokerName) plus reviveOffset, the unique position of the checkpoint in the
+     * revive queue. They keep the ordering consistent with {@link #equals(Object)}/hashCode so two
+     * distinct checkpoints never compare equal and neither can silently overwrite the other in a map.
+     */
     @Override
     public int compareTo(PopCheckPoint o) {
-        return (int) (this.getStartOffset() - o.getStartOffset());
+        int cmp = Long.compare(this.getStartOffset(), o.getStartOffset());
+        if (cmp != 0) {
+            return cmp;
+        }
+        cmp = compareNullable(this.getTopic(), o.getTopic());
+        if (cmp != 0) {
+            return cmp;
+        }
+        cmp = compareNullable(this.getCId(), o.getCId());
+        if (cmp != 0) {
+            return cmp;
+        }
+        cmp = Integer.compare(this.getQueueId(), o.getQueueId());
+        if (cmp != 0) {
+            return cmp;
+        }
+        cmp = Long.compare(this.getPopTime(), o.getPopTime());
+        if (cmp != 0) {
+            return cmp;
+        }
+        cmp = compareNullable(this.getBrokerName(), o.getBrokerName());
+        if (cmp != 0) {
+            return cmp;
+        }
+        return Long.compare(this.getReviveOffset(), o.getReviveOffset());
+    }
+
+    /**
+     * Null-safe String ordering. topic, cid and brokerName are nullable (a mock checkpoint created for a
+     * late ack may carry a null brokerName), so a plain {@link String#compareTo} would throw for those
+     * keys while the map only needs a stable ordering.
+     */
+    private static int compareNullable(String left, String right) {
+        if (left == null) {
+            return right == null ? 0 : -1;
+        }
+        if (right == null) {
+            return 1;
+        }
+        return left.compareTo(right);
+    }
+
+    /**
+     * Value equality over the same identity fields used by {@link #compareTo(PopCheckPoint)}. Without it
+     * the class fell back to identity equality, so {@code compareTo} == 0 and {@code equals} disagreed
+     * for two checkpoints sharing a startOffset, and one of them could be dropped from a sorted map.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof PopCheckPoint)) {
+            return false;
+        }
+        PopCheckPoint other = (PopCheckPoint) o;
+        return startOffset == other.startOffset
+            && queueId == other.queueId
+            && popTime == other.popTime
+            && reviveOffset == other.reviveOffset
+            && Objects.equals(topic, other.topic)
+            && Objects.equals(cid, other.cid)
+            && Objects.equals(brokerName, other.brokerName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(startOffset, popTime, queueId, topic, cid, reviveOffset, brokerName);
     }
 }

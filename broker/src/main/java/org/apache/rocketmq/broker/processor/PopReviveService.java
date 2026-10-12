@@ -722,7 +722,12 @@ public class PopReviveService extends ServiceThread {
                 return sortList;
             }
             sortList = new ArrayList<>(map.values());
-            sortList.sort((o1, o2) -> (int) (o1.getReviveOffset() - o2.getReviveOffset()));
+            // reviveOffset is a 64-bit queue offset; casting the subtraction to int truncates the
+            // high bits, so two offsets that differ by more than Integer.MAX_VALUE get the wrong
+            // sign and the list ends up mis-ordered. This ordering decides which checkpoint is
+            // revived first and, through the last entry, which reviveOffset is finally committed,
+            // so compare the longs directly instead of the truncated difference.
+            sortList.sort((o1, o2) -> Long.compare(o1.getReviveOffset(), o2.getReviveOffset()));
             return sortList;
         }
     }
