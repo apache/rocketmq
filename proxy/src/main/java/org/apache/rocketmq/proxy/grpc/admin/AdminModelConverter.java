@@ -285,6 +285,10 @@ final class AdminModelConverter {
         switch (messageModel) {
             case BROADCASTING:
                 return apache.rocketmq.v2.MessageModel.BROADCASTING;
+            case LITE_SELECTIVE:
+                // consumers that selectively subscribe to individual lite topics are not a plain
+                // clustering group; the proto has the exact value for them
+                return apache.rocketmq.v2.MessageModel.LITE_SELECTIVE;
             case CLUSTERING:
             default:
                 return apache.rocketmq.v2.MessageModel.CLUSTERING;
