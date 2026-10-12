@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -102,7 +103,12 @@ public class RouteInfoManager {
     }
 
     public boolean submitUnRegisterBrokerRequest(UnRegisterBrokerRequestHeader unRegisterRequest) {
-        return this.unRegisterService.submit(unRegisterRequest);
+        return submitUnRegisterBrokerRequest(unRegisterRequest, null);
+    }
+
+    public boolean submitUnRegisterBrokerRequest(UnRegisterBrokerRequestHeader unRegisterRequest,
+        Channel expectedChannel) {
+        return this.unRegisterService.submit(new BrokerUnregistration(unRegisterRequest, expectedChannel));
     }
 
     // For test only
@@ -569,18 +575,39 @@ public class RouteInfoManager {
     }
 
     public void unRegisterBroker(Set<UnRegisterBrokerRequestHeader> unRegisterRequests) {
+        Set<BrokerUnregistration> brokerUnregistrations = unRegisterRequests.stream()
+            .map(request -> new BrokerUnregistration(request, null))
+            .collect(Collectors.toSet());
+        doUnRegisterBroker(brokerUnregistrations);
+    }
+
+    void doUnRegisterBroker(Set<BrokerUnregistration> unRegisterRequests) {
         try {
             Set<String> removedBroker = new HashSet<>();
             Set<String> reducedBroker = new HashSet<>();
             Map<String, BrokerStatusChangeInfo> needNotifyBrokerMap = new HashMap<>();
 
             this.lock.writeLock().lockInterruptibly();
-            for (final UnRegisterBrokerRequestHeader unRegisterRequest : unRegisterRequests) {
+            for (final BrokerUnregistration brokerUnregistration : unRegisterRequests) {
+                final UnRegisterBrokerRequestHeader unRegisterRequest = brokerUnregistration.getRequest();
                 final String brokerName = unRegisterRequest.getBrokerName();
                 final String clusterName = unRegisterRequest.getClusterName();
                 final String brokerAddr = unRegisterRequest.getBrokerAddr();
 
                 BrokerAddrInfo brokerAddrInfo = new BrokerAddrInfo(clusterName, brokerAddr);
+
+                // A destroy-derived unregister may have been queued before the broker re-registered;
+                // skip it when the current live entry belongs to a newer channel.
+                Channel expectedChannel = brokerUnregistration.getExpectedChannel();
+                if (expectedChannel != null) {
+                    BrokerLiveInfo currentLiveInfo = this.brokerLiveTable.get(brokerAddrInfo);
+                    if (currentLiveInfo != null && currentLiveInfo.getChannel() != expectedChannel) {
+                        log.info("unregisterBroker skipped, the broker has re-registered with a new channel "
+                            + "since the destroy event, {}, current channel: {}", brokerAddrInfo,
+                            currentLiveInfo.getChannel());
+                        continue;
+                    }
+                }
 
                 BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.remove(brokerAddrInfo);
                 log.info("unregisterBroker, remove from brokerLiveTable {}, {}",
@@ -646,6 +673,30 @@ public class RouteInfoManager {
             log.error("unregisterBroker Exception", e);
         } finally {
             this.lock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * An unregister request paired with the channel whose destruction produced it. When the
+     * expected channel is set, the unregister is skipped if the broker has re-registered with a
+     * newer channel in the meantime; a null expected channel means the unregister was explicitly
+     * initiated and must run unconditionally.
+     */
+    static class BrokerUnregistration {
+        private final UnRegisterBrokerRequestHeader request;
+        private final Channel expectedChannel;
+
+        BrokerUnregistration(UnRegisterBrokerRequestHeader request, Channel expectedChannel) {
+            this.request = request;
+            this.expectedChannel = expectedChannel;
+        }
+
+        public UnRegisterBrokerRequestHeader getRequest() {
+            return request;
+        }
+
+        public Channel getExpectedChannel() {
+            return expectedChannel;
         }
     }
 
@@ -819,11 +870,14 @@ public class RouteInfoManager {
 
     public void onChannelDestroy(BrokerAddrInfo brokerAddrInfo) {
         UnRegisterBrokerRequestHeader unRegisterRequest = new UnRegisterBrokerRequestHeader();
+        Channel expectedChannel = null;
         boolean needUnRegister = false;
         if (brokerAddrInfo != null) {
             try {
                 try {
                     this.lock.readLock().lockInterruptibly();
+                    BrokerLiveInfo brokerLiveInfo = this.brokerLiveTable.get(brokerAddrInfo);
+                    expectedChannel = brokerLiveInfo != null ? brokerLiveInfo.getChannel() : null;
                     needUnRegister = setupUnRegisterRequest(unRegisterRequest, brokerAddrInfo);
                 } finally {
                     this.lock.readLock().unlock();
@@ -834,7 +888,7 @@ public class RouteInfoManager {
         }
 
         if (needUnRegister) {
-            boolean result = this.submitUnRegisterBrokerRequest(unRegisterRequest);
+            boolean result = this.submitUnRegisterBrokerRequest(unRegisterRequest, expectedChannel);
             log.info("the broker's channel destroyed, submit the unregister request at once, " +
                 "broker info: {}, submit result: {}", unRegisterRequest, result);
         }
@@ -867,7 +921,7 @@ public class RouteInfoManager {
         }
 
         if (needUnRegister) {
-            boolean result = this.submitUnRegisterBrokerRequest(unRegisterRequest);
+            boolean result = this.submitUnRegisterBrokerRequest(unRegisterRequest, channel);
             log.info("the broker's channel destroyed, submit the unregister request at once, " +
                 "broker info: {}, submit result: {}", unRegisterRequest, result);
         }
