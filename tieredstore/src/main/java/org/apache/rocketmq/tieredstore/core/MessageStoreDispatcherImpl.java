@@ -261,11 +261,26 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             List<DispatchRequest> dispatchRequestList = new ArrayList<>();
             for (; offset < targetOffset; offset++) {
                 cqUnit = consumeQueue.get(offset);
+                if (cqUnit == null) {
+                    // The consume queue may be truncated (expiry sweep) while this batch is
+                    // being built, even though the preflight already validated currentOffset.
+                    log.warn("MessageDispatcher#dispatch cq not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                        topic, queueId, minOffsetInQueue, maxOffsetInQueue, offset, maxOffsetInQueue - offset);
+                    break;
+                }
                 bufferSize += cqUnit.getSize();
                 if (bufferSize >= groupCommitSize) {
                     break;
                 }
                 message = defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
+                if (message == null) {
+                    // The commitlog data behind this offset may be deleted (expired file)
+                    // while the dispatcher is catching up; the preflight only proves the
+                    // first offset of the batch is still readable.
+                    log.warn("MessageDispatcher#dispatch message not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                        topic, queueId, minOffsetInQueue, maxOffsetInQueue, offset, maxOffsetInQueue - offset);
+                    break;
+                }
                 appendingBufferList.add(message);
 
                 ByteBuffer byteBuffer = message.getByteBuffer();
@@ -325,6 +340,11 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                         }
                     }
                 );
+            } else if (!appendingBufferList.isEmpty()) {
+                // Nothing was appended to the consume queue (e.g. appendCommitLog succeeded
+                // but the first appendConsumeQueue failed), so no commit or index build will
+                // ever take this context: release the fetched message buffers here.
+                groupCommitContext.release();
             }
         } catch (ConsumeQueueException e) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
