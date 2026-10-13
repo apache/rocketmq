@@ -61,6 +61,17 @@ public class LiteConsumerLagCalculator {
         }
     }
 
+    /**
+     * Remove lag info of the given lmq for all groups bound to the parent topic.
+     */
+    public void removeLagInfoByLmq(String bindTopic, String lmqName) {
+        topicGroupLagTimeMap.forEach((topicGroup, lagHeap) -> {
+            if (topicGroup.topic.equals(bindTopic)) {
+                lagHeap.removeIf(info -> info.getLmqName().equals(lmqName));
+            }
+        });
+    }
+
     public void updateLagInfo(String group, String bindTopic, String lmqName, long storeTimestamp) {
         PriorityBlockingQueue<LagTimeInfo> lagHeap = topicGroupLagTimeMap.computeIfAbsent(
             new TopicGroup(bindTopic, group),
