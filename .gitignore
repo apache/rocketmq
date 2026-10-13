@@ -22,16 +22,26 @@ MODULE.bazel.lock
 *.flattened-pom.xml
 
 # AI agent default files
-.claude/
+AGENTS.md
 CLAUDE.md
+GEMINI.md
+QWEN.md
+.aider*
+.amazonq/
+.augment/
+.claude/
+.clinerules
+.cody/
+.codeium/
+.continue/
 .cursor/
 .cursorrules
+.gemini/
+.github/copilot-instructions.md
+.junie/
+.qoder/
+.roo/
+.roorules
+.trae/
 .windsurf/
 .windsurfrules
-.aider*
-.continue/
-.codeium/
-.gemini/
-GEMINI.md
-AGENTS.md
-.qoder/
