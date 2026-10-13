@@ -20,6 +20,7 @@ package org.apache.rocketmq.tools.command.message;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -37,9 +38,12 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class SendMessageCommandTest {
@@ -87,5 +91,52 @@ public class SendMessageCommandTest {
         System.setOut(out);
         String s = new String(bos.toByteArray());
         Assert.assertTrue(s.contains("SEND_OK"));
+    }
+
+    @Test
+    public void testExecutePreservesBodyWhitespace() throws Exception {
+        assertMessageBody("\t message \r\n", false);
+    }
+
+    @Test
+    public void testExecutePreservesWhitespaceOnlyBody() throws Exception {
+        assertMessageBody("   ", false);
+    }
+
+    @Test
+    public void testExecutePreservesBodyWhenQueueIsSpecified() throws Exception {
+        assertMessageBody("  \u6d88\u606f\u6b63\u6587  ", true);
+    }
+
+    @Test
+    public void testExecutePreservesOrdinaryBody() throws Exception {
+        assertMessageBody("message body", false);
+    }
+
+    private void assertMessageBody(String body, boolean sendToQueue) throws Exception {
+        SendMessageCommand command = new SendMessageCommand();
+        DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        MessageQueue queue = new MessageQueue("mytopic", "broker-a", 1);
+        SendResult result = new SendResult(SendStatus.SEND_OK, "message-id", "offset-id", queue, 0);
+        when(producer.send(any(Message.class))).thenReturn(result);
+        when(producer.send(any(Message.class), any(MessageQueue.class))).thenReturn(result);
+        Field producerField = SendMessageCommand.class.getDeclaredField("producer");
+        producerField.setAccessible(true);
+        producerField.set(command, producer);
+
+        Options options = command.buildCommandlineOptions(new Options());
+        String[] arguments = sendToQueue
+            ? new String[] {"-t", "mytopic", "-p", body, "-b", "broker-a", "-i", "1"}
+            : new String[] {"-t", "mytopic", "-p", body};
+        CommandLine commandLine = new DefaultParser().parse(options, arguments);
+        command.execute(commandLine, options, null);
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        if (sendToQueue) {
+            verify(producer).send(messageCaptor.capture(), eq(queue));
+        } else {
+            verify(producer).send(messageCaptor.capture());
+        }
+        Assert.assertArrayEquals(body.getBytes(StandardCharsets.UTF_8), messageCaptor.getValue().getBody());
     }
 }
