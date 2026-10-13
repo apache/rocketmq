@@ -20,3 +20,17 @@ bazel-testlogs
 .vscode
 MODULE.bazel.lock
 *.flattened-pom.xml
+
+# AI agent default files
+.claude/
+CLAUDE.md
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.aider*
+.continue/
+.codeium/
+.gemini/
+GEMINI.md
+AGENTS.md
