@@ -123,6 +123,49 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testZeroMaxUserPropertySizeMeansNoLimit() throws Exception {
+        // "max user property size, 0 or negative number means no limit for proxy" (ProxyConfig) and
+        // every other size limit in the activity skips its check for a non-positive value
+        String msgId = MessageClientIDSetter.createUniqID();
+
+        SendResult sendResult = new SendResult();
+        sendResult.setSendStatus(SendStatus.SEND_OK);
+        sendResult.setMsgId(msgId);
+        when(this.messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(Lists.newArrayList(sendResult)));
+
+        ConfigurationManager.getProxyConfig().setMaxUserPropertySize(0);
+        try {
+            SendMessageResponse response = this.sendMessageActivity.sendMessage(
+                createContext(),
+                SendMessageRequest.newBuilder()
+                    .addMessages(Message.newBuilder()
+                        .setTopic(Resource.newBuilder()
+                            .setName(TOPIC)
+                            .build())
+                        .setSystemProperties(SystemProperties.newBuilder()
+                            .setMessageId(msgId)
+                            .setQueueId(0)
+                            .setMessageType(MessageType.NORMAL)
+                            .setTag("tagA")
+                            .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                            .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                            .build())
+                        .putUserProperties("traceId", "abc")
+                        .setBody(ByteString.copyFromUtf8("123"))
+                        .build())
+                    .build()
+            ).get();
+            assertEquals(Code.OK, response.getStatus().getCode());
+        } catch (ExecutionException e) {
+            throw new AssertionError("a zero max user property size means no limit, but the message was rejected: "
+                + e.getCause(), e);
+        } finally {
+            ConfigurationManager.getProxyConfig().setMaxUserPropertySize(16 * 1024);
+        }
+    }
+
+    @Test
     public void testConvertToSendMessageResponse() {
         {
             SendMessageResponse response = this.sendMessageActivity.convertToSendMessageResponse(
