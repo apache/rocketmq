@@ -63,7 +63,7 @@ public class ListAclSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("r", "resource", true, "the resource of acl to filter.");
+        opt = new Option("r", "resource", true, "the resources of acl to filter.");
         opt.setRequired(false);
         options.addOption(opt);
 
