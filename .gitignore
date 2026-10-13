@@ -20,3 +20,4 @@ bazel-testlogs
 .vscode
 MODULE.bazel.lock
 *.flattened-pom.xml
+.qoder
