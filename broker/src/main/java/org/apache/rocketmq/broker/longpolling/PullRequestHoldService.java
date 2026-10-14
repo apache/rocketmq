@@ -188,7 +188,14 @@ public class PullRequestHoldService extends ServiceThread {
             if (mpr == null || mpr.isEmpty()) {
                 continue;
             }
-            for (PullRequest request : mpr.cloneListAndClear()) {
+            // An arrival drains the same bucket on its own thread, so the bucket can be empty by the
+            // time it is drained here and answer null. That must only skip this bucket instead of
+            // aborting the sweep and leaving the other queues' requests suspended.
+            List<PullRequest> requestList = mpr.cloneListAndClear();
+            if (requestList == null) {
+                continue;
+            }
+            for (PullRequest request : requestList) {
                 try {
                     log.info("notify master online, wakeup {} {}", request.getClientChannel(), request.getRequestCommand());
                     this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
