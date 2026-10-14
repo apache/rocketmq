@@ -33,8 +33,13 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.logging.ch.qos.logback.classic.Logger;
+import org.apache.rocketmq.logging.ch.qos.logback.classic.spi.ILoggingEvent;
+import org.apache.rocketmq.logging.ch.qos.logback.core.read.ListAppender;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
@@ -607,5 +612,31 @@ public class PopLiteMessageProcessorTest {
         // Should return the message since no tombstone blocks
         assertEquals(msgCount, result.getObject2().getMessageCount());
         verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq(group), eq(lmqName), eq(32L), eq(pollTime), eq(6000L), eq("attemptId"), anySet());
+    }
+
+    @Test
+    public void testPreCheckLogTopicNotExistContainsConsumer() {
+        final ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        RemotingCommand response = RemotingCommand.createResponseCommand(PopLiteMessageResponseHeader.class);
+        PopLiteMessageRequestHeader requestHeader = new PopLiteMessageRequestHeader();
+        requestHeader.setBornTime(System.currentTimeMillis());
+        requestHeader.setPollTime(30000);
+        requestHeader.setTopic("nonExistTopic");
+        requestHeader.setConsumerGroup("groupA");
+
+        Logger liteLogger = (Logger) LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        liteLogger.addAppender(appender);
+        try {
+            RemotingCommand result = popLiteMessageProcessor.preCheck(ctx, requestHeader, response);
+            assertEquals(ResponseCode.TOPIC_NOT_EXIST, result.getCode());
+        } finally {
+            liteLogger.detachAppender(appender);
+        }
+
+        assertTrue(appender.list.stream()
+            .map(ILoggingEvent::getFormattedMessage)
+            .anyMatch(msg -> msg.contains("consumer: groupA")));
     }
 }
