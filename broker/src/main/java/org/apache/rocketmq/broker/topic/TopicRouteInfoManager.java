@@ -425,6 +425,18 @@ public class TopicRouteInfoManager {
 
     }
 
+    /**
+     * Look up the readable queues for a topic, pulling from the NameServer on
+     * cache miss.
+     *
+     * <p>If the cached {@link Set} of {@link MessageQueue} is absent or empty, a
+     * synchronous refresh is triggered and the cache is re-read. Used by Pop
+     * consumption for queue assignment.
+     *
+     * @param topic the topic whose subscribe info is needed
+     * @return the set of readable queues, or {@code null} if the topic still
+     *     has no route
+     */
     public Set<MessageQueue> getTopicSubscribeInfo(String topic) {
         Set<MessageQueue> queues = topicSubscribeInfoTable.get(topic);
         if (null == queues || queues.isEmpty()) {
