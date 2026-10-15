@@ -88,11 +88,83 @@ public class TopicRouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final Lock lockNamesrv = new ReentrantLock();
+    /**
+     * Topic → {@link TopicRouteData}, the <b>raw NameServer response</b>(unprocessed).
+     * This is the most complete cache and the single source of truth
+     * from which the other three tables are derived.
+     *
+     * <pre>
+     * Key: topic name (e.g. "TopicLMQParent")
+     * Value: TopicRouteData {
+     *     queueDatas:        [QueueData(brokerName, read/writeQueueNums, perm) ...]   // queue count per broker
+     *     brokerDatas:       [BrokerData(cluster, brokerName, brokerAddrs) ...]       // broker master/slave addrs
+     *     filterServerTable: Map&lt;brokerAddr, filterServerList&gt;                     // deprecated
+     * }
+     * </pre>
+     *
+     * <p><b>Source:</b> entirely from NameServer,
+     * the untouched return value of {@code BrokerOuterAPI#getTopicRouteInfoFromNameServer}.
+     * Used for {@code topicRouteDataChanged} version comparison and the escape-bridge queue assignment.
+     */
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<>();
+    /**
+     * BrokerName → (brokerId → address), <b>parsed from TopicRouteData</b>.
+     * Every route update splits out the {@code brokerDatas} and merges them in,
+     * so this table <b>accumulates across topics</b> and can resolve addresses without any topic context.
+     *
+     * <pre>
+     * Key: brokerName (e.g. "broker-a")
+     * Value: {
+     *     0L -> "10.0.0.1:10911"   // master (MASTER_ID = 0)
+     *     1L -> "10.0.0.2:10911"   // slave
+     *     ...
+     * }
+     * </pre>
+     *
+     * <p><b>Source:</b> parsed from {@link #topicRouteTable}'s {@code TopicRouteData.brokerDatas}.
+     * Consumed by {@link #findBrokerAddressInPublish} (master only)
+     * and {@link #findBrokerAddressInSubscribe} (by brokerId, with slave fallback).
+     */
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
         new ConcurrentHashMap<>();
+    /**
+     * Topic → {@link TopicPublishInfo}, <b>parsed from TopicRouteData</b>,
+     * keeping only the <b>writable-queue</b> view.
+     * Direct data source for message sending and Lite-topic sharding.
+     *
+     * <pre>
+     * Key: topic name
+     * Value: TopicPublishInfo {
+     *     messageQueueList: [MessageQueue(topic, brokerName, queueId) ...]  // writeQueueNums queues only
+     *     sendWhichQueue:   ThreadLocalIndex                             // round-robin cursor
+     * }
+     * </pre>
+     *
+     * <p><b>Source:</b> parsed from {@link #topicRouteTable}
+     * via {@code MQClientInstance#topicRouteData2TopicPublishInfo}.
+     * Consumed by {@link #tryToFindTopicPublishInfo} (used by LiteShardingImpl sharding).
+     */
     private final ConcurrentMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable = new ConcurrentHashMap<>();
 
+    /**
+     * Topic → Set&lt;MessageQueue&gt;, <b>parsed from TopicRouteData</b>,
+     * keeping only the <b>readable-queue</b> view.
+     * Data source for Pop-consumer queue assignment.
+     *
+     * <pre>
+     * Key: topic name
+     * Value: {
+     *     MessageQueue(topic, brokerName, 0),
+     *     MessageQueue(topic, brokerName, 1),
+     *     ... (readQueueNums entries total)
+     * }
+     * </pre>
+     *
+     * <p><b>Source:</b> parsed from {@link #topicRouteTable}
+     * via {@code MQClientInstance#topicRouteData2TopicSubscribeInfo},
+     * after clearing {@code topicQueueMappingByBroker} (to avoid static-topic mapping noise).
+     * Consumed by {@link #getTopicSubscribeInfo} (Pop assignment).
+     */
     private final ConcurrentHashMap<String, Set<MessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<>();
 
     private ScheduledExecutorService scheduledExecutorService;
