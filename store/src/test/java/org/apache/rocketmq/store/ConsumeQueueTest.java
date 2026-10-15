@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -38,6 +40,8 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
@@ -773,6 +777,631 @@ public class ConsumeQueueTest {
                 consumeQueue.destroy();
             }
             FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateRetainsPreviousFullFileAfterDeletingDirtyTailFile() throws IOException {
+        File tmpDir = Files.createTempDirectory("truncate-cq-tail-files").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(2 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(false);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("truncateTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        try {
+            long[] physicalOffsets = {0, 10, 1000, 1010};
+            for (int i = 0; i < physicalOffsets.length; i++) {
+                DispatchRequest request = new DispatchRequest("truncateTopic", 0, physicalOffsets[i], 10,
+                    0, 0, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            Assert.assertEquals(4, consumeQueue.getMaxOffsetInQueue());
+
+            consumeQueue.truncateDirtyLogicFiles(500);
+
+            Assert.assertEquals(2, consumeQueue.getMaxOffsetInQueue());
+        } finally {
+            consumeQueue.destroy();
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateDirtyLogicFilesTruncatesConsumeQueueExtAndSurvivesReload() throws IOException {
+        File tmpDir = Files.createTempDirectory("truncate-cq-ext").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(4 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("truncateExtTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        try {
+            for (int i = 0; i < 4; i++) {
+                DispatchRequest request = new DispatchRequest("truncateExtTopic", 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            long truncatedExtAddress = getRawTagsCode(consumeQueue, 2);
+
+            consumeQueue.truncateDirtyLogicFiles(200);
+
+            for (int i = 2; i < 4; i++) {
+                DispatchRequest replacement = new DispatchRequest("truncateExtTopic", 0, 100L * i, 10,
+                    200 + i, 2000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(replacement);
+            }
+            long replacementExtAddress = getRawTagsCode(consumeQueue, 2);
+            consumeQueue.flush(0);
+
+            reloadedConsumeQueue = new ConsumeQueue("truncateExtTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+
+            Assert.assertEquals(202, reloadedConsumeQueue.getExt(truncatedExtAddress).getTagsCode());
+            Assert.assertEquals(truncatedExtAddress, replacementExtAddress);
+        } finally {
+            consumeQueue.destroy();
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateAllConsumeQueueExtSurvivesReloadAndReusesFirstAddress() throws IOException {
+        File tmpDir = Files.createTempDirectory("truncate-all-cq-ext").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(4 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("truncateAllExtTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue emptyReloadedConsumeQueue = null;
+        ConsumeQueue replacementReloadedConsumeQueue = null;
+        try {
+            for (int i = 0; i < 2; i++) {
+                DispatchRequest request = new DispatchRequest("truncateAllExtTopic", 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            long firstExtAddress = getRawTagsCode(consumeQueue, 0);
+            consumeQueue.flush(0);
+
+            consumeQueue.truncateDirtyLogicFiles(0);
+            consumeQueue.flush(0);
+
+            emptyReloadedConsumeQueue = new ConsumeQueue("truncateAllExtTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(emptyReloadedConsumeQueue.load());
+            emptyReloadedConsumeQueue.recover();
+            Assert.assertEquals(0, emptyReloadedConsumeQueue.getMaxOffsetInQueue());
+            Assert.assertNull(emptyReloadedConsumeQueue.getExt(firstExtAddress));
+
+            DispatchRequest replacement = new DispatchRequest("truncateAllExtTopic", 0, 0, 10,
+                200, 2000, 0, null, null, 0, 0, null);
+            emptyReloadedConsumeQueue.putMessagePositionInfoWrapper(replacement);
+            long replacementExtAddress = getRawTagsCode(emptyReloadedConsumeQueue, 0);
+            Assert.assertEquals(firstExtAddress, replacementExtAddress);
+            emptyReloadedConsumeQueue.flush(0);
+
+            replacementReloadedConsumeQueue = new ConsumeQueue("truncateAllExtTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(replacementReloadedConsumeQueue.load());
+            replacementReloadedConsumeQueue.recover();
+            Assert.assertEquals(200, replacementReloadedConsumeQueue.getExt(firstExtAddress).getTagsCode());
+        } finally {
+            consumeQueue.destroy();
+            if (emptyReloadedConsumeQueue != null) {
+                emptyReloadedConsumeQueue.destroy();
+            }
+            if (replacementReloadedConsumeQueue != null) {
+                replacementReloadedConsumeQueue.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateDeletesEmptyTailAndRetainsPreviousFileExt() throws Exception {
+        File tmpDir = Files.createTempDirectory("truncate-empty-cq-tail").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(2 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("truncateEmptyTailTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        try {
+            for (int i = 0; i < 2; i++) {
+                DispatchRequest request = new DispatchRequest("truncateEmptyTailTopic", 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            long lastRetainedExtAddress = getRawTagsCode(consumeQueue, 1);
+            MappedFileQueue mappedFileQueue = getMappedFileQueue(consumeQueue);
+            Assert.assertNotNull(mappedFileQueue.getLastMappedFile(0));
+            Assert.assertEquals(2, mappedFileQueue.getMappedFiles().size());
+            Assert.assertEquals(0, mappedFileQueue.getLastMappedFile().getWrotePosition());
+
+            consumeQueue.truncateDirtyLogicFiles(500);
+
+            Assert.assertEquals(1, mappedFileQueue.getMappedFiles().size());
+            Assert.assertEquals(2, consumeQueue.getMaxOffsetInQueue());
+            Assert.assertEquals(101, consumeQueue.getExt(lastRetainedExtAddress).getTagsCode());
+            consumeQueue.flush(0);
+
+            reloadedConsumeQueue = new ConsumeQueue("truncateEmptyTailTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+            Assert.assertEquals(2, reloadedConsumeQueue.getMaxOffsetInQueue());
+            Assert.assertEquals(101, reloadedConsumeQueue.getExt(lastRetainedExtAddress).getTagsCode());
+        } finally {
+            consumeQueue.destroy();
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateWithoutDeletingFilesRetainsExtForReload() throws Exception {
+        File tmpDir = Files.createTempDirectory("truncate-cq-without-delete").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(2 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("truncateWithoutDeleteTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        MappedFile removedTailFile = null;
+        try {
+            for (int i = 0; i < 4; i++) {
+                DispatchRequest request = new DispatchRequest("truncateWithoutDeleteTopic", 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            long dirtyExtAddress = getRawTagsCode(consumeQueue, 2);
+            consumeQueue.flush(0);
+            MappedFileQueue mappedFileQueue = getMappedFileQueue(consumeQueue);
+            removedTailFile = mappedFileQueue.getLastMappedFile();
+
+            consumeQueue.truncateDirtyLogicFiles(200, false);
+
+            Assert.assertEquals(1, mappedFileQueue.getMappedFiles().size());
+            Assert.assertEquals(2, consumeQueue.getMaxOffsetInQueue());
+            Assert.assertEquals(102, consumeQueue.getExt(dirtyExtAddress).getTagsCode());
+            consumeQueue.flush(0);
+
+            reloadedConsumeQueue = new ConsumeQueue("truncateWithoutDeleteTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+            Assert.assertEquals(4, reloadedConsumeQueue.getMaxOffsetInQueue());
+            Assert.assertEquals(102, reloadedConsumeQueue.getExt(dirtyExtAddress).getTagsCode());
+        } finally {
+            consumeQueue.destroy();
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            if (removedTailFile != null) {
+                removedTailFile.destroy(1000);
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateIgnoresExpiredExtBeforeMinLogicOffset() throws IOException {
+        File tmpDir = Files.createTempDirectory("truncate-expired-cq-ext").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(4 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("truncateExpiredExtTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        try {
+            DispatchRequest expiredRequest = new DispatchRequest("truncateExpiredExtTopic", 0, 0, 10,
+                100, 1000, 0, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(expiredRequest);
+            long expiredExtAddress = getRawTagsCode(consumeQueue, 0);
+
+            storeConfig.setEnableConsumeQueueExt(false);
+            for (int i = 1; i < 3; i++) {
+                DispatchRequest request = new DispatchRequest("truncateExpiredExtTopic", 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            consumeQueue.setMinLogicOffset(ConsumeQueue.CQ_STORE_UNIT_SIZE);
+
+            consumeQueue.truncateDirtyLogicFiles(200);
+
+            Assert.assertEquals(2, consumeQueue.getMaxOffsetInQueue());
+            Assert.assertEquals(101, getRawTagsCode(consumeQueue, 1));
+            Assert.assertNull(consumeQueue.getExt(expiredExtAddress));
+        } finally {
+            consumeQueue.destroy();
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testRecoverClearsExtWhenConsumeQueueFilesAreMissing() throws Exception {
+        File tmpDir = Files.createTempDirectory("recover-orphan-cq-ext").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(4 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("recoverOrphanExtTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        try {
+            for (int i = 0; i < 2; i++) {
+                DispatchRequest request = new DispatchRequest("recoverOrphanExtTopic", 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            long orphanedExtAddress = getRawTagsCode(consumeQueue, 0);
+            consumeQueue.flush(0);
+
+            MappedFileQueue mappedFileQueue = getMappedFileQueue(consumeQueue);
+            mappedFileQueue.destroy();
+            Assert.assertTrue(mappedFileQueue.getMappedFiles().isEmpty());
+
+            reloadedConsumeQueue = new ConsumeQueue("recoverOrphanExtTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+
+            Assert.assertEquals(0, reloadedConsumeQueue.getMaxOffsetInQueue());
+            Assert.assertNull(reloadedConsumeQueue.getExt(orphanedExtAddress));
+        } finally {
+            consumeQueue.destroy();
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testRecoverCompletesPendingExtCleanupAfterFallbackDispatch() throws Exception {
+        File tmpDir = Files.createTempDirectory("recover-pending-cq-ext").toFile();
+        String topic = "recoverPendingExtTopic";
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(4 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(2 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        SelectMappedBufferResult heldBuffer = null;
+        try {
+            for (int i = 0; i < 2; i++) {
+                DispatchRequest request = new DispatchRequest(topic, 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            long firstExtAddress = getRawTagsCode(consumeQueue, 0);
+            long retainedExtAddress = getRawTagsCode(consumeQueue, 1);
+            consumeQueue.flush(0);
+
+            ConsumeQueueExt consumeQueueExt = getConsumeQueueExt(consumeQueue);
+            MappedFileQueue extMappedFileQueue = getMappedFileQueue(consumeQueueExt);
+            Assert.assertEquals(2, extMappedFileQueue.getMappedFiles().size());
+            MappedFile retainedMappedFile = extMappedFileQueue.getLastMappedFile();
+            File retainedMappedFilePath = new File(retainedMappedFile.getFileName());
+            heldBuffer = retainedMappedFile.selectMappedBuffer(
+                0, ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+            Assert.assertNotNull(heldBuffer);
+
+            consumeQueue.truncateDirtyLogicFiles(0);
+
+            Assert.assertEquals(0, consumeQueue.getMaxOffsetInQueue());
+            Assert.assertTrue(retainedMappedFilePath.exists());
+
+            DispatchRequest fallback = new DispatchRequest(topic, 0, 0, 10,
+                200, 2000, 0, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(fallback);
+            Assert.assertEquals(200, getRawTagsCode(consumeQueue, 0));
+            consumeQueue.flush(0);
+
+            heldBuffer.release();
+            heldBuffer = null;
+            Assert.assertTrue(retainedMappedFilePath.exists());
+
+            reloadedConsumeQueue = new ConsumeQueue(topic, 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+
+            Assert.assertFalse(retainedMappedFilePath.exists());
+            Assert.assertNull(reloadedConsumeQueue.getExt(retainedExtAddress));
+
+            DispatchRequest replacement = new DispatchRequest(topic, 0, 100, 10,
+                300, 3000, 1, null, null, 0, 0, null);
+            reloadedConsumeQueue.putMessagePositionInfoWrapper(replacement);
+            long replacementExtAddress = getRawTagsCode(reloadedConsumeQueue, 1);
+            Assert.assertEquals(firstExtAddress, replacementExtAddress);
+            Assert.assertEquals(300, reloadedConsumeQueue.getExt(replacementExtAddress).getTagsCode());
+        } finally {
+            if (heldBuffer != null) {
+                heldBuffer.release();
+            }
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            consumeQueue.destroy();
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testRecoverRetainsExtAddressBeforeRecoveryWindow() throws Exception {
+        File tmpDir = Files.createTempDirectory("recover-old-cq-ext").toFile();
+        String topic = "recoverOldExtTopic";
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        try {
+            DispatchRequest first = new DispatchRequest(topic, 0, 0, 10,
+                100, 1000, 0, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(first);
+            long firstExtAddress = getRawTagsCode(consumeQueue, 0);
+
+            storeConfig.setEnableConsumeQueueExt(false);
+            for (int i = 1; i < 4; i++) {
+                DispatchRequest request = new DispatchRequest(topic, 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            consumeQueue.flush(0);
+            storeConfig.setEnableConsumeQueueExt(true);
+
+            reloadedConsumeQueue = new ConsumeQueue(topic, 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+
+            ConsumeQueueExt.CqExtUnit retainedUnit = reloadedConsumeQueue.getExt(firstExtAddress);
+            Assert.assertNotNull(retainedUnit);
+            Assert.assertEquals(100, retainedUnit.getTagsCode());
+        } finally {
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            consumeQueue.destroy();
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateKeepsExtWhenConsumeQueueTailDeletionFails() throws Exception {
+        File tmpDir = Files.createTempDirectory("truncate-cq-tail-delete-failure").toFile();
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setMappedFileSizeConsumeQueue(2 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        storeConfig.setMappedFileSizeConsumeQueueExt(10 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+        storeConfig.setEnableConsumeQueueExt(true);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(new RunningFlags());
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(Mockito.mock(StoreCheckpoint.class));
+
+        ConsumeQueue consumeQueue = new ConsumeQueue("truncateDeleteFailureTopic", 0, tmpDir.getAbsolutePath(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        ConsumeQueue reloadedConsumeQueue = null;
+        MappedFile retainedTailFile = null;
+        SelectMappedBufferResult heldBuffer = null;
+        try {
+            for (int i = 0; i < 4; i++) {
+                DispatchRequest request = new DispatchRequest("truncateDeleteFailureTopic", 0, 100L * i, 10,
+                    100 + i, 1000 + i, i, null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(request);
+            }
+            long dirtyExtAddress = getRawTagsCode(consumeQueue, 2);
+            consumeQueue.flush(0);
+
+            MappedFileQueue mappedFileQueue = getMappedFileQueue(consumeQueue);
+            retainedTailFile = mappedFileQueue.getLastMappedFile();
+            File retainedTailPath = new File(retainedTailFile.getFileName());
+            heldBuffer = retainedTailFile.selectMappedBuffer(0, ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            Assert.assertNotNull(heldBuffer);
+
+            consumeQueue.truncateDirtyLogicFiles(200);
+
+            Assert.assertTrue(retainedTailPath.exists());
+            Assert.assertEquals(1, mappedFileQueue.getMappedFiles().size());
+            Assert.assertEquals(2, consumeQueue.getMaxOffsetInQueue());
+            Assert.assertEquals(102, consumeQueue.getExt(dirtyExtAddress).getTagsCode());
+
+            heldBuffer.release();
+            heldBuffer = null;
+
+            reloadedConsumeQueue = new ConsumeQueue("truncateDeleteFailureTopic", 0, tmpDir.getAbsolutePath(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+
+            Assert.assertEquals(4, reloadedConsumeQueue.getMaxOffsetInQueue());
+            Assert.assertEquals(102, reloadedConsumeQueue.getExt(dirtyExtAddress).getTagsCode());
+        } finally {
+            if (heldBuffer != null) {
+                heldBuffer.release();
+            }
+            consumeQueue.destroy();
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            if (retainedTailFile != null) {
+                retainedTailFile.destroy(1000);
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    @Test
+    public void testTruncateAllConsumeQueueExtRetriesAfterMappedFileRelease() throws Exception {
+        File tmpDir = Files.createTempDirectory("truncate-all-cq-ext-retry").toFile();
+        String topic = "truncateAllExtRetryTopic";
+        String extStorePath = StorePathConfigHelper.getStorePathConsumeQueueExt(tmpDir.getAbsolutePath());
+        int mappedFileSize = 2 * ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE;
+        ConsumeQueueExt consumeQueueExt = new ConsumeQueueExt(topic, 0, extStorePath, mappedFileSize, 0);
+        ConsumeQueueExt reloadedConsumeQueueExt = null;
+        SelectMappedBufferResult heldBuffer = null;
+        try {
+            long firstExtAddress = consumeQueueExt.put(
+                new ConsumeQueueExt.CqExtUnit(100L, 1000L, null));
+            long secondExtAddress = consumeQueueExt.put(
+                new ConsumeQueueExt.CqExtUnit(101L, 1001L, null));
+            Assert.assertTrue(ConsumeQueueExt.isExtAddr(firstExtAddress));
+            Assert.assertTrue(ConsumeQueueExt.isExtAddr(secondExtAddress));
+            Assert.assertNotEquals(firstExtAddress, secondExtAddress);
+            consumeQueueExt.flush(0);
+
+            MappedFileQueue mappedFileQueue = getMappedFileQueue(consumeQueueExt);
+            Assert.assertEquals(2, mappedFileQueue.getMappedFiles().size());
+            MappedFile firstMappedFile = mappedFileQueue.getMappedFiles().get(0);
+            MappedFile retainedMappedFile = mappedFileQueue.getMappedFiles().get(1);
+            File firstMappedFilePath = new File(firstMappedFile.getFileName());
+            File retainedMappedFilePath = new File(retainedMappedFile.getFileName());
+            long flushedWhereBeforeTruncate = mappedFileQueue.getFlushedWhere();
+            Assert.assertTrue(flushedWhereBeforeTruncate > 0);
+            heldBuffer = retainedMappedFile.selectMappedBuffer(0, ConsumeQueueExt.CqExtUnit.MIN_EXT_UNIT_SIZE);
+            Assert.assertNotNull(heldBuffer);
+
+            Assert.assertFalse(consumeQueueExt.truncateAll());
+            Assert.assertFalse(firstMappedFilePath.exists());
+            Assert.assertTrue(retainedMappedFilePath.exists());
+            Assert.assertEquals(1, mappedFileQueue.getMappedFiles().size());
+            Assert.assertSame(retainedMappedFile, mappedFileQueue.getMappedFiles().get(0));
+            Assert.assertEquals(flushedWhereBeforeTruncate, mappedFileQueue.getFlushedWhere());
+            Assert.assertEquals(1, consumeQueueExt.put(
+                new ConsumeQueueExt.CqExtUnit(200L, 2000L, null)));
+            Assert.assertEquals(flushedWhereBeforeTruncate, mappedFileQueue.getFlushedWhere());
+            Assert.assertEquals(1, mappedFileQueue.getMappedFiles().size());
+
+            heldBuffer.release();
+            heldBuffer = null;
+            Assert.assertTrue(retainedMappedFilePath.exists());
+
+            AtomicLong replacementExtAddress = new AtomicLong(1);
+            Awaitility.await().atMost(5, SECONDS).pollInterval(100, TimeUnit.MILLISECONDS).until(() -> {
+                replacementExtAddress.set(consumeQueueExt.put(
+                    new ConsumeQueueExt.CqExtUnit(200L, 2000L, null)));
+                return ConsumeQueueExt.isExtAddr(replacementExtAddress.get());
+            });
+            Assert.assertFalse(retainedMappedFilePath.exists());
+            Assert.assertEquals(0, mappedFileQueue.getFlushedWhere());
+            Assert.assertEquals(0, mappedFileQueue.getCommittedWhere());
+            Assert.assertEquals(firstExtAddress, replacementExtAddress.get());
+            consumeQueueExt.flush(0);
+
+            reloadedConsumeQueueExt = new ConsumeQueueExt(topic, 0, extStorePath, mappedFileSize, 0);
+            Assert.assertTrue(reloadedConsumeQueueExt.load());
+            reloadedConsumeQueueExt.recover();
+            ConsumeQueueExt.CqExtUnit replacement = reloadedConsumeQueueExt.get(replacementExtAddress.get());
+            Assert.assertNotNull(replacement);
+            Assert.assertEquals(200, replacement.getTagsCode());
+        } finally {
+            if (heldBuffer != null) {
+                heldBuffer.release();
+            }
+            consumeQueueExt.destroy();
+            if (reloadedConsumeQueueExt != null) {
+                reloadedConsumeQueueExt.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
+    }
+
+    private MappedFileQueue getMappedFileQueue(ConsumeQueue consumeQueue) throws ReflectiveOperationException {
+        Field mappedFileQueueField = ConsumeQueue.class.getDeclaredField("mappedFileQueue");
+        mappedFileQueueField.setAccessible(true);
+        return (MappedFileQueue) mappedFileQueueField.get(consumeQueue);
+    }
+
+    private MappedFileQueue getMappedFileQueue(ConsumeQueueExt consumeQueueExt) throws ReflectiveOperationException {
+        Field mappedFileQueueField = ConsumeQueueExt.class.getDeclaredField("mappedFileQueue");
+        mappedFileQueueField.setAccessible(true);
+        return (MappedFileQueue) mappedFileQueueField.get(consumeQueueExt);
+    }
+
+    private ConsumeQueueExt getConsumeQueueExt(ConsumeQueue consumeQueue) throws ReflectiveOperationException {
+        Field consumeQueueExtField = ConsumeQueue.class.getDeclaredField("consumeQueueExt");
+        consumeQueueExtField.setAccessible(true);
+        return (ConsumeQueueExt) consumeQueueExtField.get(consumeQueue);
+    }
+
+    private long getRawTagsCode(ConsumeQueue consumeQueue, long queueOffset) {
+        SelectMappedBufferResult result = consumeQueue.getIndexBuffer(queueOffset);
+        Assert.assertNotNull(result);
+        try {
+            return result.getByteBuffer().getLong(12);
+        } finally {
+            result.release();
         }
     }
 }
