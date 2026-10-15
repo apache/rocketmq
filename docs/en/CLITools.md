@@ -735,7 +735,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td class=xl68 width=87 style='width:65pt'>Specify a start timestamp in a format see -h</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-d</td>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-e</td>
   <td class=xl68 width=87 style='width:65pt'>Specify a end timestamp</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
