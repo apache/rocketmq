@@ -267,7 +267,7 @@ public class ConsumeMessageCommand implements SubCommand {
                     maxOffset = minOffset + countLeft - 1;
                     countLeft = 0;
                 } else {
-                    countLeft = countLeft - (maxOffset - minOffset) - 1;
+                    countLeft = countLeft - (maxOffset - minOffset);
                 }
 
                 pullMessageByQueue(mq, minOffset, maxOffset);
