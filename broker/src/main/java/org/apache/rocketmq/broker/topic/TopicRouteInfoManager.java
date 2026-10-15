@@ -374,6 +374,24 @@ public class TopicRouteInfoManager {
         return null;
     }
 
+    /**
+     * Resolve a broker address by brokerId for consuming, with fallback.
+     *
+     * <p>Lookup order in {@link #brokerAddrTable}:
+     * <ol>
+     *   <li>exact {@code brokerId} match;</li>
+     *   <li>if {@code brokerId} is a slave and not found, try
+     *       {@code brokerId + 1};</li>
+     *   <li>if still not found and {@code onlyThisBroker} is {@code false},
+     *       fall back to an arbitrary address in the map.</li>
+     * </ol>
+     *
+     * @param brokerName the broker whose address is needed
+     * @param brokerId the preferred brokerId (0 = master, &gt;0 = slave)
+     * @param onlyThisBroker if {@code true}, do not fall back to another
+     *     broker's address when the exact match is missing
+     * @return the resolved address, or {@code null} if none is available
+     */
     public String findBrokerAddressInSubscribe(
         final String brokerName,
         final long brokerId,
