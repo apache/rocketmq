@@ -21,7 +21,9 @@ import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
@@ -46,6 +48,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -137,6 +140,77 @@ public class ConsumeMessageCommandTest {
         System.setOut(out);
         String s = new String(bos.toByteArray(), StandardCharsets.UTF_8);
         Assert.assertTrue(s.contains("Consume ok"));
+    }
+
+    @Test
+    public void testExecuteDefaultWithEmptyQueueFirst() throws Exception {
+        assertDefaultConsumption(new int[] {0, 1}, 1, 1);
+    }
+
+    @Test
+    public void testExecuteDefaultWithMessageLimitAcrossQueues() throws Exception {
+        assertDefaultConsumption(new int[] {1, 1}, 2, 2);
+    }
+
+    @Test
+    public void testExecuteDefaultWithEmptyQueueBetweenMessages() throws Exception {
+        assertDefaultConsumption(new int[] {1, 0, 1}, 2, 2);
+    }
+
+    @Test
+    public void testExecuteDefaultWithLimitInsideNextQueue() throws Exception {
+        assertDefaultConsumption(new int[] {1, 3}, 2, 2);
+    }
+
+    @Test
+    public void testExecuteDefaultStopsAtMessageLimit() throws Exception {
+        assertDefaultConsumption(new int[] {1, 1, 1}, 2, 2);
+    }
+
+    private void assertDefaultConsumption(int[] queueSizes, int messageLimit, int expectedCount) throws Exception {
+        ConsumeMessageCommand command = new ConsumeMessageCommand();
+        DefaultMQPullConsumer consumer = mock(DefaultMQPullConsumer.class);
+        Set<MessageQueue> queues = new LinkedHashSet<>();
+        for (int queueId = 0; queueId < queueSizes.length; queueId++) {
+            MessageQueue queue = new MessageQueue("mytopic", "broker-a", queueId);
+            int queueSize = queueSizes[queueId];
+            queues.add(queue);
+            when(consumer.minOffset(queue)).thenReturn(0L);
+            when(consumer.maxOffset(queue)).thenReturn((long) queueSize);
+            when(consumer.pull(eq(queue), eq("*"), anyLong(), anyInt())).thenAnswer(invocation -> {
+                long offset = invocation.getArgument(2);
+                int maxMessages = invocation.getArgument(3);
+                if (offset >= queueSize) {
+                    return new PullResult(PullStatus.NO_NEW_MSG, queueSize, 0, queueSize, Collections.emptyList());
+                }
+                List<MessageExt> messages = new ArrayList<>();
+                for (long index = offset; index < queueSize && messages.size() < maxMessages; index++) {
+                    MessageExt message = new MessageExt();
+                    message.setMsgId(queue.getQueueId() + "-" + index);
+                    message.setBody("message body".getBytes(StandardCharsets.UTF_8));
+                    messages.add(message);
+                }
+                return new PullResult(PullStatus.FOUND, offset + messages.size(), 0, queueSize, messages);
+            });
+        }
+        when(consumer.fetchSubscribeMessageQueues("mytopic")).thenReturn(queues);
+        Field consumerField = ConsumeMessageCommand.class.getDeclaredField("defaultMQPullConsumer");
+        consumerField.setAccessible(true);
+        consumerField.set(command, consumer);
+
+        Options options = command.buildCommandlineOptions(new Options());
+        CommandLine commandLine = new DefaultParser().parse(options,
+            new String[] {"-t", "mytopic", "-c", Integer.toString(messageLimit)});
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            System.setOut(new PrintStream(output));
+            command.execute(commandLine, options, null);
+        } finally {
+            System.setOut(originalOut);
+        }
+        String text = new String(output.toByteArray(), StandardCharsets.UTF_8);
+        Assert.assertEquals(text, expectedCount, text.split("MSGID: ", -1).length - 1);
     }
 
     @Test

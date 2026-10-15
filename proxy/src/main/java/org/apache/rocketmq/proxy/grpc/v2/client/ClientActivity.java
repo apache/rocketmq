@@ -430,6 +430,7 @@ public class ClientActivity extends AbstractMessagingActivity {
 
     protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType,
         List<SubscriptionEntry> subscriptionEntryList, boolean updateSubscription) {
+        ctx.setClientType(clientType.name());
         String clientId = ctx.getClientID();
         LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
 

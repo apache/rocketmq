@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.processor;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -62,51 +63,86 @@ public class ClientProcessorTest {
     }
 
     @Test
-    public void testValidateLiteMode_regularGroupWithLiteMode_throwsException() {
+    public void testValidateLiteConsumer_regularGroupWithLiteConsumer_throwsException() {
         String group = "regularGroup";
+        when(ctx.isLiteConsumer()).thenReturn(true);
         when(groupConfig.getLiteBindTopic()).thenReturn("");
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
 
         GrpcProxyException exception = assertThrows(GrpcProxyException.class, () -> {
-            clientProcessor.validateLiteMode(ctx, group, MessageModel.LITE_SELECTIVE);
+            clientProcessor.validateLiteConsumer(ctx, group, MessageModel.LITE_SELECTIVE, Collections.emptySet());
         });
 
         assertEquals("regular group cannot use LITE mode: " + group, exception.getMessage());
     }
 
     @Test
-    public void testValidateLiteMode_liteGroupWithoutLiteMode_throwsException() {
+    public void testValidateLiteConsumer_liteGroupWithRegularConsumer_throwsException() {
         String group = "liteGroup";
+        when(ctx.isLiteConsumer()).thenReturn(false);
         when(groupConfig.getLiteBindTopic()).thenReturn("topic1");
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
 
         GrpcProxyException exception = assertThrows(GrpcProxyException.class, () -> {
-            clientProcessor.validateLiteMode(ctx, group, MessageModel.CLUSTERING);
+            clientProcessor.validateLiteConsumer(ctx, group, MessageModel.CLUSTERING, Collections.emptySet());
         });
 
         assertEquals("lite group must use LITE mode: " + group, exception.getMessage());
     }
 
     @Test
-    public void testValidateLiteMode_regularGroupWithoutLiteMode_noException() {
+    public void testValidateLiteConsumer_regularGroupWithRegularConsumer_returnsSameModel() {
         String group = "regularGroup";
+        when(ctx.isLiteConsumer()).thenReturn(false);
         when(groupConfig.getLiteBindTopic()).thenReturn("");
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
 
-        assertDoesNotThrow(() -> {
-            clientProcessor.validateLiteMode(ctx, group, MessageModel.CLUSTERING);
-        });
+        MessageModel result = clientProcessor.validateLiteConsumer(ctx, group, MessageModel.CLUSTERING, Collections.emptySet());
+        assertEquals(MessageModel.CLUSTERING, result);
     }
 
     @Test
-    public void testValidateLiteMode_liteGroupWithLiteMode_noException() {
+    public void testValidateLiteConsumer_liteGroupWithLiteConsumer_keepsLiteSelective() {
         String group = "liteGroup";
+        when(ctx.isLiteConsumer()).thenReturn(true);
         when(groupConfig.getLiteBindTopic()).thenReturn("topic1");
+        when(groupConfig.isWildcardLiteGroup()).thenReturn(false);
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
 
-        assertDoesNotThrow(() -> {
-            clientProcessor.validateLiteMode(ctx, group, MessageModel.LITE_SELECTIVE);
+        MessageModel result = clientProcessor.validateLiteConsumer(ctx, group, MessageModel.LITE_SELECTIVE, Collections.emptySet());
+        assertEquals(MessageModel.LITE_SELECTIVE, result);
+    }
+
+    @Test
+    public void testValidateLiteConsumer_wildcardLiteGroup_normalizesToClustering() {
+        String group = "wildcardLiteGroup";
+        when(ctx.isLiteConsumer()).thenReturn(true);
+        when(groupConfig.getLiteBindTopic()).thenReturn("topic1");
+        when(groupConfig.isWildcardLiteGroup()).thenReturn(true);
+        when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
+
+        MessageModel result = clientProcessor.validateLiteConsumer(ctx, group, MessageModel.LITE_SELECTIVE, Collections.emptySet());
+        assertEquals(MessageModel.CLUSTERING, result);
+    }
+
+    @Test
+    public void testValidateLiteConsumer_liteGroupWithMismatchedSubTopic_throwsException() {
+        String group = "liteGroup";
+        String bindTopic = "topic1";
+        SubscriptionData subscriptionData = new SubscriptionData();
+        subscriptionData.setTopic("otherTopic");
+        Set<SubscriptionData> subList = new HashSet<>();
+        subList.add(subscriptionData);
+
+        when(ctx.isLiteConsumer()).thenReturn(true);
+        when(groupConfig.getLiteBindTopic()).thenReturn(bindTopic);
+        when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
+
+        GrpcProxyException exception = assertThrows(GrpcProxyException.class, () -> {
+            clientProcessor.validateLiteConsumer(ctx, group, MessageModel.LITE_SELECTIVE, subList);
         });
+
+        assertTrue(exception.getMessage().contains("expected to bind topic"));
     }
 
     @Test
