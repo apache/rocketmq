@@ -44,6 +44,43 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
+/**
+ * Broker-side cache of Topic route info, refreshed from the NameServer.
+ *
+ * <p>A broker is normally agnostic about topic routing
+ *    ---- producers and consumers query the NameServer directly.
+ * However, a few broker features need the broker itself to know
+ * where a topic's queues live, so this class maintains a local,
+ * periodically-refreshed view of that routing:
+ *
+ * <ul>
+ *   <li>
+ *       <b>Lite Topic sharding</b>
+ *       {@code LiteShardingImpl} uses {@link #tryToFindTopicPublishInfo}
+ *       to obtain the parent topic's write  queues
+ *       and consistent-hash each LMQ onto the owning broker.
+ *   </li>
+ *   <li>
+ *       <b>Message forwarding</b>
+ *       when a broker relays a message to another broker, it looks up the target address via
+ *       * {@link #findBrokerAddressInPublish}
+ *       * {@link #findBrokerAddressInSubscribe}.
+ *   </li>
+ *   <li>
+ *       <b>Pop assignment / escape bridge</b>
+ *       {@link #topicSubscribeInfoTable} and {@link #topicRouteTable}
+ *       feed the queue assignments used by Pop consumption.
+ *   </li>
+ * </ul>
+ *
+ * <p>Routing is cached in four concurrent maps
+ *  1. publish info
+ *  2. subscribe info,
+ *  3. broker addresses
+ *  4. full route data
+ * A single scheduled executor refreshes the cached topics at a fixed interval;
+ * {@code ReentrantLock} serializes concurrent updates per topic, and lookup methods lazily pull on cache miss.
+ */
 public class TopicRouteInfoManager {
 
     private static final long GET_TOPIC_ROUTE_TIMEOUT = 3000L;
