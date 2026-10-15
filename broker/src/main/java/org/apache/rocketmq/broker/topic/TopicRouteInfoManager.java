@@ -186,6 +186,17 @@ public class TopicRouteInfoManager {
         }, 1000, this.brokerController.getBrokerConfig().getLoadBalancePollNameServerInterval(), TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Refresh the route info of every cached topic from the NameServer.
+     * This method will not pull routeInfo of topics not known by this server.
+     *
+     * <p>Iterates the union of the two cache key sets and, per topic,
+     * asks the NameServer for fresh routing.
+     * The update scope is driven by which cache a topic appears in:
+     * topics in {@link #topicRouteTable} also refresh their publish info (escape bridge),
+     * while topics in {@link #topicSubscribeInfoTable} also refresh their subscribe info (Pop assignment).
+     * A topic present in both refreshes both.
+     */
     private void updateTopicRouteInfoFromNameServer() {
         final Set<String> topicSetForPopAssignment = this.topicSubscribeInfoTable.keySet();
         final Set<String> topicSetForEscapeBridge = this.topicRouteTable.keySet();
