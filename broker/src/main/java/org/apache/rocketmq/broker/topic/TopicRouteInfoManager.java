@@ -209,6 +209,25 @@ public class TopicRouteInfoManager {
         }
     }
 
+    /**
+     * Update a single topic's route info from the NameServer.
+     *
+     * <p>Serialized by {@link #lockNamesrv} (bounded wait of {@value #LOCK_TIMEOUT_MILLIS}ms)
+     * so concurrent callers for the same topic do not hammer the NameServer.
+     * Based on the two flags, refreshes either or both of the publish-info and subscribe-info caches
+     * from the fetched {@link TopicRouteData}.
+     *
+     * <p>When the NameServer reports {@code TOPIC_NOT_EXIST} for a non-retry
+     * topic, the topic is dropped from the caches via {@link #cleanNoneRouteTopic}.
+     *
+     * @param topic the topic whose route info is to be refreshed
+     * @param isNeedUpdatePublishInfo if {@code true}, refresh the publish-info caches
+     *        * {@link #topicRouteTable},
+     *        * {@link #brokerAddrTable},
+     *        * {@link #topicPublishInfoTable}.
+     * @param isNeedUpdateSubscribeInfo if {@code true}, refresh the subscribe-info cache
+     *        ({@link #topicSubscribeInfoTable}) from the fetched route data
+     */
     public void updateTopicRouteInfoFromNameServer(String topic, boolean isNeedUpdatePublishInfo,
         boolean isNeedUpdateSubscribeInfo) {
         try {
