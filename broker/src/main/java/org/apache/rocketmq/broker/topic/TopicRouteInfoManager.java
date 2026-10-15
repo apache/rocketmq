@@ -332,6 +332,18 @@ public class TopicRouteInfoManager {
         }
     }
 
+    /**
+     * Look up the publish info (writable queues) for a topic, pulling from the
+     * NameServer on cache miss.
+     *
+     * <p>If the cached {@link TopicPublishInfo} is absent or stale
+     * ({@code !ok()}), a synchronous refresh is triggered and the cache is
+     * re-read. Used by Lite-topic sharding to obtain the parent topic's write
+     * queues.
+     *
+     * @param topic the topic whose publish info is needed
+     * @return the publish info, or {@code null} if the topic still has no route
+     */
     public TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
