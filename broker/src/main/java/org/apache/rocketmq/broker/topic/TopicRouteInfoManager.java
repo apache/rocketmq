@@ -353,6 +353,15 @@ public class TopicRouteInfoManager {
         return topicPublishInfo;
     }
 
+    /**
+     * Resolve a broker's <b>master</b> address (brokerId ==
+     * {@link MixAll#MASTER_ID}) from {@link #brokerAddrTable}.
+     *
+     * <p>Used when sending a message to another broker's master.
+     *
+     * @param brokerName the broker whose master address is needed
+     * @return the master address, or {@code null} if the broker is unknown
+     */
     public String findBrokerAddressInPublish(String brokerName) {
         if (brokerName == null) {
             return null;
