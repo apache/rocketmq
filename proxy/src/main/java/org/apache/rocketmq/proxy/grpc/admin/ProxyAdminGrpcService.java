@@ -911,6 +911,19 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                 .setStatus(err(Code.BAD_REQUEST, "group is required")).build());
             return;
         }
+        if (!request.getLiteTopic().isEmpty()) {
+            // lite_topic would scope the answer to one lite topic, but the broker reports lite-topic
+            // lag as a single total (GET_LITE_GROUP_INFO) without the inflight/ready split this
+            // response is built from. Answering would present the parent topic's accumulation as the
+            // lite-scoped number, so the variant is refused instead — the same rule QueryMessage
+            // applies to the variants the open-source broker cannot serve.
+            respond(responseObserver, DescribeGroupAccumulationResponse.newBuilder()
+                .setStatus(err(Code.BAD_REQUEST,
+                    "lite_topic is not supported: the broker does not expose a per-lite-topic "
+                        + "inflight/ready split, query the parent topic instead"))
+                .build());
+            return;
+        }
         Set<String> requested = new LinkedHashSet<>();
         for (Resource resource : request.getTopicsList()) {
             if (!resource.getName().isEmpty()) {
@@ -1018,6 +1031,18 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
         if (group.isEmpty()) {
             respond(responseObserver, ListConsumerConnectionResponse.newBuilder()
                 .setStatus(err(Code.BAD_REQUEST, "group is required")).build());
+            return;
+        }
+        if (!request.getLiteTopic().isEmpty()) {
+            // Per-client lite subscriptions are only known for the clients attached to the proxy
+            // that is asked, while this listing is cluster-visible: the filter cannot be honored
+            // truthfully here, and ignoring it would answer with clients that never subscribed to
+            // the requested lite topic.
+            respond(responseObserver, ListConsumerConnectionResponse.newBuilder()
+                .setStatus(err(Code.BAD_REQUEST,
+                    "lite_topic is not supported: per-client lite subscriptions are not available "
+                        + "for the whole cluster, query the parent topic instead"))
+                .build());
             return;
         }
         String topicFilter = request.hasTopic() && !request.getTopic().getName().isEmpty()
