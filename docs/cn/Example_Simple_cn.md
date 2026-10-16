@@ -13,9 +13,15 @@ maven:
 </dependency>
 ```
 gradle: 
-``` java 
-compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
+``` groovy
+repositories {
+    mavenCentral()
+}
+dependencies {
+    implementation 'org.apache.rocketmq:rocketmq-client:5.5.0'
+}
 ```
+Gradle 7.0 已移除 `compile` 配置，请改用 `implementation`；如果 RocketMQ 类型出现在你自己的公共 API 中，则应使用 `api`。
 ### 2 发送消息
 ##### 2.1 使用Producer发送同步消息
 可靠的同步传输被广泛应用于各种场景，如重要的通知消息、短消息通知等。
