@@ -27,6 +27,7 @@ public class CompressorFactory {
         COMPRESSORS.put(CompressionType.LZ4, new Lz4Compressor());
         COMPRESSORS.put(CompressionType.ZSTD, new ZstdCompressor());
         COMPRESSORS.put(CompressionType.ZLIB, new ZlibCompressor());
+        COMPRESSORS.put(CompressionType.GZIP, new GzipCompressor());
     }
 
     public static Compressor getCompressor(CompressionType type) {
