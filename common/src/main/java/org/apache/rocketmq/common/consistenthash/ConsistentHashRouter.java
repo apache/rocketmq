@@ -121,7 +121,8 @@ public class ConsistentHashRouter<T extends Node> {
         }
 
         @Override
-        public long hash(String key) {
+        // MessageDigest is stateful, but routing on an immutable ring may be concurrent.
+        public synchronized long hash(String key) {
             instance.reset();
             instance.update(key.getBytes(StandardCharsets.UTF_8));
             byte[] digest = instance.digest();
