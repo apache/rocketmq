@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.proxy.common.ProxyException;
@@ -41,6 +42,8 @@ import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -254,6 +257,57 @@ public class AckMessageActivityTest extends BaseActivityTest {
             assertEquals(Code.OK, msgCode.get(successMessageId));
             assertEquals(Code.INTERNAL_SERVER_ERROR, msgCode.get(notOkMessageId));
             assertEquals(Code.INVALID_RECEIPT_HANDLE, msgCode.get(exceptionMessageId));
+        }
+    }
+
+    @Test
+    public void testAckMessageWithMalformedReceiptHandle() throws Throwable {
+        // an expired handle is reported as INVALID_RECEIPT_HANDLE (the processor validates it), and a
+        // handle that cannot be parsed at all has to be reported the same way: the official clients
+        // only give up on a message for that code and retry the ack forever for any other non-OK code
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(false);
+
+        AckMessageResponse response = this.ackMessageActivity.ackMessage(
+            createContext(),
+            AckMessageRequest.newBuilder()
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(GROUP).build())
+                .addEntries(AckMessageEntry.newBuilder()
+                    .setMessageId("malformed")
+                    .setReceiptHandle("not-a-receipt-handle")
+                    .build())
+                .build()
+        ).get();
+
+        assertEquals(Code.INVALID_RECEIPT_HANDLE, response.getStatus().getCode());
+    }
+
+    @Test
+    public void testBatchAckMessageWithMalformedReceiptHandle() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(true);
+
+        AckMessageRequest request = AckMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName(TOPIC).build())
+            .setGroup(Resource.newBuilder().setName(GROUP).build())
+            .addEntries(AckMessageEntry.newBuilder()
+                .setMessageId("malformed")
+                .setReceiptHandle("not-a-receipt-handle")
+                .build())
+            .addEntries(AckMessageEntry.newBuilder()
+                .setMessageId("valid")
+                .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000))
+                .build())
+            .build();
+
+        try {
+            this.ackMessageActivity.ackMessage(createContext(), request).get();
+            fail("a batch containing a malformed handle must not be acknowledged");
+        } catch (ExecutionException e) {
+            // the request-scoped failure carries the graded code the gRPC layer turns into the status
+            assertTrue("expected a graded proxy failure, got " + e.getCause(),
+                e.getCause() instanceof ProxyException);
+            assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE,
+                ((ProxyException) e.getCause()).getCode());
         }
     }
 }

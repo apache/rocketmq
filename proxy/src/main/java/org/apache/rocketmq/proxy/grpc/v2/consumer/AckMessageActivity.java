@@ -28,9 +28,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
-import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -73,7 +73,7 @@ public class AckMessageActivity extends AbstractMessagingActivity {
 
         for (AckMessageEntry ackMessageEntry : request.getEntriesList()) {
             String handleString = getHandleString(ctx, group, request, ackMessageEntry);
-            handleMessageList.add(new ReceiptHandleMessage(ReceiptHandle.decode(handleString), ackMessageEntry.getMessageId()));
+            handleMessageList.add(new ReceiptHandleMessage(ProxyUtils.decodeReceiptHandle(handleString), ackMessageEntry.getMessageId()));
         }
         return this.messagingProcessor.batchAckMessage(ctx, handleMessageList, group, topic)
             .thenApply(batchAckResultList -> {
@@ -142,7 +142,7 @@ public class AckMessageActivity extends AbstractMessagingActivity {
             String handleString = this.getHandleString(ctx, group, request, ackMessageEntry);
             CompletableFuture<AckResult> ackResultFuture = this.messagingProcessor.ackMessage(
                 ctx,
-                ReceiptHandle.decode(handleString),
+                ProxyUtils.decodeReceiptHandle(handleString),
                 ackMessageEntry.getMessageId(),
                 group,
                 topic,
