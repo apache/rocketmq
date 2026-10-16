@@ -232,12 +232,14 @@ public class PopConsumerCache extends ServiceThread {
         }
 
         public long getMinOffsetInBuffer() {
-            Map.Entry<Long, PopConsumerRecord> entry = removeTreeMap.firstEntry();
-            if (entry != null) {
-                return entry.getKey();
+            // Cleanup puts a record into the staged map before removing it from the active
+            // map. Read active first so a concurrent transfer cannot disappear between reads.
+            Map.Entry<Long, PopConsumerRecord> active = recordTreeMap.firstEntry();
+            Map.Entry<Long, PopConsumerRecord> staged = removeTreeMap.firstEntry();
+            if (staged == null) {
+                return active == null ? OFFSET_NOT_EXIST : active.getKey();
             }
-            entry = recordTreeMap.firstEntry();
-            return entry != null ? entry.getKey() : OFFSET_NOT_EXIST;
+            return active == null ? staged.getKey() : Math.min(staged.getKey(), active.getKey());
         }
 
         public int getInFlightRecordCount() {
