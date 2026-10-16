@@ -886,6 +886,78 @@ public class LiteSubscriptionRegistryImplTest {
     }
 
     /**
+     * Test: the expiry cleaner eventually reclaims the tombstone of an evicted client that
+     * never syncs again. Evicting a client from its last liteTopic drops its subscription
+     * from client2Subscription, so the per-client sweep cannot reach the client anymore;
+     * without a tombstone TTL such an entry would stay forever (unbounded growth under
+     * exclusive-mode client churn, e.g. evicted clients terminating right after eviction).
+     */
+    @Test
+    public void testExclusiveEviction_TombstoneExpiredForClientThatNeverSyncsAgain() throws Exception {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+        String lmqName = "lmq1";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(topic, lmqName)).thenReturn(true);
+
+        // clientA subscribes, then clientB takes over its last (and only) liteTopic
+        registry.updateClientChannel(clientA, mock(Channel.class));
+        registry.addPartialSubscription(clientA, group, topic, Collections.singleton(lmqName), null);
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton(lmqName), null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+        // the eviction dropped clientA's last liteTopic, so no subscription entry is left
+        assertFalse(registry.client2Subscription.containsKey(clientA));
+
+        // clientA never sends another request: age the tombstone past the check timeout
+        // and run the expiry cleaner (no subscription entry exists for it to sweep).
+        // The margin is 10x the TTL: Thread.sleep never undershoots, so a slow runner
+        // only ages the tombstone further past the expiry horizon (the pass direction).
+        Thread.sleep(200L);
+        registry.cleanupExpiredSubscriptions(20L);
+
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+    }
+
+    /**
+     * Test: a fresh tombstone survives the expiry cleaner, so the guard against stale
+     * pulls from a just-evicted client is kept for at least the check timeout.
+     */
+    @Test
+    public void testExclusiveEviction_FreshTombstoneSurvivesExpirySweep() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+        String lmqName = "lmq1";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(topic, lmqName)).thenReturn(true);
+
+        registry.updateClientChannel(clientA, mock(Channel.class));
+        registry.addPartialSubscription(clientA, group, topic, Collections.singleton(lmqName), null);
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton(lmqName), null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+
+        // the tombstone was just created: a sweep with a timeout far beyond its age keeps it
+        registry.cleanupExpiredSubscriptions(60000L);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+    }
+
+    /**
      * Test: addPartialSubscription clears stale tombstone when client re-claims an lmqName
      */
     @Test

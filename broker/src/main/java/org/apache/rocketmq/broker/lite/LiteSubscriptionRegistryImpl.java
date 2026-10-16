@@ -501,6 +501,14 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 topic, group, clientId, checkTimeout, System.currentTimeMillis() - liteSubscription.getUpdateTime());
         });
 
+        // Step 3: Expire tombstones of clients the sweep above cannot reach.
+        // A client evicted from its last liteTopic has no subscription entry left, so
+        // if it never syncs again (e.g. it terminated right after the eviction) nothing
+        // else clears its tombstones. Expire them on the same horizon as subscriptions:
+        // a live client always syncs well within the check timeout, at which point
+        // removeStale or the subscription expiry above reclaims the tombstone anyway.
+        exclusiveEvictionTombstones.removeExpired(checkTimeout);
+
         int tombstoneSize = exclusiveEvictionTombstones.size();
         if (tombstoneSize > 0) {
             LOGGER.info("ExclusiveEvictionTombstones size: {}", tombstoneSize);
