@@ -335,12 +335,57 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         }
     }
 
+    /**
+     * The message service delivers the messages of one request to the broker as a single remoting
+     * batch and returns one SendResult for it, while the v2 protocol expects one response entry
+     * per request message: SDKs fail the send when the receipt count does not match. Expand a
+     * single batch result into per-message results, mirroring ProduceAccumulator#splitSendResults.
+     */
+    static List<SendResult> expandBatchSendResult(SendMessageRequest request, List<SendResult> resultList) {
+        int messageCount = request.getMessagesCount();
+        if (resultList.size() != 1 || messageCount < 2) {
+            return resultList;
+        }
+        SendResult batchResult = resultList.get(0);
+        List<SendResult> expandedList = new ArrayList<>(messageCount);
+        if (batchResult.getMsgId() != null && batchResult.getOffsetMsgId() != null) {
+            String[] msgIds = batchResult.getMsgId().split(",");
+            String[] offsetMsgIds = batchResult.getOffsetMsgId().split(",");
+            if (msgIds.length == messageCount && offsetMsgIds.length == messageCount) {
+                for (int i = 0; i < messageCount; i++) {
+                    SendResult expanded = new SendResult(batchResult.getSendStatus(), msgIds[i],
+                        batchResult.getMessageQueue(), batchResult.getQueueOffset() + i,
+                        batchResult.getTransactionId(), offsetMsgIds[i], batchResult.getRegionId());
+                    expanded.setRecallHandle(batchResult.getRecallHandle());
+                    expandedList.add(expanded);
+                }
+                return expandedList;
+            }
+        }
+        // The batch result carries no comma-separated ids (local mode delivers the request as one
+        // inner batch and returns a single uniq id). Reusing the batch result for every message
+        // would repeat one messageId and one offset in all entries, so build each entry from the
+        // id the request already carries and the batch's first offset: every entry keeps its own
+        // identity while status, queue and metadata stay shared, like the branch above.
+        for (int i = 0; i < messageCount; i++) {
+            String messageId = request.getMessages(i).getSystemProperties().getMessageId();
+            SendResult expanded = new SendResult(batchResult.getSendStatus(),
+                StringUtils.isNotBlank(messageId) ? messageId : batchResult.getMsgId(),
+                batchResult.getMessageQueue(), batchResult.getQueueOffset() + i,
+                batchResult.getTransactionId(), batchResult.getOffsetMsgId(),
+                batchResult.getRegionId());
+            expanded.setRecallHandle(batchResult.getRecallHandle());
+            expandedList.add(expanded);
+        }
+        return expandedList;
+    }
+
     protected SendMessageResponse convertToSendMessageResponse(ProxyContext ctx, SendMessageRequest request,
         List<SendResult> resultList) {
         SendMessageResponse.Builder builder = SendMessageResponse.newBuilder();
 
         Set<Code> responseCodes = new HashSet<>();
-        for (SendResult result : resultList) {
+        for (SendResult result : expandBatchSendResult(request, resultList)) {
             SendResultEntry resultEntry;
             switch (result.getSendStatus()) {
                 case FLUSH_DISK_TIMEOUT:
