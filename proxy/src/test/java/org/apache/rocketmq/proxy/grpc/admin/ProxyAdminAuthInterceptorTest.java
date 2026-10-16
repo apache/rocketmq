@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.proxy.grpc.admin;
 
+import io.grpc.Attributes;
+import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
@@ -23,12 +25,14 @@ import io.grpc.ServerCallHandler;
 import io.grpc.Status;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -41,6 +45,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -265,5 +270,41 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         verify(call).close(statusCaptor.capture(), any(Metadata.class));
         assertEquals(Status.Code.UNAUTHENTICATED, statusCaptor.getValue().getCode());
         assertTrue(statusCaptor.getValue().getDescription().contains("missing credentials"));
+    }
+
+    // ---------------------------------------------------------------------
+    // ACL subject: the client address, not the load balancer's
+    // ---------------------------------------------------------------------
+
+    @Test
+    public void sourceIpUsesTheClientAddressHeaderInterceptorResolvedTest() {
+        // The admin server accepts PROXY protocol (it shares the data plane's negotiator), and
+        // HeaderInterceptor resolves the real client address — the PROXY protocol address when the
+        // connection arrives through a proxy-protocol balancer, the transport peer otherwise — into
+        // GrpcConstants.REMOTE_ADDRESS. That is the address the data plane's ACL authorizes against,
+        // so the admin ACL subject must use it too: behind such a balancer the transport peer is the
+        // balancer itself, and an -i restriction would be evaluated against the wrong address.
+        ServerCall<byte[], byte[]> call = serverCall("ListConsumerConnection");
+        // the transport peer is present on purpose: the client address HeaderInterceptor resolved
+        // has to win over it, so this stub is deliberately not expected to be read
+        lenient().when(call.getAttributes()).thenReturn(Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress("10.0.0.9", 5000))
+            .build());
+        Metadata headers = new Metadata();
+        headers.put(GrpcConstants.REMOTE_ADDRESS, "203.0.113.7:4444");
+
+        assertEquals("203.0.113.7", ProxyAdminAuthInterceptor.resolveSourceIp(call, headers));
+    }
+
+    @Test
+    public void sourceIpFallsBackToTheTransportPeerTest() {
+        // Without the normalized header (interceptor used without the standard pipeline) the
+        // transport peer is still the best available subject.
+        ServerCall<byte[], byte[]> call = serverCall("ListConsumerConnection");
+        when(call.getAttributes()).thenReturn(Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress("10.0.0.9", 5000))
+            .build());
+
+        assertEquals("10.0.0.9", ProxyAdminAuthInterceptor.resolveSourceIp(call, new Metadata()));
     }
 }
