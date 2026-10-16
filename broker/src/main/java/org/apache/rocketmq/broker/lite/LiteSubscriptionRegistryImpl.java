@@ -338,16 +338,29 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             .collect(Collectors.toList());
 
         toRemove.forEach(clientGroup -> {
+            // Capture the channel before the subscription removal so the conditional
+            // remove below only reclaims the channel observed here, never one that a
+            // concurrent re-subscribe may have registered in the meantime.
+            Channel evictedChannel = clientChannels.get(clientGroup.clientId);
+            boolean subscriptionRemoved = false;
             LiteSubscription liteSubscription = client2Subscription.get(clientGroup.clientId);
             if (liteSubscription != null) {
                 liteSubscription.removeLmq(lmqName);
                 // remove client if no more liteTopic
                 if (liteSubscription.getLmqSet().isEmpty()) {
                     client2Subscription.remove(clientGroup.clientId);
+                    subscriptionRemoved = true;
                 }
             }
             exclusiveEvictionTombstones.add(clientGroup.clientId, lmqName);
             notifyUnsubscribeLite(clientGroup.clientId, clientGroup.group, lmqName);
+            if (subscriptionRemoved) {
+                // The eviction dropped the client's last liteTopic, so the channel entry must be
+                // reclaimed as well: the expiry cleaner only walks client2Subscription and could
+                // otherwise never remove it, leaking channels under exclusive-mode client churn.
+                // Conditional remove keeps a channel registered by a concurrent re-subscribe intact.
+                clientChannels.remove(clientGroup.clientId, evictedChannel);
+            }
             boolean resetOffset = LiteMetadataUtil.isResetOffsetInExclusiveMode(group, brokerController);
             LOGGER.info("excludeClientByLmqName group:{}, lmqName:{}, resetOffset:{}, clientId:{} -> {}",
                 group, lmqName, resetOffset, clientGroup.clientId, newClientId);
