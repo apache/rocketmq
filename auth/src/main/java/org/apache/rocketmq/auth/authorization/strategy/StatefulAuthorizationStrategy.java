@@ -46,6 +46,11 @@ public class StatefulAuthorizationStrategy extends AbstractAuthorizationStrategy
             this.doEvaluate(context);
             return;
         }
+        // A whitelisted rpcCode is allowed per-request and must not be cached, otherwise its
+        // ALLOW would leak to a non-whitelisted rpcCode that shares the same cache key.
+        if (this.authorizationWhiteSet.contains(context.getRpcCode())) {
+            return;
+        }
         Pair<Boolean, AuthorizationException> result = this.authCache.get(buildKey(context), key -> {
             try {
                 this.doEvaluate(context);
@@ -66,7 +71,8 @@ public class StatefulAuthorizationStrategy extends AbstractAuthorizationStrategy
                 + (ctx.getSubject() != null ? CommonConstants.POUND + ctx.getSubjectKey() : "")
                 + CommonConstants.POUND + ctx.getResourceKey()
                 + CommonConstants.POUND + StringUtils.join(ctx.getActions(), CommonConstants.COMMA)
-                + CommonConstants.POUND + ctx.getSourceIp();
+                + CommonConstants.POUND + ctx.getSourceIp()
+                + CommonConstants.POUND + ctx.getRpcCode();
         }
         throw new AuthorizationException("The request of {} is not support.", context.getClass().getSimpleName());
     }
