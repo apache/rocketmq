@@ -912,9 +912,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         if (ConsumeInitMode.MIN == initMode || topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
         } else {
-            if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem() &&
-                this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId) <= 0 &&
-                this.brokerController.getMessageStore().checkInMemByConsumeOffset(topic, queueId, 0, 1)) {
+            if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem()
+                && this.brokerController.getMessageStore().shouldInitConsumeOffsetToZero(topic, queueId)) {
                 offset = 0;
             } else {
                 // pop last one,then commit offset.
