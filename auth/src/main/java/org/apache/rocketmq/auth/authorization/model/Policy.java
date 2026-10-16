@@ -55,6 +55,13 @@ public class Policy {
         return policy;
     }
 
+    public Policy copy() {
+        List<PolicyEntry> entriesCopy = this.entries == null ? null : this.entries.stream()
+            .map(PolicyEntry::copy)
+            .collect(Collectors.toList());
+        return Policy.of(this.policyType, entriesCopy);
+    }
+
     public void updateEntry(List<PolicyEntry> newEntries) {
         if (this.entries == null) {
             this.entries = new ArrayList<>();
