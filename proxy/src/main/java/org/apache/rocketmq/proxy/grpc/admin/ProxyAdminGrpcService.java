@@ -543,6 +543,12 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
             queryAllBrokers(brokers, (addr, timeout) -> admin().queryTopicConsumeByWho(addr, topic, timeout))
                 .thenApply(byBroker -> {
                     Set<String> groups = new LinkedHashSet<>();
+                    // A gRPC consumer can be online at a proxy before it has any broker offsets.
+                    // Include local and peer-synced registrations in topic-based discovery too.
+                    ConsumerManager consumerManager = serviceManager.getConsumerManager();
+                    if (consumerManager != null) {
+                        groups.addAll(consumerManager.queryTopicConsumeByWho(topic));
+                    }
                     for (GroupList groupList : byBroker.values()) {
                         if (groupList != null && groupList.getGroupList() != null) {
                             groups.addAll(groupList.getGroupList());
