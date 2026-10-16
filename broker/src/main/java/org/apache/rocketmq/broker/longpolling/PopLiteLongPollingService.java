@@ -58,7 +58,18 @@ public class PopLiteLongPollingService extends ServiceThread {
         this.brokerController = brokerController;
         this.processor = processor;
         this.pollingMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>()
-            .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
+            .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize())
+            // A queue evicted at capacity may still hold suspended requests. Wake them up
+            // instead of leaving them unreachable for both notifyMessageArriving() and the
+            // timeout sweep in run().
+            .listener((key, queue) -> {
+                PopRequest request;
+                while ((request = queue.pollFirst()) != null) {
+                    totalPollingNum.decrementAndGet();
+                    wakeUp(request);
+                }
+            })
+            .build();
         this.notifyLast = notifyLast;
     }
 
@@ -231,6 +242,18 @@ public class PopLiteLongPollingService extends ServiceThread {
             }
         }
         if (queue.add(request)) {
+            // The periodic cleanup in run() removes empty queues from pollingMap, and entries
+            // are evicted once the map reaches its maximum capacity. Between the get() above
+            // and the add() above this queue may therefore have disappeared from the map,
+            // which would leave the suspended request unreachable for both
+            // notifyMessageArriving() and the timeout sweep in run(). Re-establish the
+            // mapping; if another polling thread has meanwhile re-created the queue for
+            // this key, fail this attempt instead of suspending the request.
+            ConcurrentSkipListSet<PopRequest> liveQueue = pollingMap.putIfAbsent(pollingKey, queue);
+            if (liveQueue != null && liveQueue != queue) {
+                LOGGER.info("lite polling {}, result POLLING_FULL, queue replaced concurrently, {}", request, liveQueue);
+                return POLLING_FULL;
+            }
             remotingCommand.setSuspended(true);
             totalPollingNum.incrementAndGet();
             if (brokerController.getBrokerConfig().isEnableLitePopLog()) {
