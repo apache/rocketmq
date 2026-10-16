@@ -21,6 +21,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -124,6 +126,81 @@ public class SendMessageProcessorTest {
         when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
             thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         assertPutResult(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testRejectDirectSendToTimerTopic() throws Exception {
+        SendMessageRequestHeader header = createSendMsgRequestHeader();
+        header.setTopic(TopicValidator.RMQ_SYS_WHEEL_TIMER_TOPIC);
+        header.setQueueId(0);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, header);
+        request.setBody(new byte[] {'a'});
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+    @Test
+    public void testRejectClientSuppliedTimerDeleteKey() throws Exception {
+        SendMessageRequestHeader header = createSendMsgRequestHeader();
+        header.setProperties(MessageDecoder.messageProperties2String(
+            Collections.singletonMap(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY, "victim-key")));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, header);
+        request.setBody(new byte[] {'a'});
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(-1);
+        sendMessageProcessor.msgCheck(handlerContext, header, request, response);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.MESSAGE_ILLEGAL);
+    }
+
+    @Test
+    public void testRejectScheduledBatchWithEmbeddedTimerProperties() throws Exception {
+        SendMessageRequestHeader header = createSendMsgRequestHeader();
+        header.setBatch(true);
+        header.setProperties(MessageDecoder.messageProperties2String(
+            Collections.singletonMap(MessageConst.PROPERTY_TIMER_DELIVER_MS,
+                String.valueOf(System.currentTimeMillis() + 5000))));
+        Message child = new Message(topic, new byte[] {'a'});
+        MessageAccessor.putProperty(child, MessageConst.PROPERTY_TIMER_DEL_UNIQKEY, "victim-key");
+        MessageAccessor.putProperty(child, MessageConst.PROPERTY_TIMER_OUT_MS,
+            String.valueOf(System.currentTimeMillis() + 5000));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, header);
+        request.setBody(MessageDecoder.encodeMessages(Collections.singletonList(child)));
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(-1);
+        sendMessageProcessor.msgCheck(handlerContext, header, request, response);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.MESSAGE_ILLEGAL);
+    }
+
+    @Test
+    public void testRejectOtherScheduledBatchProperties() {
+        String[] delayProperties = {
+            MessageConst.PROPERTY_DELAY_TIME_LEVEL,
+            MessageConst.PROPERTY_TIMER_DELAY_MS,
+            MessageConst.PROPERTY_TIMER_DELAY_SEC
+        };
+        for (String property : delayProperties) {
+            SendMessageRequestHeader header = createSendMsgRequestHeader();
+            header.setBatch(true);
+            header.setProperties(MessageDecoder.messageProperties2String(
+                Collections.singletonMap(property, "5")));
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, header);
+            request.setBody(new byte[] {'a'});
+            RemotingCommand response = RemotingCommand.createResponseCommand(null);
+            response.setCode(-1);
+
+            sendMessageProcessor.msgCheck(handlerContext, header, request, response);
+
+            assertThat(response.getCode()).as(property).isEqualTo(ResponseCode.MESSAGE_ILLEGAL);
+        }
     }
 
     @Test
