@@ -602,29 +602,35 @@ public class MessageDecoder {
         return msgExts;
     }
 
+    /**
+     * Per-thread reusable {@link StringBuilder} used by {@link #messageProperties2String} on
+     * the hot encode path. The retained capacity is capped by {@link #REUSABLE_SB_CAP_LIMIT}
+     * to avoid unbounded growth after a single oversized message.
+     */
+    private static final ThreadLocal<StringBuilder> REUSABLE_SB =
+        ThreadLocal.withInitial(() -> new StringBuilder(256));
+
+    /** Maximum retained capacity (in chars) of {@link #REUSABLE_SB}. */
+    private static final int REUSABLE_SB_CAP_LIMIT = 64 * 1024;
+
     public static String messageProperties2String(Map<String, String> properties) {
         if (properties == null) {
             return "";
         }
-        int len = 0;
-        for (final Map.Entry<String, String> entry : properties.entrySet()) {
-            final String name = entry.getKey();
-            final String value = entry.getValue();
-            if (value == null) {
-                continue;
-            }
-            if (name != null) {
-                len += name.length();
-            }
-            len += value.length();
-            len += 2; // separator
+        StringBuilder sb = REUSABLE_SB.get();
+        // Trim long-lived per-thread memory if a previous message inflated the buffer.
+        if (sb.capacity() > REUSABLE_SB_CAP_LIMIT) {
+            sb = new StringBuilder(256);
+            REUSABLE_SB.set(sb);
         }
-        StringBuilder sb = new StringBuilder(len);
+        sb.setLength(0);
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             final String name = entry.getKey();
             final String value = entry.getValue();
 
-            if (value == null) {
+            // Skip entries with null name or value to keep output well-formed and to
+            // match {@link #messageProperties2Bytes}.
+            if (name == null || value == null) {
                 continue;
             }
             sb.append(name);
@@ -635,29 +641,331 @@ public class MessageDecoder {
         return sb.toString();
     }
 
-    public static Map<String, String> string2messageProperties(final String properties) {
-        Map<String, String> map = new HashMap<>(128);
-        if (properties != null) {
-            int len = properties.length();
-            int index = 0;
-            while (index < len) {
-                int newIndex = properties.indexOf(PROPERTY_SEPARATOR, index);
-                if (newIndex < 0) {
-                    newIndex = len;
-                }
-                if (newIndex - index >= 3) {
-                    int kvSepIndex = properties.indexOf(NAME_VALUE_SEPARATOR, index);
-                    if (kvSepIndex > index && kvSepIndex < newIndex - 1) {
-                        String k = properties.substring(index, kvSepIndex);
-                        String v = properties.substring(kvSepIndex + 1, newIndex);
-                        map.put(k, v);
-                    }
-                }
-                index = newIndex + 1;
+    /**
+     * UTF-8 byte serialization of properties, equivalent in content to
+     * {@code messageProperties2String(properties).getBytes(UTF_8)} but skipping the
+     * StringBuilder + String + String.getBytes() round-trip on the broker write hot path.
+     * Both this method and {@link #messageProperties2String} skip entries whose key or value
+     * is {@code null}, so the encoded bytes are identical for any input map.
+     * <p>Returns {@code null} for null/empty maps (encoders treat null and 0-length
+     * identically); callers that need a 0-length array should check for null.
+     */
+    public static byte[] messageProperties2Bytes(Map<String, String> properties) {
+        if (properties == null || properties.isEmpty()) {
+            return null;
+        }
+        int totalLen = 0;
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String name = entry.getKey();
+            final String value = entry.getValue();
+            if (name == null || value == null) {
+                continue;
             }
+            totalLen += utf8ByteLength(name);
+            totalLen += utf8ByteLength(value);
+            totalLen += 2;
+        }
+        if (totalLen == 0) {
+            return null;
+        }
+        byte[] out = new byte[totalLen];
+        int idx = 0;
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String name = entry.getKey();
+            final String value = entry.getValue();
+            if (name == null || value == null) {
+                continue;
+            }
+            idx = writeUtf8(name, out, idx);
+            out[idx++] = (byte) NAME_VALUE_SEPARATOR;
+            idx = writeUtf8(value, out, idx);
+            out[idx++] = (byte) PROPERTY_SEPARATOR;
+        }
+        return out;
+    }
+
+    /**
+     * UTF-8 byte length of {@code s}. Matches {@link String#getBytes(java.nio.charset.Charset)
+     * String.getBytes(StandardCharsets.UTF_8)} semantics: unpaired surrogate code units are
+     * each replaced by a single {@code '?'} byte (the JDK's hard-coded substitution for
+     * malformed UTF-8 in {@code java.lang.StringCoding}).
+     */
+    static int utf8ByteLength(String s) {
+        int len = s.length();
+        int byteLen = 0;
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if (c < 0x80) {
+                byteLen++;
+            } else if (c < 0x800) {
+                byteLen += 2;
+            } else if (Character.isHighSurrogate(c)) {
+                if (i + 1 < len && Character.isLowSurrogate(s.charAt(i + 1))) {
+                    byteLen += 4;
+                    i++;
+                } else {
+                    // Unpaired high surrogate -> '?' (1 byte), matching JDK behavior.
+                    byteLen += 1;
+                }
+            } else if (Character.isLowSurrogate(c)) {
+                // Unpaired low surrogate -> '?' (1 byte), matching JDK behavior.
+                byteLen += 1;
+            } else {
+                byteLen += 3;
+            }
+        }
+        return byteLen;
+    }
+
+    /**
+     * UTF-8 encode {@code s} into {@code out} starting at {@code offset}. Matches
+     * {@link String#getBytes(java.nio.charset.Charset) String.getBytes(StandardCharsets.UTF_8)}
+     * semantics: unpaired surrogate code units are each replaced by a single {@code '?'} byte
+     * (the JDK's hard-coded substitution for malformed UTF-8 in {@code java.lang.StringCoding}).
+     */
+    static int writeUtf8(String s, byte[] out, int offset) {
+        int len = s.length();
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if (c < 0x80) {
+                out[offset++] = (byte) c;
+            } else if (c < 0x800) {
+                out[offset++] = (byte) (0xC0 | (c >>> 6));
+                out[offset++] = (byte) (0x80 | (c & 0x3F));
+            } else if (Character.isHighSurrogate(c)) {
+                if (i + 1 < len && Character.isLowSurrogate(s.charAt(i + 1))) {
+                    int cp = Character.toCodePoint(c, s.charAt(++i));
+                    out[offset++] = (byte) (0xF0 | (cp >>> 18));
+                    out[offset++] = (byte) (0x80 | ((cp >>> 12) & 0x3F));
+                    out[offset++] = (byte) (0x80 | ((cp >>> 6) & 0x3F));
+                    out[offset++] = (byte) (0x80 | (cp & 0x3F));
+                } else {
+                    // Unpaired high surrogate -> '?', matching JDK behavior.
+                    out[offset++] = (byte) '?';
+                }
+            } else if (Character.isLowSurrogate(c)) {
+                // Unpaired low surrogate -> '?', matching JDK behavior.
+                out[offset++] = (byte) '?';
+            } else {
+                out[offset++] = (byte) (0xE0 | (c >>> 12));
+                out[offset++] = (byte) (0x80 | ((c >>> 6) & 0x3F));
+                out[offset++] = (byte) (0x80 | (c & 0x3F));
+            }
+        }
+        return offset;
+    }
+
+    public static Map<String, String> string2messageProperties(final String properties) {
+        return string2messageProperties(properties, 0);
+    }
+
+    /**
+     * Variant of {@link #string2messageProperties(String)} that reserves capacity for
+     * {@code extraEntries} additional entries the caller intends to put afterwards. Used
+     * on the broker send path where MSG_REGION/TRACE_SWITCH/CLUSTER/... are appended to
+     * the decoded Map; pre-sizing avoids a HashMap resize when those puts cross the load
+     * factor threshold of the as-decoded capacity.
+     */
+    public static Map<String, String> string2messageProperties(final String properties, final int extraEntries) {
+        if (properties == null || properties.isEmpty()) {
+            return new HashMap<>(Math.max(4, extraEntries));
+        }
+        final int len = properties.length();
+        int estEntries = 0;
+        for (int i = 0; i < len; i++) {
+            if (properties.charAt(i) == PROPERTY_SEPARATOR) {
+                estEntries++;
+            }
+        }
+        estEntries = Math.max(estEntries, 1);
+        HashMap<String, String> map = new HashMap<>((estEntries + extraEntries) * 4 / 3 + 1);
+        int index = 0;
+        while (index < len) {
+            int newIndex = properties.indexOf(PROPERTY_SEPARATOR, index);
+            if (newIndex < 0) {
+                newIndex = len;
+            }
+            if (newIndex - index >= 3) {
+                int kvSepIndex = properties.indexOf(NAME_VALUE_SEPARATOR, index);
+                if (kvSepIndex > index && kvSepIndex < newIndex - 1) {
+                    int klen = kvSepIndex - index;
+                    String k = null;
+                    if (klen < MessageConst.STRING_INTERN_BY_LEN.length) {
+                        String[] candidates = MessageConst.STRING_INTERN_BY_LEN[klen];
+                        if (candidates != null) {
+                            for (String candidate : candidates) {
+                                if (properties.regionMatches(index, candidate, 0, klen)) {
+                                    k = candidate;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (k == null) {
+                        k = properties.substring(index, kvSepIndex);
+                    }
+                    int vOffset = kvSepIndex + 1;
+                    int vLen = newIndex - vOffset;
+                    String v = internStringValue(properties, vOffset, vLen);
+                    if (v == null) {
+                        v = properties.substring(vOffset, newIndex);
+                    }
+                    map.put(k, v);
+                }
+            }
+            index = newIndex + 1;
         }
 
         return map;
+    }
+
+    /**
+     * Variant of {@link #string2messageProperties(String)} that parses directly from a UTF-8
+     * byte array, skipping the intermediate {@code new String(bytes, ...)} allocation. The
+     * separators {@link #NAME_VALUE_SEPARATOR} (0x01) and {@link #PROPERTY_SEPARATOR} (0x02)
+     * are ASCII single bytes that never appear inside multi-byte UTF-8 sequences, so byte-level
+     * scanning is safe. Canonical (intern) keys are ASCII and matched byte-by-byte.
+     * <p>Always returns a fresh {@link HashMap} to keep the same downstream contract as
+     * {@link #string2messageProperties} (mutable {@code Entry.setValue}, no aliasing across
+     * decodes on the same thread).
+     */
+    public static Map<String, String> bytes2messageProperties(final byte[] bytes, final int offset,
+        final int length) {
+        if (bytes == null || length <= 0) {
+            return new HashMap<>(4);
+        }
+        final int end = offset + length;
+        // Estimate entries: count PROPERTY_SEPARATOR occurrences to pre-size the HashMap and
+        // avoid resize churn under load.
+        int estEntries = 0;
+        for (int i = offset; i < end; i++) {
+            if (bytes[i] == PROPERTY_SEPARATOR) {
+                estEntries++;
+            }
+        }
+        estEntries = Math.max(estEntries, 1);
+        HashMap<String, String> map = new HashMap<>(estEntries * 4 / 3 + 1);
+        int index = offset;
+        while (index < end) {
+            int sepIdx = end;
+            for (int i = index; i < end; i++) {
+                if (bytes[i] == PROPERTY_SEPARATOR) {
+                    sepIdx = i;
+                    break;
+                }
+            }
+            if (sepIdx - index >= 3) {
+                int kvSepIdx = -1;
+                for (int i = index; i < sepIdx; i++) {
+                    if (bytes[i] == NAME_VALUE_SEPARATOR) {
+                        kvSepIdx = i;
+                        break;
+                    }
+                }
+                if (kvSepIdx > index && kvSepIdx < sepIdx - 1) {
+                    int klen = kvSepIdx - index;
+                    String k = null;
+                    if (klen < MessageConst.STRING_INTERN_BY_LEN.length) {
+                        String[] candidates = MessageConst.STRING_INTERN_BY_LEN[klen];
+                        if (candidates != null) {
+                            for (String candidate : candidates) {
+                                if (asciiBytesEqual(bytes, index, candidate, klen)) {
+                                    k = candidate;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (k == null) {
+                        k = new String(bytes, index, klen, CHARSET_UTF8);
+                    }
+                    int vOffset = kvSepIdx + 1;
+                    int vLen = sepIdx - kvSepIdx - 1;
+                    String v = internValue(bytes, vOffset, vLen);
+                    if (v == null) {
+                        v = new String(bytes, vOffset, vLen, CHARSET_UTF8);
+                    }
+                    map.put(k, v);
+                }
+            }
+            index = sepIdx + 1;
+        }
+        return map;
+    }
+
+    private static final String[][] VALUE_INTERN_BY_LEN;
+    static {
+        String[] frequentValues = {"0", "1", "true", "false", "DefaultRegion"};
+        int maxLen = 0;
+        for (String s : frequentValues) {
+            maxLen = Math.max(maxLen, s.length());
+        }
+        VALUE_INTERN_BY_LEN = new String[maxLen + 1][];
+        for (String s : frequentValues) {
+            int len = s.length();
+            if (VALUE_INTERN_BY_LEN[len] == null) {
+                VALUE_INTERN_BY_LEN[len] = new String[]{s};
+            } else {
+                String[] old = VALUE_INTERN_BY_LEN[len];
+                String[] arr = new String[old.length + 1];
+                System.arraycopy(old, 0, arr, 0, old.length);
+                arr[old.length] = s;
+                VALUE_INTERN_BY_LEN[len] = arr;
+            }
+        }
+    }
+
+    private static String internStringValue(String s, int offset, int len) {
+        if (len >= VALUE_INTERN_BY_LEN.length) {
+            return null;
+        }
+        String[] candidates = VALUE_INTERN_BY_LEN[len];
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (s.regionMatches(offset, candidate, 0, len)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static String internValue(byte[] bytes, int offset, int len) {
+        if (len >= VALUE_INTERN_BY_LEN.length) {
+            return null;
+        }
+        String[] candidates = VALUE_INTERN_BY_LEN[len];
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (asciiBytesEqual(bytes, offset, candidate, len)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    public static boolean asciiBytesMatchString(byte[] bytes, int offset, String s, int len) {
+        if (s.length() != len) {
+            return false;
+        }
+        for (int i = 0; i < len; i++) {
+            if (bytes[offset + i] != (byte) s.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean asciiBytesEqual(byte[] bytes, int offset, String asciiCandidate, int len) {
+        for (int i = 0; i < len; i++) {
+            if (bytes[offset + i] != (byte) asciiCandidate.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static byte[] encodeMessage(Message message) {
@@ -725,7 +1033,8 @@ public class MessageDecoder {
         short propertiesLen = byteBuffer.getShort();
         byte[] propertiesBytes = new byte[propertiesLen];
         byteBuffer.get(propertiesBytes);
-        message.setProperties(string2messageProperties(new String(propertiesBytes, CHARSET_UTF8)));
+        // opt16: parse directly from bytes; skip the intermediate String allocation.
+        message.setProperties(bytes2messageProperties(propertiesBytes, 0, propertiesLen));
 
         return message;
     }
