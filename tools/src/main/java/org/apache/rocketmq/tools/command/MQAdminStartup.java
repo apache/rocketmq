@@ -54,8 +54,9 @@ import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.SwitchTimerEngineSubCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateColdDataFlowCtrGroupConfigSubCommand;
-import org.apache.rocketmq.tools.command.cluster.ClusterSendMsgRTCommand;
+import org.apache.rocketmq.tools.command.cluster.ClusterHealthSubCommand;
 import org.apache.rocketmq.tools.command.cluster.ClusterListSubCommand;
+import org.apache.rocketmq.tools.command.cluster.ClusterSendMsgRTCommand;
 import org.apache.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
 import org.apache.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
 import org.apache.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
@@ -231,6 +232,7 @@ public class MQAdminStartup {
         initCommand(new ProducerSubCommand());
 
         initCommand(new ClusterListSubCommand());
+        initCommand(new ClusterHealthSubCommand());
         initCommand(new TopicListSubCommand());
 
         initCommand(new UpdateKvConfigCommand());
