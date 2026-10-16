@@ -250,6 +250,18 @@ public class BatchConsumeQueueTest extends StoreTestBase {
 
     }
 
+    @Test
+    public void testEmptyBatchConsumeQueueReportsNoUnitAndMinusOneLastOffset() {
+        BatchConsumeQueue batchConsumeQueue = createBatchConsume(null);
+        batchConsumeQueue.load();
+        Assert.assertEquals(0, getBcqFileSize(batchConsumeQueue));
+
+        Assert.assertNull(batchConsumeQueue.getEarliestUnit());
+        Assert.assertNull(batchConsumeQueue.getLatestUnit());
+        Assert.assertEquals(-1, batchConsumeQueue.getLastOffset());
+        Assert.assertEquals(-1, batchConsumeQueue.getEarliestUnitAndStoreTime().getObject2().longValue());
+    }
+
     @After
     @Override
     public void clear() {
