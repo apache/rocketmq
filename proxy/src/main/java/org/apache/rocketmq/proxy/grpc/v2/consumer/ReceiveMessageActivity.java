@@ -58,11 +58,22 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
+    /**
+     *
+     * @param ctx ctx
+     * @param request
+     *          request.invisible_duration =>
+     *          Required if client type is simple consumer.
+     *          useless for PushConsumer
+     *
+     * @param responseObserver responseObserver
+     */
     public void receiveMessage(ProxyContext ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
         ReceiveMessageResponseStreamWriter writer = createWriter(ctx, responseObserver);
 
         try {
+            // Settings were registered when client connected
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
             ctx.setClientType(settings.getClientType().name());
 
@@ -103,9 +114,13 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
             String topic = request.getMessageQueue().getTopic().getName();
             String group = request.getGroup().getName();
 
+            // invisibleTime was set by client
+            // proxy can override it
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+            // default enableProxyAutoRenew is true
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
+                // default defaultInvisibleTimeMills is 60s
                 actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
             } else {
                 validateInvisibleTime(actualInvisibleTime,
@@ -173,13 +188,37 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         }
     }
 
+    /**
+     * Register receipt handles for auto-renewal of message visibility timeouts.
+     *
+     * <p>When auto-renew is enabled ({@code enableProxyAutoRenew}), the proxy
+     * periodically extends the invisible time of delivered but unacked messages
+     * so that they are not revived while the consumer is still processing them.
+     *
+     * <p>This method extracts the {@code PROPERTY_POP_CK} from each popped
+     * message, wraps it into a {@link MessageReceiptHandle}, and registers it
+     * via {@link MessagingProcessor#addReceiptHandle}. The returned
+     * {@link Runnable} is executed after the response has been written to the
+     * client stream.
+     *
+     * @param ctx     the proxy context
+     * @param request the original receive-message request
+     * @param group   consumer group
+     * @param topic   topic name
+     * @param popResult the pop result returned from the broker
+     * @param writer  the response stream writer
+     * @return a runnable to execute after the response write, or {@code null}
+     *         if no messages were found
+     */
     private Runnable handleAutoRenew(ProxyContext ctx, ReceiveMessageRequest request,
         String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer
     ) {
+        // check result status
         if (!PopStatus.FOUND.equals(popResult.getPopStatus())) {
             return null;
         }
 
+        // get socket channel
         GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
         if (clientChannel == null) {
             GrpcProxyException e = new GrpcProxyException(Code.MESSAGE_NOT_FOUND,
@@ -188,6 +227,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
             throw e;
         }
+
         return () -> {
             boolean isLiteConsumer = ctx.isLiteConsumer();
             List<MessageExt> messageExtList = popResult.getMsgFoundList();

@@ -19,15 +19,33 @@ package org.apache.rocketmq.common.utils;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
+/**
+ * Bit-level utility methods, primarily used by Pop-mode ack tracking.
+ *
+ * <p>An {@code int} bitmask is used to track the ack state of up to 32 sub-messages
+ * within a single Pop checkpoint (see {@code PopCheckPoint}).
+ */
 public class DataConverter {
     public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
 
+    /**
+     * Convert a {@code long} to an 8-byte array (big-endian).
+     */
     public static byte[] Long2Byte(Long v) {
         ByteBuffer tmp = ByteBuffer.allocate(8);
         tmp.putLong(v);
         return tmp.array();
     }
 
+    /**
+     * Set or clear the bit at {@code index} in an int bitmask.
+     * <p>Uses {@code 1L} (long literal) to avoid signed-int overflow when {@code index == 31}.
+     *
+     * @param value the original bitmask
+     * @param index the bit position (0-based, 0..31)
+     * @param flag  {@code true} to set, {@code false} to clear
+     * @return the updated bitmask
+     */
     public static int setBit(int value, int index, boolean flag) {
         if (flag) {
             return (int) (value | (1L << index));
@@ -36,6 +54,13 @@ public class DataConverter {
         }
     }
 
+    /**
+     * Test whether the bit at {@code index} is set in an int bitmask.
+     *
+     * @param value the bitmask
+     * @param index the bit position (0-based, 0..31)
+     * @return {@code true} if the bit is 1
+     */
     public static boolean getBit(int value, int index) {
         return (value & (1L << index)) != 0;
     }

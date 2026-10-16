@@ -99,7 +99,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-
+        // parse request
         final long beginTimeMills = brokerController.getMessageStore().now();
         Channel channel = ctx.channel();
         request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
@@ -112,6 +112,8 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         final PopLiteMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(PopLiteMessageRequestHeader.class, true);
         final PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) response.readCustomHeader();
+
+        // validation
         RemotingCommand preCheckResponse = preCheck(ctx, requestHeader, response);
         if (preCheckResponse != null) {
             return preCheckResponse;
@@ -128,6 +130,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             group, clientId, popTime, invisibleTime, maxNum, requestHeader.getAttemptId());
 
         final GetMessageResult getMessageResult = rst.getObject2();
+        // format response or long polling(do not support grpc client)
         if (getMessageResult != null && getMessageResult.getMessageCount() > 0) {
             final byte[] r = readGetMessageResult(getMessageResult);
             brokerController.getBrokerStatsManager().incGroupGetLatency(group, parentTopic, 0,
@@ -139,6 +142,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             response.setRemark(GetMessageStatus.FOUND.name());
             response.setBody(r);
         } else {
+            // polling is useless for grpc client
             response.setRemark(GetMessageStatus.NO_MESSAGE_IN_QUEUE.name());
             PollingResult pollingResult = popLiteLongPollingService.polling(ctx, request, requestHeader.getBornTime(),
                 requestHeader.getPollTime(), clientId, group);
@@ -157,10 +161,25 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         responseHeader.setOrderCountInfo(rst.getObject1().toString());
         // Since a single read operation potentially retrieving messages from multiple LMQs,
         // we no longer utilize startOffset and msgOffset
+        // write response to socket channel
         NettyRemotingAbstract.writeResponse(channel, request, response, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
         return null;
     }
 
+    /**
+     * Validate the Pop Lite request:
+     * Returns a ready-to-send error {@link RemotingCommand} when failed,
+     * or {@code null} when passes all checks and Pop may proceed.
+     *
+     * <p>The checks are layered as:
+     * - timeout
+     * - broker permission
+     * - batch-size cap
+     * - topic existence and readability
+     * - topic message type must be {@link TopicMessageType#LITE}
+     * - the subscription group exists, is enabled,
+     *   and its {@code liteBindTopic} matches the requested topic.
+     */
     @VisibleForTesting
     public RemotingCommand preCheck(ChannelHandlerContext ctx,
         PopLiteMessageRequestHeader requestHeader, RemotingCommand response) {
@@ -243,6 +262,19 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         return byteBuffer.array();
     }
 
+    /**
+     * Pop up to {@code maxNum} messages, returning both
+     * 1. the merged {@link GetMessageResult}
+     * 2. concatenated per-offset order-count string.
+     *
+     * <p>Each LMQ subscribed by the client is visited in turn via {@link LiteEventDispatcher#getEventIterator};
+     * the same client may appear in multiple LMQs.
+     * A {@link HashSet} deduplicates visits within a single call.
+     *
+     * <p>In exclusive mode, an {@link ExclusiveEvictionTombstones} check
+     * rejects pulls on LMQs from which this client was previously evicted,
+     * so it does not re-consume messages already handled by the new owner.
+     */
     public Pair<StringBuilder, GetMessageResult> popByClientId(String clientHost, String parentTopic, String group,
         String clientId, long popTime, long invisibleTime, int maxNum, String attemptId) {
         GetMessageResult getMessageResult = new GetMessageResult();
@@ -286,6 +318,24 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         return new Pair<>(orderCountInfoAll, getMessageResult);
     }
 
+    /**
+     * Pop from a single LMQ under the per-(group, lmqName) lock,
+     * blocking on {@code consumerOrderInfoManager} for FIFO ordering,
+     * and recording the result via
+     * {@link ConsumerOrderInfoManager#update}.
+     *
+     * <p>The {@code popConsumerLockService} prevents concurrent Pop
+     * against the same (group, lmqName). If the LMQ is currently
+     * {@link #isFifoBlocked blocked} by an in-flight batch from a
+     * prior Pop (with the same {@code attemptId}), the call returns
+     * {@code null} without reading.
+     *
+     * <p>Returns {@code null} on lock contention, FIFO block, or
+     * any internal error; otherwise the pair is
+     * (order-count-info, getMessageResult) where
+     * {@link GetMessageResult} may have zero messages if the queue
+     * was empty at pop time.
+     */
     @VisibleForTesting
     Pair<StringBuilder, GetMessageResult> popLiteTopic(String parentTopic, String clientHost, String group,
         String lmqName, long maxNum, long popTime, long invisibleTime, String attemptId, Set<String> processed) {

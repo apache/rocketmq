@@ -21,15 +21,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * result of get message
+ */
 public class GetMessageResult {
-
+    // mappedFile info list
     private final List<SelectMappedBufferResult> messageMapedList;
+    // message info list in form of ByteBuffer, used by zero copy in version 4.*
     private final List<ByteBuffer> messageBufferList;
+    // consume queue offset list
     private final List<Long> messageQueueOffset;
 
     private GetMessageStatus status;
+    // next offset of queue(Consume Queue)
     private long nextBeginOffset;
+    // min offset of queue(Consume Queue)
     private long minOffset;
+    // max offset of queue(Consume Queue)
     private long maxOffset;
 
     private int bufferTotalSize = 0;

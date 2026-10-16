@@ -63,6 +63,20 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
+    /**
+     * send message, execute in producer thread pool
+     * request flow:
+     *   producer -> grpcRequest -> GrpcMessagingApplication -> ProducerThreadPoolForGrpc(...)
+     * functionality:
+     *   1. validate topic
+     *   2. create queue selector
+     *   3. build and validate message
+     *   4. convert response
+     *
+     * @param ctx proxy context
+     * @param request send message request
+     * @return send message response future
+     */
     public CompletableFuture<SendMessageResponse> sendMessage(ProxyContext ctx, SendMessageRequest request) {
         CompletableFuture<SendMessageResponse> future = new CompletableFuture<>();
 
