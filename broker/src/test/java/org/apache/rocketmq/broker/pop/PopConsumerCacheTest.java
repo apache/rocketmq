@@ -17,8 +17,16 @@
 package org.apache.rocketmq.broker.pop;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
@@ -142,5 +150,89 @@ public class PopConsumerCacheTest {
         consumerRecordList.clear();
         consumerCache.cleanupRecords(consumerRecordList::add);
         Assert.assertEquals(0, consumerRecordList.size());
+    }
+
+    /**
+     * PopConsumerCache#cleanupRecords stages records, snapshots them, and persists the snapshot.
+     * An ack arriving while the store write is in flight only sees the record in the staged set
+     * (it already left recordTreeMap), deletes the durable record, and then the blocked write
+     * re-persists the acked record. The acked record must not survive in the durable store.
+     */
+    @Test
+    public void testAckWinsOverCleanupStoreWrite() throws Exception {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
+        Mockito.when(consumerLockService.isLockTimeout(any(), any())).thenReturn(false);
+
+        CountDownLatch writeStarted = new CountDownLatch(1);
+        CountDownLatch releaseWrite = new CountDownLatch(1);
+        Map<Long, PopConsumerRecord> durableStore = new ConcurrentHashMap<>();
+        PopConsumerKVStore consumerKVStore = new PopConsumerKVStore() {
+            @Override
+            public boolean start() {
+                return true;
+            }
+
+            @Override
+            public boolean shutdown() {
+                return true;
+            }
+
+            @Override
+            public String getFilePath() {
+                return "PopConsumerCacheTest";
+            }
+
+            @Override
+            public void writeRecords(List<PopConsumerRecord> consumerRecordList) {
+                writeStarted.countDown();
+                try {
+                    Assert.assertTrue(releaseWrite.await(5, TimeUnit.SECONDS));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+                consumerRecordList.forEach(record -> durableStore.put(record.getOffset(), record));
+            }
+
+            @Override
+            public void deleteRecords(List<PopConsumerRecord> consumerRecordList) {
+                consumerRecordList.forEach(record -> durableStore.remove(record.getOffset()));
+            }
+
+            @Override
+            public List<PopConsumerRecord> scanExpiredRecords(long lowerTime, long upperTime, int maxCount) {
+                return Collections.emptyList();
+            }
+        };
+
+        PopConsumerCache consumerCache =
+            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
+
+        // old enough to be staged by cleanup, visibility still in the future so it is written
+        long popTime = System.currentTimeMillis() - brokerConfig.getPopCkStayBufferTime() - 1000;
+        PopConsumerRecord record = new PopConsumerRecord(popTime, groupId, topicId, queueId,
+            0, TimeUnit.MINUTES.toMillis(2), 100, attemptId);
+        consumerCache.writeRecords(Collections.singletonList(record));
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<Integer> cleanupFuture = executor.submit(() -> consumerCache.cleanupRecords(r -> { }));
+            Assert.assertTrue(writeStarted.await(5, TimeUnit.SECONDS));
+
+            // ack the staged record while the cleanup store write is blocked
+            List<PopConsumerRecord> remain = consumerCache.ackRecords(Collections.singletonList(record));
+            Assert.assertFalse(remain.isEmpty());
+            consumerKVStore.deleteRecords(remain);
+
+            releaseWrite.countDown();
+            cleanupFuture.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        Assert.assertTrue("acked record must not survive in the durable store", durableStore.isEmpty());
     }
 }
