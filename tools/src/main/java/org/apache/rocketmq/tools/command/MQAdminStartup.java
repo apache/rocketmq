@@ -61,6 +61,7 @@ import org.apache.rocketmq.tools.command.connection.ProducerConnectionSubCommand
 import org.apache.rocketmq.tools.command.consumer.ConsumerProgressSubCommand;
 import org.apache.rocketmq.tools.command.consumer.ConsumerStatusSubCommand;
 import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand;
+import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupListSubCommand;
 import org.apache.rocketmq.tools.command.consumer.GetConsumerConfigSubCommand;
 import org.apache.rocketmq.tools.command.consumer.SetConsumeModeSubCommand;
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
@@ -112,6 +113,7 @@ import org.apache.rocketmq.tools.command.queue.CheckRocksdbCqWriteProgressComman
 import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
+import org.apache.rocketmq.tools.command.topic.DeleteTopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.RemappingStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicClusterSubCommand;
@@ -196,10 +198,12 @@ public class MQAdminStartup {
         initCommand(new UpdateTopicSubCommand());
         initCommand(new UpdateTopicListSubCommand());
         initCommand(new DeleteTopicSubCommand());
+        initCommand(new DeleteTopicListSubCommand());
         initCommand(new UpdateSubGroupSubCommand());
         initCommand(new UpdateSubGroupListSubCommand());
         initCommand(new SetConsumeModeSubCommand());
         initCommand(new DeleteSubscriptionGroupCommand());
+        initCommand(new DeleteSubscriptionGroupListSubCommand());
         initCommand(new UpdateBrokerConfigSubCommand());
         initCommand(new UpdateTopicPermSubCommand());
 
