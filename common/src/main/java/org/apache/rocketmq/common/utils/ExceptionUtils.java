@@ -16,16 +16,19 @@
  */
 package org.apache.rocketmq.common.utils;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 
 public class ExceptionUtils {
 
     public static Throwable getRealException(Throwable throwable) {
-        if (throwable instanceof CompletionException || throwable instanceof ExecutionException) {
-            if (throwable.getCause() != null) {
-                throwable = throwable.getCause();
-            }
+        Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        while ((throwable instanceof CompletionException || throwable instanceof ExecutionException)
+            && throwable.getCause() != null && visited.add(throwable)) {
+            throwable = throwable.getCause();
         }
         return throwable;
     }
