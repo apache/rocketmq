@@ -403,6 +403,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             return;
         }
         while (!this.brokerController.getPopMessageProcessor().getQueueLockManager().tryLock(lockKey)) {
+            Thread.yield();
         }
         try {
             oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(consumeGroup, topic, qId);
@@ -446,6 +447,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         }
 
         while (!consumerLockService.tryLock(consumeGroup, topic)) {
+            Thread.yield();
         }
 
         try {
@@ -536,6 +538,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         }
         String lockKey = KeyBuilder.buildPopLiteLockKey(group, lmqName);
         while (!consumerLockService.tryLock(lockKey)) {
+            Thread.yield();
         }
 
         long dispatchOffset = -1L;
