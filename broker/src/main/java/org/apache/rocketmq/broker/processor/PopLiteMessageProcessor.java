@@ -187,7 +187,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
 
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            LOGGER.error("The parentTopic {} not exist, consumer: {} ", requestHeader.getTopic());
+            LOGGER.error("The parentTopic {} not exist, consumer: {} ", requestHeader.getTopic(), requestHeader.getConsumerGroup());
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic [%s] not exist, apply first please! %s", requestHeader.getTopic(),
                 FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
