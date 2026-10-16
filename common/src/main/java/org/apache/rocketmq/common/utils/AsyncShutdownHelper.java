@@ -20,34 +20,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AsyncShutdownHelper {
-    private final AtomicBoolean shutdown;
+    private boolean shutdown;
     private final List<Shutdown> targetList;
 
-    private CountDownLatch countDownLatch;
+    private volatile CountDownLatch countDownLatch;
 
     public AsyncShutdownHelper() {
         this.targetList = new ArrayList<>();
-        this.shutdown = new AtomicBoolean(false);
+        this.shutdown = false;
     }
 
-    public void addTarget(Shutdown target) {
-        if (shutdown.get()) {
+    public synchronized void addTarget(Shutdown target) {
+        if (shutdown) {
             return;
         }
         targetList.add(target);
     }
 
-    public AsyncShutdownHelper shutdown() {
-        if (shutdown.get()) {
+    public synchronized AsyncShutdownHelper shutdown() {
+        if (shutdown) {
             return this;
         }
-        if (targetList.isEmpty()) {
-            return this;
-        }
-        this.countDownLatch = new CountDownLatch(targetList.size());
+        shutdown = true;
+        final CountDownLatch latch = new CountDownLatch(targetList.size());
+        this.countDownLatch = latch;
         for (Shutdown target : targetList) {
             Runnable runnable = () -> {
                 try {
@@ -55,7 +53,7 @@ public class AsyncShutdownHelper {
                 } catch (Exception ignored) {
 
                 } finally {
-                    countDownLatch.countDown();
+                    latch.countDown();
                 }
             };
             new Thread(runnable).start();
@@ -64,13 +62,10 @@ public class AsyncShutdownHelper {
     }
 
     public boolean await(long time, TimeUnit unit) throws InterruptedException {
-        if (shutdown.get()) {
-            return false;
+        CountDownLatch latch = this.countDownLatch;
+        if (latch == null) {
+            throw new IllegalStateException("shutdown has not been started");
         }
-        try {
-            return this.countDownLatch.await(time, unit);
-        } finally {
-            shutdown.compareAndSet(false, true);
-        }
+        return latch.await(time, unit);
     }
 }
