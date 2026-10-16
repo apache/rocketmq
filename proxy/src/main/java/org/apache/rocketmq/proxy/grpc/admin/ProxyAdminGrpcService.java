@@ -381,9 +381,19 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                     (org.apache.rocketmq.logging.ch.qos.logback.classic.LoggerContext) factory;
                 org.apache.rocketmq.logging.ch.qos.logback.classic.Level logbackLevel =
                     org.apache.rocketmq.logging.ch.qos.logback.classic.Level.toLevel(level.name());
-                loggerContext.getLogger(
-                        org.apache.rocketmq.logging.ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME)
-                    .setLevel(logbackLevel);
+                org.apache.rocketmq.logging.ch.qos.logback.classic.Logger rootLogger = loggerContext.getLogger(
+                    org.apache.rocketmq.logging.ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+                rootLogger.setLevel(logbackLevel);
+                // The shipped configuration gives each component logger its own level with
+                // additivity=false, so changing the root alone leaves every application log
+                // untouched while this RPC reports success. Those loggers are exactly the ones with
+                // an explicit level, so the runtime change re-pins them as well.
+                for (org.apache.rocketmq.logging.ch.qos.logback.classic.Logger pinned :
+                    loggerContext.getLoggerList()) {
+                    if (pinned.getLevel() != null) {
+                        pinned.setLevel(logbackLevel);
+                    }
+                }
                 remark = "log level changed to " + logbackLevel;
             }
         } catch (Throwable t) {
