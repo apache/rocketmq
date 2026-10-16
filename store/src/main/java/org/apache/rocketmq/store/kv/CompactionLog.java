@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -200,6 +201,7 @@ public class CompactionLog {
         }
 
         replicating = new TopicPartitionLog(this, REPLICATING_SUB_FOLDER);
+        cleanScratchFolder(replicating);
         try (MessageFetcher messageFetcher = new MessageFetcher()) {
             messageFetcher.pullMessageFromMaster(topic, queueId, getCQ().getMinOffsetInQueue(),
                 compactionStore.getMasterAddr(), (currOffset, response) -> {
@@ -678,8 +680,20 @@ public class CompactionLog {
         }
     }
 
+    /**
+     * The scratch folders are only cleaned by a round that runs to completion ({@code replaceFiles} followed by
+     * {@code TopicPartitionLog#clean}). A round interrupted in between leaves its files behind, and the next round
+     * reopens the very same file name at offset 0, so the stale bytes beyond the new content would be carried into
+     * the live compaction log by {@code replaceFiles}. Start every round from an empty scratch folder.
+     */
+    protected static void cleanScratchFolder(TopicPartitionLog scratch) {
+        UtilAll.deleteFile(new File(scratch.getLog().getStorePath()));
+        UtilAll.deleteFile(new File(scratch.getCQ().getMappedFileQueue().getStorePath()));
+    }
+
     protected void compaction(List<MappedFile> mappedFileList, OffsetMap offsetMap) throws DigestException {
         compacting = new TopicPartitionLog(this, COMPACTING_SUB_FOLDER);
+        cleanScratchFolder(compacting);
 
         for (MappedFile mappedFile : mappedFileList) {
             Iterator<SelectMappedBufferResult> iterator = mappedFile.iterator(0);
