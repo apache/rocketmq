@@ -55,10 +55,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -207,6 +210,40 @@ public class BrokerOuterAPITest {
             new BrokerIdentity());
 
         assertTrue(registerBrokerResultList.size() > 0);
+    }
+
+    @Test
+    public void test_register_compressed_body_matches_header_flag() throws Exception {
+        init();
+        brokerOuterAPI.start();
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        when(nettyRemotingClient.getAvailableNameSrvList()).thenReturn(Lists.asList(nameserver1, new String[] {}));
+        final ArgumentCaptor<RemotingCommand> requestCaptor = ArgumentCaptor.forClass(RemotingCommand.class);
+        when(nettyRemotingClient.invokeSync(anyString(), requestCaptor.capture(), anyLong())).thenReturn(response);
+
+        List<RegisterBrokerResult> registerBrokerResultList = brokerOuterAPI.registerBrokerAll(clusterName, brokerAddr,
+            brokerName,
+            brokerId,
+            "hasServerAddr",
+            topicConfigSerializeWrapper,
+            Lists.newArrayList(),
+            false,
+            timeOut,
+            false,
+            true,
+            new BrokerIdentity());
+        assertTrue(registerBrokerResultList.size() > 0);
+
+        RemotingCommand request = requestCaptor.getValue();
+        RegisterBrokerRequestHeader header = (RegisterBrokerRequestHeader) request.readCustomHeader();
+        Assert.assertTrue("a compressed register body has to be flagged as compressed", header.isCompressed());
+        // the name server decodes the body with exactly this flag
+        RegisterBrokerBody.decode(request.getBody(), header.isCompressed(), MQVersion.Version.V5_0_0);
     }
 
     @Test
