@@ -58,6 +58,13 @@ public class RebalancePushImpl extends RebalanceImpl {
          * Fix: inconsistency subscription may lead to consumer miss messages.
          */
         SubscriptionData subscriptionData = this.subscriptionInner.get(topic);
+        // The subscription may have been removed concurrently (unsubscribe() from
+        // another thread) while this rebalance was in progress; there is nothing
+        // to update or notify for a topic this consumer no longer subscribes to.
+        if (subscriptionData == null) {
+            log.info("subscription of {} removed during rebalance, skip notifying message queue change", topic);
+            return;
+        }
         long newVersion = System.currentTimeMillis();
         log.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
         subscriptionData.setSubVersion(newVersion);
