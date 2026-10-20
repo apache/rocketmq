@@ -81,7 +81,10 @@ public class IOTinyUtils {
             throw new IllegalArgumentException("source file does not exist.");
         }
         File tf = new File(target);
-        tf.getParentFile().mkdirs();
+        File parent = tf.getParentFile();
+        if (parent != null) {
+            parent.mkdirs();
+        }
         if (!tf.exists() && !tf.createNewFile()) {
             throw new RuntimeException("failed to create target file.");
         }
