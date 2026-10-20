@@ -22,6 +22,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class BitsArrayTest {
@@ -51,10 +52,14 @@ public class BitsArrayTest {
 
     @Test
     public void testCreateWithBytesAndBitLength() {
-        byte[] data = new byte[] {(byte) 0xAA};
+        byte[] data = new byte[] {(byte) 0xAA, (byte) 0x03};
         BitsArray bits = BitsArray.create(data, 10);
         assertEquals(10, bits.bitLength());
-        assertEquals(1, bits.byteLength());
+        assertEquals(2, bits.byteLength());
+        assertArrayEquals(data, bits.bytes());
+        assertNotSame(data, bits.bytes());
+        assertTrue(bits.getBit(9));
+        assertThrows(IllegalArgumentException.class, () -> bits.getBit(10));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -78,8 +83,29 @@ public class BitsArrayTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testCreateWithBitLengthLessThanBytes() {
-        BitsArray.create(new byte[] {0x01, 0x02}, 8);
+    public void testCreateWithBitLengthGreaterThanBytes() {
+        BitsArray.create(new byte[] {0x01}, 9);
+    }
+
+    @Test
+    public void testClonePreservesPartialByteLengthAndIndependentStorage() {
+        for (int bitLength : new int[] {1, 7, 9, 10, 15, 17, 63, 64, 65}) {
+            BitsArray original = BitsArray.create(bitLength);
+            original.setBit(0, true);
+            original.setBit(bitLength - 1, true);
+
+            BitsArray copy = original.clone();
+
+            assertEquals(bitLength, copy.bitLength());
+            assertEquals(original.byteLength(), copy.byteLength());
+            assertArrayEquals(original.bytes(), copy.bytes());
+            assertNotSame(original.bytes(), copy.bytes());
+            assertTrue(copy.getBit(bitLength - 1));
+            assertThrows(IllegalArgumentException.class, () -> copy.getBit(bitLength));
+            copy.setBit(0, false);
+            assertTrue(original.getBit(0));
+            assertFalse(copy.getBit(0));
+        }
     }
 
     @Test
