@@ -19,6 +19,8 @@ package org.apache.rocketmq.remoting.protocol;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +75,26 @@ public class CheckpointFileTest {
     public void destroy() {
         UtilAll.deleteFile(new File(FILE_PATH));
         UtilAll.deleteFile(new File(FILE_PATH + ".bak"));
+    }
+
+    @Test
+    public void testCrcMismatchReportsTheFileAndTheExpectedCrc() throws IOException {
+        String content = new String(Files.readAllBytes(Paths.get(FILE_PATH)), StandardCharsets.UTF_8);
+        String separator = System.lineSeparator();
+        String[] parts = content.split(separator, 3);
+        long wrongCrc = Long.parseLong(parts[1]) + 1;
+        String corrupted = parts[0] + separator + wrongCrc + separator + parts[2];
+        Files.write(Paths.get(FILE_PATH), corrupted.getBytes(StandardCharsets.UTF_8));
+        Files.write(Paths.get(FILE_PATH + ".bak"), corrupted.getBytes(StandardCharsets.UTF_8));
+        try {
+            checkpoint.read();
+            Assert.fail("a mismatched crc32 must fail the read");
+        } catch (IOException e) {
+            String message = e.getMessage();
+            Assert.assertTrue(message, message.contains(FILE_PATH));
+            Assert.assertTrue(message, message.contains("expected=" + wrongCrc));
+            Assert.assertTrue(message, message.contains("truth="));
+        }
     }
 
     @Test

@@ -130,7 +130,7 @@ public class CheckpointFile<T> {
 
                 if (NOT_CHECK_CRC_MAGIC_CODE != expectedCrc32 && truthCrc32 != expectedCrc32) {
                     final String err = String.format(
-                        "Entries crc32 not match, file=%s, truth=%s", expectedCrc32, truthCrc32);
+                        "Entries crc32 not match, file=%s, expected=%s, truth=%s", filePath, expectedCrc32, truthCrc32);
                     throw new IOException(err);
                 }
                 return result;
