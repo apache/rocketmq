@@ -19,6 +19,10 @@ package org.apache.rocketmq.proxy.metrics;
 public class ProxyMetricsConstant {
     public static final String GAUGE_PROXY_UP = "rocketmq_proxy_up";
 
+    public static final String COUNTER_PROXY_ADMIN_CALLS_TOTAL = "rocketmq_proxy_admin_calls_total";
+    public static final String HISTOGRAM_PROXY_ADMIN_RT = "rocketmq_proxy_admin_rt";
+
     public static final String LABEL_PROXY_MODE = "proxy_mode";
+    public static final String LABEL_METHOD = "method";
     public static final String NODE_TYPE_PROXY = "proxy";
 }
