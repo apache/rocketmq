@@ -1115,6 +1115,63 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateSubscriptionGroupWithConfigurableMaxLength() throws RemotingCommandException {
+        String groupName = StringUtils.repeat('a', 121);
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(groupName);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
+        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes(StandardCharsets.UTF_8));
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
+
+        brokerController.getBrokerConfig().setSubscriptionGroupMaxLength(255);
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertTrue(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupListWithConfigurableMaxLength() throws RemotingCommandException {
+        String groupName = StringUtils.repeat('b', 121);
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(groupName);
+        SubscriptionGroupList subscriptionGroupList =
+            new SubscriptionGroupList(Collections.singletonList(subscriptionGroupConfig));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST, null);
+        request.setBody(subscriptionGroupList.encode());
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
+
+        brokerController.getBrokerConfig().setSubscriptionGroupMaxLength(255);
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertTrue(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupListRejectsWholeBatchWhenOneTooLong() throws RemotingCommandException {
+        brokerController.getBrokerConfig().setSubscriptionGroupMaxLength(255);
+        String validGroup = StringUtils.repeat('c', 127);
+        String tooLongGroup = StringUtils.repeat('d', 256);
+        SubscriptionGroupConfig validConfig = new SubscriptionGroupConfig();
+        validConfig.setGroupName(validGroup);
+        SubscriptionGroupConfig tooLongConfig = new SubscriptionGroupConfig();
+        tooLongConfig.setGroupName(tooLongGroup);
+        SubscriptionGroupList subscriptionGroupList = new SubscriptionGroupList(Arrays.asList(validConfig, tooLongConfig));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST, null);
+        request.setBody(subscriptionGroupList.encode());
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(validGroup));
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(tooLongGroup));
+    }
+
+    @Test
     public void testUpdateAndCreateSubscriptionGroupRejectsEmptyLiteBindTopic() {
         String groupName = "GID-EMPTY-LITE-BIND";
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();

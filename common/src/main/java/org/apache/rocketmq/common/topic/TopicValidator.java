@@ -140,6 +140,14 @@ public class TopicValidator {
     }
 
     public static ValidateResult validateGroup(String group) {
+        return validateGroup(group, GROUP_MAX_LENGTH);
+    }
+
+    /**
+     * Validates a group with a custom limit. Non-positive values use the default; values above 255 are capped.
+     */
+    public static ValidateResult validateGroup(String group, int maxLength) {
+        int groupMaxLength = maxLength <= 0 ? GROUP_MAX_LENGTH : Math.min(maxLength, RETRY_OR_DLQ_TOPIC_MAX_LENGTH);
 
         if (UtilAll.isBlank(group)) {
             return new ValidateResult(false, "The specified group is blank.");
@@ -150,8 +158,8 @@ public class TopicValidator {
             return new ValidateResult(false, falseRemark);
         }
 
-        if (group.length() > GROUP_MAX_LENGTH) {
-            String falseRemark = "The specified group: " + group + ", is longer than group max length: " + GROUP_MAX_LENGTH;
+        if (group.length() > groupMaxLength) {
+            String falseRemark = "The specified group: " + group + ", is longer than group max length: " + groupMaxLength;
             return new ValidateResult(false, falseRemark);
         }
 
