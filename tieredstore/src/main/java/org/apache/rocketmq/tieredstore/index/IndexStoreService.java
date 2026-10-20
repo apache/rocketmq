@@ -211,8 +211,9 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             return AppendResult.SUCCESS;
         }
 
+        AppendResult result = AppendResult.UNKNOWN_ERROR;
         for (int i = 0; i < 3; i++) {
-            AppendResult result = this.currentWriteFile.putKey(
+            result = this.currentWriteFile.putKey(
                 topic, topicId, queueId, keySet, offset, size, timestamp);
 
             if (AppendResult.SUCCESS.equals(result)) {
@@ -225,7 +226,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
         log.error("IndexStoreService#putKey, put key three times return error, topic={}, topicId={}, queueId={}, keySize={}, timestamp={}",
             topic, topicId, queueId, keySet.size(), timestamp);
-        return AppendResult.SUCCESS;
+        return result;
     }
 
     @Override
