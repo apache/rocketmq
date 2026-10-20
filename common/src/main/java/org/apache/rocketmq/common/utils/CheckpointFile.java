@@ -103,11 +103,14 @@ public class CheckpointFile<T> {
                 return result;
             }
             try (BufferedReader reader = Files.newBufferedReader(file.toPath())) {
-                // Read size
-                int expectedLines = Integer.parseInt(reader.readLine());
-
-                // Read block crc
-                int expectedCrc32 = Integer.parseInt(reader.readLine());
+                int expectedLines;
+                int expectedCrc32;
+                try {
+                    expectedLines = Integer.parseInt(reader.readLine());
+                    expectedCrc32 = Integer.parseInt(reader.readLine());
+                } catch (NumberFormatException e) {
+                    throw new IOException("Invalid checkpoint header, file=" + filePath, e);
+                }
 
                 // Read entries
                 StringBuilder sb = new StringBuilder();
