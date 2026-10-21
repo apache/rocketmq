@@ -16,7 +16,18 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
@@ -32,25 +43,20 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -86,9 +92,12 @@ public class ConsumeMessagePopOrderlyServiceTest {
         when(defaultMQPushConsumer.getConsumerGroup()).thenReturn(defaultGroup);
         when(defaultMQPushConsumer.getConsumeThreadMin()).thenReturn(1);
         when(defaultMQPushConsumer.getConsumeThreadMax()).thenReturn(3);
+        when(defaultMQPushConsumer.getMaxReconsumeTimes()).thenReturn(16);
+        when(defaultMQPushConsumer.getConsumeTimeout()).thenReturn(15L);
         when(defaultMQPushConsumerImpl.getDefaultMQPushConsumer()).thenReturn(defaultMQPushConsumer);
         when(defaultMQPushConsumerImpl.getRebalanceImpl()).thenReturn(rebalanceImpl);
         when(defaultMQPushConsumerImpl.getConsumerStatsManager()).thenReturn(consumerStatsManager);
+        when(defaultMQPushConsumerImpl.getPopDelayLevel()).thenReturn(new int[]{1, 10});
         MQClientInstance mQClientFactory = mock(MQClientInstance.class);
         DefaultMQProducer defaultMQProducer = mock(DefaultMQProducer.class);
         when(mQClientFactory.getDefaultMQProducer()).thenReturn(defaultMQProducer);
@@ -209,9 +218,227 @@ public class ConsumeMessagePopOrderlyServiceTest {
 
     @Test
     public void testProcessConsumeResult() {
-        ConsumeOrderlyContext context = mock(ConsumeOrderlyContext.class);
-        ConsumeMessagePopOrderlyService.ConsumeRequest consumeRequest = mock(ConsumeMessagePopOrderlyService.ConsumeRequest.class);
-        assertTrue(popService.processConsumeResult(Collections.singletonList(createMessageExt()), ConsumeOrderlyStatus.SUCCESS, context, consumeRequest));
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        ConsumeMessagePopOrderlyService.ConsumeRequest consumeRequest =
+            mock(ConsumeMessagePopOrderlyService.ConsumeRequest.class);
+        when(consumeRequest.getProcessQueue()).thenReturn(processQueue);
+        when(consumeRequest.getMessageQueue()).thenReturn(messageQueue);
+        assertTrue(popService.processConsumeResult(msgs, ConsumeOrderlyStatus.SUCCESS,
+            new ConsumeOrderlyContext(messageQueue), consumeRequest));
+        verify(defaultMQPushConsumerImpl, times(1)).ackAsync(eq(msgs.get(0)), eq(defaultGroup));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+    }
+
+    @Test
+    public void testConsumeRequestInvokesListenerAndAcksSuccess() throws Exception {
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class))).thenReturn(ConsumeOrderlyStatus.SUCCESS);
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+
+        Runnable request = captureSubmittedRequest(consumeExecutor, 1);
+        assertEquals(1, getConsumeRequestSetSize());
+        request.run();
+
+        verify(messageListener, times(1)).consumeMessage(eq(msgs), any(ConsumeOrderlyContext.class));
+        verify(defaultMQPushConsumerImpl, times(1)).ackAsync(eq(msgs.get(0)), eq(defaultGroup));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+        assertEquals(0, getConsumeRequestSetSize());
+    }
+
+    @Test
+    public void testCommitAcksMessages() throws Exception {
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class))).thenReturn(ConsumeOrderlyStatus.COMMIT);
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        verify(defaultMQPushConsumerImpl, times(1)).ackAsync(eq(msgs.get(0)), eq(defaultGroup));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+    }
+
+    @Test
+    public void testSuspendChangesInvisibleTimeAndDoesNotAck() throws Exception {
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class)))
+            .thenReturn(ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT);
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        verify(defaultMQPushConsumerImpl, times(1)).changePopInvisibleTimeAsync(eq(defaultTopic), eq(defaultGroup),
+            anyString(), anyLong(), any(AckCallback.class));
+        verify(defaultMQPushConsumerImpl, never()).ackAsync(any(MessageExt.class), anyString());
+        assertEquals(1, msgs.get(0).getReconsumeTimes());
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+        assertEquals(0, getConsumeRequestSetSize());
+    }
+
+    @Test
+    public void testRollbackChangesInvisibleTimeAndDoesNotAck() throws Exception {
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class)))
+            .thenReturn(ConsumeOrderlyStatus.ROLLBACK);
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        verify(defaultMQPushConsumerImpl, times(1)).changePopInvisibleTimeAsync(eq(defaultTopic), eq(defaultGroup),
+            anyString(), anyLong(), any(AckCallback.class));
+        verify(defaultMQPushConsumerImpl, never()).ackAsync(any(MessageExt.class), anyString());
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+    }
+
+    @Test
+    public void testPopTimeoutSkipsListenerAndReleasesWaitCount() throws Exception {
+        long now = System.currentTimeMillis();
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt(now - 120000L, 60000L));
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        verify(messageListener, never()).consumeMessage(any(), any(ConsumeOrderlyContext.class));
+        verify(defaultMQPushConsumerImpl, never()).ackAsync(any(MessageExt.class), anyString());
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+        assertEquals(0, getConsumeRequestSetSize());
+    }
+
+    @Test
+    public void testDroppedProcessQueueSkipsListenerAndReleasesWaitCount() throws Exception {
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        processQueue.setDropped(true);
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        verify(messageListener, never()).consumeMessage(any(), any(ConsumeOrderlyContext.class));
+        verify(defaultMQPushConsumerImpl, never()).ackAsync(any(MessageExt.class), anyString());
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+        assertEquals(0, getConsumeRequestSetSize());
+    }
+
+    @Test
+    public void testRequestRemovedAfterRunAllowsNextSubmission() throws Exception {
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class))).thenReturn(ConsumeOrderlyStatus.SUCCESS);
+
+        PopProcessQueue processQueue = new PopProcessQueue();
+        List<MessageExt> firstMsgs = Collections.singletonList(createMessageExt());
+        processQueue.incFoundMsg(firstMsgs.size());
+        popService.submitPopConsumeRequest(firstMsgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+        assertEquals(0, getConsumeRequestSetSize());
+
+        List<MessageExt> secondMsgs = Collections.singletonList(createMessageExt());
+        processQueue.incFoundMsg(secondMsgs.size());
+        popService.submitPopConsumeRequest(secondMsgs, processQueue, messageQueue);
+
+        verify(consumeExecutor, times(2)).submit(any(Runnable.class));
+        captureSubmittedRequest(consumeExecutor, 2);
+    }
+
+    @Test
+    public void testLateRemovalKeepsSuccessorRequest() throws Exception {
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class))).thenReturn(ConsumeOrderlyStatus.SUCCESS);
+
+        PopProcessQueue processQueue = new PopProcessQueue();
+        List<MessageExt> firstMsgs = Collections.singletonList(createMessageExt());
+        processQueue.incFoundMsg(firstMsgs.size());
+        popService.submitPopConsumeRequest(firstMsgs, processQueue, messageQueue);
+        Runnable firstRequest = captureSubmittedRequest(consumeExecutor, 1);
+        firstRequest.run();
+        assertEquals(0, getConsumeRequestSetSize());
+
+        List<MessageExt> secondMsgs = Collections.singletonList(createMessageExt());
+        processQueue.incFoundMsg(secondMsgs.size());
+        popService.submitPopConsumeRequest(secondMsgs, processQueue, messageQueue);
+        assertEquals(1, getConsumeRequestSetSize());
+
+        // The first request may reach its finally block after a successor for the same queue has
+        // been registered. That late cleanup must not unregister the successor by equality.
+        Method abort = firstRequest.getClass().getDeclaredMethod("abortRemainingBatches");
+        abort.setAccessible(true);
+        abort.invoke(firstRequest);
+        assertEquals(1, getConsumeRequestSetSize());
+
+        captureSubmittedRequest(consumeExecutor, 2).run();
+        verify(messageListener, times(2)).consumeMessage(any(), any(ConsumeOrderlyContext.class));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+        assertEquals(0, getConsumeRequestSetSize());
+    }
+
+    @Test
+    public void testSubmitWhileConsumeRequestIsRunningMergesMessages() throws Exception {
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class))).thenReturn(ConsumeOrderlyStatus.SUCCESS);
+
+        PopProcessQueue processQueue = new PopProcessQueue();
+        List<MessageExt> firstMsgs = Collections.singletonList(createMessageExt());
+        List<MessageExt> secondMsgs = Collections.singletonList(createMessageExt());
+        processQueue.incFoundMsg(firstMsgs.size() + secondMsgs.size());
+
+        popService.submitPopConsumeRequest(firstMsgs, processQueue, messageQueue);
+        popService.submitPopConsumeRequest(secondMsgs, processQueue, messageQueue);
+
+        verify(consumeExecutor, times(1)).submit(any(Runnable.class));
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        verify(messageListener, times(2)).consumeMessage(any(), any(ConsumeOrderlyContext.class));
+        verify(defaultMQPushConsumerImpl, times(2)).ackAsync(any(MessageExt.class), eq(defaultGroup));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+        assertEquals(0, getConsumeRequestSetSize());
+    }
+
+    @Test
+    public void testMaxReconsumeTimesSendsBackAndAcksOriginal() throws Exception {
+        when(defaultMQPushConsumer.getMaxReconsumeTimes()).thenReturn(0);
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class)))
+            .thenReturn(ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT);
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        verify(defaultMQPushConsumerImpl, times(1)).ackAsync(eq(msgs.get(0)), eq(defaultGroup));
+        verify(defaultMQPushConsumerImpl, never()).changePopInvisibleTimeAsync(anyString(), anyString(),
+            anyString(), anyLong(), any(AckCallback.class));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
     }
 
     @Test
@@ -220,6 +447,30 @@ public class ConsumeMessagePopOrderlyServiceTest {
         List<MessageExt> msgs = Collections.singletonList(createMessageExt());
         popService.resetNamespace(msgs);
         assertEquals(defaultTopic, msgs.get(0).getTopic());
+    }
+
+    private ThreadPoolExecutor installCaptureExecutor() throws IllegalAccessException {
+        ThreadPoolExecutor consumeExecutor = mock(ThreadPoolExecutor.class);
+        FieldUtils.writeField(popService, "consumeExecutor", consumeExecutor, true);
+        return consumeExecutor;
+    }
+
+    private Runnable captureSubmittedRequest(ThreadPoolExecutor consumeExecutor, int expectedSubmissions) {
+        ArgumentCaptor<Runnable> captor = ArgumentCaptor.forClass(Runnable.class);
+        verify(consumeExecutor, times(expectedSubmissions)).submit(captor.capture());
+        return captor.getValue();
+    }
+
+    private int getConsumeRequestSetSize() throws IllegalAccessException {
+        Field field = FieldUtils.getDeclaredField(ConsumeMessagePopOrderlyService.class, "consumeRequestSet", true);
+        return ((Set<?>) field.get(popService)).size();
+    }
+
+    private MessageExt createMessageExt(long popTime, long invisibleTime) {
+        MessageExt result = createMessageExt();
+        result.getProperties().put(MessageConst.PROPERTY_POP_CK,
+            "0 " + popTime + " " + invisibleTime + " 0");
+        return result;
     }
 
     private MessageExt createMessageExt() {
