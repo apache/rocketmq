@@ -19,13 +19,18 @@ package org.apache.rocketmq.broker.topic;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.remoting.rpc.RpcClient;
 import org.apache.rocketmq.remoting.rpc.RpcRequest;
@@ -38,12 +43,15 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -165,5 +173,56 @@ public class TopicQueueMappingCleanServiceTest {
         when(brokerOuterAPI.getTopicRouteInfoFromNameServer(any(), anyLong())).thenThrow(new RemotingException("Test exception"));
         topicQueueMappingCleanService.cleanItemListMoreThanSecondGen();
         verify(brokerOuterAPI, times(1)).getTopicRouteInfoFromNameServer(any(), anyLong());
+    }
+
+    @Test
+    public void remoteLeaderMissingTheQueueIdDoesNotAbortTheRestOfTheTopic() throws Exception {
+        when(brokerConfig.getBrokerName()).thenReturn("brokerA");
+        when(messageStoreConfig.getDeleteWhen()).thenReturn(deleteWhen);
+
+        TopicQueueMappingDetail localDetail = new TopicQueueMappingDetail(defaultTopic, 2, "brokerA", 1);
+        localDetail.getHostedQueues().put(0, Arrays.asList(
+            new LogicQueueMappingItem(0, 0, "brokerOld", 0, 0, 100, 0, 0),
+            new LogicQueueMappingItem(1, 0, "brokerB", 100, 100, 200, 0, 0)));
+        localDetail.getHostedQueues().put(1, Arrays.asList(
+            new LogicQueueMappingItem(0, 1, "brokerOld", 0, 0, 100, 0, 0),
+            new LogicQueueMappingItem(1, 1, "brokerB", 100, 100, 200, 0, 0)));
+        when(topicQueueMappingManager.getTopicQueueMappingTable())
+            .thenReturn(new ConcurrentHashMap<>(Collections.singletonMap(defaultTopic, localDetail)));
+
+        TopicRouteData routeData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingByBroker = new HashMap<>();
+        TopicQueueMappingInfo infoB = new TopicQueueMappingInfo(defaultTopic, 2, "brokerB", 1);
+        infoB.getCurrIdMap().put(0, 0);
+        mappingByBroker.put("brokerB", infoB);
+        TopicQueueMappingInfo infoC = new TopicQueueMappingInfo(defaultTopic, 2, "brokerC", 1);
+        infoC.getCurrIdMap().put(1, 1);
+        mappingByBroker.put("brokerC", infoC);
+        routeData.setTopicQueueMappingByBroker(mappingByBroker);
+        when(brokerOuterAPI.getTopicRouteInfoFromNameServer(any(), anyLong())).thenReturn(routeData);
+
+        // brokerB no longer hosts qid 0 at all, brokerC confirms it owns qid 1
+        TopicQueueMappingDetail remoteB = new TopicQueueMappingDetail(defaultTopic, 2, "brokerB", 1);
+        TopicQueueMappingDetail remoteC = new TopicQueueMappingDetail(defaultTopic, 2, "brokerC", 1);
+        remoteC.getHostedQueues().put(1, Arrays.asList(
+            new LogicQueueMappingItem(0, 1, "brokerOld", 0, 0, 100, 0, 0),
+            new LogicQueueMappingItem(1, 1, "brokerC", 100, 100, 200, 0, 0)));
+        when(rpcClient.invoke(any(RpcRequest.class), anyLong())).thenAnswer(invocation -> {
+            RpcRequest rpcRequest = invocation.getArgument(0);
+            String broker = ((GetTopicConfigRequestHeader) rpcRequest.getHeader()).getBrokerName();
+            TopicQueueMappingDetail remoteDetail = "brokerC".equals(broker) ? remoteC : remoteB;
+            return CompletableFuture.completedFuture(new RpcResponse(ResponseCode.SUCCESS, null,
+                new TopicConfigAndQueueMapping(new TopicConfig(defaultTopic, 2, 2), remoteDetail)));
+        });
+        DataVersion dataVersion = mock(DataVersion.class);
+        when(topicQueueMappingManager.getDataVersion()).thenReturn(dataVersion);
+
+        topicQueueMappingCleanService.cleanItemListMoreThanSecondGen();
+
+        assertFalse("a queue whose leader moved away must be cleaned even though another queue "
+            + "of the same topic is missing from its remote mapping",
+            localDetail.getHostedQueues().containsKey(1));
+        assertTrue("a queue that is still led by this broker's item list stays",
+            localDetail.getHostedQueues().containsKey(0));
     }
 }
