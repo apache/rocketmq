@@ -20,7 +20,9 @@ package org.apache.rocketmq.namesrv.processor;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
+import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.namesrv.kvconfig.KVConfigManager;
 import org.apache.rocketmq.namesrv.routeinfo.RouteInfoManager;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -46,8 +48,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -95,7 +99,7 @@ public class ClientRequestProcessorTest {
 
         TopicRouteData topicRouteData = createMockTopicRouteData();
 
-        when(routeInfoManager.pickupTopicRouteData("TestTopic")).thenReturn(topicRouteData);
+        when(routeInfoManager.pickupTopicRouteDataEncoded("TestTopic", null, true)).thenReturn(topicRouteData.encode());
 
         RemotingCommand response = clientRequestProcessor.processRequest(ctx, spyRequest);
 
@@ -117,7 +121,7 @@ public class ClientRequestProcessorTest {
 
         TopicRouteData topicRouteData = createMockTopicRouteData();
 
-        when(routeInfoManager.pickupTopicRouteData("TestTopic")).thenReturn(topicRouteData);
+        when(routeInfoManager.pickupTopicRouteDataEncoded("TestTopic", null, false)).thenReturn(topicRouteData.encode());
 
         RemotingCommand response = clientRequestProcessor.getRouteInfoByTopic(ctx, spyRequest);
 
@@ -162,7 +166,7 @@ public class ClientRequestProcessorTest {
         RemotingCommand spyRequest = spy(request);
         doReturn(requestHeader).when(spyRequest).decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
-        when(routeInfoManager.pickupTopicRouteData("NonExistentTopic")).thenReturn(null);
+        when(routeInfoManager.pickupTopicRouteDataEncoded("NonExistentTopic", null, false)).thenReturn(null);
 
         RemotingCommand response = clientRequestProcessor.getRouteInfoByTopic(ctx, spyRequest);
 
@@ -196,8 +200,8 @@ public class ClientRequestProcessorTest {
             when(namesrvController.isShutdown()).thenReturn(false);
             doAnswer(invocation -> {
                 when(namesrvController.isShutdown()).thenReturn(true);
-                return route;
-            }).when(routeInfoManager).pickupTopicRouteData("TestTopic");
+                return route == null ? null : route.encode();
+            }).when(routeInfoManager).pickupTopicRouteDataEncoded("TestTopic", null, false);
 
             RemotingCommand response = clientRequestProcessor.processRequest(ctx, request);
 
@@ -208,6 +212,27 @@ public class ClientRequestProcessorTest {
                 assertEquals(ResponseCode.TOPIC_NOT_EXIST, response.getCode());
                 assertNull(response.getBody());
             }
+        }
+    }
+
+    @Test
+    public void testOldClientCanRequestStandardJsonAndOrderingUpdates() throws Exception {
+        KVConfigManager kvConfigManager = mock(KVConfigManager.class);
+        when(namesrvController.getKvConfigManager()).thenReturn(kvConfigManager);
+        when(namesrvConfig.isOrderMessageEnable()).thenReturn(true);
+        when(kvConfigManager.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, "TestTopic"))
+            .thenReturn("broker:4", "broker:8", null);
+        GetRouteInfoRequestHeader header = new GetRouteInfoRequestHeader();
+        header.setTopic("TestTopic");
+        header.setAcceptStandardJsonOnly(true);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC, header);
+        request.setVersion(MQVersion.Version.V4_9_3.ordinal());
+        request.makeCustomHeaderToNet();
+        for (String order : new String[] {"broker:4", "broker:8", null}) {
+            when(routeInfoManager.pickupTopicRouteDataEncoded("TestTopic", order, true))
+                .thenReturn(createMockTopicRouteData().encode());
+            assertEquals(ResponseCode.SUCCESS, clientRequestProcessor.processRequest(ctx, request).getCode());
+            verify(routeInfoManager).pickupTopicRouteDataEncoded("TestTopic", order, true);
         }
     }
 
