@@ -403,7 +403,7 @@ public class BrokerMetricsManager {
                 for (String item : kvPairs) {
                     String[] split = item.split(":");
                     if (split.length != 2) {
-                        LOGGER.warn("metricsGrpcExporterHeader is not valid: {}", headers);
+                        LOGGER.warn("metricsGrpcExporterHeader is not valid; expected comma-separated key:value pairs");
                         continue;
                     }
                     headerMap.put(split[0], split[1]);
