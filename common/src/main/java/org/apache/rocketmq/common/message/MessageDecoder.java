@@ -783,10 +783,17 @@ public class MessageDecoder {
     public static int countInnerMsgNum(ByteBuffer buffer) {
         int count = 0;
         while (buffer.hasRemaining()) {
-            count++;
+            if (buffer.remaining() < Integer.BYTES) {
+                throw new IllegalArgumentException("Truncated inner message size");
+            }
             int currPos = buffer.position();
-            int size = buffer.getInt();
+            int size = buffer.getInt(currPos);
+            // The encoded header contains five integers and a properties-length short.
+            if (size < Integer.BYTES * 5 + Short.BYTES || size > buffer.remaining()) {
+                throw new IllegalArgumentException("Invalid inner message size: " + size);
+            }
             buffer.position(currPos + size);
+            count++;
         }
         return count;
     }
