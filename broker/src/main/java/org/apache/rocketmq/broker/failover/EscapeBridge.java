@@ -342,6 +342,7 @@ public class EscapeBridge {
         List<MessageExt> foundList = new ArrayList<>();
         try {
             List<ByteBuffer> messageBufferList = getMessageResult.getMessageBufferList();
+            List<Long> messageQueueOffsets = getMessageResult.getMessageQueueOffset();
             if (messageBufferList != null) {
                 for (int i = 0; i < messageBufferList.size(); i++) {
                     ByteBuffer bb = messageBufferList.get(i);
@@ -354,8 +355,10 @@ public class EscapeBridge {
                         LOG.error("decode msgExt is null {}", getMessageResult);
                         continue;
                     }
-                    // use CQ offset, not offset in Message
-                    msgExt.setQueueOffset(getMessageResult.getMessageQueueOffset().get(i));
+                    // Use the CQ offset when the store supplied it; otherwise retain the decoded offset.
+                    if (messageQueueOffsets != null && i < messageQueueOffsets.size()) {
+                        msgExt.setQueueOffset(messageQueueOffsets.get(i));
+                    }
                     foundList.add(msgExt);
                 }
             }
