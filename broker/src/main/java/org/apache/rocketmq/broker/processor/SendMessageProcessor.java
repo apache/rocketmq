@@ -621,7 +621,17 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             messageExtBatch.setSysFlag(messageExtBatch.getSysFlag() | MessageSysFlag.INNER_BATCH_FLAG);
             messageExtBatch.setInnerBatch(true);
 
-            int innerNum = MessageDecoder.countInnerMsgNum(ByteBuffer.wrap(messageExtBatch.getBody()));
+            int innerNum;
+            try {
+                innerNum = MessageDecoder.countInnerMsgNum(ByteBuffer.wrap(messageExtBatch.getBody()));
+                if (innerNum == 0) {
+                    throw new IllegalArgumentException("Inner batch is empty");
+                }
+            } catch (IllegalArgumentException e) {
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                response.setRemark(e.getMessage());
+                return response;
+            }
 
             MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_NUM, String.valueOf(innerNum));
             messageExtBatch.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBatch.getProperties()));

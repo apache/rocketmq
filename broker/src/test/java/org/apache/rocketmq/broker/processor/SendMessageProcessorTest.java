@@ -17,8 +17,12 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collections;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,10 +42,12 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.producer.RecallMessageHandle;
@@ -55,6 +61,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
@@ -66,6 +73,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -75,9 +83,11 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.never;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SendMessageProcessorTest {
@@ -446,5 +456,66 @@ public class SendMessageProcessorTest {
             assertThat(response[0].getOpaque()).isEqualTo(request.getOpaque());
             return true;
         });
+    }
+
+    @Test(timeout = 3000)
+    public void testInnerBatchRejectsZeroLength() throws Exception {
+        assertInvalidInnerBatch(new byte[22]);
+    }
+
+    @Test
+    public void testInnerBatchRejectsInvalidBoundaries() throws Exception {
+        assertInvalidInnerBatch(new byte[0]);
+        assertInvalidInnerBatch(new byte[3]);
+        assertInvalidInnerBatch(ByteBuffer.allocate(22).putInt(0, 21).array());
+        assertInvalidInnerBatch(ByteBuffer.allocate(22).putInt(0, Integer.MAX_VALUE).array());
+    }
+
+    @Test
+    public void testInnerBatchKeepsValidCountAndStoragePath() throws Exception {
+        brokerConfig.setAsyncSendEnable(false);
+        when(channel.writeAndFlush(any())).thenReturn(mock(ChannelFuture.class));
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(
+            new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        byte[] encoded = MessageDecoder.encodeMessages(Arrays.asList(
+            new Message(topic, new byte[0]), new Message(topic, new byte[] {1, 2, 3})));
+        RemotingCommand request = createInnerBatchRequest(encoded);
+        RemotingCommand returnedResponse = sendMessageProcessor.processRequest(handlerContext, request);
+        ArgumentCaptor<RemotingCommand> response = ArgumentCaptor.forClass(RemotingCommand.class);
+        verify(channel).writeAndFlush(response.capture());
+        assertThat(response.getValue().getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.getValue().getOpaque()).isEqualTo(request.getOpaque());
+        assertThat(returnedResponse).isSameAs(response.getValue());
+        ArgumentCaptor<MessageExtBrokerInner> captured = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        verify(messageStore).putMessage(captured.capture());
+        assertThat(captured.getValue().getProperty(MessageConst.PROPERTY_INNER_NUM)).isEqualTo("2");
+        assertThat(captured.getValue().getBody()).isEqualTo(encoded);
+        assertThat(captured.getValue().getSysFlag() & MessageSysFlag.INNER_BATCH_FLAG).isNotZero();
+    }
+
+    private void assertInvalidInnerBatch(byte[] body) throws Exception {
+        RemotingCommand request = createInnerBatchRequest(body);
+        RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.MESSAGE_ILLEGAL);
+        assertThat(response.getOpaque()).isEqualTo(request.getOpaque());
+        verify(messageStore, never()).putMessage(any());
+        verify(messageStore, never()).putMessages(any());
+        verify(messageStore, never()).asyncPutMessage(any());
+        verify(messageStore, never()).asyncPutMessages(any());
+    }
+
+    private RemotingCommand createInnerBatchRequest(byte[] body) {
+        brokerController.getTopicConfigManager().selectTopicConfig(topic).setAttributes(
+            Collections.singletonMap(TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), "BatchCQ"));
+        SendMessageRequestHeader header = createSendMsgRequestHeader();
+        header.setBatch(true);
+        header.setProperties(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX
+            + MessageDecoder.NAME_VALUE_SEPARATOR + "inner-batch" + MessageDecoder.PROPERTY_SEPARATOR);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE,
+            SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(header));
+        request.setBody(body);
+        request.makeCustomHeaderToNet();
+        return request;
     }
 }
