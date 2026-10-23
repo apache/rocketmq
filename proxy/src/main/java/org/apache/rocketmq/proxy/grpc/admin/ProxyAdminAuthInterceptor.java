@@ -193,7 +193,17 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
             // After the fail-closed guards above, requireAuth implies authzEnabled, so the ACL is
             // enforced exactly when the cluster authorization switch is on; there is no path where
             // requireAuth alone would ask the (globally gated) evaluator to enforce and be ignored.
-            if (resourceAction != null && authzEnabled) {
+            if (authzEnabled) {
+                // A served method that is not in the map cannot be authorized: skipping the check
+                // would run the call with authentication but no ACL while the engine is on. The
+                // Admin surface grows through rocketmq-apis, so deny and point at the map instead
+                // of silently serving the next RPC that misses an entry here.
+                if (resourceAction == null) {
+                    call.close(Status.PERMISSION_DENIED.withDescription(
+                        "admin method " + method + " is not mapped to a proxy.admin.* resource; "
+                            + "refusing to serve it without an ACL check"), new Metadata());
+                    return noopListener();
+                }
                 if (StringUtils.isBlank(username)) {
                     call.close(Status.UNAUTHENTICATED.withDescription("missing credentials for proxy admin"),
                         new Metadata());
