@@ -38,6 +38,9 @@ public class AuthorizationPipeline implements RequestPipeline {
     private final AuthorizationEvaluator authorizationEvaluator;
 
     public AuthorizationPipeline(AuthConfig authConfig, MessagingProcessor messagingProcessor) {
+        // Fail-closed: authorization derives the caller identity from the client-supplied
+        // AccessKey, so it must only be enabled together with authentication.
+        authConfig.validate();
         this.authConfig = authConfig;
         this.authorizationEvaluator = AuthorizationFactory.getEvaluator(authConfig, messagingProcessor::getMetadataService);
     }
