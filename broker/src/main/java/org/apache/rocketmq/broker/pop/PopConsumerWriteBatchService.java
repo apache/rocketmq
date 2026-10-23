@@ -16,19 +16,15 @@
  */
 package org.apache.rocketmq.broker.pop;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 
@@ -54,32 +50,43 @@ class PopConsumerWriteBatchService extends ServiceThread {
         }
     }
 
-    static class PreparedWrite {
-        final List<Mutation> mutations;
-        final Runnable committed;
-
-        PreparedWrite(List<Mutation> mutations, Runnable committed) {
-            this.mutations = mutations;
-            this.committed = committed;
-        }
+    enum Type {
+        WRITE, POP, ACK, CHANGE, TRANSFER, CLEAR
     }
 
-    private static class Request {
-        final Supplier<PreparedWrite> prepare;
-        final Set<ByteBuffer> keys;
-        final boolean barrier;
+    static class Request {
+        final Type type;
+        final PopConsumerCache cache;
+        final List<PopConsumerRecord> records;
+        final List<Mutation> mutations;
         final CompletableFuture<Void> future = new CompletableFuture<>();
-        final long bytes;
-        final boolean asyncCompletion;
-        PreparedWrite prepared;
+        final List<PopConsumerRecord> expired = new ArrayList<>();
+        final List<String> offlineQueues = new ArrayList<>();
+        long bytes;
+        boolean asyncCompletion = true;
+        boolean cachePop;
+        String cacheKey;
 
-        Request(Supplier<PreparedWrite> prepare, Set<ByteBuffer> keys, boolean barrier,
-            long bytes, boolean asyncCompletion) {
-            this.prepare = prepare;
-            this.keys = keys;
-            this.barrier = barrier;
-            this.bytes = bytes;
+        Request(Type type, PopConsumerCache cache, List<PopConsumerRecord> records) {
+            this.type = type;
+            this.cache = cache;
+            this.records = records;
+            this.mutations = new ArrayList<>();
+        }
+
+        Request(List<Mutation> mutations, boolean asyncCompletion) {
+            this.type = Type.WRITE;
+            this.cache = null;
+            this.records = Collections.emptyList();
+            this.mutations = mutations;
             this.asyncCompletion = asyncCompletion;
+        }
+
+        void calculateBytes() {
+            bytes = mutations.stream().mapToLong(m -> m.key.length + (m.value == null ? 0L : m.value.length)).sum();
+            for (PopConsumerRecord record : records) {
+                bytes += record.getKeyBytes().length + record.getValueBytes().length;
+            }
         }
     }
 
@@ -121,13 +128,11 @@ class PopConsumerWriteBatchService extends ServiceThread {
 
     // Used only by blocking compatibility methods; their private futures have no continuations.
     CompletableFuture<Void> submit(List<Mutation> mutations, boolean asyncCompletion) {
-        long bytes = mutations.stream().mapToLong(m -> m.key.length + (m.value == null ? 0L : m.value.length)).sum();
-        return submit(() -> new PreparedWrite(mutations, () -> { }), Collections.emptySet(), false, bytes, asyncCompletion);
+        return submit(new Request(mutations, asyncCompletion));
     }
 
-    CompletableFuture<Void> submit(Supplier<PreparedWrite> prepare, Set<ByteBuffer> keys,
-        boolean barrier, long bytes, boolean asyncCompletion) {
-        Request request = new Request(prepare, keys, barrier, bytes, asyncCompletion);
+    CompletableFuture<Void> submit(Request request) {
+        request.calculateBytes();
         synchronized (admissionLock) {
             if (!accepting || isStopped()) {
                 request.future.completeExceptionally(new RejectedExecutionException("POP KV writer stopped"));
@@ -150,24 +155,23 @@ class PopConsumerWriteBatchService extends ServiceThread {
             List<Request> requests = new ArrayList<>();
             List<Mutation> mutations = new ArrayList<>();
             requests.add(first);
-            Set<ByteBuffer> keys = new HashSet<>(first.keys);
             long bytes = first.bytes;
-            while (!first.barrier && requests.size() < MAX_BATCH_REQUESTS) {
+            // Commit each operation type before inspecting cache state for the next type.
+            // TRANSFER and CLEAR run alone; ordinary ACKs and CHANGEs still group commit.
+            while (first.type != Type.TRANSFER && first.type != Type.CLEAR && requests.size() < MAX_BATCH_REQUESTS) {
                 Request next = queue.peek();
-                if (next == null || next.barrier || bytes + next.bytes > MAX_BATCH_BYTES
-                    || !Collections.disjoint(keys, next.keys)) {
+                if (next == null || next.type != first.type || bytes + next.bytes > MAX_BATCH_BYTES) {
                     break;
                 }
                 queue.poll();
                 requests.add(next);
-                keys.addAll(next.keys);
                 bytes += next.bytes;
             }
             List<Request> prepared = new ArrayList<>();
             for (Request request : requests) {
                 try {
-                    request.prepared = request.prepare.get();
-                    mutations.addAll(request.prepared.mutations);
+                    prepare(request);
+                    mutations.addAll(request.mutations);
                     prepared.add(request);
                 } catch (Throwable t) {
                     finish(request, t);
@@ -186,13 +190,62 @@ class PopConsumerWriteBatchService extends ServiceThread {
                 if (result == null) {
                     try {
                         // Publish cache state before preparing the next (possibly dependent) batch.
-                        request.prepared.committed.run();
+                        commit(request);
                     } catch (Throwable t) {
                         result = t;
                     }
                 }
                 finish(request, result);
             }
+        }
+    }
+
+    private void prepare(Request request) {
+        switch (request.type) {
+            case POP:
+                request.cachePop = !request.cache.isCacheFull();
+                if (!request.cachePop) {
+                    for (PopConsumerRecord record : request.records) {
+                        request.mutations.add(new Mutation(record.getKeyBytes(), record.getValueBytes()));
+                    }
+                }
+                break;
+            case ACK:
+                for (PopConsumerRecord record : request.records) {
+                    if (!request.cache.contains(record)) {
+                        request.mutations.add(new Mutation(record.getKeyBytes(), null));
+                    }
+                }
+                break;
+            case TRANSFER:
+                for (PopConsumerRecord record : request.cache.prepareTransfer(request.expired, request.offlineQueues)) {
+                    request.mutations.add(new Mutation(record.getKeyBytes(), record.getValueBytes()));
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void commit(Request request) {
+        switch (request.type) {
+            case POP:
+                if (request.cachePop) {
+                    request.cache.writeRecords(request.records);
+                }
+                break;
+            case ACK:
+            case CHANGE:
+                request.cache.deleteRecords(request.records);
+                break;
+            case TRANSFER:
+                request.cache.completeTransfer(request.offlineQueues);
+                break;
+            case CLEAR:
+                request.cache.removeRecords(request.cacheKey);
+                break;
+            default:
+                break;
         }
     }
 

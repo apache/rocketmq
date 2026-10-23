@@ -20,11 +20,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -186,44 +183,13 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         }
     }
 
-    @Override
-    public CompletableFuture<Void> executeStateUpdate(List<PopConsumerRecord> records, boolean barrier,
-        Supplier<StateUpdate> prepare) {
-        return executeStateUpdate(records, barrier, prepare, true);
-    }
-
-    @Override
-    public void executeStateUpdateSync(List<PopConsumerRecord> records, boolean barrier, Supplier<StateUpdate> prepare) {
-        executeStateUpdate(records, barrier, prepare, false).join();
-    }
-
-    private CompletableFuture<Void> executeStateUpdate(List<PopConsumerRecord> records, boolean barrier,
-        Supplier<StateUpdate> prepare, boolean asyncCompletion) {
+    CompletableFuture<Void> submitCacheRequest(PopConsumerWriteBatchService.Request request) {
         PopConsumerWriteBatchService service = writeBatchService;
         if (service == null) {
-            CompletableFuture<Void> failed = new CompletableFuture<>();
-            failed.completeExceptionally(new IllegalStateException("POP KV store has not been started"));
-            return failed;
+            request.future.completeExceptionally(new IllegalStateException("POP KV store has not been started"));
+            return request.future;
         }
-        Set<ByteBuffer> keys = new HashSet<>();
-        long bytes = 0;
-        for (PopConsumerRecord record : records) {
-            byte[] key = record.getKeyBytes();
-            // Ignore visibility time: different generations of one cached offset share state.
-            keys.add(ByteBuffer.wrap(key, Long.BYTES, key.length - Long.BYTES));
-            bytes += key.length + record.getValueBytes().length;
-        }
-        return service.submit(() -> {
-            StateUpdate update = prepare.get();
-            List<PopConsumerWriteBatchService.Mutation> mutations = new ArrayList<>();
-            for (PopConsumerRecord record : update.puts) {
-                mutations.add(new PopConsumerWriteBatchService.Mutation(record.getKeyBytes(), record.getValueBytes()));
-            }
-            for (PopConsumerRecord record : update.deletes) {
-                mutations.add(new PopConsumerWriteBatchService.Mutation(record.getKeyBytes(), null));
-            }
-            return new PopConsumerWriteBatchService.PreparedWrite(mutations, update.committed);
-        }, keys, barrier, bytes, asyncCompletion);
+        return service.submit(request);
     }
 
     protected void writeBatch(List<PopConsumerWriteBatchService.Mutation> mutations) throws RocksDBException {

@@ -394,14 +394,14 @@ public class PopConsumerServiceTest {
 
     @Test
     public void failedChangeKeepsCachedCheckpoint() throws Exception {
-        PopConsumerKVStore store = Mockito.mock(PopConsumerKVStore.class);
+        PopConsumerRocksdbStore store = Mockito.mock(PopConsumerRocksdbStore.class);
         FieldUtils.writeField(consumerService, "popConsumerStore", store, true);
         PopConsumerCache cache = (PopConsumerCache) FieldUtils.readField(consumerService, "popConsumerCache", true);
         PopConsumerRecord old = getConsumerTestRecord();
         cache.writeRecords(Collections.singletonList(old));
         CompletableFuture<Void> persisted = new CompletableFuture<>();
         FieldUtils.writeField(cache, "consumerRecordStore", store, true);
-        Mockito.when(store.executeStateUpdate(any(), Mockito.anyBoolean(), any())).thenReturn(persisted);
+        Mockito.when(store.submitCacheRequest(any())).thenReturn(persisted);
         Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
         CompletableFuture<Void> change = consumerService.changeInvisibilityDuration(old.getPopTime(), old.getInvisibleTime(),
             old.getPopTime() + 100, 30000, groupId, topicId, queueId, old.getOffset(), false);

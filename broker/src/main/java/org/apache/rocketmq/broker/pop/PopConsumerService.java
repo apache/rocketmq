@@ -97,13 +97,14 @@ public class PopConsumerService extends ServiceThread {
         this.currentTime = new AtomicLong(TimeUnit.SECONDS.toMillis(3));
         this.lastCleanupLockTime = new AtomicLong(System.currentTimeMillis());
         this.consumerLockService = new PopConsumerLockService(TimeUnit.MINUTES.toMillis(2));
-        this.popConsumerStore = new PopConsumerRocksdbStore(Paths.get(
+        PopConsumerRocksdbStore store = new PopConsumerRocksdbStore(Paths.get(
             brokerController.getMessageStoreConfig().getStorePathRootDir(), ROCKSDB_DIRECTORY).toString(),
             brokerController.getMessageStoreConfig().getPopRocksdbBlockCacheSize(),
             brokerController.getMessageStoreConfig().getPopRocksdbWriteBufferSize(),
             brokerConfig.getPopConsumerKVCompletionThreadPoolNums());
+        this.popConsumerStore = store;
         this.popConsumerCache = brokerConfig.isEnablePopBufferMerge() ? new PopConsumerCache(
-            brokerController, this.popConsumerStore, this.consumerLockService, this::revive) : null;
+            brokerController, store, this.consumerLockService, this::revive) : null;
 
         log.info("PopConsumerService init, buffer={}, rocksdb filePath={}",
             brokerConfig.isEnablePopBufferMerge(), this.popConsumerStore.getFilePath());

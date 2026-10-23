@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.pop;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -238,6 +239,60 @@ public class PopConsumerCacheStateTest {
         await(transfer());
         assertOnly(next);
     }
+
+    @Test(timeout = 15000)
+    public void consecutiveChangesShareOneWriteBatch() throws Exception {
+        PopConsumerRecord old = record(60000);
+        PopConsumerRecord middle = record(120000);
+        PopConsumerRecord next = record(180000);
+        await(cache.writeRecordsAsync(Collections.singletonList(old)));
+        blockWriter();
+        CompletableFuture<Integer> transfer = transfer();
+        Assert.assertTrue(entered.await(10, TimeUnit.SECONDS));
+        CompletableFuture<Void> first = change(old, middle);
+        CompletableFuture<Void> second = change(middle, next);
+        release.countDown();
+        await(CompletableFuture.allOf(transfer, first, second));
+        Assert.assertEquals(2, writes.get());
+        assertOnly(next);
+    }
+
+    @Test(timeout = 15000)
+    public void consecutiveDiskAcksShareOneWriteBatch() throws Exception {
+        PopConsumerRecord first = record(60000);
+        PopConsumerRecord second = record(60000);
+        second.setOffset(2);
+        await(cache.writeRecordsAsync(Arrays.asList(first, second)));
+        blockWriter();
+        CompletableFuture<Integer> transfer = transfer();
+        Assert.assertTrue(entered.await(10, TimeUnit.SECONDS));
+        CompletableFuture<Void> ackFirst = cache.ackAsync(first);
+        CompletableFuture<Void> ackSecond = cache.ackAsync(second);
+        release.countDown();
+        await(CompletableFuture.allOf(transfer, ackFirst, ackSecond));
+        Assert.assertEquals(2, writes.get());
+        Assert.assertTrue(store.scanExpiredRecords(0, Long.MAX_VALUE, 10).isEmpty());
+        Assert.assertEquals(0, cache.getCacheSize());
+    }
+
+    @Test(timeout = 15000)
+    public void queuedPopChangeAndAckObservePreviousCacheOperations() throws Exception {
+        PopConsumerRecord old = record(60000);
+        PopConsumerRecord next = record(120000);
+        blockWriter();
+        CompletableFuture<Void> initial = store.deleteRecordsAsync(Collections.singletonList(old));
+        Assert.assertTrue(entered.await(10, TimeUnit.SECONDS));
+        CompletableFuture<Void> pop = cache.writeRecordsAsync(Collections.singletonList(old));
+        CompletableFuture<Void> change = change(old, next);
+        CompletableFuture<Void> ack = cache.ackAsync(next);
+        CompletableFuture<Integer> transfer = transfer();
+        release.countDown();
+        await(CompletableFuture.allOf(initial, pop, change, ack, transfer));
+        Assert.assertEquals(3, writes.get());
+        Assert.assertTrue(store.scanExpiredRecords(0, Long.MAX_VALUE, 10).isEmpty());
+        Assert.assertEquals(0, cache.getCacheSize());
+    }
+
     @Test(timeout = 15000)
     public void callbackPoolCanSynchronouslyClearCache() throws Exception {
         CountDownLatch callbacksEntered = new CountDownLatch(4);

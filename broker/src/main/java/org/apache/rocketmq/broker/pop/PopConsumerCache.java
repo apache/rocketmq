@@ -46,14 +46,14 @@ public class PopConsumerCache extends ServiceThread {
     private static final long OFFSET_NOT_EXIST = -1L;
 
     private final BrokerController brokerController;
-    private final PopConsumerKVStore consumerRecordStore;
+    private final PopConsumerRocksdbStore consumerRecordStore;
     private final PopConsumerLockService consumerLockService;
     private final Consumer<PopConsumerRecord> reviveConsumer;
 
     private final AtomicInteger estimateCacheSize;
     private final ConcurrentMap<String, ConsumerRecords> consumerRecordTable;
 
-    public PopConsumerCache(BrokerController brokerController, PopConsumerKVStore consumerRecordStore,
+    public PopConsumerCache(BrokerController brokerController, PopConsumerRocksdbStore consumerRecordStore,
         PopConsumerLockService popConsumerLockService, Consumer<PopConsumerRecord> reviveConsumer) {
 
         this.reviveConsumer = reviveConsumer;
@@ -101,34 +101,32 @@ public class PopConsumerCache extends ServiceThread {
     }
 
     public CompletableFuture<Void> writeRecordsAsync(List<PopConsumerRecord> records) {
-        List<PopConsumerRecord> copy = snapshot(records);
-        return consumerRecordStore.executeStateUpdate(copy, false, () -> isCacheFull()
-            ? new PopConsumerKVStore.StateUpdate(copy, Collections.emptyList(), () -> { })
-            : new PopConsumerKVStore.StateUpdate(Collections.emptyList(), Collections.emptyList(), () -> writeRecords(copy)));
+        return consumerRecordStore.submitCacheRequest(new PopConsumerWriteBatchService.Request(
+            PopConsumerWriteBatchService.Type.POP, this, snapshot(records)));
     }
 
     public CompletableFuture<Void> ackAsync(PopConsumerRecord record) {
-        List<PopConsumerRecord> copy = snapshot(Collections.singletonList(record));
-        PopConsumerRecord ack = copy.get(0);
-        return consumerRecordStore.executeStateUpdate(copy, false, () -> {
-            ConsumerRecords records = consumerRecordTable.get(getKey(ack));
-            boolean cached = records != null && sameCheckpoint(records.recordTreeMap.get(ack.getOffset()), ack);
-            return new PopConsumerKVStore.StateUpdate(Collections.emptyList(), cached ? Collections.emptyList() : copy,
-                () -> deleteRecords(copy));
-        });
+        return consumerRecordStore.submitCacheRequest(new PopConsumerWriteBatchService.Request(
+            PopConsumerWriteBatchService.Type.ACK, this, snapshot(Collections.singletonList(record))));
     }
 
     public CompletableFuture<Void> changeAsync(PopConsumerRecord old, List<PopConsumerRecord> puts,
         List<PopConsumerRecord> deletes) {
-        List<PopConsumerRecord> oldRecords = snapshot(Collections.singletonList(old));
-        List<PopConsumerRecord> putCopy = snapshot(puts);
-        List<PopConsumerRecord> deleteCopy = snapshot(deletes);
-        List<PopConsumerRecord> keys = new ArrayList<>(oldRecords);
-        keys.addAll(putCopy);
-        // Always delete the disk key too: a preceding transfer may have persisted it,
-        // including a write whose outcome was uncertain. Publish cache removal after commit.
-        return consumerRecordStore.executeStateUpdate(keys, false, () ->
-            new PopConsumerKVStore.StateUpdate(putCopy, deleteCopy, () -> deleteRecords(oldRecords)));
+        PopConsumerWriteBatchService.Request request = new PopConsumerWriteBatchService.Request(
+            PopConsumerWriteBatchService.Type.CHANGE, this, snapshot(Collections.singletonList(old)));
+        for (PopConsumerRecord record : puts) {
+            request.mutations.add(new PopConsumerWriteBatchService.Mutation(record.getKeyBytes(), record.getValueBytes()));
+        }
+        // Also delete a disk key left by a preceding transfer, even if its write reported failure.
+        for (PopConsumerRecord record : deletes) {
+            request.mutations.add(new PopConsumerWriteBatchService.Mutation(record.getKeyBytes(), null));
+        }
+        return consumerRecordStore.submitCacheRequest(request);
+    }
+
+    boolean contains(PopConsumerRecord record) {
+        ConsumerRecords records = consumerRecordTable.get(getKey(record));
+        return records != null && sameCheckpoint(records.recordTreeMap.get(record.getOffset()), record);
     }
 
     static boolean sameCheckpoint(PopConsumerRecord current, PopConsumerRecord expected) {
@@ -169,48 +167,52 @@ public class PopConsumerCache extends ServiceThread {
     }
 
     public CompletableFuture<Integer> cleanupRecordsAsync(Consumer<PopConsumerRecord> consumer) {
-        List<PopConsumerRecord> expired = new ArrayList<>();
-        return consumerRecordStore.executeStateUpdate(Collections.emptyList(), true, () -> {
-            List<PopConsumerRecord> writes = new ArrayList<>();
-            List<Runnable> committed = new ArrayList<>();
-            long now = System.currentTimeMillis();
-            for (Map.Entry<String, ConsumerRecords> entry : consumerRecordTable.entrySet()) {
-                ConsumerRecords records = entry.getValue();
-                boolean offline = consumerLockService.isLockTimeout(records.getGroupId(), records.getTopicId());
-                records.stageExpiredRecords(offline ? Long.MAX_VALUE : now);
-                for (PopConsumerRecord record : records.removeTreeMap.values()) {
-                    if (!offline && !records.pendingDisk.contains(record) && record.getVisibilityTimeout() <= now) {
-                        expired.add(record);
-                    } else {
-                        // Keep this marker on failure: the write may have reached disk.
-                        records.pendingDisk.add(record);
-                        writes.add(record);
-                    }
-                }
-                committed.add(() -> {
-                    records.clearStagedRecords();
-                    if (offline) {
-                        consumerRecordTable.remove(entry.getKey(), records);
-                    } else {
-                        long offset = records.getMinOffsetInBuffer();
-                        if (offset > OFFSET_NOT_EXIST) {
-                            commitOffset("PopConsumerCache", records.getGroupId(), records.getTopicId(), records.getQueueId(), offset);
-                        }
-                    }
-                });
-            }
-            return new PopConsumerKVStore.StateUpdate(writes, Collections.emptyList(), () -> {
-                committed.forEach(Runnable::run);
-                estimateCacheSize.set(consumerRecordTable.values().stream()
-                    .mapToInt(ConsumerRecords::getInFlightRecordCount).sum());
-            });
-        }).thenApply(ignored -> {
+        PopConsumerWriteBatchService.Request request = new PopConsumerWriteBatchService.Request(
+            PopConsumerWriteBatchService.Type.TRANSFER, this, Collections.emptyList());
+        return consumerRecordStore.submitCacheRequest(request).thenApply(ignored -> {
             // Revive may read messages or send retries; never execute it on the KV writer.
-            if (!expired.isEmpty()) {
-                expired.forEach(consumer);
+            if (!request.expired.isEmpty()) {
+                request.expired.forEach(consumer);
             }
             return getCacheSize();
         });
+    }
+
+    List<PopConsumerRecord> prepareTransfer(List<PopConsumerRecord> expired, List<String> offlineQueues) {
+        List<PopConsumerRecord> writes = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (Map.Entry<String, ConsumerRecords> entry : consumerRecordTable.entrySet()) {
+            ConsumerRecords records = entry.getValue();
+            boolean offline = consumerLockService.isLockTimeout(records.getGroupId(), records.getTopicId());
+            if (offline) {
+                offlineQueues.add(entry.getKey());
+            }
+            records.stageExpiredRecords(offline ? Long.MAX_VALUE : now);
+            for (PopConsumerRecord record : records.removeTreeMap.values()) {
+                if (!offline && !records.pendingDisk.contains(record) && record.getVisibilityTimeout() <= now) {
+                    expired.add(record);
+                } else {
+                    // Keep this marker on failure: the write may have reached disk.
+                    records.pendingDisk.add(record);
+                    writes.add(record);
+                }
+            }
+        }
+        return writes;
+    }
+
+    void completeTransfer(List<String> offlineQueues) {
+        // The writer commits the entire transfer before processing any later cache operation.
+        offlineQueues.forEach(consumerRecordTable::remove);
+        for (ConsumerRecords records : consumerRecordTable.values()) {
+            records.clearStagedRecords();
+            long offset = records.getMinOffsetInBuffer();
+            if (offset > OFFSET_NOT_EXIST) {
+                commitOffset("PopConsumerCache", records.getGroupId(), records.getTopicId(), records.getQueueId(), offset);
+            }
+        }
+        estimateCacheSize.set(consumerRecordTable.values().stream()
+            .mapToInt(ConsumerRecords::getInFlightRecordCount).sum());
     }
 
     public void commitOffset(String clientHost, String groupId, String topicId, int queueId, long offset) {
@@ -231,16 +233,23 @@ public class PopConsumerCache extends ServiceThread {
     }
 
     public void removeRecords(String groupId, String topicId, int queueId) {
-        ConsumerRecords removed = this.consumerRecordTable.remove(this.getKey(groupId, topicId, queueId));
+        removeRecords(getKey(groupId, topicId, queueId));
+    }
+
+    void removeRecords(String key) {
+        ConsumerRecords removed = this.consumerRecordTable.remove(key);
         if (removed != null) {
             estimateCacheSize.addAndGet(-removed.getInFlightRecordCount());
         }
     }
 
     public void clearRecords(String groupId, String topicId, int queueId) {
-        consumerRecordStore.executeStateUpdateSync(Collections.emptyList(), true, () ->
-            new PopConsumerKVStore.StateUpdate(Collections.emptyList(), Collections.emptyList(),
-                () -> removeRecords(groupId, topicId, queueId)));
+        PopConsumerWriteBatchService.Request request = new PopConsumerWriteBatchService.Request(
+            PopConsumerWriteBatchService.Type.CLEAR, this, Collections.emptyList());
+        request.cacheKey = getKey(groupId, topicId, queueId);
+        // Private future: completion workers may block here without waiting on themselves.
+        request.asyncCompletion = false;
+        consumerRecordStore.submitCacheRequest(request).join();
     }
 
     @Override
