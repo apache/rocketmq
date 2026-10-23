@@ -104,6 +104,7 @@ M2+ 项（配置热更新、配额、连接控制、Pop/batch 诊断、路由观
 | `grpcAdminServerPort` | 8088 | 专用 admin gRPC 端口（<=0 禁用）|
 | `grpcAdminServerAuthEnable` | false | fail-closed 模式; 要求集群认证**和**授权都已开启（见 D2）|
 | `grpcAdminServerRequestTimeoutMillis` | 3000 | admin RPC 扇出的每个 broker hop 的 deadline |
+| `grpcAdminServerForwardTimeoutMillis` | 15000 | 转发到 peer proxy 的完整 admin RPC 超时，包含对端的 broker 查询和 telemetry relay；更短的传入 gRPC deadline 仍然生效 |
 
 ## 8. 诚实边界
 

@@ -116,6 +116,12 @@ public class ProxyConfig implements ConfigFile {
      * than the whole call.
      */
     private long grpcAdminServerRequestTimeoutMillis = 3000L;
+    /**
+     * Bounds a complete admin RPC forwarded to a peer proxy, including that proxy's broker
+     * queries and client telemetry relay. A shorter incoming gRPC deadline takes precedence.
+     */
+    private long grpcAdminServerForwardTimeoutMillis = 15000L;
+
 
     private long grpcShutdownTimeSeconds = 30;
     private int grpcBossLoopNum = 1;
@@ -541,6 +547,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcAdminServerAuthEnable(boolean grpcAdminServerAuthEnable) {
         this.grpcAdminServerAuthEnable = grpcAdminServerAuthEnable;
+    }
+
+    public long getGrpcAdminServerForwardTimeoutMillis() {
+        return grpcAdminServerForwardTimeoutMillis;
+    }
+
+    public void setGrpcAdminServerForwardTimeoutMillis(long grpcAdminServerForwardTimeoutMillis) {
+        this.grpcAdminServerForwardTimeoutMillis = grpcAdminServerForwardTimeoutMillis;
     }
 
     public long getGrpcAdminServerRequestTimeoutMillis() {
