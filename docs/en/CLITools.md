@@ -127,6 +127,26 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
+  <td rowspan=4 height=137 class=xl68 width=163 style='border-bottom:1.0pt;
+  height:103.0pt;border-top:none;width:122pt'>getTopicConfig</td>
+  <td rowspan=4 class=xl70 width=135 style='border-bottom:1.0pt;
+  border-top:none;width:101pt'>View the actual topic configuration stored on a broker. Usage: getTopicConfig -t &lt;topic&gt; [-b &lt;brokerAddr&gt; | -c &lt;cluster&gt;]. If neither -b nor -c is specified, all brokers are queried.</td>
+  <td class=xl65 width=149 style='width:112pt'>-t</td>
+  <td class=xl66 width=159 style='width:119pt'>Used to specify the name of the topic</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-b</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the address of the broker and format as ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-c</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the cluster name</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-n</td>
+  <td class=xl66 width=159 style='width:119pt'>Declare the service address of the nameServer, and the option format is ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
   <td rowspan=3 height=103 class=xl68 width=163 style='border-bottom:1.0pt;
   height:77.0pt;border-top:none;width:122pt'>topicClusterList</td>
   <td rowspan=3 class=xl70 width=135 style='border-bottom:1.0pt;

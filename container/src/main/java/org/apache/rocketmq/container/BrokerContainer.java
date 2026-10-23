@@ -245,6 +245,10 @@ public class BrokerContainer implements IBrokerContainer {
         // Shutdown the request executors
         ThreadUtils.shutdown(this.brokerContainerExecutor);
 
+        // Stop the periodic tasks (name-server refresh and the five-second metadata refresh) before
+        // the API they call is closed, so nothing of the container keeps running after shutdown.
+        ThreadUtils.shutdown(this.scheduledExecutorService);
+
         if (this.brokerOuterAPI != null) {
             this.brokerOuterAPI.shutdown();
         }
