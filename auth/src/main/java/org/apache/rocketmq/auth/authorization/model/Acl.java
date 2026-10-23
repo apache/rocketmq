@@ -19,6 +19,7 @@ package org.apache.rocketmq.auth.authorization.model;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authorization.enums.Decision;
@@ -78,6 +79,19 @@ public class Acl {
         if (CollectionUtils.isEmpty(policy.getEntries())) {
             this.policies.remove(policy);
         }
+    }
+
+    /**
+     * Returns an independent deep copy of this acl (subject reference is kept, policies are copied)
+     * so that callers cannot mutate the cached instance.
+     */
+    public Acl deepCopy() {
+        Acl acl = new Acl();
+        acl.setSubject(this.subject);
+        if (CollectionUtils.isNotEmpty(this.policies)) {
+            acl.setPolicies(this.policies.stream().map(Policy::deepCopy).collect(Collectors.toList()));
+        }
+        return acl;
     }
 
     public Policy getPolicy(PolicyType policyType) {
