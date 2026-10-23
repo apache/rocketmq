@@ -20,6 +20,7 @@ package org.apache.rocketmq.broker.processor;
 import com.google.common.annotations.VisibleForTesting;
 import io.netty.channel.ChannelHandlerContext;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -50,10 +51,12 @@ import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicListResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteClientInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteGroupInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetParentTopicInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.TriggerLiteDispatchRequestHeader;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -89,6 +92,8 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
                 return this.getParentTopicInfo(ctx, request);
             case RequestCode.GET_LITE_TOPIC_INFO:
                 return this.getLiteTopicInfo(ctx, request);
+            case RequestCode.GET_LITE_TOPIC_LIST:
+                return this.getLiteTopicList(ctx, request);
             case RequestCode.GET_LITE_CLIENT_INFO:
                 return this.getLiteClientInfo(ctx, request);
             case RequestCode.GET_LITE_GROUP_INFO:
@@ -207,6 +212,86 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         body.setTopicOffset(topicOffset);
         body.setShardingToBroker(brokerController.getBrokerConfig().getBrokerName().equals(
             liteSharding.shardingByLmqName(parentTopic, lmqName)));
+
+        response.setBody(body.encode());
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+    /**
+     * List the lite topics that currently have messages on this broker. The response is bounded by
+     * {@code maxCount} because a parent topic may own a large number of dynamic lite topics; when
+     * more matching topics exist, {@code hasMore} tells the caller that the result was truncated.
+     */
+    @VisibleForTesting
+    protected RemotingCommand getLiteTopicList(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final GetLiteTopicListRequestHeader requestHeader =
+            request.decodeCommandCustomHeader(GetLiteTopicListRequestHeader.class);
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        final String parentTopic = requestHeader.getParentTopic();
+        TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(parentTopic);
+        if (null == topicConfig) {
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
+            response.setRemark(String.format("Topic [%s] not exist.", parentTopic));
+            return response;
+        }
+        if (!TopicMessageType.LITE.equals(topicConfig.getTopicMessageType())) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark(String.format("Topic [%s] type not match.", parentTopic));
+            return response;
+        }
+
+        final String prefix = requestHeader.getPrefix();
+        final int maxCount = Math.min(requestHeader.getMaxCount(), MAX_RETURN_COUNT);
+        final String brokerName = brokerController.getBrokerConfig().getBrokerName();
+        final List<GetLiteTopicListResponseBody.LiteTopicInfo> liteTopicInfoList =
+            new ArrayList<>(Math.min(maxCount, 128));
+        // forEachLiteTopicByParent stops as soon as the callback returns false. We consume one
+        // matching entry beyond the limit only to determine whether the caller should continue.
+        final boolean[] hasMore = {false};
+
+        liteLifecycleManager.forEachLiteTopicByParent(parentTopic, triple -> {
+            String lmqName = triple.getLeft();
+            String liteTopic = LiteUtil.getLiteTopic(lmqName);
+            if (StringUtils.isEmpty(liteTopic)) {
+                return true;
+            }
+            if (StringUtils.isNotEmpty(prefix) && !liteTopic.startsWith(prefix)) {
+                return true;
+            }
+            if (liteTopicInfoList.size() >= maxCount) {
+                hasMore[0] = true;
+                return false;
+            }
+
+            long maxOffset = triple.getMiddle();
+            long minOffset = 0;
+            long lastUpdateTimestamp = 0;
+            if (maxOffset > 0) {
+                minOffset = brokerController.getMessageStore().getMinOffsetInQueue(lmqName, 0);
+                lastUpdateTimestamp = brokerController.getMessageStore()
+                    .getMessageStoreTimeStamp(lmqName, 0, maxOffset - 1);
+            }
+
+            GetLiteTopicListResponseBody.LiteTopicInfo info = new GetLiteTopicListResponseBody.LiteTopicInfo();
+            info.setLiteTopic(liteTopic);
+            info.setMinOffset(minOffset < 0 ? 0 : minOffset);
+            info.setMaxOffset(maxOffset < 0 ? 0 : maxOffset);
+            info.setLastUpdateTimestamp(lastUpdateTimestamp);
+            info.setSubscriberCount(getSubscriber(lmqName).size());
+            info.setShardingToBroker(brokerName.equals(liteSharding.shardingByLmqName(parentTopic, lmqName)));
+            liteTopicInfoList.add(info);
+            return true;
+        });
+
+        GetLiteTopicListResponseBody body = new GetLiteTopicListResponseBody();
+        body.setParentTopic(parentTopic);
+        body.setTotal(liteTopicInfoList.size());
+        body.setHasMore(hasMore[0]);
+        body.setLiteTopicList(liteTopicInfoList);
 
         response.setBody(body.encode());
         response.setCode(ResponseCode.SUCCESS);

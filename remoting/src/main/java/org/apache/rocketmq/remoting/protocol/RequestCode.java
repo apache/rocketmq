@@ -97,6 +97,7 @@ public class RequestCode {
     public static final int GET_LITE_CLIENT_INFO = 200077;
     public static final int GET_LITE_GROUP_INFO = 200078;
     public static final int TRIGGER_LITE_DISPATCH = 200079;
+    public static final int GET_LITE_TOPIC_LIST = 200080;
 
     public static final int PUT_KV_CONFIG = 100;
 
