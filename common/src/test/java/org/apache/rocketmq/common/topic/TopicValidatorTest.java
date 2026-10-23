@@ -85,6 +85,48 @@ public class TopicValidatorTest {
 
         res = TopicValidator.validateGroup(generateString2(121));
         assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).contains("group max length: 120");
+    }
+
+    @Test
+    public void testGroupValidatorWithMaxLength() {
+        assertThat(TopicValidator.validateGroup(generateString2(127), 255).isValid()).isTrue();
+        assertThat(TopicValidator.validateGroup(generateString2(255), 255).isValid()).isTrue();
+
+        TopicValidator.ValidateResult res = TopicValidator.validateGroup(generateString2(256), 255);
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).contains("group max length: 255");
+    }
+
+    @Test
+    public void testGroupValidatorWithMaxLength_CappedAt255() {
+        assertThat(TopicValidator.validateGroup(generateString2(255), 300).isValid()).isTrue();
+
+        TopicValidator.ValidateResult res = TopicValidator.validateGroup(generateString2(256), 300);
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).contains("group max length: 255");
+    }
+
+    @Test
+    public void testGroupValidatorWithMaxLength_FallbackToDefault() {
+        for (int maxLength : new int[] {0, -1}) {
+            assertThat(TopicValidator.validateGroup(generateString2(120), maxLength).isValid()).isTrue();
+
+            TopicValidator.ValidateResult res = TopicValidator.validateGroup(generateString2(121), maxLength);
+            assertThat(res.isValid()).isFalse();
+            assertThat(res.getRemark()).contains("group max length: 120");
+        }
+    }
+
+    @Test
+    public void testGroupValidatorWithMaxLength_BlankAndIllegal() {
+        TopicValidator.ValidateResult res = TopicValidator.validateGroup("", 255);
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).isEqualTo(TopicValidator.validateGroup("").getRemark());
+
+        res = TopicValidator.validateGroup("../GroupTest", 255);
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).isEqualTo(TopicValidator.validateGroup("../GroupTest").getRemark());
     }
 
     @Test

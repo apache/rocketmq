@@ -1673,7 +1673,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         SubscriptionGroupConfig config = RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
         if (null != config) {
-            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName());
+            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName(),
+                this.brokerController.getBrokerConfig().getSubscriptionGroupMaxLength());
             if (!result.isValid()) {
                 response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark(result.getRemark());
@@ -1707,7 +1708,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final StringBuilder builder = new StringBuilder();
         for (SubscriptionGroupConfig config : groupConfigList) {
-            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName());
+            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName(),
+                this.brokerController.getBrokerConfig().getSubscriptionGroupMaxLength());
             if (!result.isValid()) {
                 response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark(result.getRemark());
