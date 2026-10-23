@@ -1389,7 +1389,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     }
 
     @Override
-    public void doRebalance() {
+    public synchronized void doRebalance() {
+        if (this.serviceState != ServiceState.RUNNING) {
+            log.warn("the consumer [{}] is not running, skip doRebalance, state={}",
+                this.defaultMQPushConsumer.getConsumerGroup(), this.serviceState);
+            return;
+        }
+
         if (!this.pause) {
             this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
         }
