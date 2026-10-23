@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.pop;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -421,6 +422,53 @@ public class PopConsumerWriteBatchServiceTest {
         } finally {
             service.shutdown();
         }
+    }
+
+    @Test(timeout = 15000)
+    public void preparesDependentStateAfterCommitAndBatchesIndependentState() throws Exception {
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        List<Integer> batchSizes = new ArrayList<>();
+        AtomicInteger firstState = new AtomicInteger();
+        AtomicInteger secondState = new AtomicInteger();
+        PopConsumerWriteBatchService service = new PopConsumerWriteBatchService(mutations -> {
+            batchSizes.add(mutations.size());
+            if (batchSizes.size() == 1) {
+                entered.countDown();
+                await(release);
+            }
+        });
+        service.start();
+        try {
+            CompletableFuture<Void> initial = service.submit(mutation(0, false));
+            await(entered);
+            CompletableFuture<Void> first = stateUpdate(service, 1, firstState, 0);
+            CompletableFuture<Void> second = stateUpdate(service, 2, secondState, 0);
+            CompletableFuture<Void> dependent = stateUpdate(service, 1, firstState, 1);
+            CompletableFuture<Void> barrier = service.submit(() -> {
+                Assert.assertEquals(2, firstState.get());
+                Assert.assertEquals(1, secondState.get());
+                return new PopConsumerWriteBatchService.PreparedWrite(Collections.emptyList(), () -> { });
+            }, Collections.emptySet(), true, 0, true);
+            release.countDown();
+            CompletableFuture.allOf(initial, first, second, dependent, barrier).get(10, TimeUnit.SECONDS);
+            Assert.assertEquals(Arrays.asList(1, 2, 1), batchSizes);
+        } finally {
+            release.countDown();
+            service.shutdown();
+        }
+    }
+
+    private CompletableFuture<Void> stateUpdate(PopConsumerWriteBatchService service, int key,
+        AtomicInteger state, int expected) {
+        return service.submit(() -> {
+            Assert.assertEquals("PopKVGroupCommit", Thread.currentThread().getName());
+            Assert.assertEquals(expected, state.get());
+            return new PopConsumerWriteBatchService.PreparedWrite(mutation(key, false), () -> {
+                Assert.assertEquals("PopKVGroupCommit", Thread.currentThread().getName());
+                state.incrementAndGet();
+            });
+        }, Collections.singleton(ByteBuffer.wrap(new byte[] {(byte) key})), false, 2, true);
     }
 
 }

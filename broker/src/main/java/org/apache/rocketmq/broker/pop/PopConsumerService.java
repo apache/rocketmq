@@ -428,8 +428,8 @@ public class PopConsumerService extends ServiceThread {
                 CompletableFuture<Void> persisted = CompletableFuture.completedFuture(null);
                 if (result.isFound() && !result.isFifo()) {
                     if (brokerConfig.isEnablePopBufferMerge() &&
-                        popConsumerCache != null && !popConsumerCache.isCacheFull()) {
-                        this.popConsumerCache.writeRecords(result.getPopConsumerRecordList());
+                        popConsumerCache != null) {
+                        persisted = this.popConsumerCache.writeRecordsAsync(result.getPopConsumerRecordList());
                     } else {
                         persisted = this.popConsumerStore.writeRecordsAsync(result.getPopConsumerRecordList());
                     }
@@ -515,9 +515,7 @@ public class PopConsumerService extends ServiceThread {
             popTime, groupId, topicId, queueId, 0, invisibleTime, offset, null);
 
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
-            if (popConsumerCache.deleteRecords(Collections.singletonList(record)).isEmpty()) {
-                return CompletableFuture.completedFuture(true);
-            }
+            return popConsumerCache.ackAsync(record).thenApply(ignored -> true);
         }
 
         return this.popConsumerStore.deleteRecordsAsync(Collections.singletonList(record)).thenApply(ignored -> true);
@@ -549,14 +547,7 @@ public class PopConsumerService extends ServiceThread {
         boolean deleteOld = skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout();
         List<PopConsumerRecord> deletes = deleteOld ? Collections.singletonList(ackRecord) : Collections.emptyList();
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
-            // Keep the old cached CK until its replacement is durable. If it has already been
-            // staged for flushing, delete from storage only after the replacement write.
-            return this.popConsumerStore.writeRecordsAsync(puts).thenCompose(ignored -> {
-                if (popConsumerCache.deleteRecords(Collections.singletonList(ackRecord)).isEmpty()) {
-                    return CompletableFuture.completedFuture(null);
-                }
-                return this.popConsumerStore.deleteRecordsAsync(deletes);
-            });
+            return popConsumerCache.changeAsync(ackRecord, puts, deletes);
         }
         // One atomic replacement, including the same-key case where only a put is needed.
         return this.popConsumerStore.updateRecordsAsync(puts, deletes);
@@ -593,7 +584,7 @@ public class PopConsumerService extends ServiceThread {
 
     public void clearCache(String groupId, String topicId, int queueId) {
         if (popConsumerCache != null) {
-            popConsumerCache.removeRecords(groupId, topicId, queueId);
+            popConsumerCache.clearRecords(groupId, topicId, queueId);
         }
     }
 

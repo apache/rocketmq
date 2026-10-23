@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.pop;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public interface PopConsumerKVStore {
 
@@ -62,6 +63,28 @@ public interface PopConsumerKVStore {
      * Persist puts followed by deletes atomically. Complete only after the WAL is synced.
      */
     CompletableFuture<Void> updateRecordsAsync(List<PopConsumerRecord> puts, List<PopConsumerRecord> deletes);
+
+    /**
+     * Prepare and publish cache state on the same thread as persistence. A barrier runs alone;
+     * otherwise operations touching the same logical record are committed in separate batches.
+     */
+    CompletableFuture<Void> executeStateUpdate(List<PopConsumerRecord> records, boolean barrier,
+        Supplier<StateUpdate> prepare);
+
+    /** Execute a state update with a private completion future for blocking callers. */
+    void executeStateUpdateSync(List<PopConsumerRecord> records, boolean barrier, Supplier<StateUpdate> prepare);
+
+    class StateUpdate {
+        final List<PopConsumerRecord> puts;
+        final List<PopConsumerRecord> deletes;
+        final Runnable committed;
+
+        StateUpdate(List<PopConsumerRecord> puts, List<PopConsumerRecord> deletes, Runnable committed) {
+            this.puts = puts;
+            this.deletes = deletes;
+            this.committed = committed;
+        }
+    }
 
     /**
      * Scans and returns a list of expired consumer records within the specified time range.

@@ -82,6 +82,7 @@ public class PopConsumerServiceTest {
 
     private BrokerController brokerController;
     private PopConsumerService consumerService;
+    private PopConsumerKVStore initialStore;
 
     @Before
     public void init() throws IOException {
@@ -113,10 +114,13 @@ public class PopConsumerServiceTest {
         Mockito.when(brokerController.getConsumerOrderInfoManager()).thenReturn(consumerOrderInfoManager);
 
         consumerService = new PopConsumerService(brokerController);
+        initialStore = consumerService.getPopConsumerStore();
+        Assert.assertTrue(initialStore.start());
     }
 
     @After
     public void shutdown() throws IOException {
+        initialStore.shutdown();
         FileUtils.deleteDirectory(new File(filePath));
     }
 
@@ -137,6 +141,7 @@ public class PopConsumerServiceTest {
     public void reviveAfterEnablingBufferWithoutCacheTest() throws IllegalAccessException {
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
         brokerConfig.setEnablePopBufferMerge(false);
+        initialStore.shutdown();
         consumerService = new PopConsumerService(brokerController);
         Assert.assertNull(FieldUtils.readField(consumerService, "popConsumerCache", true));
         consumerService.getPopConsumerStore().start();
@@ -395,7 +400,8 @@ public class PopConsumerServiceTest {
         PopConsumerRecord old = getConsumerTestRecord();
         cache.writeRecords(Collections.singletonList(old));
         CompletableFuture<Void> persisted = new CompletableFuture<>();
-        Mockito.when(store.writeRecordsAsync(any())).thenReturn(persisted);
+        FieldUtils.writeField(cache, "consumerRecordStore", store, true);
+        Mockito.when(store.executeStateUpdate(any(), Mockito.anyBoolean(), any())).thenReturn(persisted);
         Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
         CompletableFuture<Void> change = consumerService.changeInvisibilityDuration(old.getPopTime(), old.getInvisibleTime(),
             old.getPopTime() + 100, 30000, groupId, topicId, queueId, old.getOffset(), false);

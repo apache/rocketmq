@@ -16,19 +16,24 @@
  */
 package org.apache.rocketmq.broker.pop;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 
 /**
- * One WAL writer for all POP KV mutations. Submission never waits for disk.
+ * One owner for POP KV mutations and cache state transitions. Submission never waits for disk.
  * Requests retain their order and are never split across WriteBatches.
  */
 class PopConsumerWriteBatchService extends ServiceThread {
@@ -49,16 +54,32 @@ class PopConsumerWriteBatchService extends ServiceThread {
         }
     }
 
-    private static class Request {
+    static class PreparedWrite {
         final List<Mutation> mutations;
+        final Runnable committed;
+
+        PreparedWrite(List<Mutation> mutations, Runnable committed) {
+            this.mutations = mutations;
+            this.committed = committed;
+        }
+    }
+
+    private static class Request {
+        final Supplier<PreparedWrite> prepare;
+        final Set<ByteBuffer> keys;
+        final boolean barrier;
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final long bytes;
         final boolean asyncCompletion;
+        PreparedWrite prepared;
 
-        Request(List<Mutation> mutations, boolean asyncCompletion) {
-            this.mutations = mutations;
+        Request(Supplier<PreparedWrite> prepare, Set<ByteBuffer> keys, boolean barrier,
+            long bytes, boolean asyncCompletion) {
+            this.prepare = prepare;
+            this.keys = keys;
+            this.barrier = barrier;
+            this.bytes = bytes;
             this.asyncCompletion = asyncCompletion;
-            this.bytes = mutations.stream().mapToLong(m -> m.key.length + (m.value == null ? 0L : m.value.length)).sum();
         }
     }
 
@@ -100,7 +121,13 @@ class PopConsumerWriteBatchService extends ServiceThread {
 
     // Used only by blocking compatibility methods; their private futures have no continuations.
     CompletableFuture<Void> submit(List<Mutation> mutations, boolean asyncCompletion) {
-        Request request = new Request(mutations, asyncCompletion);
+        long bytes = mutations.stream().mapToLong(m -> m.key.length + (m.value == null ? 0L : m.value.length)).sum();
+        return submit(() -> new PreparedWrite(mutations, () -> { }), Collections.emptySet(), false, bytes, asyncCompletion);
+    }
+
+    CompletableFuture<Void> submit(Supplier<PreparedWrite> prepare, Set<ByteBuffer> keys,
+        boolean barrier, long bytes, boolean asyncCompletion) {
+        Request request = new Request(prepare, keys, barrier, bytes, asyncCompletion);
         synchronized (admissionLock) {
             if (!accepting || isStopped()) {
                 request.future.completeExceptionally(new RejectedExecutionException("POP KV writer stopped"));
@@ -123,36 +150,59 @@ class PopConsumerWriteBatchService extends ServiceThread {
             List<Request> requests = new ArrayList<>();
             List<Mutation> mutations = new ArrayList<>();
             requests.add(first);
-            mutations.addAll(first.mutations);
+            Set<ByteBuffer> keys = new HashSet<>(first.keys);
             long bytes = first.bytes;
-            while (requests.size() < MAX_BATCH_REQUESTS) {
+            while (!first.barrier && requests.size() < MAX_BATCH_REQUESTS) {
                 Request next = queue.peek();
-                if (next == null || bytes + next.bytes > MAX_BATCH_BYTES) {
+                if (next == null || next.barrier || bytes + next.bytes > MAX_BATCH_BYTES
+                    || !Collections.disjoint(keys, next.keys)) {
                     break;
                 }
                 queue.poll();
                 requests.add(next);
-                mutations.addAll(next.mutations);
+                keys.addAll(next.keys);
                 bytes += next.bytes;
+            }
+            List<Request> prepared = new ArrayList<>();
+            for (Request request : requests) {
+                try {
+                    request.prepared = request.prepare.get();
+                    mutations.addAll(request.prepared.mutations);
+                    prepared.add(request);
+                } catch (Throwable t) {
+                    finish(request, t);
+                }
             }
             Throwable failure = null;
             try {
-                writer.write(mutations);
+                if (!mutations.isEmpty()) {
+                    writer.write(mutations);
+                }
             } catch (Throwable t) {
                 failure = t;
             }
-            final Throwable result = failure;
-            for (Request request : requests) {
-                if (request.asyncCompletion) {
-                    // One task per request: even callbacks from the same batch can run concurrently.
-                    // Never run user continuations on the WAL writer.
-                    completions.execute(() -> complete(request, result));
-                } else {
-                    // Private blocking futures have no continuations, so callbacks may safely
-                    // use a synchronous storage API even when all completion workers are busy.
-                    complete(request, result);
+            for (Request request : prepared) {
+                Throwable result = failure;
+                if (result == null) {
+                    try {
+                        // Publish cache state before preparing the next (possibly dependent) batch.
+                        request.prepared.committed.run();
+                    } catch (Throwable t) {
+                        result = t;
+                    }
                 }
+                finish(request, result);
             }
+        }
+    }
+
+    private void finish(Request request, Throwable result) {
+        if (request.asyncCompletion) {
+            // User continuations run independently, including requests from the same batch.
+            completions.execute(() -> complete(request, result));
+        } else {
+            // Private blocking futures have no user continuations.
+            complete(request, result);
         }
     }
 

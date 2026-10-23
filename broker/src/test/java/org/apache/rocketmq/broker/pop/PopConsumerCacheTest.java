@@ -18,8 +18,10 @@ package org.apache.rocketmq.broker.pop;
 
 import java.util.Collections;
 import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
@@ -30,6 +32,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 
 public class PopConsumerCacheTest {
 
@@ -73,6 +77,12 @@ public class PopConsumerCacheTest {
     public void consumerOffsetTest() throws IllegalAccessException {
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        Mockito.when(consumerKVStore.executeStateUpdate(anyList(), anyBoolean(), any())).thenAnswer(call -> {
+            Supplier<PopConsumerKVStore.StateUpdate> prepare = call.getArgument(2);
+            PopConsumerKVStore.StateUpdate update = prepare.get();
+            update.committed.run();
+            return CompletableFuture.completedFuture(null);
+        });
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
         ConsumerOffsetManager consumerOffsetManager = Mockito.mock(ConsumerOffsetManager.class);
         Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
@@ -96,6 +106,12 @@ public class PopConsumerCacheTest {
     public void consumerCacheTest() {
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
+        Mockito.when(consumerKVStore.executeStateUpdate(anyList(), anyBoolean(), any())).thenAnswer(call -> {
+            Supplier<PopConsumerKVStore.StateUpdate> prepare = call.getArgument(2);
+            PopConsumerKVStore.StateUpdate update = prepare.get();
+            update.committed.run();
+            return CompletableFuture.completedFuture(null);
+        });
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
         Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
 
