@@ -533,13 +533,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
 
             if (update) {
-                Collections.shuffle(addrs);
-                LOGGER.info("name server address updated. NEW : {} , OLD: {}", addrs, old);
-                this.namesrvAddrList.set(addrs);
+                List<String> updatedAddrs = new ArrayList<>(addrs);
+                Collections.shuffle(updatedAddrs);
+                LOGGER.info("name server address updated. NEW : {} , OLD: {}", updatedAddrs, old);
+                this.namesrvAddrList.set(updatedAddrs);
 
                 // should close the channel if choosed addr is not exist.
                 String chosenNameServerAddr = this.namesrvAddrChoosed.get();
-                if (chosenNameServerAddr != null && !addrs.contains(chosenNameServerAddr)) {
+                if (chosenNameServerAddr != null && !updatedAddrs.contains(chosenNameServerAddr)) {
                     namesrvAddrChoosed.compareAndSet(chosenNameServerAddr, null);
                     for (String addr : this.channelTables.keySet()) {
                         if (addr.contains(chosenNameServerAddr)) {
