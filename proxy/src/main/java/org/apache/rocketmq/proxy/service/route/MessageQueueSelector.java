@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -32,15 +33,20 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 
 import static org.apache.rocketmq.proxy.service.route.MessageQueuePenalizer.selectLeastPenaltyWithPriority;
 import static org.apache.rocketmq.proxy.service.route.MessageQueuePriorityProvider.buildPriorityGroups;
 
 public class MessageQueueSelector {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final int BROKER_ACTING_QUEUE_ID = -1;
+    private static final int MAX_ORDER_TOPIC_WRITE_QUEUE_COUNT = 1024;
 
     // multiple queues for brokers with queueId : normal
     private final List<AddressableMessageQueue> queues = new ArrayList<>();
@@ -110,17 +116,27 @@ public class MessageQueueSelector {
             String[] brokers = topicRoute.getOrderTopicConf().split(";");
             for (String broker : brokers) {
                 String[] item = broker.split(":");
-                String brokerName = item[0];
-                String brokerAddr = topicRoute.getMasterAddr(brokerName);
-                if (brokerAddr == null) {
+                if (item.length != 2 || StringUtils.isBlank(item[0]) || StringUtils.isBlank(item[1])) {
+                    log.warn("skip invalid order topic route item. topic:{}, item:{}", topicRoute.getTopicName(), broker);
                     continue;
                 }
 
-                int nums = Integer.parseInt(item[1]);
-                for (int i = 0; i < nums; i++) {
+                String brokerName = item[0];
+                Optional<String> brokerAddr = topicRoute.getOptionalMasterAddr(brokerName);
+                if (!brokerAddr.isPresent()) {
+                    log.warn("skip order topic route item without master broker address. topic:{}, brokerName:{}",
+                        topicRoute.getTopicName(), brokerName);
+                    continue;
+                }
+
+                Optional<Integer> nums = parseOrderTopicQueueCount(topicRoute.getTopicName(), broker);
+                if (!nums.isPresent()) {
+                    continue;
+                }
+                for (int i = 0; i < nums.get(); i++) {
                     AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), brokerName, i),
-                        brokerAddr);
+                        brokerAddr.get());
                     queueSet.add(mq);
                 }
             }
@@ -132,15 +148,15 @@ public class MessageQueueSelector {
 
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
-                    String brokerAddr = topicRoute.getMasterAddr(qd.getBrokerName());
-                    if (brokerAddr == null) {
+                    Optional<String> brokerAddr = topicRoute.getOptionalMasterAddr(qd.getBrokerName());
+                    if (!brokerAddr.isPresent()) {
                         continue;
                     }
 
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         AddressableMessageQueue mq = new AddressableMessageQueue(
                             new MessageQueue(topicRoute.getTopicName(), qd.getBrokerName(), i),
-                            brokerAddr);
+                            brokerAddr.get());
                         queueSet.add(mq);
                     }
                 }
@@ -148,6 +164,22 @@ public class MessageQueueSelector {
         }
 
         return queueSet.stream().sorted().collect(Collectors.toList());
+    }
+
+    private static Optional<Integer> parseOrderTopicQueueCount(String topicName, String broker) {
+        String[] item = broker.split(":");
+        try {
+            int queueCount = Integer.parseInt(item[1]);
+            if (queueCount < 1 || queueCount > MAX_ORDER_TOPIC_WRITE_QUEUE_COUNT) {
+                log.warn("skip order topic route item with out-of-range queue count. topic:{}, item:{}, min:{}, max:{}",
+                    topicName, broker, 1, MAX_ORDER_TOPIC_WRITE_QUEUE_COUNT);
+                return Optional.empty();
+            }
+            return Optional.of(queueCount);
+        } catch (NumberFormatException e) {
+            log.warn("skip order topic route item with invalid queue count. topic:{}, item:{}", topicName, broker);
+            return Optional.empty();
+        }
     }
 
     private void buildBrokerActingQueues(String topic, List<AddressableMessageQueue> normalQueues) {
