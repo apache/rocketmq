@@ -31,9 +31,11 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.compression.GzipCompressor;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
@@ -45,6 +47,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -77,7 +80,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -179,6 +184,34 @@ public class DefaultMQProducerTest {
         assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
         assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
         assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+    }
+
+    @Test
+    public void testSetCompressTypeGzip() {
+        producer.setCompressType(CompressionType.GZIP);
+
+        assertThat(producer.getCompressType()).isEqualTo(CompressionType.GZIP);
+        assertThat(producer.getCompressor()).isInstanceOf(GzipCompressor.class);
+    }
+
+    @Test
+    public void testSendMessageSync_WithGzipCompressedBodyCarriesGzipSysFlag() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        producer.setCompressType(CompressionType.GZIP);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+
+        SendResult sendResult = producer.send(bigMessage);
+        assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+
+        // The message body is restored after the send, so the compression actually chosen for
+        // this message can only be observed through the system flag handed to the broker.
+        ArgumentCaptor<SendMessageRequestHeader> headerCaptor = ArgumentCaptor.forClass(SendMessageRequestHeader.class);
+        verify(mQClientAPIImpl, atLeastOnce()).sendMessage(anyString(), anyString(), any(Message.class), headerCaptor.capture(),
+            anyLong(), any(CommunicationMode.class), nullable(SendCallback.class), nullable(TopicPublishInfo.class),
+            nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class));
+
+        int sysFlag = headerCaptor.getValue().getSysFlag();
+        assertThat(MessageSysFlag.check(sysFlag, MessageSysFlag.COMPRESSED_FLAG)).isTrue();
+        assertThat(MessageSysFlag.getCompressionType(sysFlag)).isEqualTo(CompressionType.GZIP);
     }
 
     @Test

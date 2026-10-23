@@ -32,6 +32,7 @@ public class CompressionTest {
     private Compressor zstd;
     private Compressor zlib;
     private Compressor lz4;
+    private Compressor gzip;
 
     @Before
     public void setUp() {
@@ -39,6 +40,7 @@ public class CompressionTest {
         zstd = CompressorFactory.getCompressor(CompressionType.ZSTD);
         zlib = CompressorFactory.getCompressor(CompressionType.ZLIB);
         lz4 = CompressorFactory.getCompressor(CompressionType.LZ4);
+        gzip = CompressorFactory.getCompressor(CompressionType.GZIP);
     }
 
     @Test
@@ -92,6 +94,26 @@ public class CompressionTest {
             byte[] srcBytes = message.getBytes(StandardCharsets.UTF_8);
             byte[] compressed = lz4.compress(srcBytes, level);
             byte[] decompressed = lz4.decompress(compressed);
+            // compression ratio may be negative for some random string data
+            // assertThat(compressed.length).isLessThan(srcBytes.length);
+            assertThat(decompressed).isEqualTo(srcBytes);
+            assertThat(new String(decompressed)).isEqualTo(message);
+        }
+    }
+
+    @Test
+    public void testCompressionGzip() throws IOException {
+        assertThat(CompressionType.of("gzip")).isEqualTo(CompressionType.GZIP);
+        assertThat(CompressionType.of(" GZiP ")).isEqualTo(CompressionType.GZIP);
+        assertThat(CompressionType.of("GZIP")).isEqualTo(CompressionType.GZIP);
+
+        int randomKB = 4096;
+        Random random = new Random();
+        for (int i = 0; i < 5; ++i) {
+            String message = RandomStringUtils.randomAlphanumeric(random.nextInt(randomKB) * 1024);
+            byte[] srcBytes = message.getBytes(StandardCharsets.UTF_8);
+            byte[] compressed = gzip.compress(srcBytes, level);
+            byte[] decompressed = gzip.decompress(compressed);
             // compression ratio may be negative for some random string data
             // assertThat(compressed.length).isLessThan(srcBytes.length);
             assertThat(decompressed).isEqualTo(srcBytes);

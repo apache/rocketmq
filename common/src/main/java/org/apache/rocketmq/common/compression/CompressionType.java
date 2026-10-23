@@ -31,12 +31,22 @@ public enum CompressionType {
      *    |   zstd 1.5.1   |  2.887  |   530 MB/s  |  1700 MB/s |
      *    |  zlib 1.2.11   |  2.743  |    95 MB/s  |   400 MB/s |
      *    |    lz4 1.9.3   |  2.101  |   740 MB/s  |  4500 MB/s |
+     *    |     gzip       |  2.743  |    95 MB/s  |   400 MB/s |
      *
+     *    gzip carries the very same DEFLATE stream produced by zlib, only wrapped in the
+     *    gzip container, so it inherits zlib's ratio and throughput (the extra header and
+     *    trailer are negligible for the payload sizes RocketMQ compresses) while emitting
+     *    the framing that almost every other language and command line tool reads by
+     *    default. It is implemented on top of the JDK (java.util.zip), so it needs no new
+     *    dependency.
      */
 
     LZ4(1),
     ZSTD(2),
-    ZLIB(3);
+    ZLIB(3),
+    // 4 is the first value that still fits in the three bits reserved by
+    // MessageSysFlag.COMPRESSION_TYPE_COMPARATOR (0x7), so no existing flag changes.
+    GZIP(4);
 
     private final int value;
 
@@ -56,6 +66,8 @@ public enum CompressionType {
                 return CompressionType.ZSTD;
             case "ZLIB":
                 return CompressionType.ZLIB;
+            case "GZIP":
+                return CompressionType.GZIP;
             default:
                 throw new RuntimeException("Unsupported compress type name: " + name);
         }
@@ -70,6 +82,8 @@ public enum CompressionType {
             case 0: // To be compatible for older versions without compression type
             case 3:
                 return ZLIB;
+            case 4:
+                return GZIP;
             default:
                 throw new RuntimeException("Unknown compress type value: " + value);
         }
@@ -83,6 +97,8 @@ public enum CompressionType {
                 return MessageSysFlag.COMPRESSION_ZSTD_TYPE;
             case 3:
                 return MessageSysFlag.COMPRESSION_ZLIB_TYPE;
+            case 4:
+                return MessageSysFlag.COMPRESSION_GZIP_TYPE;
             default:
                 throw new RuntimeException("Unsupported compress type flag: " + value);
         }
