@@ -58,7 +58,7 @@ In some cases, the Consumer needs to reset the consume position to 1-2 days ago.
 
 Asynchronous flush disk is recommended to use spin lock.
 
-Synchronous flush disk is recommended to use reentrant lock. Adjust the Broker configuration item `useReentrantLockWhenPutMessage`, and the default  value is false. 
+Synchronous flush disk is recommended to use reentrant lock. Adjust the Broker configuration item `useReentrantLockWhenPutMessage`, and the default value is true. 
 
 Asynchronous flush disk is recommended to open `TransientStorePoolEnable` and close `transferMsgByHeap` to improve the efficiency of pulling message;
 
