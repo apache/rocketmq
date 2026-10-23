@@ -98,6 +98,9 @@ public class SelectorParser implements SelectorParserConstants {
     // ----------------------------------------------------------------------------
     final public BooleanExpression JmsSelector() throws ParseException {
         Expression left = orExpression();
+        // the selector has to end here: trailing tokens mean the user's expression was
+        // truncated by the parser instead of being reported as invalid
+        jj_consume_token(0);
         return asBooleanExpression(left);
     }
 
