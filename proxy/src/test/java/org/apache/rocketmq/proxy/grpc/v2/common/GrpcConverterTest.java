@@ -19,14 +19,18 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
+import apache.rocketmq.v2.SystemProperties;
+import com.google.protobuf.util.Timestamps;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -82,5 +86,70 @@ public class GrpcConverterTest {
 
         // Verify message type is LITE
         assertEquals(MessageType.LITE, grpcMessage.getSystemProperties().getMessageType());
+    }
+
+    @Test
+    public void testBuildMessageWithTimerDelaySec() {
+        MessageExt messageExt = buildMessageExt();
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TIMER_DELAY_SEC, "2");
+
+        long startMs = System.currentTimeMillis();
+        SystemProperties systemProperties = GrpcConverter.getInstance().buildMessage(messageExt).getSystemProperties();
+        long endMs = System.currentTimeMillis();
+
+        assertTrue(systemProperties.hasDeliveryTimestamp());
+        long deliveryTimestamp = Timestamps.toMillis(systemProperties.getDeliveryTimestamp());
+        assertTrue(deliveryTimestamp >= startMs + 2000);
+        assertTrue(deliveryTimestamp <= endMs + 2000);
+    }
+
+    @Test
+    public void testBuildMessageWithTimerDeliverMs() {
+        MessageExt messageExt = buildMessageExt();
+        long deliverMs = 123456789L;
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TIMER_DELIVER_MS, String.valueOf(deliverMs));
+
+        SystemProperties systemProperties = GrpcConverter.getInstance().buildMessage(messageExt).getSystemProperties();
+
+        assertTrue(systemProperties.hasDeliveryTimestamp());
+        assertEquals(deliverMs, Timestamps.toMillis(systemProperties.getDeliveryTimestamp()));
+    }
+
+    @Test
+    public void testBuildMessageIgnoresInvalidTimerDelaySec() {
+        MessageExt messageExt = buildMessageExt();
+        long deliverMs = 123456789L;
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TIMER_DELAY_SEC, "invalid-delay");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TIMER_DELIVER_MS, String.valueOf(deliverMs));
+
+        SystemProperties systemProperties = GrpcConverter.getInstance().buildMessage(messageExt).getSystemProperties();
+
+        assertTrue(systemProperties.hasDeliveryTimestamp());
+        assertEquals(deliverMs, Timestamps.toMillis(systemProperties.getDeliveryTimestamp()));
+    }
+
+    @Test
+    public void testBuildMessageIgnoresInvalidTimerDeliverMs() {
+        MessageExt messageExt = buildMessageExt();
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TIMER_DELIVER_MS, "invalid-deliver-ms");
+
+        SystemProperties systemProperties = GrpcConverter.getInstance().buildMessage(messageExt).getSystemProperties();
+
+        assertFalse(systemProperties.hasDeliveryTimestamp());
+    }
+
+    private MessageExt buildMessageExt() {
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic("test-topic");
+        messageExt.setBody("test-body".getBytes(StandardCharsets.UTF_8));
+        messageExt.setQueueId(1);
+        messageExt.setQueueOffset(100L);
+        messageExt.setBornTimestamp(System.currentTimeMillis());
+        messageExt.setStoreTimestamp(System.currentTimeMillis());
+        messageExt.setBornHost(new InetSocketAddress("127.0.0.1", 1234));
+        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 5678));
+        messageExt.setReconsumeTimes(0);
+        messageExt.setMsgId("test-msg-id");
+        return messageExt;
     }
 }
