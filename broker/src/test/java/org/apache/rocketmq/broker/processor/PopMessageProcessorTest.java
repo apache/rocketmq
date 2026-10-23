@@ -141,7 +141,7 @@ public class PopMessageProcessorTest {
         RemotingCommand request = createPopMsgCommand();
         assertThat(popMessageProcessor.processRequest(handlerContext, request)).isNull();
         assertThat((Object) embeddedChannel.readOutbound()).isNull();
-        persisted.completeExceptionally(new java.util.concurrent.RejectedExecutionException("writer full"));
+        persisted.completeExceptionally(new java.util.concurrent.RejectedExecutionException("writer stopped"));
         RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);

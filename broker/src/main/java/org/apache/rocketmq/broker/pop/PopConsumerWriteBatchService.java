@@ -24,15 +24,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 
 /**
- * One WAL writer for all POP KV mutations. Admission never waits for disk or queue space.
+ * One WAL writer for all POP KV mutations. Submission never waits for disk.
  * Requests retain their order and are never split across WriteBatches.
  */
-class PopConsumerWriteBatchService {
-    private static final int MAX_PENDING_REQUESTS = 4096;
-    private static final long MAX_PENDING_BYTES = 64 * 1024 * 1024;
+class PopConsumerWriteBatchService extends ServiceThread {
     private static final int MAX_BATCH_REQUESTS = 128;
     private static final long MAX_BATCH_BYTES = 1024 * 1024;
 
@@ -64,14 +63,10 @@ class PopConsumerWriteBatchService {
     }
 
     private final Object admissionLock = new Object();
-    private final LinkedBlockingQueue<Request> queue = new LinkedBlockingQueue<>(MAX_PENDING_REQUESTS);
+    private final LinkedBlockingQueue<Request> queue = new LinkedBlockingQueue<>();
     private final BatchWriter writer;
-    // Bounded indirectly by admission, including requests waiting for their completion callbacks.
     private final ExecutorService completions;
-    private final Thread thread = new Thread(this::run, "PopKVGroupCommit");
-    private volatile boolean accepting;
-    private int pendingRequests;
-    private long pendingBytes;
+    private boolean accepting;
 
     PopConsumerWriteBatchService(BatchWriter writer) {
         this(writer, 4);
@@ -83,10 +78,19 @@ class PopConsumerWriteBatchService {
             new ThreadFactoryImpl("PopKVCompletion_"));
     }
 
-    void start() {
+    @Override
+    public String getServiceName() {
+        return "PopKVGroupCommit";
+    }
+
+    @Override
+    public synchronized void start() {
+        if (completions.isShutdown()) {
+            throw new IllegalStateException("POP KV writer already shut down");
+        }
         synchronized (admissionLock) {
+            super.start();
             accepting = true;
-            thread.start();
         }
     }
 
@@ -98,27 +102,22 @@ class PopConsumerWriteBatchService {
     CompletableFuture<Void> submit(List<Mutation> mutations, boolean asyncCompletion) {
         Request request = new Request(mutations, asyncCompletion);
         synchronized (admissionLock) {
-            if (!accepting || pendingRequests >= MAX_PENDING_REQUESTS || pendingBytes + request.bytes > MAX_PENDING_BYTES) {
-                request.future.completeExceptionally(new RejectedExecutionException("POP KV writer stopped or full"));
+            if (!accepting || isStopped()) {
+                request.future.completeExceptionally(new RejectedExecutionException("POP KV writer stopped"));
                 return request.future;
             }
-            pendingRequests++;
-            pendingBytes += request.bytes;
             queue.add(request);
         }
+        wakeup();
         return request.future;
     }
 
-    private void run() {
-        while (accepting || !queue.isEmpty()) {
-            Request first;
-            try {
-                first = queue.poll(100, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                // Shutdown never interrupts an in-progress native write.
-                continue;
-            }
+    @Override
+    public void run() {
+        while (!isStopped() || !queue.isEmpty()) {
+            Request first = queue.poll();
             if (first == null) {
+                waitForRunning(1000);
                 continue;
             }
             List<Request> requests = new ArrayList<>();
@@ -158,10 +157,6 @@ class PopConsumerWriteBatchService {
     }
 
     private void complete(Request request, Throwable failure) {
-        synchronized (admissionLock) {
-            pendingRequests--;
-            pendingBytes -= request.bytes;
-        }
         if (failure == null) {
             request.future.complete(null);
         } else {
@@ -169,18 +164,23 @@ class PopConsumerWriteBatchService {
         }
     }
 
-    void shutdown() {
+    @Override
+    public synchronized void shutdown(boolean interrupt) {
         synchronized (admissionLock) {
             accepting = false;
+            super.makeStop();
         }
+        // Drain before completing ServiceThread shutdown: its timed join must not allow
+        // RocksDB to close while a native write is still running. Never interrupt the writer.
         boolean interrupted = false;
-        while (thread.isAlive()) {
+        while (thread != null && thread.isAlive()) {
             try {
                 thread.join();
             } catch (InterruptedException e) {
                 interrupted = true;
             }
         }
+        super.shutdown(false);
         completions.shutdown();
         boolean terminated = false;
         while (!terminated) {

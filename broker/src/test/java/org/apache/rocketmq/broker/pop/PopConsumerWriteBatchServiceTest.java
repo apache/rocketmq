@@ -118,7 +118,7 @@ public class PopConsumerWriteBatchServiceTest {
     }
 
     @Test(timeout = 15000)
-    public void fullQueueRejectsWithoutBlockingAndShutdownDrains() throws Exception {
+    public void unboundedQueueAcceptsBeyondFormerLimitAndShutdownDrains() throws Exception {
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         PopConsumerWriteBatchService service = new PopConsumerWriteBatchService(mutations -> {
@@ -130,10 +130,10 @@ public class PopConsumerWriteBatchServiceTest {
         try {
             futures.add(service.submit(mutation(0, false)));
             await(entered);
-            for (int i = 1; i < 4096; i++) {
+            for (int i = 1; i < 5000; i++) {
                 futures.add(service.submit(mutation(i, false)));
             }
-            assertFailed(service.submit(mutation(1, true)));
+            futures.add(service.submit(mutation(1, true)));
             CompletableFuture<Void> shutdown = CompletableFuture.runAsync(service::shutdown);
             Assert.assertFalse(shutdown.isDone());
             release.countDown();
@@ -149,7 +149,7 @@ public class PopConsumerWriteBatchServiceTest {
     }
 
     @Test(timeout = 15000)
-    public void boundsBytesAndDoesNotSplitAtomicRequests() throws Exception {
+    public void limitsBatchBytesWithoutLimitingPendingBytesOrSplittingAtomicRequests() throws Exception {
         CountDownLatch entered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         List<Integer> batchSizes = new ArrayList<>();
@@ -168,11 +168,11 @@ public class PopConsumerWriteBatchServiceTest {
                 new byte[] {1}, new byte[1024 * 1024]);
             CompletableFuture<Void> atomic = service.submit(Arrays.asList(large, large));
             CompletableFuture<Void> next = service.submit(mutation(2, true));
-            // 64 references to a 1 MiB mutation exceed the pending-byte budget without a huge allocation.
-            assertFailed(service.submit(Collections.nCopies(64, large)));
+            // Exceed the former 64 MiB pending-byte limit without a huge allocation.
+            CompletableFuture<Void> oversized = service.submit(Collections.nCopies(64, large));
             release.countDown();
-            CompletableFuture.allOf(first, atomic, next).get(10, TimeUnit.SECONDS);
-            Assert.assertEquals(Arrays.asList(1, 2, 1), batchSizes);
+            CompletableFuture.allOf(first, atomic, next, oversized).get(10, TimeUnit.SECONDS);
+            Assert.assertEquals(Arrays.asList(1, 2, 1, 64), batchSizes);
         } finally {
             release.countDown();
             service.shutdown();
@@ -319,7 +319,7 @@ public class PopConsumerWriteBatchServiceTest {
     }
 
     @Test(timeout = 15000)
-    public void busyCompletionPoolKeepsAdmissionBoundedAndShutdownDrainsCallbacks() throws Exception {
+    public void busyCompletionPoolDoesNotRejectWritesAndShutdownDrainsCallbacks() throws Exception {
         CountDownLatch firstWrite = new CountDownLatch(1);
         CountDownLatch releaseWrite = new CountDownLatch(1);
         CountDownLatch callbacksEntered = new CountDownLatch(2);
@@ -347,10 +347,10 @@ public class PopConsumerWriteBatchServiceTest {
             await(firstWrite);
             releaseWrite.countDown();
             await(callbacksEntered);
-            for (int i = 0; i < 4096; i++) {
+            for (int i = 0; i < 5000; i++) {
                 futures.add(service.submit(mutation(i, false)));
             }
-            assertFailed(service.submit(mutation(1, true)));
+            futures.add(service.submit(mutation(1, true)));
             CompletableFuture<Void> shutdown = CompletableFuture.runAsync(service::shutdown);
             Assert.assertFalse(shutdown.isDone());
             releaseCallbacks.countDown();
@@ -359,6 +359,66 @@ public class PopConsumerWriteBatchServiceTest {
         } finally {
             releaseWrite.countDown();
             releaseCallbacks.countDown();
+            service.shutdown();
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void shutdownDoesNotInterruptWriteAndRejectsNewRequests() throws Exception {
+        CountDownLatch writeEntered = new CountDownLatch(1);
+        CountDownLatch releaseWrite = new CountDownLatch(1);
+        CountDownLatch stopping = new CountDownLatch(1);
+        AtomicInteger writes = new AtomicInteger();
+        PopConsumerWriteBatchService service = new PopConsumerWriteBatchService(mutations -> {
+            writes.incrementAndGet();
+            writeEntered.countDown();
+            await(releaseWrite);
+        }) {
+            @Override
+            public void wakeup() {
+                super.wakeup();
+                if (isStopped()) {
+                    stopping.countDown();
+                }
+            }
+        };
+        service.start();
+        try {
+            CompletableFuture<Void> first = service.submit(mutation(1, false));
+            await(writeEntered);
+            CompletableFuture<Void> second = service.submit(mutation(2, true));
+            CompletableFuture<Void> shutdown = CompletableFuture.runAsync(() -> service.shutdown(true));
+            await(stopping);
+            Assert.assertFalse(shutdown.isDone());
+            Assert.assertFalse(first.isDone());
+            assertFailed(service.submit(mutation(3, false)));
+            releaseWrite.countDown();
+            shutdown.get(10, TimeUnit.SECONDS);
+            CompletableFuture.allOf(first, second).get(10, TimeUnit.SECONDS);
+            Assert.assertEquals(2, writes.get());
+        } finally {
+            releaseWrite.countDown();
+            service.shutdown();
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void idleWriterUsesServiceThreadWakeup() throws Exception {
+        CountDownLatch waiting = new CountDownLatch(1);
+        PopConsumerWriteBatchService service = new PopConsumerWriteBatchService(mutations -> { }) {
+            @Override
+            protected void waitForRunning(long interval) {
+                waiting.countDown();
+                // Submission and shutdown must wake the worker without waiting for this timeout.
+                super.waitForRunning(TimeUnit.MINUTES.toMillis(1));
+            }
+        };
+        service.start();
+        try {
+            await(waiting);
+            service.start();
+            service.submit(mutation(1, false)).get(10, TimeUnit.SECONDS);
+        } finally {
             service.shutdown();
         }
     }
