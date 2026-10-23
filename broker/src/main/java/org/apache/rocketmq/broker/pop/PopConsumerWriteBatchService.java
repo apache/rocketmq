@@ -67,15 +67,20 @@ class PopConsumerWriteBatchService {
     private final LinkedBlockingQueue<Request> queue = new LinkedBlockingQueue<>(MAX_PENDING_REQUESTS);
     private final BatchWriter writer;
     // Bounded indirectly by admission, including requests waiting for their completion callbacks.
-    private final ExecutorService completions = Executors.newSingleThreadExecutor(
-        new ThreadFactoryImpl("PopKVCompletion_"));
+    private final ExecutorService completions;
     private final Thread thread = new Thread(this::run, "PopKVGroupCommit");
     private volatile boolean accepting;
     private int pendingRequests;
     private long pendingBytes;
 
     PopConsumerWriteBatchService(BatchWriter writer) {
+        this(writer, 4);
+    }
+
+    PopConsumerWriteBatchService(BatchWriter writer, int completionThreads) {
         this.writer = writer;
+        this.completions = Executors.newFixedThreadPool(completionThreads,
+            new ThreadFactoryImpl("PopKVCompletion_"));
     }
 
     void start() {
@@ -138,18 +143,16 @@ class PopConsumerWriteBatchService {
                 failure = t;
             }
             final Throwable result = failure;
-            List<Request> asyncRequests = new ArrayList<>();
             for (Request request : requests) {
                 if (request.asyncCompletion) {
-                    asyncRequests.add(request);
+                    // One task per request: even callbacks from the same batch can run concurrently.
+                    // Never run user continuations on the WAL writer.
+                    completions.execute(() -> complete(request, result));
                 } else {
+                    // Private blocking futures have no continuations, so callbacks may safely
+                    // use a synchronous storage API even when all completion workers are busy.
                     complete(request, result);
                 }
-            }
-            // Never execute user continuations on the WAL writer. Private blocking futures
-            // above are completed directly so a callback can safely use a synchronous API.
-            if (!asyncRequests.isEmpty()) {
-                completions.execute(() -> asyncRequests.forEach(request -> complete(request, result)));
             }
         }
     }

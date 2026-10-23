@@ -50,9 +50,18 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     protected ColumnFamilyHandle columnFamilyHandle;
     private final long blockCacheSize;
     private final long writeBufferSize;
+    private final int completionThreads;
 
     public PopConsumerRocksdbStore(String filePath, long blockCacheSize, long writeBufferSize) {
+        this(filePath, blockCacheSize, writeBufferSize, 4);
+    }
+
+    public PopConsumerRocksdbStore(String filePath, long blockCacheSize, long writeBufferSize, int completionThreads) {
         super(filePath);
+        if (completionThreads <= 0) {
+            throw new IllegalArgumentException("POP KV completion thread count must be positive");
+        }
+        this.completionThreads = completionThreads;
         this.blockCacheSize = blockCacheSize;
         this.writeBufferSize = writeBufferSize;
     }
@@ -114,7 +123,7 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
             return false;
         }
         if (writeBatchService == null) {
-            writeBatchService = new PopConsumerWriteBatchService(this::writeBatch);
+            writeBatchService = new PopConsumerWriteBatchService(this::writeBatch, completionThreads);
             writeBatchService.start();
         }
         return true;

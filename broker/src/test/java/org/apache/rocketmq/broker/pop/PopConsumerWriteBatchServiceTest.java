@@ -205,7 +205,7 @@ public class PopConsumerWriteBatchServiceTest {
     }
 
     @Test(timeout = 15000)
-    public void blockedCallbackDoesNotBlockWriter() throws Exception {
+    public void blockedCallbackDoesNotBlockWriterOrOtherCompletions() throws Exception {
         CountDownLatch firstWrite = new CountDownLatch(1);
         CountDownLatch releaseWrite = new CountDownLatch(1);
         CountDownLatch callbackEntered = new CountDownLatch(1);
@@ -236,13 +236,131 @@ public class PopConsumerWriteBatchServiceTest {
             await(callbackEntered);
             CompletableFuture<Void> next = service.submit(mutation(2, false));
             await(secondWrite);
-            Assert.assertFalse(next.isDone());
-            releaseCallback.countDown();
             next.get(10, TimeUnit.SECONDS);
+            Assert.assertEquals(1, releaseCallback.getCount());
+            releaseCallback.countDown();
         } finally {
             releaseWrite.countDown();
             releaseCallback.countDown();
             service.shutdown();
         }
     }
+
+    @Test(timeout = 15000)
+    public void callbacksInSameBatchRunConcurrently() throws Exception {
+        CountDownLatch firstWrite = new CountDownLatch(1);
+        CountDownLatch releaseWrite = new CountDownLatch(1);
+        CountDownLatch callbacksEntered = new CountDownLatch(2);
+        AtomicInteger writes = new AtomicInteger();
+        AtomicInteger secondBatchSize = new AtomicInteger();
+        PopConsumerWriteBatchService service = new PopConsumerWriteBatchService(mutations -> {
+            if (writes.incrementAndGet() == 1) {
+                firstWrite.countDown();
+                await(releaseWrite);
+            } else if (writes.get() == 2) {
+                secondBatchSize.set(mutations.size());
+            }
+        }, 2);
+        service.start();
+        try {
+            CompletableFuture<Void> first = service.submit(mutation(0, false));
+            await(firstWrite);
+            List<CompletableFuture<Void>> callbacks = new ArrayList<>();
+            for (int i = 1; i <= 2; i++) {
+                callbacks.add(service.submit(mutation(i, false)).thenRun(() -> {
+                    callbacksEntered.countDown();
+                    try {
+                        await(callbacksEntered);
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
+                    }
+                    // Both completion workers can wait for private synchronous writes.
+                    service.submit(mutation(3, true), false).join();
+                }));
+            }
+            releaseWrite.countDown();
+            first.get(10, TimeUnit.SECONDS);
+            CompletableFuture.allOf(callbacks.toArray(new CompletableFuture[0])).get(10, TimeUnit.SECONDS);
+            // Two requests queued while the first write was blocked must share a batch.
+            Assert.assertEquals(2, secondBatchSize.get());
+            Assert.assertTrue(writes.get() >= 3);
+        } finally {
+            releaseWrite.countDown();
+            while (callbacksEntered.getCount() > 0) {
+                callbacksEntered.countDown();
+            }
+            service.shutdown();
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void callbackCanChainAnotherAsyncWrite() throws Exception {
+        CountDownLatch firstWrite = new CountDownLatch(1);
+        CountDownLatch releaseWrite = new CountDownLatch(1);
+        AtomicInteger writes = new AtomicInteger();
+        PopConsumerWriteBatchService service = new PopConsumerWriteBatchService(mutations -> {
+            if (writes.incrementAndGet() == 1) {
+                firstWrite.countDown();
+                await(releaseWrite);
+            }
+        }, 2);
+        service.start();
+        try {
+            CompletableFuture<Void> first = service.submit(mutation(1, false));
+            await(firstWrite);
+            CompletableFuture<Void> chained = first.thenCompose(ignored -> service.submit(mutation(2, true)));
+            releaseWrite.countDown();
+            chained.get(10, TimeUnit.SECONDS);
+            Assert.assertEquals(2, writes.get());
+        } finally {
+            releaseWrite.countDown();
+            service.shutdown();
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void busyCompletionPoolKeepsAdmissionBoundedAndShutdownDrainsCallbacks() throws Exception {
+        CountDownLatch firstWrite = new CountDownLatch(1);
+        CountDownLatch releaseWrite = new CountDownLatch(1);
+        CountDownLatch callbacksEntered = new CountDownLatch(2);
+        CountDownLatch releaseCallbacks = new CountDownLatch(1);
+        AtomicInteger writes = new AtomicInteger();
+        PopConsumerWriteBatchService service = new PopConsumerWriteBatchService(mutations -> {
+            if (writes.incrementAndGet() == 1) {
+                firstWrite.countDown();
+                await(releaseWrite);
+            }
+        }, 2);
+        service.start();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        try {
+            for (int i = 0; i < 2; i++) {
+                futures.add(service.submit(mutation(i, false)).thenRun(() -> {
+                    callbacksEntered.countDown();
+                    try {
+                        await(releaseCallbacks);
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }));
+            }
+            await(firstWrite);
+            releaseWrite.countDown();
+            await(callbacksEntered);
+            for (int i = 0; i < 4096; i++) {
+                futures.add(service.submit(mutation(i, false)));
+            }
+            assertFailed(service.submit(mutation(1, true)));
+            CompletableFuture<Void> shutdown = CompletableFuture.runAsync(service::shutdown);
+            Assert.assertFalse(shutdown.isDone());
+            releaseCallbacks.countDown();
+            shutdown.get(10, TimeUnit.SECONDS);
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(10, TimeUnit.SECONDS);
+        } finally {
+            releaseWrite.countDown();
+            releaseCallbacks.countDown();
+            service.shutdown();
+        }
+    }
+
 }
