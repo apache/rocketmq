@@ -19,7 +19,10 @@ package org.apache.rocketmq.broker.processor;
 import com.alibaba.fastjson2.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
@@ -39,6 +42,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
@@ -117,6 +121,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
+        List<CompletableFuture<?>> writes = new ArrayList<>();
         AckMessageRequestHeader requestHeader;
         BatchAckMessageRequestBody reqBody = null;
         final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
@@ -162,7 +167,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 return response;
             }
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
-                appendAckNew(requestHeader, null, response, channel, null);
+                appendAckNew(requestHeader, null, response, channel, writes);
             } else {
                 appendAck(requestHeader, null, response, channel, null);
             }
@@ -176,7 +181,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             }
             for (BatchAck bAck : reqBody.getAcks()) {
                 if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
-                    appendAckNew(null, bAck, response, channel, reqBody.getBrokerName());
+                    appendAckNew(null, bAck, response, channel, writes);
                 } else {
                     appendAck(null, bAck, response, channel, reqBody.getBrokerName());
                 }
@@ -186,6 +191,17 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark(String.format("AckMessageProcessor failed to process RequestCode: %d", request.getCode()));
             return response;
+        }
+        if (!writes.isEmpty()) {
+            CompletableFuture.allOf(writes.toArray(new CompletableFuture[0])).whenComplete((ignored, error) -> {
+                if (error != null) {
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("Failed to persist POP acknowledgement");
+                    POP_LOGGER.error("persist POP acknowledgement failed", error);
+                }
+                doResponse(channel, request, response);
+            });
+            return null;
         }
         return response;
     }
@@ -316,7 +332,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
     }
 
     private void appendAckNew(final AckMessageRequestHeader requestHeader, final BatchAck batchAck,
-        final RemotingCommand response, final Channel channel, String brokerName) throws RemotingCommandException {
+        final RemotingCommand response, final Channel channel, List<CompletableFuture<?>> writes) throws RemotingCommandException {
 
         if (requestHeader != null && batchAck == null) {
             String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
@@ -331,8 +347,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             if (reviveQueueId == KeyBuilder.POP_ORDER_REVIVE_QUEUE) {
                 ackOrderlyNew(topicId, groupId, queueId, ackOffset, popTime, invisibleTime, channel, response);
             } else {
-                this.brokerController.getPopConsumerService().ackAsync(
-                    popTime, invisibleTime, groupId, topicId, queueId, ackOffset);
+                writes.add(this.brokerController.getPopConsumerService().ackAsync(
+                    popTime, invisibleTime, groupId, topicId, queueId, ackOffset));
             }
 
             this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
@@ -369,8 +385,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                     if (reviveQueueId == KeyBuilder.POP_ORDER_REVIVE_QUEUE) {
                         ackOrderlyNew(topicId, groupId, queueId, offset, popTime, invisibleTime, channel, response);
                     } else {
-                        this.brokerController.getPopConsumerService().ackAsync(
-                            popTime, invisibleTime, groupId, topicId, queueId, offset);
+                        writes.add(this.brokerController.getPopConsumerService().ackAsync(
+                            popTime, invisibleTime, groupId, topicId, queueId, offset));
                     }
                     ackCount++;
                 }
@@ -381,6 +397,11 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 throw new RemotingCommandException("Failed to ack message", e);
             }
         }
+    }
+
+    protected void doResponse(Channel channel, RemotingCommand request, RemotingCommand response) {
+        NettyRemotingAbstract.writeResponse(channel, request, response, null,
+            brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
     }
 
     private void handlePutMessageResult(PutMessageResult putMessageResult, AckMsg ackMsg, String topic,

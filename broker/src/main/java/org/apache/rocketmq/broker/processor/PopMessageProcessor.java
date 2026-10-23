@@ -484,6 +484,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     return null;
                 }
                 return response;
+            }).exceptionally(error -> {
+                POP_LOGGER.error("POP KV checkpoint persistence or response failed", error);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("Failed to persist POP checkpoint or prepare response");
+                return response;
             }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager()));
             return null;
         }

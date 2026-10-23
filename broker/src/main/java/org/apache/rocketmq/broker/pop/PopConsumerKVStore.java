@@ -16,7 +16,9 @@
  */
 package org.apache.rocketmq.broker.pop;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface PopConsumerKVStore {
 
@@ -47,6 +49,19 @@ public interface PopConsumerKVStore {
      * @param consumerRecordList The list of consumer records to be deleted.
      */
     void deleteRecords(List<PopConsumerRecord> consumerRecordList);
+
+    default CompletableFuture<Void> writeRecordsAsync(List<PopConsumerRecord> records) {
+        return updateRecordsAsync(records, Collections.emptyList());
+    }
+
+    default CompletableFuture<Void> deleteRecordsAsync(List<PopConsumerRecord> records) {
+        return updateRecordsAsync(Collections.emptyList(), records);
+    }
+
+    /**
+     * Persist puts followed by deletes atomically. Complete only after the WAL is synced.
+     */
+    CompletableFuture<Void> updateRecordsAsync(List<PopConsumerRecord> puts, List<PopConsumerRecord> deletes);
 
     /**
      * Scans and returns a list of expired consumer records within the specified time range.

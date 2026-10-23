@@ -72,7 +72,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
         CompletableFuture<RemotingCommand> responseFuture = processRequestAsync(channel, request, brokerAllowSuspend);
 
-        if (brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
+        if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()
+            || brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
             responseFuture.thenAccept(response -> doResponse(channel, request, response)).exceptionally(throwable -> {
                 RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -145,13 +146,15 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             }
             try {
                 long current = System.currentTimeMillis();
-                brokerController.getPopConsumerService().changeInvisibilityDuration(
+                return brokerController.getPopConsumerService().changeInvisibilityDuration(
                     ExtraInfoUtil.getPopTime(extraInfo), ExtraInfoUtil.getInvisibleTime(extraInfo), current,
                     requestHeader.getInvisibleTime(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    requestHeader.getQueueId(), requestHeader.getOffset(), requestHeader.isSuspend());
-                responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
-                responseHeader.setPopTime(current);
-                responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+                    requestHeader.getQueueId(), requestHeader.getOffset(), requestHeader.isSuspend()).thenApply(ignored -> {
+                        responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+                        responseHeader.setPopTime(current);
+                        responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+                        return response;
+                    });
             } catch (Exception e) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
             }

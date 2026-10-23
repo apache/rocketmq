@@ -22,6 +22,8 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.pop.PopConsumerContext;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.TopicConfig;
@@ -48,6 +50,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -59,6 +62,7 @@ import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.crea
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -123,6 +127,25 @@ public class PopMessageProcessorTest {
         RemotingCommand response = embeddedChannel.readOutbound();
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testPopKVWriteFailureRespondsToClient() throws Exception {
+        brokerController.getBrokerConfig().setPopConsumerKVServiceEnable(true);
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        PopConsumerService service = Mockito.mock(PopConsumerService.class);
+        when(brokerController.getPopConsumerService()).thenReturn(service);
+        CompletableFuture<PopConsumerContext> persisted = new CompletableFuture<>();
+        when(service.popAsync(anyString(), anyLong(), anyLong(), anyString(), anyString(), anyInt(), anyInt(),
+            anyBoolean(), any(), anyInt(), any())).thenReturn(persisted);
+        RemotingCommand request = createPopMsgCommand();
+        assertThat(popMessageProcessor.processRequest(handlerContext, request)).isNull();
+        assertThat((Object) embeddedChannel.readOutbound()).isNull();
+        persisted.completeExceptionally(new java.util.concurrent.RejectedExecutionException("writer full"));
+        RemotingCommand response = embeddedChannel.readOutbound();
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getOpaque()).isEqualTo(request.getOpaque());
     }
 
     @Test

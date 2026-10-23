@@ -19,7 +19,9 @@ package org.apache.rocketmq.broker.pop;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -44,7 +46,7 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     private static final byte[] COLUMN_FAMILY_NAME = "popState".getBytes(StandardCharsets.UTF_8);
 
     private WriteOptions writeOptions;
-    private WriteOptions deleteOptions;
+    private volatile PopConsumerWriteBatchService writeBatchService;
     protected ColumnFamilyHandle columnFamilyHandle;
     private final long blockCacheSize;
     private final long writeBufferSize;
@@ -64,11 +66,6 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         this.writeOptions.setSync(true);
         this.writeOptions.setDisableWAL(false);
         this.writeOptions.setNoSlowdown(false);
-
-        this.deleteOptions = new WriteOptions();
-        this.deleteOptions.setSync(true);
-        this.deleteOptions.setDisableWAL(false);
-        this.deleteOptions.setNoSlowdown(false);
 
         this.compactRangeOptions = new CompactRangeOptions();
         this.compactRangeOptions.setBottommostLevelCompaction(
@@ -112,30 +109,81 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     }
 
     @Override
-    public void writeRecords(List<PopConsumerRecord> consumerRecordList) {
-        if (!consumerRecordList.isEmpty()) {
-            try (WriteBatch writeBatch = new WriteBatch()) {
-                for (PopConsumerRecord record : consumerRecordList) {
-                    writeBatch.put(columnFamilyHandle, record.getKeyBytes(), record.getValueBytes());
-                }
-                this.db.write(writeOptions, writeBatch);
-            } catch (RocksDBException e) {
-                throw new RuntimeException("Write record error", e);
-            }
+    public synchronized boolean start() {
+        if (!super.start()) {
+            return false;
         }
+        if (writeBatchService == null) {
+            writeBatchService = new PopConsumerWriteBatchService(this::writeBatch);
+            writeBatchService.start();
+        }
+        return true;
     }
 
     @Override
-    public void deleteRecords(List<PopConsumerRecord> consumerRecordList) {
-        if (!consumerRecordList.isEmpty()) {
-            try (WriteBatch writeBatch = new WriteBatch()) {
-                for (PopConsumerRecord record : consumerRecordList) {
-                    writeBatch.delete(columnFamilyHandle, record.getKeyBytes());
-                }
-                this.db.write(deleteOptions, writeBatch);
-            } catch (RocksDBException e) {
-                throw new RuntimeException("Delete record error", e);
+    public synchronized boolean shutdown() {
+        if (writeBatchService != null) {
+            // Stop admission and drain before closing any native handles.
+            writeBatchService.shutdown();
+        }
+        boolean shutdown = super.shutdown();
+        if (shutdown) {
+            writeBatchService = null;
+        }
+        return shutdown;
+    }
+
+    @Override
+    public void writeRecords(List<PopConsumerRecord> records) {
+        updateRecords(records, Collections.emptyList(), false).join();
+    }
+
+    @Override
+    public void deleteRecords(List<PopConsumerRecord> records) {
+        updateRecords(Collections.emptyList(), records, false).join();
+    }
+
+    @Override
+    public CompletableFuture<Void> updateRecordsAsync(List<PopConsumerRecord> puts, List<PopConsumerRecord> deletes) {
+        return updateRecords(puts, deletes, true);
+    }
+
+    private CompletableFuture<Void> updateRecords(List<PopConsumerRecord> puts, List<PopConsumerRecord> deletes,
+        boolean asyncCompletion) {
+        if (puts.isEmpty() && deletes.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        // Snapshot mutable records on submission, not when the writer eventually runs.
+        List<PopConsumerWriteBatchService.Mutation> mutations = new ArrayList<>(puts.size() + deletes.size());
+        try {
+            for (PopConsumerRecord record : puts) {
+                mutations.add(new PopConsumerWriteBatchService.Mutation(record.getKeyBytes(), record.getValueBytes()));
             }
+            for (PopConsumerRecord record : deletes) {
+                mutations.add(new PopConsumerWriteBatchService.Mutation(record.getKeyBytes(), null));
+            }
+            PopConsumerWriteBatchService service = writeBatchService;
+            if (service != null) {
+                return service.submit(mutations, asyncCompletion);
+            }
+            throw new IllegalStateException("POP KV store has not been started");
+        } catch (Exception e) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+        }
+    }
+
+    protected void writeBatch(List<PopConsumerWriteBatchService.Mutation> mutations) throws RocksDBException {
+        try (WriteBatch batch = new WriteBatch()) {
+            for (PopConsumerWriteBatchService.Mutation mutation : mutations) {
+                if (mutation.value == null) {
+                    batch.delete(columnFamilyHandle, mutation.key);
+                } else {
+                    batch.put(columnFamilyHandle, mutation.key, mutation.value);
+                }
+            }
+            db.write(writeOptions, batch);
         }
     }
 
@@ -164,9 +212,6 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     protected void preShutdown() {
         if (this.writeOptions != null) {
             this.writeOptions.close();
-        }
-        if (this.deleteOptions != null) {
-            this.deleteOptions.close();
         }
         if (this.columnFamilyHandle != null) {
             this.columnFamilyHandle.close();

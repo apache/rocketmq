@@ -424,12 +424,13 @@ public class PopConsumerService extends ServiceThread {
             }
 
             return getMessageFuture.thenCompose(result -> {
+                CompletableFuture<Void> persisted = CompletableFuture.completedFuture(null);
                 if (result.isFound() && !result.isFifo()) {
                     if (brokerConfig.isEnablePopBufferMerge() &&
                         popConsumerCache != null && !popConsumerCache.isCacheFull()) {
                         this.popConsumerCache.writeRecords(result.getPopConsumerRecordList());
                     } else {
-                        this.popConsumerStore.writeRecords(result.getPopConsumerRecordList());
+                        persisted = this.popConsumerStore.writeRecordsAsync(result.getPopConsumerRecordList());
                     }
 
                     for (int i = 0; i < result.getGetMessageResultList().size(); i++) {
@@ -447,14 +448,18 @@ public class PopConsumerService extends ServiceThread {
                         }
                     }
                 }
-                return CompletableFuture.completedFuture(result);
+                return persisted.whenComplete((ignored, error) -> {
+                    if (error != null) {
+                        result.getGetMessageResultList().forEach(GetMessageResult::release);
+                    }
+                }).thenApply(ignored -> result);
             }).whenComplete((result, throwable) -> {
                 try {
                     if (throwable != null) {
                         log.error("PopConsumerService popAsync get message error",
                             throwable instanceof CompletionException ? throwable.getCause() : throwable);
                     }
-                    if (result.getMessageCount() > 0) {
+                    if (result != null && result.getMessageCount() > 0) {
                         log.debug("PopConsumerService popAsync result, found={}, groupId={}, topicId={}, queueId={}, " +
                                 "batchSize={}, invisibleTime={}, fifo={}, attemptId={}, filter={}", result.getMessageCount(),
                             groupId, topicId, queueId, batchSize, invisibleTime, fifo, attemptId, filter);
@@ -514,12 +519,11 @@ public class PopConsumerService extends ServiceThread {
             }
         }
 
-        this.popConsumerStore.deleteRecords(Collections.singletonList(record));
-        return CompletableFuture.completedFuture(true);
+        return this.popConsumerStore.deleteRecordsAsync(Collections.singletonList(record)).thenApply(ignored -> true);
     }
 
     // refer ChangeInvisibleTimeProcessor.appendCheckPointThenAckOrigin
-    public void changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
+    public CompletableFuture<Void> changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
                                            long changedInvisibleTime, String groupId, String topicId,
                                            int queueId, long offset, boolean suspend) {
 
@@ -540,25 +544,21 @@ public class PopConsumerService extends ServiceThread {
         boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
             !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId);
 
-        if (skipWrite) {
-            log.info("PopConsumerService change invisibility skip, time={}, " +
-                "groupId={}, topicId={}, queueId={}, offset={}", popTime, groupId, topicId, queueId, offset);
-        } else {
-            this.popConsumerStore.writeRecords(Collections.singletonList(ckRecord));
-        }
-
+        List<PopConsumerRecord> puts = skipWrite ? Collections.emptyList() : Collections.singletonList(ckRecord);
+        boolean deleteOld = skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout();
+        List<PopConsumerRecord> deletes = deleteOld ? Collections.singletonList(ackRecord) : Collections.emptyList();
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
-            if (popConsumerCache.deleteRecords(Collections.singletonList(ackRecord)).isEmpty()) {
-                return;
-            }
+            // Keep the old cached CK until its replacement is durable. If it has already been
+            // staged for flushing, delete from storage only after the replacement write.
+            return this.popConsumerStore.writeRecordsAsync(puts).thenCompose(ignored -> {
+                if (popConsumerCache.deleteRecords(Collections.singletonList(ackRecord)).isEmpty()) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                return this.popConsumerStore.deleteRecordsAsync(deletes);
+            });
         }
-
-        // If the new CK has the same key as the old CK (same visibilityTimeout),
-        // the write already overwrites the old record in RocksDB, skip delete
-        // to avoid removing the newly written record.
-        if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
-            this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
-        }
+        // One atomic replacement, including the same-key case where only a put is needed.
+        return this.popConsumerStore.updateRecordsAsync(puts, deletes);
     }
 
     // Use broker escape bridge to support remote read
@@ -641,8 +641,9 @@ public class PopConsumerService extends ServiceThread {
         }
 
         CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
-        this.popConsumerStore.writeRecords(new ArrayList<>(failureList));
-        this.popConsumerStore.deleteRecords(consumerRecords);
+        // The scanner waits for persistence before advancing its cursor. It shares the
+        // single writer with requests and never calls RocksDB.write itself.
+        this.popConsumerStore.updateRecordsAsync(new ArrayList<>(failureList), consumerRecords).join();
         currentTime.set(consumerRecords.isEmpty() ?
             upperTime : consumerRecords.get(consumerRecords.size() - 1).getVisibilityTimeout());
 

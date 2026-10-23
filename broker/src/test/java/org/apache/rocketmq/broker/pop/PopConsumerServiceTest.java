@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -330,6 +331,51 @@ public class PopConsumerServiceTest {
             20000, groupId, topicId, -1, 10, false, attemptId, ConsumeInitMode.MIN, null).join();
     }
 
+    private void checkPopPersistence(boolean fail) throws Exception {
+        brokerController.getBrokerConfig().setEnablePopBufferMerge(false);
+        brokerController.getBrokerConfig().setPopFromRetryProbability(0);
+        Mockito.when(brokerController.getTopicConfigManager().selectTopicConfig(topicId)).thenReturn(new TopicConfig(topicId));
+        Mockito.when(brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupId))
+            .thenReturn(new SubscriptionGroupConfig());
+        PopConsumerKVStore store = Mockito.mock(PopConsumerKVStore.class);
+        FieldUtils.writeField(consumerService, "popConsumerStore", store, true);
+        CompletableFuture<Void> persisted = new CompletableFuture<>();
+        Mockito.when(store.writeRecordsAsync(any())).thenReturn(persisted);
+        PopConsumerService spy = Mockito.spy(consumerService);
+        GetMessageResult messages = new GetMessageResult();
+        messages.setStatus(GetMessageStatus.FOUND);
+        messages.setNextBeginOffset(1);
+        SelectMappedBufferResult buffer = Mockito.mock(SelectMappedBufferResult.class);
+        messages.addMessage(buffer, 0L);
+        Mockito.doReturn(CompletableFuture.completedFuture(messages)).when(spy)
+            .getMessageAsync(clientHost, groupId, topicId, queueId, 0, 1, null);
+        CompletableFuture<PopConsumerContext> result = spy.popAsync(clientHost, System.currentTimeMillis(), 30000,
+            groupId, topicId, queueId, 1, false, attemptId, ConsumeInitMode.MIN, null);
+        Assert.assertFalse(result.isDone());
+        Assert.assertFalse(spy.getConsumerLockService().tryLock(groupId, topicId));
+        if (fail) {
+            persisted.completeExceptionally(new IllegalStateException("disk failed"));
+            Assert.assertTrue(result.isCompletedExceptionally());
+            Mockito.verify(buffer).release();
+        } else {
+            persisted.complete(null);
+            Assert.assertEquals(1, result.get(10, TimeUnit.SECONDS).getMessageCount());
+            Mockito.verify(buffer, Mockito.never()).release();
+        }
+        Assert.assertTrue(spy.getConsumerLockService().tryLock(groupId, topicId));
+        spy.getConsumerLockService().unlock(groupId, topicId);
+    }
+
+    @Test
+    public void popWaitsForCheckpointPersistence() throws Exception {
+        checkPopPersistence(false);
+    }
+
+    @Test
+    public void failedPopReleasesBuffersAndConsumerLock() throws Exception {
+        checkPopPersistence(true);
+    }
+
     @Test
     public void ackAsyncTest() {
         long current = System.currentTimeMillis();
@@ -337,8 +383,70 @@ public class PopConsumerServiceTest {
         consumerService.ackAsync(
             current, 10, groupId, topicId, queueId, 100).join();
         consumerService.changeInvisibilityDuration(current, 10,
-            current + 100, 10, groupId, topicId, queueId, 100, false);
+            current + 100, 10, groupId, topicId, queueId, 100, false).join();
         consumerService.shutdown();
+    }
+
+    @Test
+    public void failedChangeKeepsCachedCheckpoint() throws Exception {
+        PopConsumerKVStore store = Mockito.mock(PopConsumerKVStore.class);
+        FieldUtils.writeField(consumerService, "popConsumerStore", store, true);
+        PopConsumerCache cache = (PopConsumerCache) FieldUtils.readField(consumerService, "popConsumerCache", true);
+        PopConsumerRecord old = getConsumerTestRecord();
+        cache.writeRecords(Collections.singletonList(old));
+        CompletableFuture<Void> persisted = new CompletableFuture<>();
+        Mockito.when(store.writeRecordsAsync(any())).thenReturn(persisted);
+        Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
+        CompletableFuture<Void> change = consumerService.changeInvisibilityDuration(old.getPopTime(), old.getInvisibleTime(),
+            old.getPopTime() + 100, 30000, groupId, topicId, queueId, old.getOffset(), false);
+        Assert.assertFalse(change.isDone());
+        Assert.assertEquals(1, cache.getCacheSize());
+        persisted.completeExceptionally(new IllegalStateException("disk failed"));
+        Assert.assertTrue(change.isCompletedExceptionally());
+        Assert.assertEquals(1, cache.getCacheSize());
+        Mockito.verify(store, Mockito.never()).deleteRecordsAsync(any());
+    }
+
+    @Test
+    public void sameKeyChangeDoesNotDeleteReplacement() throws Exception {
+        brokerController.getBrokerConfig().setEnablePopBufferMerge(false);
+        Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
+        PopConsumerKVStore store = consumerService.getPopConsumerStore();
+        Assert.assertTrue(store.start());
+        try {
+            PopConsumerRecord old = getConsumerTestRecord();
+            store.writeRecords(Collections.singletonList(old));
+            consumerService.changeInvisibilityDuration(old.getPopTime(), old.getInvisibleTime(), old.getPopTime() + 100,
+                old.getInvisibleTime() - 100, groupId, topicId, queueId, old.getOffset(), true).get(10, TimeUnit.SECONDS);
+            List<PopConsumerRecord> records = store.scanExpiredRecords(0, Long.MAX_VALUE, 10);
+            Assert.assertEquals(1, records.size());
+            Assert.assertEquals(old.getPopTime() + 100, records.get(0).getPopTime());
+            Assert.assertTrue(records.get(0).isSuspend());
+        } finally {
+            store.shutdown();
+        }
+    }
+
+    @Test
+    public void revivePersistenceFailureDoesNotAdvanceCursor() throws Exception {
+        brokerController.getBrokerConfig().setEnablePopBufferMerge(false);
+        PopConsumerKVStore store = Mockito.mock(PopConsumerKVStore.class);
+        FieldUtils.writeField(consumerService, "popConsumerStore", store, true);
+        PopConsumerRecord record = getConsumerTestRecord();
+        record.setPopTime(1);
+        Mockito.when(store.scanExpiredRecords(anyLong(), anyLong(), anyInt())).thenReturn(Collections.singletonList(record));
+        CompletableFuture<Void> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new IllegalStateException("disk failed"));
+        Mockito.when(store.updateRecordsAsync(any(), any())).thenReturn(failed);
+        PopConsumerService spy = Mockito.spy(consumerService);
+        Mockito.doReturn(CompletableFuture.completedFuture(true)).when(spy).revive(any(PopConsumerRecord.class));
+        AtomicLong cursor = new AtomicLong(3000);
+        try {
+            spy.revive(cursor, 10);
+            Assert.fail("Persistence failure should propagate");
+        } catch (java.util.concurrent.CompletionException expected) {
+            Assert.assertEquals(3000, cursor.get());
+        }
     }
 
     @Test
@@ -500,7 +608,7 @@ public class PopConsumerServiceTest {
 
         // Test with suspend = true
         consumerService.changeInvisibilityDuration(popTime, invisibleTime, changedPopTime,
-            changedInvisibleTime, groupId, topicId, queueId, offset, true);
+            changedInvisibleTime, groupId, topicId, queueId, offset, true).join();
 
         // Verify that the record was written with suspend = true
         List<PopConsumerRecord> records = consumerService.getPopConsumerStore()
@@ -534,7 +642,7 @@ public class PopConsumerServiceTest {
 
         // Test with suspend = false
         consumerService.changeInvisibilityDuration(popTime, invisibleTime, changedPopTime,
-            changedInvisibleTime, groupId, topicId, queueId, offset, false);
+            changedInvisibleTime, groupId, topicId, queueId, offset, false).join();
 
         // Verify that the record was written with suspend = false
         List<PopConsumerRecord> records = consumerService.getPopConsumerStore()

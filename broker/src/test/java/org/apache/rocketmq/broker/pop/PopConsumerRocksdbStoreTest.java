@@ -22,9 +22,13 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.io.FileUtils;
@@ -108,6 +112,97 @@ public class PopConsumerRocksdbStoreTest {
 
         consumerStore.shutdown();
         deleteStoreDirectory(filePath);
+    }
+
+    @Test(timeout = 20000)
+    public void asyncWritesSnapshotRecordsAndSurviveReopen() throws Exception {
+        String path = getRandomStorePath();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean block = new AtomicBoolean(true);
+        PopConsumerRocksdbStore store = new PopConsumerRocksdbStore(path, 8 * SizeUnit.MB, 4 * SizeUnit.MB) {
+            @Override
+            protected void writeBatch(List<PopConsumerWriteBatchService.Mutation> mutations) throws org.rocksdb.RocksDBException {
+                if (block.getAndSet(false)) {
+                    entered.countDown();
+                    try {
+                        Assert.assertTrue(release.await(10, TimeUnit.SECONDS));
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+                super.writeBatch(mutations);
+            }
+        };
+        Assert.assertTrue(store.start());
+        try {
+            PopConsumerRecord record = getConsumerRecord();
+            CompletableFuture<Void> put = store.writeRecordsAsync(Collections.singletonList(record));
+            Assert.assertTrue(entered.await(10, TimeUnit.SECONDS));
+            Assert.assertFalse(put.isDone());
+            Assert.assertTrue(store.scanExpiredRecords(0, Long.MAX_VALUE, 10).isEmpty());
+            record.setOffset(999);
+            release.countDown();
+            put.get(10, TimeUnit.SECONDS);
+            Assert.assertEquals(100, store.scanExpiredRecords(0, Long.MAX_VALUE, 10).get(0).getOffset());
+            PopConsumerRecord old = getConsumerRecord();
+            PopConsumerRecord replacement = getConsumerRecord();
+            replacement.setInvisibleTime(40000);
+            store.updateRecordsAsync(Collections.singletonList(replacement), Collections.singletonList(old))
+                .get(10, TimeUnit.SECONDS);
+            Assert.assertEquals(1, store.scanExpiredRecords(0, Long.MAX_VALUE, 10).size());
+        } finally {
+            release.countDown();
+            Assert.assertTrue(store.shutdown());
+        }
+        PopConsumerRocksdbStore reopened = new PopConsumerRocksdbStore(path, 8 * SizeUnit.MB, 4 * SizeUnit.MB);
+        Assert.assertTrue(reopened.start());
+        try {
+            List<PopConsumerRecord> records = reopened.scanExpiredRecords(0, Long.MAX_VALUE, 10);
+            Assert.assertEquals(1, records.size());
+            Assert.assertEquals(40000, records.get(0).getInvisibleTime());
+            reopened.deleteRecordsAsync(records).get(10, TimeUnit.SECONDS);
+            Assert.assertTrue(reopened.scanExpiredRecords(0, Long.MAX_VALUE, 10).isEmpty());
+        } finally {
+            reopened.shutdown();
+            deleteStoreDirectory(path);
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void failedReplacementLeavesOldCheckpoint() throws Exception {
+        String path = getRandomStorePath();
+        AtomicBoolean fail = new AtomicBoolean(false);
+        PopConsumerRocksdbStore store = new PopConsumerRocksdbStore(path, 8 * SizeUnit.MB, 4 * SizeUnit.MB) {
+            @Override
+            protected void writeBatch(List<PopConsumerWriteBatchService.Mutation> mutations) throws org.rocksdb.RocksDBException {
+                if (fail.get()) {
+                    throw new org.rocksdb.RocksDBException("injected write failure");
+                }
+                super.writeBatch(mutations);
+            }
+        };
+        Assert.assertTrue(store.start());
+        try {
+            PopConsumerRecord old = getConsumerRecord();
+            store.writeRecords(Collections.singletonList(old));
+            PopConsumerRecord replacement = getConsumerRecord();
+            replacement.setInvisibleTime(40000);
+            fail.set(true);
+            try {
+                store.updateRecordsAsync(Collections.singletonList(replacement), Collections.singletonList(old))
+                    .get(10, TimeUnit.SECONDS);
+                Assert.fail("Replacement should fail");
+            } catch (java.util.concurrent.ExecutionException expected) {
+                Assert.assertTrue(expected.getCause() instanceof org.rocksdb.RocksDBException);
+            }
+            List<PopConsumerRecord> records = store.scanExpiredRecords(0, Long.MAX_VALUE, 10);
+            Assert.assertEquals(1, records.size());
+            Assert.assertEquals(old.getInvisibleTime(), records.get(0).getInvisibleTime());
+        } finally {
+            store.shutdown();
+            deleteStoreDirectory(path);
+        }
     }
 
     private long getDirectorySizeRecursive(File directory) {
