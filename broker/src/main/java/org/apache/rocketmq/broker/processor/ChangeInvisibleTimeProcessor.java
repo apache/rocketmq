@@ -201,6 +201,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
 
         while (!consumerLockService.tryLock(groupId, topicId)) {
+            Thread.yield();
         }
 
         try {
@@ -233,6 +234,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             return response;
         }
         while (!this.brokerController.getPopMessageProcessor().getQueueLockManager().tryLock(requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId())) {
+            Thread.yield();
         }
         try {
             oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(),
@@ -387,6 +389,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
 
         while (!consumerLockService.tryLock(group, lmqName)) {
+            Thread.yield();
         }
 
         try {
