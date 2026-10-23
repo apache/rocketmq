@@ -220,6 +220,15 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
         observer.onCompleted();
     }
 
+    /**
+     * Milliseconds since the Unix epoch. The fractional second is stored in nanos, which stay
+     * non-negative even when {@code seconds} is negative.
+     */
+    private static long epochMillis(Timestamp timestamp) {
+        return TimeUnit.SECONDS.toMillis(timestamp.getSeconds())
+            + TimeUnit.NANOSECONDS.toMillis(timestamp.getNanos());
+    }
+
     /** Master broker address of every broker group in the cluster. */
     private CompletableFuture<List<String>> allMasterBrokerAddrs() {
         return admin().getBrokerClusterInfo(timeoutMillis()).thenApply(clusterInfo -> {
@@ -1076,8 +1085,7 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                 .build());
             return;
         }
-        long resetTimestamp = TimeUnit.SECONDS.toMillis(request.getResetTimestamp().getSeconds())
-            + TimeUnit.NANOSECONDS.toMillis(request.getResetTimestamp().getNanos());
+        long resetTimestamp = epochMillis(request.getResetTimestamp());
         List<String> brokerAddrs;
         try {
             brokerAddrs = topicBrokerAddrs(topic, true);
@@ -1110,9 +1118,11 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
             return;
         }
         int maxNums = request.getMaxMessageNums() > 0 ? request.getMaxMessageNums() : DEFAULT_MAX_MESSAGE_NUMS;
-        long begin = request.hasBeginTimestamp() ? TimeUnit.SECONDS.toMillis(request.getBeginTimestamp().getSeconds()) : 0L;
-        long end = request.hasEndTimestamp() ? TimeUnit.SECONDS.toMillis(request.getEndTimestamp().getSeconds())
-            : Long.MAX_VALUE;
+        // The broker index compares these bounds with millisecond store timestamps, inclusive.
+        // A protobuf Timestamp keeps the fractional second in nanos; using only getSeconds()
+        // moves the window by up to 999ms and drops or adds messages at the edges.
+        long begin = request.hasBeginTimestamp() ? epochMillis(request.getBeginTimestamp()) : 0L;
+        long end = request.hasEndTimestamp() ? epochMillis(request.getEndTimestamp()) : Long.MAX_VALUE;
 
         List<String> brokerAddrs;
         try {

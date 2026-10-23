@@ -62,6 +62,7 @@ import apache.rocketmq.v2.VerifyMessageResponse;
 import com.alibaba.fastjson2.JSON;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
+import com.google.protobuf.util.Timestamps;
 import io.grpc.stub.StreamObserver;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -975,6 +976,32 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         assertEquals(1, observer.value.getMessagesCount());
         verify(adminService).queryMessage(eq(ADDRESS_A), eq(TOPIC), eq("key-1"), eq(1), anyLong(), anyLong(),
             anyBoolean(), anyBoolean(), anyLong());
+    }
+
+    @Test
+    public void queryMessagePreservesSubSecondTimeRangeTest() throws Exception {
+        stubRoute(false, ADDRESS_A);
+        when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(messageExt("MSG-1"))));
+
+        // store timestamps and the broker index are millisecond instants; a Timestamp built the
+        // usual way keeps the fractional second in nanos
+        long beginMs = 1_700_000_000_500L;
+        long endMs = 1_700_000_001_250L;
+        SimpleObserver<ListMessageResponse> observer = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setMessageKey("key-1")
+            .setBeginTimestamp(Timestamps.fromMillis(beginMs))
+            .setEndTimestamp(Timestamps.fromMillis(endMs))
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.OK, observer.value.getStatus().getCode());
+        assertEquals(1, observer.value.getMessagesCount());
+        verify(adminService).queryMessage(eq(ADDRESS_A), eq(TOPIC), eq("key-1"), anyInt(),
+            eq(beginMs), eq(endMs), eq(false), eq(true), anyLong());
     }
 
     // ------------------------------------------------------------------ 10/13. client relay RPCs
