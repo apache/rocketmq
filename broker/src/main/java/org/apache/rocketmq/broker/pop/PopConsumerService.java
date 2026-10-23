@@ -63,6 +63,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
@@ -781,6 +782,7 @@ public class PopConsumerService extends ServiceThread {
                 if (consumerRecords == null || consumerRecords.isEmpty()) {
                     break;
                 }
+                List<PopConsumerRecord> transferredRecords = new ArrayList<>(consumerRecords.size());
                 for (PopConsumerRecord record : consumerRecords) {
                     PopCheckPoint ck = new PopCheckPoint();
                     ck.setBitMap(0);
@@ -797,16 +799,56 @@ public class PopConsumerService extends ServiceThread {
                     int reviveQueueId = (int) record.getOffset() % brokerConfig.getReviveQueueNum();
                     MessageExtBrokerInner ckMsg =
                         brokerController.getPopMessageProcessor().buildCkMsg(ck, reviveQueueId);
-                    brokerController.getMessageStore().asyncPutMessage(ckMsg).join();
+                    if (putCkToFsStore(ckMsg, record)) {
+                        transferredRecords.add(record);
+                    }
                 }
-                log.info("PopConsumerStore transfer from kvStore to fsStore, count={}", consumerRecords.size());
-                this.popConsumerStore.deleteRecords(consumerRecords);
+                if (transferredRecords.isEmpty()) {
+                    // No checkpoint was persisted this round. Keep the records in the kv store so the
+                    // popped-but-unacked messages stay revivable and the transfer can be re-run,
+                    // instead of spinning on the same failing batch inside this synchronized method.
+                    log.error("PopConsumerStore transfer from kvStore to fsStore made no progress, " +
+                        "records stay in kvStore, count={}", consumerRecords.size());
+                    break;
+                }
+                log.info("PopConsumerStore transfer from kvStore to fsStore, count={}", transferredRecords.size());
+                this.popConsumerStore.deleteRecords(transferredRecords);
                 this.waitForRunning(1);
             } catch (Throwable t) {
                 log.error("PopConsumerStore transfer from kvStore to fsStore failure", t);
+                break;
             }
         }
         log.info("PopConsumerStore transfer to fsStore finish, cost={}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
+    /**
+     * Append the checkpoint of the given record to the revive topic.
+     * Only a put result the other checkpoint writers accept counts as transferred; otherwise the
+     * record must stay in the kv store, otherwise the popped-but-unacked message would have no
+     * checkpoint in either store and could never be revived.
+     */
+    private boolean putCkToFsStore(MessageExtBrokerInner ckMsg, PopConsumerRecord record) {
+        PutMessageResult putMessageResult;
+        try {
+            putMessageResult = brokerController.getMessageStore().asyncPutMessage(ckMsg).join();
+        } catch (Throwable t) {
+            log.error("PopConsumerStore transfer from kvStore to fsStore, put ck exception, record={}", record, t);
+            return false;
+        }
+        if (putMessageResult == null || !isPutMessageOk(putMessageResult.getPutMessageStatus())) {
+            log.error("PopConsumerStore transfer from kvStore to fsStore, put ck failed, record={}, result={}",
+                record, putMessageResult);
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isPutMessageOk(PutMessageStatus putMessageStatus) {
+        return PutMessageStatus.PUT_OK == putMessageStatus
+            || PutMessageStatus.FLUSH_DISK_TIMEOUT == putMessageStatus
+            || PutMessageStatus.FLUSH_SLAVE_TIMEOUT == putMessageStatus
+            || PutMessageStatus.SLAVE_NOT_AVAILABLE == putMessageStatus;
     }
 
     @Override
