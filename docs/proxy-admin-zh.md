@@ -71,7 +71,7 @@ proxy 实现 `AdminGrpc.AdminImplBase`（全部 16 个 RPC），并把它绑定�
 | Proxy producer 路径 | AdminSendMessage | `MessagingProcessor.sendMessage`（定时 / FIFO 消息通过 system properties 生效）|
 | Proxy 运行时 | ChangeLogLevel | root logger 上重定位的 logback API |
 
-所有 broker 侧调用都走异步 `AdminService` 网关并并发扇出到所有相关 broker，因此 gRPC 执行线程不会被阻塞。
+所有 broker 侧调用都走异步 `AdminService` 网关并并发扇出到所有相关 broker，因此 gRPC 执行线程不会被阻塞。扇出策略按调用性质区分：**读**保留已响应 broker 的结果，仅当所有 broker 都失败才报错；**变更**（`ResetGroupOffset`）只要有 broker hop 失败就报错，并在 status 里点名未到达的 broker——部分生效的变更不能被当成成功。
 
 ### D5 — 协议覆盖
 
