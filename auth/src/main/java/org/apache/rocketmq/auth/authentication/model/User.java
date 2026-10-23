@@ -52,6 +52,12 @@ public class User implements Subject {
         return user;
     }
 
+    public User copy() {
+        User copy = User.of(this.username, this.password, this.userType);
+        copy.setUserStatus(this.userStatus);
+        return copy;
+    }
+
     @Override
     public String getSubjectKey() {
         return this.getSubjectType().getName() + CommonConstants.COLON + this.username;
