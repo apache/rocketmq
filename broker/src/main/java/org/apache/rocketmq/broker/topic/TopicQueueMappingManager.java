@@ -50,6 +50,33 @@ import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
+/**
+ * Manages the queue-to-broker mapping for <b>static topics</b>.
+ *
+ * <p>Unlike normal topics, whose queue placement is registered to the NameServer by the broker itself,
+ * a static topic has a <em>fixed</em> logical queue layout:
+ *  each logical queue is explicitly mapped to a physical queue on a specific broker.
+ *  This mapping is persisted here (one {@link TopicQueueMappingDetail} per topic)
+ *  and shared via {@link #dataVersion} with the NameServer/controller.
+ *
+ * <p>Key responsibilities:
+ * <ul>
+ *   <li>{@link #updateTopicQueueMapping} — apply an incoming mapping with
+ *       strict validation: epoch must not regress (fences stale data), scope
+ *       must match, and existing mapping items must remain immutable across an
+ *       equal-epoch update.</li>
+ *   <li>{@link #buildTopicQueueMappingContext} — resolve a request's
+ *       {@code globalId} to its leader {@link LogicQueueMappingItem} on this
+ *       broker.</li>
+ *   <li>{@link #rewriteRequestForStaticTopic} — translate a request's logical
+ *       {@code globalId} to the physical {@code queueId} of the current leader,
+ *       rejecting with {@code NOT_LEADER_FOR_QUEUE} when this broker is not the
+ *       leader.</li>
+ * </ul>
+ *
+ * <p>Extends {@link ConfigManager}, so the mapping table is JSON-persisted to
+ * {@link #configFilePath()} and re-loaded by {@link #decode}.
+ */
 public class TopicQueueMappingManager extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;

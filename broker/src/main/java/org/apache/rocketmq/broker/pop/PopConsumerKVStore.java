@@ -18,6 +18,22 @@ package org.apache.rocketmq.broker.pop;
 
 import java.util.List;
 
+/**
+ * Persistent key-value store for un-acked Pop consumer records.
+ *
+ * <p>Used by the KVStore-based ack path ({@code popConsumerKVServiceEnable=true}).
+ * When a message is popped, a record is written here. When the consumer acks
+ * the message or the visibility timeout expires, the record is deleted or
+ * revived. The default implementation is {@code PopConsumerRocksdbStore}.
+ *
+ * <p>This interface supports three operations:
+ * <ul>
+ *   <li>{@link #writeRecords} — persist popped records</li>
+ *   <li>{@link #deleteRecords} — remove acked records</li>
+ *   <li>{@link #scanExpiredRecords} — find records whose visibility timeout
+ *       has elapsed for revival</li>
+ * </ul>
+ */
 public interface PopConsumerKVStore {
 
     /**
