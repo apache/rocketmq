@@ -4,17 +4,27 @@ Two functions below are provided in the basic sample:
 * The RocketMQ can be utilized to send messages in three ways: reliable synchronous, reliable asynchronous, and one-way transmission.  The first two message types are reliable because there is a response whether they were sent successfully.
 * The RocketMQ can be utilized to consume messages.
 ### 1 Add Dependency
-maven:
-``` java
+Maven (`pom.xml`):
+```xml
 <dependency>
   <groupId>org.apache.rocketmq</groupId>
   <artifactId>rocketmq-client</artifactId>
   <version>5.5.0</version>
 </dependency>
 ```
-gradle: 
-``` java 
-compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
+Gradle (`build.gradle`, Groovy DSL):
+```groovy
+plugins {
+  id 'java'
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'org.apache.rocketmq:rocketmq-client:5.5.0'
+}
 ```
 ### 2 Send Messages
 ##### 2.1 Use Producer to Send Synchronous Messages
