@@ -111,6 +111,7 @@ admin 接口绝不填写自己无法如实提供的字段; 下列情况以明确
 
 - **DeleteSubscription 在开源里事实上是 no-op。** 开源代码没有任何地方写入 `SubscriptionGroupConfig.subscriptionDataSet`（broker 只读它），因此没有持久化的 per-topic 订阅可删。该 RPC 返回 `NOT_FOUND` 并说明原因，**消费组及其位点保持不动**。需要该 RPC 的发行版用外部订阅存储填充同一字段。
 - **QueryMessage** 支持按 `message_id`（unique-key 索引）和 `message_key` 查询。`subscription` / `lite_topic` / 纯时间范围扫描三种变体需要开源 broker 不提供的分页游标，返回 `BAD_REQUEST`。
+- **DescribeGroupAccumulation / ListConsumerConnection** 对 `lite_topic` / `liteTopic` 过滤返回 `BAD_REQUEST`：broker 只以单一总量暴露 lite topic 的堆积（没有 inflight/ready 拆分），且 per-client 的 lite 订阅在集群范围不可知，因此该过滤无法如实执行——照常回答会把父 topic 的数据当成本次 lite 范围的结果。
 - **GetProxyRuntimeStats** 的 `in_tps` / `out_tps` 留空：开源 proxy 没有进程级吞吐计数器，填 0 会与空闲 proxy 无法区分。
 - **GetConsumerRunningInfo** 对 gRPC v2 客户端只返回 `subscriptions`：v2 telemetry 协议没有承载 `properties`、`message_queue_table`、`consume_status_table` 的回包。该 RPC 返回 `OK` 并附说明性 status message，而不是空壳。
 - **DescribeTopicStatus** 的 `create_timestamp` / `tags` 留空，因为 broker 不记录 topic 创建时间。
