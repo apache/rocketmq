@@ -43,6 +43,8 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
  */
 public class SimpleChannel extends AbstractChannel {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final int MIN_PORT = 0;
+    private static final int MAX_PORT = 65535;
 
     protected final String remoteAddress;
     protected final String localAddress;
@@ -90,7 +92,17 @@ public class SimpleChannel extends AbstractChannel {
 
         String[] segments = address.split(":");
         if (2 == segments.length) {
-            return new InetSocketAddress(segments[0], Integer.parseInt(segments[1]));
+            try {
+                int port = Integer.parseInt(segments[1]);
+                if (port < MIN_PORT || port > MAX_PORT) {
+                    log.warn("socket address port out of range. address:{}", address);
+                    return null;
+                }
+                return new InetSocketAddress(segments[0], port);
+            } catch (NumberFormatException e) {
+                log.warn("parse socket address failed. address:{}", address);
+                return null;
+            }
         }
 
         return null;
