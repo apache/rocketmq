@@ -234,4 +234,32 @@ public class PopBufferMergeServiceTest {
         method.invoke(popBufferMergeService, pointWrapper, msgIndex, count);
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class));
     }
+
+    @Test
+    public void testAddCkJustOffsetMaxSize() {
+        // Set popCkMaxBufferSize to 0 so any addCkJustOffset should be rejected
+        when(brokerConfig.getPopCkMaxBufferSize()).thenReturn(0);
+
+        PopCheckPoint point1 = mock(PopCheckPoint.class);
+        when(point1.getTopic()).thenReturn("topic1");
+        when(point1.getCId()).thenReturn("cid1");
+        when(point1.getQueueId()).thenReturn(0);
+        when(point1.getStartOffset()).thenReturn(0L);
+        when(point1.getPopTime()).thenReturn(0L);
+        when(point1.getBrokerName()).thenReturn("");
+
+        // counter starts at 0, 0 > 0 is false, so first add succeeds and counter becomes 1
+        assertThat(popBufferMergeService.addCkJustOffset(point1, 0, 0, 0)).isTrue();
+
+        PopCheckPoint point2 = mock(PopCheckPoint.class);
+        when(point2.getTopic()).thenReturn("topic2");
+        when(point2.getCId()).thenReturn("cid2");
+        when(point2.getQueueId()).thenReturn(0);
+        when(point2.getStartOffset()).thenReturn(1L);
+        when(point2.getPopTime()).thenReturn(1L);
+        when(point2.getBrokerName()).thenReturn("");
+
+        // counter is now 1, 1 > 0 is true, so second add is rejected
+        assertThat(popBufferMergeService.addCkJustOffset(point2, 0, 0, 1)).isFalse();
+    }
 }
