@@ -94,7 +94,7 @@ public class RemotingSerializableCompatTest {
             return;
         }
         for (Field field : clazz.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers())) {
+            if (Modifier.isStatic(field.getModifiers()) || Modifier.isTransient(field.getModifiers())) {
                 continue;
             }
             field.setAccessible(true);
@@ -273,7 +273,7 @@ public class RemotingSerializableCompatTest {
         Class<?> clazz = original.getClass();
         boolean result = true;
         for (Field field : clazz.getDeclaredFields()) {
-            if (Modifier.isStatic(field.getModifiers())) {
+            if (Modifier.isStatic(field.getModifiers()) || Modifier.isTransient(field.getModifiers())) {
                 continue;
             }
             JSONField jsonField = field.getAnnotation(JSONField.class);

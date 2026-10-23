@@ -23,6 +23,7 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import com.google.protobuf.util.Timestamps;
 import io.grpc.stub.StreamObserver;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -34,10 +35,13 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.utils.BatchChangeInvisibleTimeUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 
 public class ReceiveMessageResponseStreamWriter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -73,8 +77,7 @@ public class ReceiveMessageResponseStreamWriter {
                                 .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                                 .build());
                         } catch (Throwable t) {
-                            messageFoundList.forEach(messageExt ->
-                                this.processThrowableWhenWriteMessage(t, ctx, request, messageExt));
+                            this.processThrowableWhenWriteMessages(t, ctx, request, messageFoundList);
                             throw t;
                         }
                         Iterator<MessageExt> messageIterator = messageFoundList.iterator();
@@ -86,9 +89,10 @@ public class ReceiveMessageResponseStreamWriter {
                                     .setMessage(curMessage)
                                     .build());
                             } catch (Throwable t) {
-                                this.processThrowableWhenWriteMessage(t, ctx, request, curMessageExt);
-                                messageIterator.forEachRemaining(messageExt ->
-                                    this.processThrowableWhenWriteMessage(t, ctx, request, messageExt));
+                                List<MessageExt> toNackMessageList = new ArrayList<>();
+                                toNackMessageList.add(curMessageExt);
+                                messageIterator.forEachRemaining(toNackMessageList::add);
+                                this.processThrowableWhenWriteMessages(t, ctx, request, toNackMessageList);
                                 return;
                             }
                         }
@@ -122,6 +126,41 @@ public class ReceiveMessageResponseStreamWriter {
         return GrpcConverter.getInstance().buildMessage(messageExt);
     }
 
+    protected void processThrowableWhenWriteMessages(Throwable throwable,
+        ProxyContext ctx, ReceiveMessageRequest request, List<MessageExt> messageExtList) {
+        if (!ConfigurationManager.getProxyConfig().isEnableBatchChangeInvisibleTime()) {
+            messageExtList.forEach(messageExt -> this.processThrowableWhenWriteMessage(throwable, ctx, request, messageExt));
+            return;
+        }
+
+        List<ReceiptHandleMessage> handleMessageList = new ArrayList<>();
+        for (MessageExt messageExt : messageExtList) {
+            String handle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+            if (handle == null) {
+                continue;
+            }
+            handleMessageList.add(new ReceiptHandleMessage(
+                ReceiptHandle.decode(handle),
+                messageExt.getMsgId(),
+                ctx.isLiteConsumer() ? messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC) : null));
+        }
+        for (List<ReceiptHandleMessage> batch : BatchChangeInvisibleTimeUtils.groupByBroker(handleMessageList,
+            request.getGroup().getName(), request.getMessageQueue().getTopic().getName())) {
+            BatchChangeInvisibleTimeUtils.sendBatches(batch,
+                ConfigurationManager.getProxyConfig().getBatchChangeInvisibleTimeMaxNum(), handles -> {
+                    if (handles.size() == 1) {
+                        ReceiptHandleMessage handle = handles.get(0);
+                        return messagingProcessor.changeInvisibleTime(ctx, handle.getReceiptHandle(), handle.getMessageId(),
+                            request.getGroup().getName(), request.getMessageQueue().getTopic().getName(), NACK_INVISIBLE_TIME,
+                            handle.getLiteTopic(), MessagingProcessor.DEFAULT_TIMEOUT_MILLS, true);
+                    }
+                    return messagingProcessor.batchChangeInvisibleTime(ctx, handles, request.getGroup().getName(),
+                        request.getMessageQueue().getTopic().getName(), NACK_INVISIBLE_TIME,
+                        MessagingProcessor.DEFAULT_TIMEOUT_MILLS, true);
+                });
+        }
+    }
+
     protected void processThrowableWhenWriteMessage(Throwable throwable,
         ProxyContext ctx, ReceiveMessageRequest request, MessageExt messageExt) {
 
@@ -140,7 +179,11 @@ public class ReceiveMessageResponseStreamWriter {
             liteTopic,
             MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
             true
-        );
+        ).exceptionally(t -> {
+            log.error("change invisible time failed when nack message after write failed. group={}, topic={}, messageId={}",
+                request.getGroup().getName(), request.getMessageQueue().getTopic().getName(), messageExt.getMsgId(), t);
+            return null;
+        });
     }
 
     public void writeAndComplete(ProxyContext ctx, Code code, String message) {

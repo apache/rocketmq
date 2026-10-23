@@ -49,6 +49,13 @@ public interface PopConsumerKVStore {
     void deleteRecords(List<PopConsumerRecord> consumerRecordList);
 
     /**
+     * Writes and deletes consumer records from the storage in a single batch.
+     * @param writeRecordList The list of consumer records to be written.
+     * @param deleteRecordList The list of consumer records to be deleted.
+     */
+    void writeAndDeleteRecords(List<PopConsumerRecord> writeRecordList, List<PopConsumerRecord> deleteRecordList);
+
+    /**
      * Scans and returns a list of expired consumer records within the specified time range.
      * @param lowerTime The start time (inclusive) of the time range to search, in milliseconds.
      * @param upperTime The end time (exclusive) of the time range to search, in milliseconds.

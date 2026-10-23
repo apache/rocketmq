@@ -16,18 +16,26 @@
  */
 package org.apache.rocketmq.proxy.service.message;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
+
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -47,6 +55,30 @@ public class ClusterMessageServiceTest {
         this.topicRouteService = mock(TopicRouteService.class);
         MQClientAPIFactory mqClientAPIFactory = mock(MQClientAPIFactory.class);
         this.clusterMessageService = new ClusterMessageService(this.topicRouteService, mqClientAPIFactory);
+    }
+
+    @Test
+    public void testNativeBatchTransportUsesHeaderScopeAfterExplicitOptIn() throws Exception {
+        MQClientAPIFactory factory = mock(MQClientAPIFactory.class);
+        MQClientAPIExt client = mock(MQClientAPIExt.class);
+        when(factory.getClient()).thenReturn(client);
+        when(topicRouteService.getBrokerAddr(any(), anyString())).thenReturn("127.0.0.1:10911");
+        ArgumentCaptor<BatchChangeInvisibleTimeRequestBody> body = ArgumentCaptor.forClass(BatchChangeInvisibleTimeRequestBody.class);
+        when(client.batchChangeInvisibleTimeAsync(anyString(), anyString(), anyString(), body.capture(),
+            org.mockito.ArgumentMatchers.anyLong())).thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
+        ReceiptHandle handle = ReceiptHandle.builder().startOffset(0).retrieveTime(System.currentTimeMillis())
+            .invisibleTime(60000).reviveQueueId(0).topicType(ReceiptHandle.NORMAL_TOPIC).brokerName("broker")
+            .queueId(0).offset(1).commitLogOffset(1).build();
+        new ClusterMessageService(topicRouteService, factory, true).batchChangeInvisibleTime(ProxyContext.create(),
+            Arrays.asList(new ReceiptHandleMessage(handle, "first"), new ReceiptHandleMessage(handle, "second")),
+            "group", "topic", 30000, 3000, false).get();
+        org.mockito.Mockito.verify(client).batchChangeInvisibleTimeAsync(org.mockito.ArgumentMatchers.eq("127.0.0.1:10911"),
+            org.mockito.ArgumentMatchers.eq("topic"), org.mockito.ArgumentMatchers.eq("group"), any(),
+            org.mockito.ArgumentMatchers.eq(3000L));
+        assertEquals(2, body.getValue().getEntries().size());
+        String encoded = new String(body.getValue().encode(), StandardCharsets.UTF_8);
+        org.junit.Assert.assertFalse(encoded.contains("consumerGroup"));
+        org.junit.Assert.assertFalse(encoded.contains("\"topic\""));
     }
 
     @Test

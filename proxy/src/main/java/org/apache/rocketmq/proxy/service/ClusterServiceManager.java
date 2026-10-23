@@ -108,7 +108,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         );
 
         this.topicRouteService = new ClusterTopicRouteService(operationClientAPIFactory);
-        this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
+        this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory, true);
         this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
         this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
 

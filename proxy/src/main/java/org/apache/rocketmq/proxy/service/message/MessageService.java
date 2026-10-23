@@ -22,13 +22,16 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
@@ -107,6 +110,25 @@ public interface MessageService {
         String topic,
         long timeoutMillis
     );
+
+    /**
+     * Change invisible time for one bounded batch on one broker and real topic. Results preserve input order.
+     *
+     * @param handleList non-empty handles from the same broker and real topic, already split to the configured limit
+     * @param suspend whether the new checkpoint should be marked suspended
+     */
+    default CompletableFuture<List<AckResult>> batchChangeInvisibleTime(
+        ProxyContext ctx,
+        List<ReceiptHandleMessage> handleList,
+        String consumerGroup,
+        String topic,
+        long invisibleTime,
+        long timeoutMillis,
+        boolean suspend
+    ) {
+        return FutureUtils.completeExceptionally(new MQBrokerException(ResponseCode.REQUEST_CODE_NOT_SUPPORTED,
+            "batch change invisible time is not implemented by this message service"));
+    }
 
     CompletableFuture<PullResult> pullMessage(
         ProxyContext ctx,

@@ -36,6 +36,8 @@ import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
@@ -55,8 +57,16 @@ import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestH
 public class ClusterMessageService implements MessageService {
     protected final TopicRouteService topicRouteService;
     protected final MQClientAPIFactory mqClientAPIFactory;
+    private final boolean batchChangeInvisibleTimeEnabled;
 
     public ClusterMessageService(TopicRouteService topicRouteService, MQClientAPIFactory mqClientAPIFactory) {
+        this(topicRouteService, mqClientAPIFactory, false);
+    }
+
+    // Existing subclasses may customize single-message mapping, tracing or metrics. Batch transport is opt-in.
+    public ClusterMessageService(TopicRouteService topicRouteService, MQClientAPIFactory mqClientAPIFactory,
+        boolean batchChangeInvisibleTimeEnabled) {
+        this.batchChangeInvisibleTimeEnabled = batchChangeInvisibleTimeEnabled;
         this.topicRouteService = topicRouteService;
         this.mqClientAPIFactory = mqClientAPIFactory;
     }
@@ -165,6 +175,36 @@ public class ClusterMessageService implements MessageService {
             topic,
             consumerGroup,
             extraInfoList,
+            timeoutMillis
+        );
+    }
+
+    @Override
+    public CompletableFuture<List<AckResult>> batchChangeInvisibleTime(ProxyContext ctx,
+        List<ReceiptHandleMessage> handleList, String consumerGroup, String topic, long invisibleTime,
+        long timeoutMillis, boolean suspend) {
+        if (!batchChangeInvisibleTimeEnabled) {
+            return MessageService.super.batchChangeInvisibleTime(ctx, handleList, consumerGroup, topic,
+                invisibleTime, timeoutMillis, suspend);
+        }
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        String realTopic = handleList.get(0).getReceiptHandle().getRealTopic(topic, consumerGroup);
+        requestBody.setEntries(handleList.stream().map(message -> {
+            ReceiptHandle handle = message.getReceiptHandle();
+            ChangeInvisibleTimeRequestEntry entry = new ChangeInvisibleTimeRequestEntry();
+            entry.setQueueId(handle.getQueueId());
+            entry.setExtraInfo(handle.getReceiptHandle());
+            entry.setOffset(handle.getOffset());
+            entry.setInvisibleTime(message.getInvisibleTime() > 0 ? message.getInvisibleTime() : invisibleTime);
+            entry.setLiteTopic(message.getLiteTopic());
+            entry.setSuspend(suspend);
+            return entry;
+        }).collect(Collectors.toList()));
+        return this.mqClientAPIFactory.getClient().batchChangeInvisibleTimeAsync(
+            this.resolveBrokerAddrInReceiptHandle(ctx, handleList.get(0).getReceiptHandle()),
+            realTopic,
+            consumerGroup,
+            requestBody,
             timeoutMillis
         );
     }

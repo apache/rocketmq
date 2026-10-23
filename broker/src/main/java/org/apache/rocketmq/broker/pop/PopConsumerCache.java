@@ -116,6 +116,28 @@ public class PopConsumerCache extends ServiceThread {
         return remain;
     }
 
+    public void writeAndDeleteRecords(List<PopConsumerRecord> writeRecordList,
+        List<PopConsumerRecord> deleteRecordList) {
+        if (deleteRecordList.isEmpty()) {
+            consumerRecordStore.writeRecords(writeRecordList);
+            return;
+        }
+
+        List<PopConsumerRecord> storeDeleteRecords = new ArrayList<>(deleteRecordList.size());
+        List<PopConsumerRecord> bufferDeleteRecords = new ArrayList<>(deleteRecordList.size());
+        deleteRecordList.forEach(consumerRecord -> {
+            ConsumerRecords consumerRecords = consumerRecordTable.get(this.getKey(consumerRecord));
+            if (consumerRecords != null && consumerRecords.contains(consumerRecord)) {
+                bufferDeleteRecords.add(consumerRecord);
+            } else {
+                storeDeleteRecords.add(consumerRecord);
+            }
+        });
+
+        consumerRecordStore.writeAndDeleteRecords(writeRecordList, storeDeleteRecords);
+        deleteRecords(bufferDeleteRecords);
+    }
+
     public int cleanupRecords(Consumer<PopConsumerRecord> consumer) {
         int remain = 0;
         Iterator<Map.Entry<String, ConsumerRecords>> iterator = consumerRecordTable.entrySet().iterator();
@@ -229,6 +251,10 @@ public class PopConsumerCache extends ServiceThread {
 
         public boolean delete(PopConsumerRecord record) {
             return recordTreeMap.remove(record.getOffset()) != null;
+        }
+
+        public boolean contains(PopConsumerRecord record) {
+            return recordTreeMap.containsKey(record.getOffset());
         }
 
         public long getMinOffsetInBuffer() {
