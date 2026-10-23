@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -116,6 +117,29 @@ public class BrokerContainerStartupTest {
 
         brokerContainer.shutdown();
         assertThat(brokerContainer.getBrokerControllers().size()).isEqualTo(0);
+    }
+
+    @Test
+    public void testBrokerStartedByContainerInitializesAuthConfigLikeStandaloneBroker() {
+        final BrokerContainerConfig containerConfig = new BrokerContainerConfig();
+        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        parseCmdLineToConfig(Arrays.array("-c", brokerContainerConfigPath), containerConfig, nettyServerConfig, nettyClientConfig);
+        BrokerContainer brokerContainer = BrokerContainerStartup.startBrokerContainer(
+            BrokerContainerStartup.createBrokerContainer(containerConfig, nettyServerConfig, nettyClientConfig));
+        List<BrokerController> brokers = BrokerContainerStartup.createAndStartBrokers(brokerContainer);
+        try {
+            assertThat(brokers.size()).isEqualTo(1);
+            BrokerController broker = brokers.get(0);
+            AuthConfig authConfig = broker.getAuthConfig();
+
+            assertThat(authConfig.getConfigName()).isEqualTo(broker.getBrokerConfig().getBrokerName());
+            assertThat(authConfig.getClusterName()).isEqualTo(broker.getBrokerConfig().getBrokerClusterName());
+            assertThat(authConfig.getAuthConfigPath()).isEqualTo(
+                broker.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config");
+        } finally {
+            brokerContainer.shutdown();
+        }
     }
 
     private static File createBaseDir(String prefix) {
