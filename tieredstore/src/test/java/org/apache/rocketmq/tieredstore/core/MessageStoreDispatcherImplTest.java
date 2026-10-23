@@ -21,7 +21,9 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -30,11 +32,13 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.GroupCommitContext;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
 import org.apache.rocketmq.tieredstore.file.FlatFileInterface;
@@ -286,6 +290,111 @@ public class MessageStoreDispatcherImplTest {
         ((MessageStoreDispatcherImpl)dispatcher).releaseClosedPendingGroupCommit();
         Assert.assertTrue(((MessageStoreDispatcherImpl)dispatcher).getFailedGroupCommitMap().get(flatFile) == null);
 
+    }
+
+    private MessageStoreDispatcherImpl buildMockedDispatcher(MessageStore defaultStore,
+        FlatFileInterface flatFile, IndexService indexService) {
+        messageStore = Mockito.mock(TieredMessageStore.class);
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
+        Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
+        Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
+        Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+        return new MessageStoreDispatcherImpl(messageStore);
+    }
+
+    private FlatFileInterface mockInitializedFlatFile() {
+        FlatFileInterface flatFile = Mockito.mock(FlatFileInterface.class);
+        Mockito.when(flatFile.getMessageQueue()).thenReturn(mq);
+        Mockito.when(flatFile.isFlatFileInit()).thenReturn(true);
+        Mockito.when(flatFile.getConsumeQueueMaxOffset()).thenReturn(100L);
+        Mockito.when(flatFile.getConsumeQueueCommitOffset()).thenReturn(100L);
+        Mockito.when(flatFile.getFileLock()).thenReturn(new ReentrantLock());
+        Mockito.when(flatFile.rollingFile(Mockito.anyLong())).thenReturn(false);
+        Mockito.when(flatFile.getTopicId()).thenReturn(0L);
+        Mockito.when(flatFile.getCommitLogMaxOffset()).thenReturn(1000L);
+        Mockito.when(flatFile.commitAsync()).thenReturn(CompletableFuture.completedFuture(true));
+        return flatFile;
+    }
+
+    @Test
+    public void dispatchMidBatchCqVanishTest() throws Exception {
+        MessageStore defaultStore = Mockito.mock(MessageStore.class);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        Mockito.when(defaultStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(200L);
+
+        IndexService indexService = Mockito.mock(IndexService.class);
+        FlatFileInterface flatFile = mockInitializedFlatFile();
+        // The mocked message carries a dummy store timestamp, so every batch looks timed out
+        // and the dispatcher re-schedules itself while there is progress left. Advance the
+        // max offset on each consume-queue append so the re-scheduled round converges.
+        java.util.concurrent.atomic.AtomicLong consumeQueueMaxOffset = new java.util.concurrent.atomic.AtomicLong(100L);
+        Mockito.when(flatFile.getConsumeQueueMaxOffset()).thenAnswer(inv -> consumeQueueMaxOffset.get());
+        Mockito.when(flatFile.appendCommitLog(any(SelectMappedBufferResult.class))).thenReturn(AppendResult.SUCCESS);
+        Mockito.when(flatFile.appendConsumeQueue(any(DispatchRequest.class))).thenAnswer(inv -> {
+            consumeQueueMaxOffset.incrementAndGet();
+            return AppendResult.SUCCESS;
+        });
+        MessageStoreDispatcherImpl dispatcher = buildMockedDispatcher(defaultStore, flatFile, indexService);
+
+        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+
+        ConsumeQueueInterface cq = Mockito.mock(ConsumeQueueInterface.class);
+        Mockito.when(defaultStore.getConsumeQueue(anyString(), anyInt())).thenReturn(cq);
+        // The preflight offset is still readable, the next one has been truncated away
+        // (e.g. by the expiry sweep while the dispatcher was catching up).
+        Mockito.when(cq.get(anyLong())).thenReturn(null);
+        Mockito.when(cq.get(100L)).thenReturn(new CqUnit(100, 1000, buffer.remaining(), 0L));
+        Mockito.when(defaultStore.selectOneMessageByOffset(anyLong(), anyInt())).thenReturn(
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null),
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null));
+
+        // Must complete normally instead of throwing an NPE from cqUnit.getSize().
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+        Awaitility.await().pollDelay(Duration.ZERO).pollInterval(Duration.ofMillis(100))
+            .atMost(Duration.ofSeconds(30)).untilAsserted(() ->
+                Mockito.verify(flatFile, Mockito.times(1)).appendCommitLog(any(SelectMappedBufferResult.class)));
+        Mockito.verify(flatFile, Mockito.times(1)).appendConsumeQueue(any(DispatchRequest.class));
+    }
+
+    @Test
+    public void dispatchConsumeQueueAppendFailureReleasesBuffersTest() throws Exception {
+        MessageStore defaultStore = Mockito.mock(MessageStore.class);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        Mockito.when(defaultStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(200L);
+
+        IndexService indexService = Mockito.mock(IndexService.class);
+        FlatFileInterface flatFile = mockInitializedFlatFile();
+        // Commitlog append succeeds, but the very first consume-queue append fails, so the
+        // batch breaks with a non-empty buffer list and an empty dispatch-request list.
+        Mockito.when(flatFile.appendCommitLog(any(SelectMappedBufferResult.class))).thenReturn(AppendResult.SUCCESS);
+        Mockito.when(flatFile.appendConsumeQueue(any(DispatchRequest.class))).thenReturn(AppendResult.UNKNOWN_ERROR);
+        MessageStoreDispatcherImpl dispatcher = buildMockedDispatcher(defaultStore, flatFile, indexService);
+
+        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+
+        ConsumeQueueInterface cq = Mockito.mock(ConsumeQueueInterface.class);
+        Mockito.when(defaultStore.getConsumeQueue(anyString(), anyInt())).thenReturn(cq);
+        Mockito.when(cq.get(anyLong())).thenReturn(new CqUnit(100, 1000, buffer.remaining(), 0L));
+
+        // The preflight result (released by the preflight itself) is irrelevant here; the
+        // second result is fetched inside the append loop and must be released with the
+        // group commit context even though no consume-queue entry was appended.
+        MappedFile mappedFile = Mockito.mock(MappedFile.class);
+        SelectMappedBufferResult loopResult =
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), mappedFile);
+        Mockito.when(defaultStore.selectOneMessageByOffset(anyLong(), anyInt())).thenReturn(
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null),
+            loopResult);
+
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+
+        // No commit or index construction will consume the context on this path, so the
+        // fetched message buffer must have been released directly with it.
+        Assert.assertTrue("fetched message buffer leaked when the first consume-queue append failed",
+            loopResult.hasReleased());
+        Assert.assertTrue(dispatcher.getFailedGroupCommitMap().isEmpty());
+        Mockito.verify(flatFile, Mockito.never()).commitAsync();
     }
 
     @Test
