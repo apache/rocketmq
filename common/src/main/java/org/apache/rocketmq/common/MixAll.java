@@ -280,23 +280,13 @@ public class MixAll {
     }
 
     public static String file2String(final URL url) {
-        InputStream in = null;
         try {
             URLConnection urlConnection = url.openConnection();
             urlConnection.setUseCaches(false);
-            in = urlConnection.getInputStream();
-            int len = in.available();
-            byte[] data = new byte[len];
-            in.read(data, 0, len);
-            return new String(data, StandardCharsets.UTF_8);
-        } catch (Exception ignored) {
-        } finally {
-            if (null != in) {
-                try {
-                    in.close();
-                } catch (IOException ignored) {
-                }
+            try (InputStream in = urlConnection.getInputStream()) {
+                return IOTinyUtils.toString(in, StandardCharsets.UTF_8.name());
             }
+        } catch (Exception ignored) {
         }
 
         return null;
