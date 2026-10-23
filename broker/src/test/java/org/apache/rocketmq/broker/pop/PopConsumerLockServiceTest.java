@@ -18,6 +18,10 @@ package org.apache.rocketmq.broker.pop;
 
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.junit.Assert;
@@ -56,5 +60,60 @@ public class PopConsumerLockServiceTest {
         lockService.removeTimeout();
 
         Assert.assertEquals(0, table.size());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void removeTimeoutShouldNotRemoveReacquiredLock() throws Exception {
+        String key = "groupId" + PopAckConstants.SPLIT + "topicId";
+        PopConsumerLockService lockService =
+            new PopConsumerLockService(TimeUnit.MINUTES.toMillis(2));
+
+        Field tableField = PopConsumerLockService.class.getDeclaredField("lockTable");
+        tableField.setAccessible(true);
+        Map<String, PopConsumerLockService.TimedLock> table =
+            (Map<String, PopConsumerLockService.TimedLock>) tableField.get(lockService);
+
+        CountDownLatch timeoutObserved = new CountDownLatch(1);
+        CountDownLatch continueCleanup = new CountDownLatch(1);
+        PopConsumerLockService.TimedLock expiredLock = new PopConsumerLockService.TimedLock() {
+            @Override
+            public long getLockTime() {
+                long observedLockTime = super.getLockTime();
+                timeoutObserved.countDown();
+                try {
+                    if (!continueCleanup.await(5, TimeUnit.SECONDS)) {
+                        throw new AssertionError("Timed out waiting to continue lock cleanup");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+                return observedLockTime;
+            }
+        };
+
+        Field lockTimeField = PopConsumerLockService.TimedLock.class.getDeclaredField("lockTime");
+        lockTimeField.setAccessible(true);
+        lockTimeField.setLong(expiredLock, 0L);
+        table.put(key, expiredLock);
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<?> cleanup = executor.submit(lockService::removeTimeout);
+            Assert.assertTrue("Cleanup did not inspect the expired lock",
+                timeoutObserved.await(5, TimeUnit.SECONDS));
+
+            Assert.assertTrue("The expired lock should be reacquired before cleanup continues",
+                lockService.tryLock(key));
+            continueCleanup.countDown();
+            cleanup.get(5, TimeUnit.SECONDS);
+
+            Assert.assertFalse("Cleanup removed the reacquired lock and allowed a second holder",
+                lockService.tryLock(key));
+        } finally {
+            continueCleanup.countDown();
+            executor.shutdownNow();
+        }
     }
 }
