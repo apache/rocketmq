@@ -228,17 +228,23 @@ public class ConsumerLagCalculator {
 
     public void calculateLag(Consumer<CalculateLagResult> lagRecorder) {
 
-        List<CompletableFuture<CalculateLagResult>> futures = new ArrayList<>();
+        List<CompletableFuture<List<CalculateLagResult>>> futures = new ArrayList<>();
 
+        // calculate() emits both the normal result and the retry result for pop groups,
+        // so all results are collected instead of dropping all but the first one.
         BiConsumer<ConsumerLagCalculator.ProcessGroupInfo,
-            CompletableFuture<ConsumerLagCalculator.CalculateLagResult>> biConsumer =
-                (info, future) -> calculate(info, future::complete);
+            CompletableFuture<List<ConsumerLagCalculator.CalculateLagResult>>> biConsumer =
+                (info, future) -> {
+                    List<ConsumerLagCalculator.CalculateLagResult> results = new ArrayList<>(2);
+                    calculate(info, results::add);
+                    future.complete(results);
+                };
 
         processAllGroup(info -> {
             if (info.group == null || info.topic == null) {
                 return;
             }
-            CompletableFuture<CalculateLagResult> future = new CompletableFuture<>();
+            CompletableFuture<List<CalculateLagResult>> future = new CompletableFuture<>();
             if (info.isPop && brokerConfig.isEnableNotifyBeforePopCalculateLag()) {
                 if (popLongPollingService.notifyMessageArriving(info.topic, -1, info.group,
                     true, null, 0, null, null,
@@ -255,15 +261,16 @@ public class ConsumerLagCalculator {
         try {
             CompletableFuture.allOf(futures.toArray(
                 new CompletableFuture[0])).get(10, TimeUnit.SECONDS);
-
-            futures.forEach(future -> {
-                if (future.isDone() && !future.isCompletedExceptionally()) {
-                    lagRecorder.accept(future.join());
-                }
-            });
         } catch (Exception e) {
             LOGGER.error("Calculate lag timeout after 10 seconds", e);
         }
+        // Record whatever is ready even if some futures timed out, otherwise the lag
+        // metrics of all the other groups would be lost as well.
+        futures.forEach(future -> {
+            if (future.isDone() && !future.isCompletedExceptionally()) {
+                future.join().forEach(lagRecorder);
+            }
+        });
     }
 
     public void calculate(ProcessGroupInfo info, Consumer<CalculateLagResult> lagRecorder) {

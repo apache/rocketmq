@@ -20,6 +20,7 @@ package org.apache.rocketmq.broker.metrics;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -35,7 +36,10 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -82,6 +86,82 @@ public class BrokerMetricsManagerTest {
         assertThat(metricsManager.shouldRecordValue(100, 0)).isTrue();
         assertThat(metricsManager.shouldRecordValue(1000, 1000)).isFalse();
         assertThat(metricsManager.shouldRecordValue(1001, 1000)).isTrue();
+    }
+
+    private ObservableLongMeasurement createCapturingMeasurement(final List<Attributes> recordedLabelSets) {
+        return new ObservableLongMeasurement() {
+            @Override
+            public void record(long value) {
+            }
+
+            @Override
+            public void record(long value, Attributes attributes) {
+                recordedLabelSets.add(attributes);
+            }
+        };
+    }
+
+    @Test
+    public void testRecordOncePerLabelSetSkipsDuplicatedLabels() {
+        BrokerMetricsManager metricsManager = createTestBrokerMetricsManager();
+        List<Attributes> recorded = new ArrayList<>();
+
+        ConsumerLagCalculator.CalculateLagResult normalResult =
+            new ConsumerLagCalculator.CalculateLagResult("testGroup", "testTopic", false);
+        normalResult.lag = 10;
+
+        // both the normal calculator and the lite calculator report the same label set,
+        // only the first one must be exported, otherwise the Prometheus exporter fails
+        // the whole scrape with DuplicateLabelsException
+        metricsManager.recordOncePerLabelSet(createCapturingMeasurement(recorded), new HashSet<>(),
+            (ConsumerLagCalculator.CalculateLagResult result) -> result.lag,
+            recorder -> {
+                recorder.accept(normalResult);
+
+                ConsumerLagCalculator.CalculateLagResult duplicatedResult =
+                    new ConsumerLagCalculator.CalculateLagResult("testGroup", "testTopic", false);
+                duplicatedResult.lag = 20;
+                recorder.accept(duplicatedResult);
+
+                // a different label set must be kept
+                ConsumerLagCalculator.CalculateLagResult retryResult =
+                    new ConsumerLagCalculator.CalculateLagResult("testGroup", "testTopic", true);
+                retryResult.lag = 30;
+                recorder.accept(retryResult);
+            });
+
+        assertThat(recorded).hasSize(2);
+    }
+
+    @Test
+    public void testRecordOncePerLabelSetWithSuppressedMinValue() {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setSuppressMinValueMetrics(true);
+        BrokerMetricsManager metricsManager = createTestBrokerMetricsManager(brokerConfig);
+        List<Attributes> recorded = new ArrayList<>();
+
+        // the first result owns the label set even when its value is suppressed,
+        // a duplicated label set with a greater value must not be recorded either
+        metricsManager.recordOncePerLabelSet(createCapturingMeasurement(recorded), new HashSet<>(),
+            (ConsumerLagCalculator.CalculateLagResult result) -> result.lag,
+            recorder -> {
+                ConsumerLagCalculator.CalculateLagResult suppressedResult =
+                    new ConsumerLagCalculator.CalculateLagResult("testGroup", "testTopic", false);
+                suppressedResult.lag = 0;
+                recorder.accept(suppressedResult);
+
+                ConsumerLagCalculator.CalculateLagResult duplicatedResult =
+                    new ConsumerLagCalculator.CalculateLagResult("testGroup", "testTopic", false);
+                duplicatedResult.lag = 20;
+                recorder.accept(duplicatedResult);
+
+                ConsumerLagCalculator.CalculateLagResult visibleResult =
+                    new ConsumerLagCalculator.CalculateLagResult("testGroup", "testTopic", true);
+                visibleResult.lag = 30;
+                recorder.accept(visibleResult);
+            });
+
+        assertThat(recorded).hasSize(1);
     }
 
     @Test

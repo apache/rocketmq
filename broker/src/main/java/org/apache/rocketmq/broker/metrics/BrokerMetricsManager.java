@@ -24,6 +24,7 @@ import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import io.opentelemetry.exporter.logging.otlp.OtlpJsonLoggingMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
@@ -70,11 +71,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_COMMIT_MESSAGES_TOTAL;
@@ -722,17 +727,12 @@ public class BrokerMetricsManager {
             .setDescription("Consumer lag messages")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                consumerLagCalculator.calculateLag(result -> {
-                    if (shouldRecordValue(result.lag, 0)) {
-                        measurement.record(result.lag, buildLagAttributes(result));
-                    }
-                });
+                Set<Attributes> recordedLabelSets = new HashSet<>();
+                recordOncePerLabelSet(measurement, recordedLabelSets,
+                    result -> result.lag, consumerLagCalculator::calculateLag);
 
-                liteConsumerLagCalculator.calculateLiteLagCount(result -> {
-                    if (shouldRecordValue(result.lag, 0)) {
-                        measurement.record(result.lag, buildLagAttributes(result));
-                    }
-                });
+                recordOncePerLabelSet(measurement, recordedLabelSets,
+                    result -> result.lag, liteConsumerLagCalculator::calculateLiteLagCount);
             });
 
         consumerLagLatency = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_LATENCY)
@@ -740,17 +740,14 @@ public class BrokerMetricsManager {
             .setUnit("milliseconds")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                consumerLagCalculator.calculateLag(lagResult -> {
-                    if (shouldRecordValue(lagResult.getLagLatency(), 0)) {
-                        measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult));
-                    }
-                });
+                Set<Attributes> recordedLabelSets = new HashSet<>();
+                recordOncePerLabelSet(measurement, recordedLabelSets,
+                    ConsumerLagCalculator.CalculateLagResult::getLagLatency,
+                    consumerLagCalculator::calculateLag);
 
-                liteConsumerLagCalculator.calculateLiteLagLatency(lagResult -> {
-                    if (shouldRecordValue(lagResult.getLagLatency(), 0)) {
-                        measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult));
-                    }
-                });
+                recordOncePerLabelSet(measurement, recordedLabelSets,
+                    ConsumerLagCalculator.CalculateLagResult::getLagLatency,
+                    liteConsumerLagCalculator::calculateLiteLagLatency);
             });
 
         consumerInflightMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_INFLIGHT_MESSAGES)
@@ -782,18 +779,13 @@ public class BrokerMetricsManager {
             .setDescription("Consumer ready messages")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                consumerLagCalculator.calculateAvailable(result -> {
-                    if (shouldRecordValue(result.available, 0)) {
-                        measurement.record(result.available, buildLagAttributes(result));
-                    }
-                });
+                Set<Attributes> recordedLabelSets = new HashSet<>();
+                recordOncePerLabelSet(measurement, recordedLabelSets,
+                    result -> result.available, consumerLagCalculator::calculateAvailable);
 
                 // for lite, ready == lag
-                liteConsumerLagCalculator.calculateLiteLagCount(result -> {
-                    if (shouldRecordValue(result.lag, 0)) {
-                        measurement.record(result.lag, buildLagAttributes(result));
-                    }
-                });
+                recordOncePerLabelSet(measurement, recordedLabelSets,
+                    result -> result.lag, liteConsumerLagCalculator::calculateLiteLagCount);
             });
 
         sendToDlqMessages = brokerMeter.counterBuilder(COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
@@ -804,6 +796,36 @@ public class BrokerMetricsManager {
     @VisibleForTesting
     boolean shouldRecordValue(long currentValue, long minValue) {
         return !brokerConfig.isSuppressMinValueMetrics() || currentValue > minValue;
+    }
+
+    /**
+     * Runs the given lag metric source and records at most one measurement per distinct label
+     * set within a single collection cycle.
+     * <p>
+     * The consumer lag gauges are fed by both {@link ConsumerLagCalculator} and
+     * {@link LiteConsumerLagCalculator}. If the two sources report the same
+     * {@code (consumer_group, topic, is_retry, is_system)} combination, the Prometheus exporter
+     * fails the whole scrape with {@code DuplicateLabelsException} and all metrics of this
+     * broker get lost, so only the first value of a label set is recorded.
+     */
+    @VisibleForTesting
+    <R extends ConsumerLagCalculator.BaseCalculateResult> void recordOncePerLabelSet(
+        ObservableLongMeasurement measurement,
+        Set<Attributes> recordedLabelSets,
+        ToLongFunction<R> valueExtractor,
+        Consumer<Consumer<R>> source) {
+        source.accept(result -> {
+            Attributes attributes = buildLagAttributes(result);
+            if (recordedLabelSets.add(attributes)) {
+                long value = valueExtractor.applyAsLong(result);
+                if (shouldRecordValue(value, 0)) {
+                    measurement.record(value, attributes);
+                }
+            } else {
+                LOGGER.debug("Skip duplicated consumer lag metric, group: {}, topic: {}, isRetry: {}",
+                    result.group, result.topic, result.isRetry);
+            }
+        });
     }
 
     private void initTransactionMetrics() {

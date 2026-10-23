@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.longpolling;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import org.apache.rocketmq.broker.metrics.ConsumerLagCalculator;
@@ -25,15 +26,15 @@ import org.apache.rocketmq.remoting.CommandCallback;
 public class PopCommandCallback implements CommandCallback {
 
     private final BiConsumer<ConsumerLagCalculator.ProcessGroupInfo,
-        CompletableFuture<ConsumerLagCalculator.CalculateLagResult>> biConsumer;
+        CompletableFuture<List<ConsumerLagCalculator.CalculateLagResult>>> biConsumer;
     private final ConsumerLagCalculator.ProcessGroupInfo info;
-    private final CompletableFuture<ConsumerLagCalculator.CalculateLagResult> future;
+    private final CompletableFuture<List<ConsumerLagCalculator.CalculateLagResult>> future;
 
     public PopCommandCallback(
         BiConsumer<ConsumerLagCalculator.ProcessGroupInfo,
-            CompletableFuture<ConsumerLagCalculator.CalculateLagResult>> biConsumer,
+            CompletableFuture<List<ConsumerLagCalculator.CalculateLagResult>>> biConsumer,
         ConsumerLagCalculator.ProcessGroupInfo info,
-        CompletableFuture<ConsumerLagCalculator.CalculateLagResult> future) {
+        CompletableFuture<List<ConsumerLagCalculator.CalculateLagResult>> future) {
 
         this.biConsumer = biConsumer;
         this.info = info;
