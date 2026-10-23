@@ -268,6 +268,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public void deleteTopicInBrokerList(final String brokerAddr,
+        final List<String> topicList,
+        final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().deleteTopicInBrokerList(brokerAddr, topicList, timeoutMillis);
+    }
+
+    @Override
     public void createAndUpdateSubscriptionGroupConfig(String addr,
         SubscriptionGroupConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().createSubscriptionGroup(addr, config, timeoutMillis);
@@ -277,6 +284,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
         List<SubscriptionGroupConfig> configs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().createSubscriptionGroupList(brokerAddr, configs, timeoutMillis);
+    }
+
+    @Override
+    public void deleteSubscriptionGroupList(final String brokerAddr,
+        final List<String> groupNameList, final boolean removeOffset,
+        final long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().deleteSubscriptionGroupList(brokerAddr, groupNameList, removeOffset, timeoutMillis);
     }
 
     @Override
