@@ -33,9 +33,11 @@ public enum TopicMessageType {
     MIXED("MIXED");
 
     private final String value;
+    private final String metricsValue;
 
     TopicMessageType(String value) {
         this.value = value;
+        this.metricsValue = value.toLowerCase(java.util.Locale.ROOT);
     }
 
     public static Set<String> topicMessageTypeSet() {
@@ -67,6 +69,6 @@ public enum TopicMessageType {
     }
 
     public String getMetricsValue() {
-        return value.toLowerCase();
+        return metricsValue;
     }
 }

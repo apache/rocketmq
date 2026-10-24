@@ -18,6 +18,8 @@
 
 <configuration scan="true" scanPeriod="30 seconds">
 
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
+
     <appender name="DefaultSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
