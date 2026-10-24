@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -39,14 +38,14 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
     @Override
     public Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
         ByteBuf frame = null;
-        Stopwatch timer = Stopwatch.createStarted();
+        long timerNanos = System.nanoTime();
         try {
             frame = (ByteBuf) super.decode(ctx, in);
             if (null == frame) {
                 return null;
             }
             RemotingCommand cmd = RemotingCommand.decode(frame);
-            cmd.setProcessTimer(timer);
+            cmd.setProcessTimerNanos(timerNanos);
             return cmd;
         } catch (Exception e) {
             log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
