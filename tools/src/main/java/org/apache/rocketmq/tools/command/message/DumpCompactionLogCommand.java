@@ -69,10 +69,10 @@ public class DumpCompactionLogCommand implements SubCommand {
                 throw new SubCommandException("file " + fileName + " is a directory.");
             }
 
-            try {
+            try (RandomAccessFile raf = new RandomAccessFile(fileName, "r");
+                 FileChannel fileChannel = raf.getChannel()) {
                 long fileSize = Files.size(filePath);
-                FileChannel fileChannel = new RandomAccessFile(fileName, "rw").getChannel();
-                ByteBuffer buf = fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+                ByteBuffer buf = fileChannel.map(MapMode.READ_ONLY, 0, fileSize);
 
                 int current = 0;
                 while (current < fileSize) {
