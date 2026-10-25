@@ -71,7 +71,9 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
             int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
             ProxyConfig config = ConfigurationManager.getProxyConfig();
 
-            Long timeRemaining = ctx.getRemainingMs();
+            Long remainingMs = ctx.getRemainingMs();
+            long timeRemaining = remainingMs == null ?
+                config.getGrpcClientConsumerMaxLongPollingTimeoutMillis() : remainingMs;
             long pollingTime;
             if (request.hasLongPollingTimeout()) {
                 pollingTime = Durations.toMillis(request.getLongPollingTimeout());
