@@ -85,6 +85,9 @@ public class Http2ProtocolProxyHandler implements ProtocolHandler {
         if (!ConfigurationManager.getProxyConfig().isEnableRemotingLocalProxyGrpc()) {
             return false;
         }
+        if (in.readableBytes() < Integer.BYTES) {
+            return false;
+        }
 
         // If starts with 'PRI '
         return in.getInt(in.readerIndex()) == PRI_INT;
