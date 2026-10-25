@@ -263,6 +263,10 @@ public class LocalFileOffsetStore implements OffsetStore {
                 offsetSerializeWrapper =
                     OffsetSerializeWrapper.fromJson(content, OffsetSerializeWrapper.class);
             } catch (Exception e) {
+                if (this.mQClientFactory.getClientConfig().isLocalOffsetStoreIgnoreCorrupted()) {
+                    log.warn("readLocalOffsetBak: local offset file corrupted, ignoring per config. group={}", this.groupName, e);
+                    return null;
+                }
                 log.warn("readLocalOffset Exception", e);
                 throw new MQClientException("readLocalOffset Exception, maybe fastjson version too low"
                     + FAQUrl.suggestTodo(FAQUrl.LOAD_JSON_EXCEPTION),
