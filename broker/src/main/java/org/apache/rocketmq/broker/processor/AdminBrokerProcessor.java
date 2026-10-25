@@ -638,6 +638,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         long startTime = System.currentTimeMillis();
 
         final CreateTopicListRequestBody requestBody = CreateTopicListRequestBody.decode(request.getBody(), CreateTopicListRequestBody.class);
+        if (requestBody == null) {
+            RemotingCommand response = RemotingCommand.createResponseCommand(null);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("create topic list request body is null or decode failed");
+            return response;
+        }
         List<TopicConfig> topicConfigList = requestBody.getTopicConfigList();
 
         StringBuilder builder = new StringBuilder();
@@ -1539,6 +1545,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         LockBatchRequestBody requestBody = LockBatchRequestBody.decode(request.getBody(), LockBatchRequestBody.class);
+        if (requestBody == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("lock batch mq request body is null or decode failed");
+            return response;
+        }
 
         Set<MessageQueue> lockOKMQSet = new HashSet<>();
         Set<MessageQueue> selfLockOKMQSet = this.brokerController.getRebalanceLockManager().tryLockBatch(
@@ -1626,6 +1637,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         UnlockBatchRequestBody requestBody = UnlockBatchRequestBody.decode(request.getBody(), UnlockBatchRequestBody.class);
+        if (requestBody == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("unlock batch mq request body is null or decode failed");
+            return response;
+        }
 
         if (requestBody.isOnlyThisBroker() || !this.brokerController.getBrokerConfig().isLockInStrictMode()) {
             this.brokerController.getRebalanceLockManager().unlockBatch(
@@ -1703,6 +1719,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         final SubscriptionGroupList subscriptionGroupList = SubscriptionGroupList.decode(request.getBody(), SubscriptionGroupList.class);
+        if (subscriptionGroupList == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("create subscription group list request body is null or decode failed");
+            return response;
+        }
         final List<SubscriptionGroupConfig> groupConfigList = subscriptionGroupList.getGroupConfigList();
 
         final StringBuilder builder = new StringBuilder();
@@ -3256,6 +3277,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
+        if (syncStateSetInfo == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("notify broker role changed request body is null or decode failed");
+            return response;
+        }
+
         LOGGER.info("Receive notifyBrokerRoleChanged request, try to change brokerRole, request:{}", requestHeader);
 
         final ReplicasManager replicasManager = this.brokerController.getReplicasManager();
@@ -3284,6 +3311,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         UserInfo userInfo = RemotingSerializable.decode(request.getBody(), UserInfo.class);
+        if (userInfo == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("create user request body is null or decode failed");
+            return response;
+        }
         userInfo.setUsername(requestHeader.getUsername());
         User user = UserConverter.convertUser(userInfo);
 
@@ -3316,6 +3348,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         UserInfo userInfo = RemotingSerializable.decode(request.getBody(), UserInfo.class);
+        if (userInfo == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("update user request body is null or decode failed");
+            return response;
+        }
         userInfo.setUsername(requestHeader.getUsername());
         User user = UserConverter.convertUser(userInfo);
 
