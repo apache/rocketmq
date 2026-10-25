@@ -225,8 +225,9 @@ public class ControllerConfig {
 
     public String getDLedgerAddress() {
         return Arrays.stream(this.controllerDLegerPeers.split(";"))
-            .filter(x -> this.controllerDLegerSelfId.equals(x.split("-")[0]))
-            .map(x -> x.split("-")[1]).findFirst().get();
+            .map(x -> x.split("-", 2))
+            .filter(x -> x.length == 2 && this.controllerDLegerSelfId.equals(x[0]))
+            .map(x -> x[1]).findFirst().get();
     }
 
     public MetricsExporterType getMetricsExporterType() {
