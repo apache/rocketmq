@@ -83,6 +83,11 @@ public class IPAddressUtils {
 
     public static boolean isIPInRange(String ip, String cidr) {
         try {
+            if (StringUtils.equals(cidr, "*") || StringUtils.equals(cidr, "0.0.0.0")
+                || StringUtils.equals(cidr, "0.0.0.0/0") || StringUtils.equals(cidr, "::")
+                || StringUtils.equals(cidr, "::/0")) {
+                return true;
+            }
             String[] parts = cidr.split(SLASH);
             if (parts.length == 1) {
                 return StringUtils.equals(ip, cidr);

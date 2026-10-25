@@ -40,6 +40,17 @@ public class IPAddressUtilsTest {
     }
 
     @Test
+    public void isIPInRangeWildcard() {
+        assert IPAddressUtils.isIPInRange("192.168.1.10", "0.0.0.0");
+        assert IPAddressUtils.isIPInRange("10.0.0.1", "0.0.0.0/0");
+        assert IPAddressUtils.isIPInRange("192.168.1.10", "*");
+        assert IPAddressUtils.isIPInRange("2001:0db8:85a3::8a2e:0370:7334", "::");
+        assert IPAddressUtils.isIPInRange("2001:0db8:85a3::8a2e:0370:7334", "::/0");
+        assert IPAddressUtils.isIPInRange("192.168.1.10", "::/0");
+        assert IPAddressUtils.isIPInRange("2001:0db8::1", "0.0.0.0/0");
+    }
+
+    @Test
     public void isValidCidr() {
         String ipv4Cidr = "192.168.1.0/24";
         String ipv6Cidr = "2001:0db8:1234:5678::/64";
