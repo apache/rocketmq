@@ -55,7 +55,11 @@ public class ConsumeMessageConcurrentlyService extends AbstractConsumeMessageSer
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerConcurrently messageListener) {
         super(defaultMQPushConsumerImpl.getDefaultMQPushConsumer(), new ThreadFactoryImpl("ConsumeMessageThread_"
-            + getConsumerGroupTag(defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumerGroup())));
+            + getConsumerGroupTag(defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumerGroup())),
+            defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeThreadMax()
+                > defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeThreadMin()
+                ? Math.max(1, defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeThreadMin())
+                : Integer.MAX_VALUE);
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
@@ -310,7 +314,11 @@ public class ConsumeMessageConcurrentlyService extends AbstractConsumeMessageSer
 
             @Override
             public void run() {
-                ConsumeMessageConcurrentlyService.this.consumeExecutor.submit(consumeRequest);
+                try {
+                    ConsumeMessageConcurrentlyService.this.consumeExecutor.submit(consumeRequest);
+                } catch (RejectedExecutionException e) {
+                    ConsumeMessageConcurrentlyService.this.submitConsumeRequestLater(consumeRequest);
+                }
             }
         }, 5000, TimeUnit.MILLISECONDS);
     }
