@@ -35,4 +35,31 @@ public class ProxyConfigTest {
         assertThat(StringUtils.isBlank(proxyConfig.getLocalServeAddr())).isFalse();
         assertThat(proxyConfig.getRemotingAccessAddr()).isEqualTo(proxyConfig.getLocalServeAddr());
     }
+
+    @Test
+    public void parseDelayLevelShouldTolerateExtraWhitespace() {
+        ProxyConfig proxyConfig = new ProxyConfig();
+        proxyConfig.setMessageDelayLevel(" 1s   5s\n10s\t30s ");
+
+        proxyConfig.parseDelayLevel();
+
+        assertThat(proxyConfig.getDelayLevelTable())
+            .containsEntry(1, 1000L)
+            .containsEntry(2, 5000L)
+            .containsEntry(3, 10000L)
+            .containsEntry(4, 30000L);
+    }
+
+    @Test
+    public void parseDelayLevelShouldUseDefaultWhenConfigIsBlank() {
+        ProxyConfig proxyConfig = new ProxyConfig();
+        proxyConfig.setMessageDelayLevel(" \t ");
+
+        proxyConfig.parseDelayLevel();
+
+        assertThat(proxyConfig.getDelayLevelTable())
+            .containsEntry(1, 1000L)
+            .containsEntry(2, 5000L)
+            .containsEntry(18, 7200000L);
+    }
 }
