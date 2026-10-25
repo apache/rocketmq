@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -73,6 +74,44 @@ public class ProducerProcessorTest extends BaseProcessorTest {
     public void before() throws Throwable {
         super.before();
         this.producerProcessor = new ProducerProcessor(this.messagingProcessor, this.serviceManager, Executors.newCachedThreadPool());
+    }
+
+    @Test
+    public void testSendMessageRejectsEmptyMessageList() {
+        CompletionException exception = Assert.assertThrows(CompletionException.class, () -> {
+            this.producerProcessor.sendMessage(
+                createContext(),
+                (ctx, messageQueueView) -> null,
+                PRODUCER_GROUP,
+                MessageSysFlag.TRANSACTION_NOT_TYPE,
+                Collections.emptyList(),
+                3000
+            ).join();
+        });
+
+        assertTrue(exception.getCause() instanceof ProxyException);
+        ProxyException cause = (ProxyException) exception.getCause();
+        assertEquals(ProxyExceptionCode.INVALID_REQUEST, cause.getCode());
+        assertEquals("message list is empty", cause.getMessage());
+    }
+
+    @Test
+    public void testSendMessageRejectsNullMessageList() {
+        CompletionException exception = Assert.assertThrows(CompletionException.class, () -> {
+            this.producerProcessor.sendMessage(
+                createContext(),
+                (ctx, messageQueueView) -> null,
+                PRODUCER_GROUP,
+                MessageSysFlag.TRANSACTION_NOT_TYPE,
+                null,
+                3000
+            ).join();
+        });
+
+        assertTrue(exception.getCause() instanceof ProxyException);
+        ProxyException cause = (ProxyException) exception.getCause();
+        assertEquals(ProxyExceptionCode.INVALID_REQUEST, cause.getCode());
+        assertEquals("message list is empty", cause.getMessage());
     }
 
     @Test
