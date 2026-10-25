@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.remoting;
 
+import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
 import org.junit.Test;
@@ -43,5 +44,16 @@ public class RemotingProtocolServerTest {
 
             verify(requestHeaderRegistry).initialize();
         }
+    }
+
+    @Test(timeout = 1000)
+    public void testCleanExpiredRequestInQueueBreaksWhenQueueAccessFails() {
+        RemotingProtocolServer server = Mockito.mock(RemotingProtocolServer.class, Mockito.CALLS_REAL_METHODS);
+        ThreadPoolExecutor executor = Mockito.mock(ThreadPoolExecutor.class);
+        Mockito.when(executor.getQueue()).thenThrow(new RuntimeException("queue unavailable"));
+
+        server.cleanExpiredRequestInQueue(executor, 1);
+
+        Mockito.verify(executor, Mockito.atMost(2)).getQueue();
     }
 }
