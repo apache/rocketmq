@@ -82,6 +82,32 @@ public class TopicQueueMappingUtilsTest {
     }
 
     @Test
+    public void testCheckAndBuildMappingItemsUsesLatestEpochWhenReplacingDuplicatedQueue() {
+        String topic = "static";
+        String oldBroker = "oldBroker";
+        String newBroker = "newBroker";
+        long oldEpoch = 0L;
+        long newEpoch = (long) Integer.MAX_VALUE + 1L;
+        List<TopicQueueMappingDetail> mappingDetails = new ArrayList<>();
+        mappingDetails.add(buildMappingDetail(topic, oldBroker, oldEpoch));
+        mappingDetails.add(buildMappingDetail(topic, newBroker, newEpoch));
+
+        Map<Integer, TopicQueueMappingOne> globalIdMap =
+            TopicQueueMappingUtils.checkAndBuildMappingItems(mappingDetails, true, false);
+
+        TopicQueueMappingOne mappingOne = globalIdMap.get(0);
+        Assert.assertEquals(newEpoch, mappingOne.getMappingDetail().getEpoch());
+        Assert.assertEquals(newBroker, mappingOne.getBname());
+    }
+
+    private TopicQueueMappingDetail buildMappingDetail(String topic, String brokerName, long epoch) {
+        TopicQueueMappingDetail mappingDetail = new TopicQueueMappingDetail(topic, 1, brokerName, epoch);
+        mappingDetail.getHostedQueues().put(0, new ArrayList<>(Collections.singletonList(
+            new LogicQueueMappingItem(0, 0, brokerName, 0, 0, -1, -1, -1))));
+        return mappingDetail;
+    }
+
+    @Test
     public void testAllocator() {
         //stability
         for (int i = 0; i < 10; i++) {
