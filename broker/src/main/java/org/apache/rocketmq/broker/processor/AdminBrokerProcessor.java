@@ -2624,14 +2624,25 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
         SelectMappedBufferResult selectMappedBufferResult = null;
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
             MessageId messageId = MessageDecoder.decodeMessageId(requestHeader.getMsgId());
             selectMappedBufferResult = this.brokerController.getMessageStore().selectOneMessageByOffset(messageId.getOffset());
-
+            // The offset may no longer map to a stored message (expired/deleted
+            // commitlog or a msgId from another broker); report that instead of
+            // throwing an NPE or invoking the consumer with an empty body.
+            if (selectMappedBufferResult == null) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark(String.format("can not find message by id: %s", requestHeader.getMsgId()));
+                return response;
+            }
             byte[] body = new byte[selectMappedBufferResult.getSize()];
             selectMappedBufferResult.getByteBuffer().get(body);
             request.setBody(body);
         } catch (UnknownHostException e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("can not decode message id: %s", requestHeader.getMsgId()));
+            return response;
         } finally {
             if (selectMappedBufferResult != null) {
                 selectMappedBufferResult.release();
