@@ -65,6 +65,59 @@ public class TraceDataEncoderTest {
     }
 
     @Test
+    public void testDecoderSkipsTruncatedLineAndKeepsRemaining() {
+        // A truncated Pub line (only 4 of the required 12 fields), as written by a
+        // client of an older/newer format or any producer publishing to the trace
+        // topic, must not abort decoding of the remaining lines.
+        String truncated = new StringBuilder()
+            .append("Pub").append(TraceConstants.CONTENT_SPLITOR)
+            .append(time).append(TraceConstants.CONTENT_SPLITOR)
+            .append("DefaultRegion").append(TraceConstants.CONTENT_SPLITOR)
+            .append("PID-test").append(TraceConstants.FIELD_SPLITOR)
+            .toString();
+
+        List<TraceContext> contexts = TraceDataEncoder.decoderFromTraceDataString(truncated + traceData);
+        Assert.assertEquals(1, contexts.size());
+        Assert.assertEquals(TraceType.Pub, contexts.get(0).getTraceType());
+        Assert.assertEquals("topic-test", contexts.get(0).getTraceBeans().get(0).getTopic());
+    }
+
+    @Test
+    public void testDecoderSkipsNonNumericFieldAndKeepsRemaining() {
+        String corrupted = new StringBuilder()
+            .append("Pub").append(TraceConstants.CONTENT_SPLITOR)
+            .append("not-a-timestamp").append(TraceConstants.FIELD_SPLITOR)
+            .toString();
+
+        List<TraceContext> contexts = TraceDataEncoder.decoderFromTraceDataString(corrupted + traceData);
+        Assert.assertEquals(1, contexts.size());
+        Assert.assertEquals(TraceType.Pub, contexts.get(0).getTraceType());
+    }
+
+    @Test
+    public void testDecoderSkipsOutOfRangeMsgTypeOrdinalAndKeepsRemaining() {
+        // Valid field count but a msgType ordinal outside MessageType's range.
+        String badOrdinal = new StringBuilder()
+            .append("Pub").append(TraceConstants.CONTENT_SPLITOR)
+            .append(time).append(TraceConstants.CONTENT_SPLITOR)
+            .append("DefaultRegion").append(TraceConstants.CONTENT_SPLITOR)
+            .append("PID-test").append(TraceConstants.CONTENT_SPLITOR)
+            .append("topic-test").append(TraceConstants.CONTENT_SPLITOR)
+            .append("AC1415116D1418B4AAC217FE1B4E0000").append(TraceConstants.CONTENT_SPLITOR)
+            .append("Tags").append(TraceConstants.CONTENT_SPLITOR)
+            .append("Keys").append(TraceConstants.CONTENT_SPLITOR)
+            .append("127.0.0.1:10911").append(TraceConstants.CONTENT_SPLITOR)
+            .append(26).append(TraceConstants.CONTENT_SPLITOR)
+            .append(245).append(TraceConstants.CONTENT_SPLITOR)
+            .append(99).append(TraceConstants.FIELD_SPLITOR)
+            .toString();
+
+        List<TraceContext> contexts = TraceDataEncoder.decoderFromTraceDataString(badOrdinal + traceData);
+        Assert.assertEquals(1, contexts.size());
+        Assert.assertEquals(TraceType.Pub, contexts.get(0).getTraceType());
+    }
+
+    @Test
     public void testEncoderFromContextBean() {
         TraceContext context = new TraceContext();
         context.setTraceType(TraceType.Pub);
