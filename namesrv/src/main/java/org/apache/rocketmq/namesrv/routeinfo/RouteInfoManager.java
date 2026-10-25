@@ -30,7 +30,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
@@ -68,7 +67,7 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<String/* topic */, Map<String, QueueData>> topicQueueTable;
     private final Map<String/* brokerName */, BrokerData> brokerAddrTable;
     private final Map<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
@@ -151,7 +150,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("registerTopic Exception", e);
         } finally {
-            this.lock.writeLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.isWriteLockedByCurrentThread()) {
+                this.lock.writeLock().unlock();
+            }
         }
     }
 
@@ -162,7 +165,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("deleteTopic Exception", e);
         } finally {
-            this.lock.writeLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.isWriteLockedByCurrentThread()) {
+                this.lock.writeLock().unlock();
+            }
         }
     }
 
@@ -191,7 +198,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("deleteTopic Exception", e);
         } finally {
-            this.lock.writeLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.isWriteLockedByCurrentThread()) {
+                this.lock.writeLock().unlock();
+            }
         }
     }
 
@@ -203,7 +214,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("getAllTopicList Exception", e);
         } finally {
-            this.lock.readLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.getReadHoldCount() > 0) {
+                this.lock.readLock().unlock();
+            }
         }
 
         return topicList;
@@ -402,7 +417,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("registerBroker Exception", e);
         } finally {
-            this.lock.writeLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.isWriteLockedByCurrentThread()) {
+                this.lock.writeLock().unlock();
+            }
         }
 
         return result;
@@ -645,7 +664,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("unregisterBroker Exception", e);
         } finally {
-            this.lock.writeLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.isWriteLockedByCurrentThread()) {
+                this.lock.writeLock().unlock();
+            }
         }
     }
 
@@ -739,7 +762,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("pickupTopicRouteData Exception", e);
         } finally {
-            this.lock.readLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.getReadHoldCount() > 0) {
+                this.lock.readLock().unlock();
+            }
         }
 
         log.debug("pickupTopicRouteData {} {}", topic, topicRouteData);
@@ -1016,7 +1043,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("getSystemTopicList Exception", e);
         } finally {
-            this.lock.readLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.getReadHoldCount() > 0) {
+                this.lock.readLock().unlock();
+            }
         }
 
         return topicList;
@@ -1063,7 +1094,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("getUnitTopics Exception", e);
         } finally {
-            this.lock.readLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.getReadHoldCount() > 0) {
+                this.lock.readLock().unlock();
+            }
         }
 
         return topicList;
@@ -1084,7 +1119,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("getHasUnitSubTopicList Exception", e);
         } finally {
-            this.lock.readLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.getReadHoldCount() > 0) {
+                this.lock.readLock().unlock();
+            }
         }
 
         return topicList;
@@ -1106,7 +1145,11 @@ public class RouteInfoManager {
         } catch (Exception e) {
             log.error("getHasUnitSubUnUnitTopicList Exception", e);
         } finally {
-            this.lock.readLock().unlock();
+            // lockInterruptibly() may have thrown before the lock was acquired;
+            // unlocking it then would throw IllegalMonitorStateException
+            if (this.lock.getReadHoldCount() > 0) {
+                this.lock.readLock().unlock();
+            }
         }
 
         return topicList;
