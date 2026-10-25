@@ -107,20 +107,30 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
-        if (lastBrokerName == null) {
-            return selectOneMessageQueue();
-        } else {
-            for (int i = 0; i < this.messageQueueList.size(); i++) {
-                MessageQueue mq = selectOneMessageQueue();
-                if (!mq.getBrokerName().equals(lastBrokerName)) {
-                    return mq;
-                }
-            }
+        if (null == lastBrokerName) {
             return selectOneMessageQueue();
         }
+
+        // Keep the contract of the QueueFilter variant above: a topic with no
+        // writable queue in its route selects no queue instead of throwing.
+        if (null == this.messageQueueList || this.messageQueueList.isEmpty()) {
+            return null;
+        }
+
+        for (int i = 0; i < this.messageQueueList.size(); i++) {
+            MessageQueue mq = selectOneMessageQueue();
+            if (!mq.getBrokerName().equals(lastBrokerName)) {
+                return mq;
+            }
+        }
+        return selectOneMessageQueue();
     }
 
     public MessageQueue selectOneMessageQueue() {
+        if (null == this.messageQueueList || this.messageQueueList.isEmpty()) {
+            return null;
+        }
+
         int index = this.sendWhichQueue.incrementAndGet();
         int pos = index % this.messageQueueList.size();
 
