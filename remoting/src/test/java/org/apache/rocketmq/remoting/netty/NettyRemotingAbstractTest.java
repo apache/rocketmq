@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting.netty;
 
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -167,5 +168,25 @@ public class NettyRemotingAbstractTest {
         // Acquire the release permit after call back
         semaphore.acquire(1);
         assertThat(semaphore.availablePermits()).isEqualTo(0);
+    }
+
+    @Test
+    public void testNettyEventExecutorShutdownDoesNotWaitForPollTimeout() throws InterruptedException {
+        // NettyEventExecutor blocks in eventQueue.poll(3000ms) rather than waitForRunning, so the
+        // wakeup() performed by ServiceThread.shutdown() cannot interrupt it: the thread only
+        // notices the stopped flag once the poll expires, making every shutdown wait up to 3s.
+        // A broker or client shutdown pays this for each remoting instance it owns.
+        NettyRemotingAbstract remoting = new NettyRemotingClient(new NettyClientConfig());
+        remoting.nettyEventExecutor.start();
+
+        // let the thread reach the blocking poll
+        TimeUnit.MILLISECONDS.sleep(300);
+
+        long begin = System.currentTimeMillis();
+        remoting.nettyEventExecutor.shutdown();
+        long elapsed = System.currentTimeMillis() - begin;
+
+        assertThat(remoting.nettyEventExecutor.isStopped()).isTrue();
+        assertThat(elapsed).isLessThan(1000);
     }
 }
