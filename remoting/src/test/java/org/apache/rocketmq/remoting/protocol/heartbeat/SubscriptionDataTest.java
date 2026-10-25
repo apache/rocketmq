@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.protocol.heartbeat;
 
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.assertj.core.util.Sets;
 import org.junit.Test;
 
@@ -81,5 +82,29 @@ public class SubscriptionDataTest {
         SubscriptionData subscriptionData = new SubscriptionData("TOPICA", "*");
         SubscriptionData subscriptionData1 = new SubscriptionData("TOPICBA", "*");
         assertThat(subscriptionData.compareTo(subscriptionData1)).isEqualTo("TOPICA@*".compareTo("TOPICB@*"));
+    }
+
+    @Test
+    public void testEqualsIgnoreSubVersionPreservesVersionsAndEquals() throws Exception {
+        SubscriptionData first = FilterAPI.buildSubscriptionData("TOPICA", "TAGA || TAGB");
+        SubscriptionData second = FilterAPI.buildSubscriptionData("TOPICA", "TAGA || TAGB");
+        first.setSubVersion(100L);
+        second.setSubVersion(200L);
+
+        assertThat(first.equalsIgnoreSubVersion(second)).isTrue();
+        assertThat(second.equalsIgnoreSubVersion(first)).isTrue();
+        assertThat(first.equalsIgnoreSubVersion(null)).isFalse();
+        assertThat(first).isNotEqualTo(second);
+        assertThat(first.getSubVersion()).isEqualTo(100L);
+        assertThat(second.getSubVersion()).isEqualTo(200L);
+    }
+
+    @Test
+    public void testEqualsIgnoreSubVersionDistinguishesExpressionTypes() {
+        SubscriptionData tag = new SubscriptionData("TOPICA", "a > 0");
+        SubscriptionData sql = new SubscriptionData("TOPICA", "a > 0");
+        sql.setExpressionType(ExpressionType.SQL92);
+
+        assertThat(tag.equalsIgnoreSubVersion(sql)).isFalse();
     }
 }
