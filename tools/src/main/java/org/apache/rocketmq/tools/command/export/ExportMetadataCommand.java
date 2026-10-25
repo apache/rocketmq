@@ -142,12 +142,9 @@ public class ExportMetadataCommand implements SubCommand {
                     for (Map.Entry<String, SubscriptionGroupConfig> entry : subscriptionGroupWrapper.getSubscriptionGroupTable()
                         .entrySet()) {
 
-                        SubscriptionGroupConfig subscriptionGroupConfig = subGroupConfigMap.get(entry.getKey());
-                        if (null != subscriptionGroupConfig) {
-                            entry.getValue().setRetryQueueNums(
-                                subscriptionGroupConfig.getRetryQueueNums() + entry.getValue().getRetryQueueNums());
-                        }
-                        subGroupConfigMap.put(entry.getKey(), entry.getValue());
+                        // subscription group config is cluster-wide, unlike topic queue
+                        // numbers it must not be accumulated across brokers
+                        subGroupConfigMap.putIfAbsent(entry.getKey(), entry.getValue());
                     }
 
                 }
