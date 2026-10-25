@@ -39,6 +39,17 @@ public class MessageBatch extends Message implements Iterable<Message> {
         return messages.iterator();
     }
 
+    @Override
+    public void putUserProperty(String name, String value) {
+        super.putUserProperty(name, value);
+        if (messages == null) {
+            return;
+        }
+        for (Message message : messages) {
+            message.putUserProperty(name, value);
+        }
+    }
+
     public static MessageBatch generateFromList(Collection<? extends Message> messages) {
         if (messages == null || messages.isEmpty()) {
             throw new IllegalArgumentException("messages must not be null or empty");
