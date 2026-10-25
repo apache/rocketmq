@@ -28,12 +28,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.processor.BatchAckResult;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.junit.Before;
@@ -41,6 +43,8 @@ import org.junit.Test;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -59,6 +63,27 @@ public class AckMessageActivityTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+    }
+
+    @Test
+    public void testAckMessageWithEmptyEntries() throws Throwable {
+        // enableBatchAck makes the activity inspect entries(0), which used to
+        // throw IndexOutOfBoundsException for an empty request.
+        ConfigurationManager.getProxyConfig().setEnableBatchAck(true);
+
+        try {
+            this.ackMessageActivity.ackMessage(
+                createContext(),
+                AckMessageRequest.newBuilder()
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .setGroup(Resource.newBuilder().setName(GROUP).build())
+                    .build()
+            ).get();
+            fail("expected GrpcProxyException");
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof GrpcProxyException);
+            assertEquals(Code.BAD_REQUEST, ((GrpcProxyException) e.getCause()).getCode());
+        }
     }
 
     @Test
