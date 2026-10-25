@@ -93,6 +93,14 @@ choose_gc_options()
       JAVA_OPT="${JAVA_OPT} -server -Xms4g -Xmx4g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
       JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0"
       JAVA_OPT="${JAVA_OPT} -Xlog:gc*:file=${GC_LOG_DIR}/rmq_srv_gc_%p_%t.log:time,tags:filecount=5,filesize=30M"
+      # JDK 9+ strong encapsulation blocks the reflective access that the
+      # Hessian SerializerFactory (pulled in transitively via DLedger, used on
+      # the controller path) performs against JDK core types — most visibly
+      # java.lang.StackTraceElement.classLoaderName, which throws
+      # InaccessibleObjectException during SerializerFactory.<clinit> and
+      # prevents both the controller-in-namesrv and standalone controller
+      # (mqcontroller) from starting on JDK 17. See #10612 / #10170.
+      JAVA_OPT="${JAVA_OPT} --add-opens java.base/java.lang=ALL-UNNAMED"
     fi
 }
 
