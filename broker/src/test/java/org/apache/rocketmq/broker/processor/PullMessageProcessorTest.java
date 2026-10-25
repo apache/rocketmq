@@ -35,6 +35,7 @@ import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -49,6 +50,8 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.CommitLog;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Before;
@@ -63,6 +66,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -245,6 +249,42 @@ public class PullMessageProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(this.brokerController.getConsumerOffsetManager().queryPullOffset(group, topic, 1))
             .isEqualTo(getMessageResult.getNextBeginOffset());
+    }
+
+    @Test
+    public void testColdDataFlowCtrWhenGroupIsOnlyInCompensationTable() throws Exception {
+        brokerController.getMessageStoreConfig().setColdDataFlowControlEnable(true);
+        brokerController.getColdDataCgCtrService().coldAcc(group, Long.MAX_VALUE);
+        brokerController.getConsumerManager().unregisterConsumer(group, clientChannelInfo, false);
+
+        DefaultMessageStore defaultMessageStore = mock(DefaultMessageStore.class);
+        CommitLog commitLog = mock(CommitLog.class);
+        CommitLog.ColdDataCheckService coldDataCheckService = mock(CommitLog.ColdDataCheckService.class);
+        when(defaultMessageStore.getCommitLog()).thenReturn(commitLog);
+        when(commitLog.getColdDataCheckService()).thenReturn(coldDataCheckService);
+        when(coldDataCheckService.isMsgInColdArea(anyString(), anyString(), anyInt(), anyLong())).thenReturn(true);
+        brokerController.setMessageStore(defaultMessageStore);
+
+        // Pull with the subscription carried in the request (proxy / lite-pull style):
+        // the group is absent from the live consumer table, only compensated above.
+        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+        requestHeader.setCommitOffset(123L);
+        requestHeader.setConsumerGroup(group);
+        requestHeader.setMaxMsgNums(100);
+        requestHeader.setQueueId(1);
+        requestHeader.setQueueOffset(456L);
+        requestHeader.setSubscription("*");
+        requestHeader.setTopic(topic);
+        requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
+        requestHeader.setSubVersion(100L);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = pullMessageProcessor.processRequest(handlerContext, request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_BUSY);
+        assertThat(response.getRemark()).contains("cold data");
     }
 
     private RemotingCommand createPullMsgCommand(int requestCode) {
