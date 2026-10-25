@@ -423,6 +423,44 @@ public class TopicConfigManagerTest {
     }
 
     @Test
+    public void testSubTopicConfigTableWithNonPositiveMaxTopicNum() {
+        fillTopicConfigTable(10);
+
+        // maxTopicNum = 0 asks for an empty page; a negative value is nonsensical.
+        // Both must return an empty table instead of indexing out of bounds.
+        Assert.assertTrue(topicConfigManager.subTopicConfigTable(null, 0, 0).isEmpty());
+        Assert.assertTrue(topicConfigManager.subTopicConfigTable(null, 5, 0).isEmpty());
+        Assert.assertTrue(topicConfigManager.subTopicConfigTable(null, 0, -1).isEmpty());
+    }
+
+    @Test
+    public void testSubTopicConfigTableWithNegativeTopicSeqClampsToHead() {
+        fillTopicConfigTable(10);
+
+        // A negative topicSeq with a matching data version must clamp to index 0
+        // instead of indexing out of bounds.
+        Map<String, TopicConfig> result = topicConfigManager.subTopicConfigTable(
+            topicConfigManager.getDataVersion().toJson(), -3, 4);
+
+        Assert.assertEquals(4, result.size());
+        Assert.assertTrue(result.containsKey("topic00000"));
+        Assert.assertFalse(result.containsKey("topic00004"));
+    }
+
+    @Test
+    public void testSubTopicConfigTableWithMalformedDataVersionFallsBackToFullPage() {
+        fillTopicConfigTable(10);
+
+        // A garbage dataVersion string from a client means "unknown version":
+        // degrade to a full page from index 0 instead of failing the request.
+        Map<String, TopicConfig> result = topicConfigManager.subTopicConfigTable("{not-json", 5, 3);
+
+        Assert.assertEquals(3, result.size());
+        Assert.assertTrue(result.containsKey("topic00000"));
+        Assert.assertFalse(result.containsKey("topic00005"));
+    }
+
+    @Test
     public void testSplitRegistrationBumpsVersion() {
         brokerController.getBrokerConfig().setEnableSplitRegistration(true);
         long counterBefore = topicConfigManager.getDataVersion().getCounter().get();
