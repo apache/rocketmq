@@ -202,6 +202,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
         public FaultItem(final String name) {
             this.name = name;
+            this.checkStamp = System.currentTimeMillis() + LatencyFaultToleranceImpl.this.detectInterval;
         }
 
         public void updateNotAvailableDuration(long notAvailableDuration) {
