@@ -148,7 +148,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         if (StringUtils.isNotBlank(labels)) {
             List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(labels);
             for (String item : kvPairs) {
-                String[] split = item.split(":");
+                String[] split = item.split(":", 2);
                 if (split.length != 2) {
                     log.warn("metricsLabel is not valid: {}", labels);
                     continue;
@@ -188,7 +188,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
                 Map<String, String> headerMap = new HashMap<>();
                 List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(headers);
                 for (String item : kvPairs) {
-                    String[] split = item.split(":");
+                    String[] split = item.split(":", 2);
                     if (split.length != 2) {
                         log.warn("metricsGrpcExporterHeader is not valid: {}", headers);
                         continue;
