@@ -57,6 +57,8 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -141,6 +143,37 @@ public class ClientRemotingProcessorTest {
         RemotingCommand command = processor.processRequest(ctx, request);
         assertNotNull(command);
         assertEquals(ResponseCode.SUCCESS, command.getCode());
+    }
+
+    @Test
+    public void testCheckTransactionStateWithoutBody() throws Exception {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        RemotingCommand request = mock(RemotingCommand.class);
+        when(request.getCode()).thenReturn(RequestCode.CHECK_TRANSACTION_STATE);
+        when(request.getBody()).thenReturn(null);
+        CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
+        when(request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class)).thenReturn(requestHeader);
+
+        assertNull(processor.processRequest(ctx, request));
+        verify(mQClientFactory, never()).selectProducer(anyString());
+    }
+
+    @Test
+    public void testConsumeMessageDirectlyWithoutBody() throws Exception {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        RemotingCommand request = mock(RemotingCommand.class);
+        when(request.getCode()).thenReturn(RequestCode.CONSUME_MESSAGE_DIRECTLY);
+        when(request.getBody()).thenReturn(null);
+        ConsumeMessageDirectlyResultRequestHeader requestHeader = new ConsumeMessageDirectlyResultRequestHeader();
+        requestHeader.setConsumerGroup(defaultGroup);
+        requestHeader.setBrokerName(defaultBroker);
+        when(request.decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class)).thenReturn(requestHeader);
+
+        RemotingCommand command = processor.processRequest(ctx, request);
+
+        assertNotNull(command);
+        assertEquals(ResponseCode.SYSTEM_ERROR, command.getCode());
+        verify(mQClientFactory, never()).consumeMessageDirectly(any(), anyString(), anyString());
     }
 
     @Test
