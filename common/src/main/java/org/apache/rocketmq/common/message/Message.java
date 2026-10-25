@@ -16,13 +16,13 @@
  */
 package org.apache.rocketmq.common.message;
 
-import org.apache.commons.lang3.math.NumberUtils;
-
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.Nullable;
+import org.apache.commons.lang3.math.NumberUtils;
 
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
@@ -98,10 +98,12 @@ public class Message implements Serializable {
         this.putProperty(name, value);
     }
 
+    @Nullable
     public String getUserProperty(final String name) {
         return this.getProperty(name);
     }
 
+    @Nullable
     public String getProperty(final String name) {
         if (null == this.properties) {
             this.properties = new HashMap<>();
@@ -125,6 +127,7 @@ public class Message implements Serializable {
         this.topic = topic;
     }
 
+    @Nullable
     public String getTags() {
         return this.getProperty(MessageConst.PROPERTY_TAGS);
     }
@@ -133,6 +136,7 @@ public class Message implements Serializable {
         this.putProperty(MessageConst.PROPERTY_TAGS, tags);
     }
 
+    @Nullable
     public String getKeys() {
         return this.getProperty(MessageConst.PROPERTY_KEYS);
     }
@@ -200,6 +204,7 @@ public class Message implements Serializable {
         this.body = body;
     }
 
+    @Nullable
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -208,6 +213,7 @@ public class Message implements Serializable {
         this.properties = properties;
     }
 
+    @Nullable
     public String getBuyerId() {
         return getProperty(MessageConst.PROPERTY_BUYER_ID);
     }
@@ -216,6 +222,7 @@ public class Message implements Serializable {
         putProperty(MessageConst.PROPERTY_BUYER_ID, buyerId);
     }
 
+    @Nullable
     public String getTransactionId() {
         return transactionId;
     }
