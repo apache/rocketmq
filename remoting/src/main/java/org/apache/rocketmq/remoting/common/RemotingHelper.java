@@ -265,12 +265,8 @@ public class RemotingHelper {
             return "";
         }
 
-        String[] addressSplits = address.split(":");
-        if (addressSplits.length < 1) {
-            return "";
-        }
-
-        return addressSplits[0];
+        int idx = address.lastIndexOf(":");
+        return idx > 0 ? address.substring(0, idx) : address;
     }
 
     public static String parseSocketAddressAddr(SocketAddress socketAddress) {
