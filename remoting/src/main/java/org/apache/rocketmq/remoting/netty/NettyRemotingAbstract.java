@@ -763,6 +763,8 @@ public abstract class NettyRemotingAbstract {
     }
 
     class NettyEventExecutor extends ServiceThread {
+        // This private identity marker is never dispatched to the listener.
+        private final NettyEvent wakeupEvent = new NettyEvent(NettyEventType.IDLE, null, null);
         private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<>();
 
         public void putNettyEvent(final NettyEvent event) {
@@ -776,6 +778,12 @@ public abstract class NettyRemotingAbstract {
         }
 
         @Override
+        public void wakeup() {
+            super.wakeup();
+            this.eventQueue.offer(wakeupEvent);
+        }
+
+        @Override
         public void run() {
             log.info(this.getServiceName() + " service started");
 
@@ -784,7 +792,7 @@ public abstract class NettyRemotingAbstract {
             while (!this.isStopped()) {
                 try {
                     NettyEvent event = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
-                    if (event != null && listener != null) {
+                    if (event != null && event != wakeupEvent && listener != null) {
                         switch (event.getType()) {
                             case IDLE:
                                 listener.onChannelIdle(event.getRemoteAddr(), event.getChannel());
