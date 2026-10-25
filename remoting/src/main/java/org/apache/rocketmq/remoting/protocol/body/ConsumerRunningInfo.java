@@ -57,11 +57,10 @@ public class ConsumerRunningInfo extends RemotingSerializable {
         boolean startForAWhile = false;
         {
 
-            String property = prev.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
-            if (property == null) {
-                property = String.valueOf(prev.getProperties().get(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP));
+            Object startTimestamp = prev.getProperties().get(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP);
+            if (startTimestamp != null) {
+                startForAWhile = (System.currentTimeMillis() - Long.parseLong(String.valueOf(startTimestamp))) > (1000 * 60 * 2);
             }
-            startForAWhile = (System.currentTimeMillis() - Long.parseLong(property)) > (1000 * 60 * 2);
         }
 
         if (push && startForAWhile) {
@@ -96,12 +95,12 @@ public class ConsumerRunningInfo extends RemotingSerializable {
     }
 
     public static boolean isPushType(ConsumerRunningInfo consumerRunningInfo) {
-        String property = consumerRunningInfo.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
+        Object consumeType = consumerRunningInfo.getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE);
 
-        if (property == null) {
-            property = ((ConsumeType) consumerRunningInfo.getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE)).name();
+        if (consumeType == null) {
+            return false;
         }
-        return ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
+        return ConsumeType.valueOf(consumeType.toString()) == ConsumeType.CONSUME_PASSIVELY;
     }
 
     public static boolean analyzeRebalance(final TreeMap<String/* clientId */, ConsumerRunningInfo> criTable) {
@@ -110,15 +109,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
 
     public static String analyzeProcessQueue(final String clientId, ConsumerRunningInfo info) {
         StringBuilder sb = new StringBuilder();
-        boolean push = false;
-        {
-            String property = info.getProperties().getProperty(ConsumerRunningInfo.PROP_CONSUME_TYPE);
-
-            if (property == null) {
-                property = ((ConsumeType) info.getProperties().get(ConsumerRunningInfo.PROP_CONSUME_TYPE)).name();
-            }
-            push = ConsumeType.valueOf(property) == ConsumeType.CONSUME_PASSIVELY;
-        }
+        boolean push = isPushType(info);
 
         boolean orderMsg = false;
         {
