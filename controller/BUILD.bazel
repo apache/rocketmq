@@ -21,6 +21,7 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
+        "//auth",
         "//common",
         "//remoting",
         "//srvutil", 
@@ -62,6 +63,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         ":controller",
+        "//auth",
         "//common",
         "//remoting",
         "//srvutil", 
