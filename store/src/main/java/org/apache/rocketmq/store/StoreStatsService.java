@@ -394,6 +394,10 @@ public class StoreStatsService extends ServiceThread {
         String result = "";
         this.samplingLock.lock();
         try {
+            if (this.putTimesList.isEmpty()) {
+                return result;
+            }
+
             CallSnapshot last = this.putTimesList.getLast();
 
             if (this.putTimesList.size() > time) {
@@ -411,6 +415,10 @@ public class StoreStatsService extends ServiceThread {
         String result = "";
         this.samplingLock.lock();
         try {
+            if (this.getTimesFoundList.isEmpty()) {
+                return result;
+            }
+
             CallSnapshot last = this.getTimesFoundList.getLast();
 
             if (this.getTimesFoundList.size() > time) {
@@ -429,6 +437,10 @@ public class StoreStatsService extends ServiceThread {
         String result = "";
         this.samplingLock.lock();
         try {
+            if (this.getTimesMissList.isEmpty()) {
+                return result;
+            }
+
             CallSnapshot last = this.getTimesMissList.getLast();
 
             if (this.getTimesMissList.size() > time) {
@@ -450,6 +462,10 @@ public class StoreStatsService extends ServiceThread {
         double miss = 0;
         try {
             {
+                if (this.getTimesFoundList.isEmpty()) {
+                    return Double.toString(miss);
+                }
+
                 CallSnapshot last = this.getTimesFoundList.getLast();
 
                 if (this.getTimesFoundList.size() > time) {
@@ -459,6 +475,10 @@ public class StoreStatsService extends ServiceThread {
                 }
             }
             {
+                if (this.getTimesMissList.isEmpty()) {
+                    return Double.toString(found);
+                }
+
                 CallSnapshot last = this.getTimesMissList.getLast();
 
                 if (this.getTimesMissList.size() > time) {
@@ -479,6 +499,10 @@ public class StoreStatsService extends ServiceThread {
         String result = "";
         this.samplingLock.lock();
         try {
+            if (this.transferredMsgCountList.isEmpty()) {
+                return result;
+            }
+
             CallSnapshot last = this.transferredMsgCountList.getLast();
 
             if (this.transferredMsgCountList.size() > time) {
