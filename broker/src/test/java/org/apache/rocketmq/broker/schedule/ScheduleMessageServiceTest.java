@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.schedule;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -39,6 +40,7 @@ import org.apache.rocketmq.broker.util.HookUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.ConsumeQueueExt;
@@ -282,6 +284,30 @@ public class ScheduleMessageServiceTest {
 
         // just decode
         scheduleMessageService.decode(new DelayOffsetSerializeWrapper().toJson());
+    }
+
+    @Test
+    public void testMessageTimeUpWithMalformedRealQueueId() throws Exception {
+        Method messageTimeUp = ScheduleMessageService.class.getDeclaredMethod("messageTimeUp", MessageExt.class);
+        messageTimeUp.setAccessible(true);
+
+        // a delayed message whose destination properties are missing or
+        // malformed can never be delivered; it must be discarded instead of
+        // aborting the conversion with a raw exception
+        MessageExt msgExt = buildMessage();
+        msgExt.getProperties().put(MessageConst.PROPERTY_REAL_TOPIC, topic);
+        msgExt.getProperties().put(MessageConst.PROPERTY_REAL_QUEUE_ID, "notANumber");
+        assertThat(messageTimeUp.invoke(scheduleMessageService, msgExt)).isNull();
+
+        msgExt.getProperties().put(MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        assertThat(messageTimeUp.invoke(scheduleMessageService, msgExt)).isNotNull();
+
+        msgExt.getProperties().remove(MessageConst.PROPERTY_REAL_QUEUE_ID);
+        assertThat(messageTimeUp.invoke(scheduleMessageService, msgExt)).isNull();
+
+        msgExt.getProperties().put(MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        msgExt.getProperties().remove(MessageConst.PROPERTY_REAL_TOPIC);
+        assertThat(messageTimeUp.invoke(scheduleMessageService, msgExt)).isNull();
     }
 
     private GetMessageResult getMessage(int queueId, Long offset) {
