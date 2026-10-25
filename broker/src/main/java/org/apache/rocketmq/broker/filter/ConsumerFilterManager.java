@@ -269,7 +269,11 @@ public class ConsumerFilterManager extends ConfigManager {
 
                     // check whether bloom filter is changed
                     // if changed, ignore the bit map calculated before.
-                    if (!this.bloomFilter.isValid(filterData.getBloomFilterData())) {
+                    // Data registered with the filter bit map disabled (the default)
+                    // legitimately has no bloom data; keep it instead of dropping
+                    // the whole persisted table.
+                    if (filterData.getBloomFilterData() != null
+                            && !this.bloomFilter.isValid(filterData.getBloomFilterData())) {
                         bloomChanged = true;
                         log.info("Bloom filter is changed!So ignore all filter data persisted! {}, {}", this.bloomFilter, filterData.getBloomFilterData());
                         break;
