@@ -20,7 +20,9 @@ import io.netty.channel.Channel;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.TopicConfig;
@@ -28,7 +30,9 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.After;
@@ -131,6 +135,59 @@ public class RouteInfoManagerTest {
         RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker("default-cluster", "127.0.0.1:10911", "default-broker", 1234, "127.0.0.1:1001", "",
                 null, topicConfigSerializeWrapper, new ArrayList<>(), channel);
         assertThat(registerBrokerResult).isNotNull();
+    }
+
+    @Test
+    public void testUnregisterBrokerWithStaleQueueData() throws Exception {
+        // Two acting-master groups serving the same topics. healthy-broker
+        // keeps a slave after its master unregisters, while stale-broker's
+        // entry in brokerAddrTable is already gone and only its queueData is
+        // left behind - the state an earlier aborted unregister batch leaves.
+        ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        topicConfigTable.put("topic-a", new TopicConfig("topic-a"));
+        topicConfigTable.put("topic-b", new TopicConfig("topic-b"));
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setDataVersion(new DataVersion());
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
+        Channel channel = mock(Channel.class);
+
+        assertThat(routeInfoManager.registerBroker("default-cluster", "127.0.0.1:40911", "stale-broker", 0, "127.0.0.1:1002", "",
+            null, true, topicConfigSerializeWrapper, new ArrayList<>(), channel)).isNotNull();
+        assertThat(routeInfoManager.registerBroker("default-cluster", "127.0.0.1:50911", "healthy-broker", 0, "127.0.0.1:1003", "",
+            null, true, topicConfigSerializeWrapper, new ArrayList<>(), channel)).isNotNull();
+        // the surviving slave keeps healthy-broker in the reducedBroker path
+        assertThat(routeInfoManager.registerBroker("default-cluster", "127.0.0.1:50912", "healthy-broker", 1, "127.0.0.1:1004", "",
+            null, true, topicConfigSerializeWrapper, new ArrayList<>(), channel)).isNotNull();
+
+        Field brokerAddrTableField = RouteInfoManager.class.getDeclaredField("brokerAddrTable");
+        brokerAddrTableField.setAccessible(true);
+        Map<String, BrokerData> brokerAddrTable = (Map<String, BrokerData>) brokerAddrTableField.get(routeInfoManager);
+        brokerAddrTable.remove("stale-broker");
+
+        UnRegisterBrokerRequestHeader staleRequest = new UnRegisterBrokerRequestHeader();
+        staleRequest.setClusterName("default-cluster");
+        staleRequest.setBrokerAddr("127.0.0.1:40911");
+        staleRequest.setBrokerName("stale-broker");
+        staleRequest.setBrokerId(0L);
+        UnRegisterBrokerRequestHeader healthyRequest = new UnRegisterBrokerRequestHeader();
+        healthyRequest.setClusterName("default-cluster");
+        healthyRequest.setBrokerAddr("127.0.0.1:50911");
+        healthyRequest.setBrokerName("healthy-broker");
+        healthyRequest.setBrokerId(0L);
+
+        Set<UnRegisterBrokerRequestHeader> requests = new LinkedHashSet<>();
+        requests.add(staleRequest);
+        requests.add(healthyRequest);
+        routeInfoManager.unRegisterBroker(requests);
+
+        // healthy-broker's master is offline, so its queueData must be wiped
+        // to read-only; before the fix the stale entry NPE'd first and the
+        // cleanup of the whole batch was skipped.
+        Field topicQueueTableField = RouteInfoManager.class.getDeclaredField("topicQueueTable");
+        topicQueueTableField.setAccessible(true);
+        Map<String, Map<String, QueueData>> topicQueueTable = (Map<String, Map<String, QueueData>>) topicQueueTableField.get(routeInfoManager);
+        assertThat(topicQueueTable.get("topic-a").get("healthy-broker").getPerm()).isEqualTo(PermName.PERM_READ);
+        assertThat(topicQueueTable.get("topic-b").get("healthy-broker").getPerm()).isEqualTo(PermName.PERM_READ);
     }
 
     @Test
