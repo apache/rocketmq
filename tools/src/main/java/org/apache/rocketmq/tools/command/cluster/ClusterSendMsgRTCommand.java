@@ -100,6 +100,9 @@ public class ClusterSendMsgRTCommand implements SubCommand {
 
             long amount = !commandLine.hasOption('a') ? 100 : Long.parseLong(commandLine
                 .getOptionValue('a').trim());
+            if (amount < 2) {
+                throw new SubCommandException("-a amount must be >= 2: the first message is a warm-up sample and is excluded from the RT calculation");
+            }
 
             long size = !commandLine.hasOption('s') ? 128 : Long.parseLong(commandLine
                 .getOptionValue('s').trim());
