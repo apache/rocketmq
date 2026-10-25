@@ -77,6 +77,24 @@ public class AttributeParserTest {
     }
 
     @Test
+    public void parseToMap_ValueContainingEqualSign_ReturnsFullValue() {
+        Map<String, String> result = AttributeParser.parseToMap("+key1=a=b");
+
+        Map<String, String> expectedMap = new HashMap<>();
+        expectedMap.put("+key1", "a=b");
+        assertEquals(expectedMap, result);
+    }
+
+    @Test
+    public void parseToMap_EmptyValue_ReturnsEmptyValue() {
+        Map<String, String> result = AttributeParser.parseToMap("+key1=");
+
+        Map<String, String> expectedMap = new HashMap<>();
+        expectedMap.put("+key1", "");
+        assertEquals(expectedMap, result);
+    }
+
+    @Test
     public void parseToString_EmptyMap_ReturnsEmptyString() {
         Map<String, String> attributes = new HashMap<>();
         String result = AttributeParser.parseToString(attributes);
