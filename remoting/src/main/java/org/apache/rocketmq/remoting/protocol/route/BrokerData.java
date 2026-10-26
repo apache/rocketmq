@@ -20,7 +20,7 @@ package org.apache.rocketmq.remoting.protocol.route;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 
@@ -38,7 +38,6 @@ public class BrokerData implements Comparable<BrokerData> {
      */
     private HashMap<Long, String> brokerAddrs;
     private String zoneName;
-    private final Random random = new Random();
 
     /**
      * Enable acting master or not, used for old version HA adaption,
@@ -93,7 +92,7 @@ public class BrokerData implements Comparable<BrokerData> {
 
         if (masterAddress == null) {
             List<String> addrs = new ArrayList<>(brokerAddrs.values());
-            return addrs.get(random.nextInt(addrs.size()));
+            return addrs.get(ThreadLocalRandom.current().nextInt(addrs.size()));
         }
 
         return masterAddress;
