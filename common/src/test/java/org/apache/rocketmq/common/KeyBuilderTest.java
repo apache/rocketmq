@@ -60,4 +60,27 @@ public class KeyBuilderTest {
         String popRetryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
         assertThat(KeyBuilder.isPopRetryTopicV2(popRetryTopicV1)).isEqualTo(false);
     }
+
+    @Test
+    public void testV1CollisionExample() {
+        // Demonstrates the V1 naming collision: different (group, topic) pairs produce the same retry topic
+        // group="A_B" topic="C" vs group="A" topic="B_C" both produce %RETRY%A_B_C
+        String collision1 = KeyBuilder.buildPopRetryTopicV1("C", "A_B");
+        String collision2 = KeyBuilder.buildPopRetryTopicV1("B_C", "A");
+        assertThat(collision1).isEqualTo(collision2); // both are %RETRY%A_B_C
+    }
+
+    @Test
+    public void testV2NoCollision() {
+        // V2 uses '+' separator which is not allowed in topic/group names, so no collision
+        String v2a = KeyBuilder.buildPopRetryTopicV2("C", "A_B");
+        String v2b = KeyBuilder.buildPopRetryTopicV2("B_C", "A");
+        assertThat(v2a).isNotEqualTo(v2b); // %RETRY%A_B+C vs %RETRY%A+B_C
+    }
+
+    @Test
+    public void testDefaultEnableRetryTopicV2IsTrue() {
+        BrokerConfig config = new BrokerConfig();
+        assertThat(config.isEnableRetryTopicV2()).isTrue();
+    }
 }
