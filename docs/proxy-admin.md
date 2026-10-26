@@ -127,7 +127,10 @@ that work without adding scope/peering fields to the protocol:
   guarding against loops with the `x-mq-admin-forwarded` header. The peer admin
   port is assumed uniform across the cluster (the heartbeat sync payload does not
   carry it); a cluster running heterogeneous admin ports would need that added to
-  the heartbeat record first.
+  the heartbeat record first. Each forwarded call receives a fresh
+  `grpcAdminServerForwardTimeoutMillis` deadline; a shorter incoming gRPC deadline
+  takes precedence. An unresponsive peer terminates the call with gRPC
+  `DEADLINE_EXCEEDED` even when the original caller omitted a deadline.
 
 `GetProxyRuntimeStats` intentionally reports the **local** process (its own
 connection/producer/consumer counts), so a dashboard that wants per-node stats
@@ -196,6 +199,7 @@ The `apache/rocketmq-apis` repository (main branch, containing
 | `grpcAdminServerPort` | 8088 | dedicated admin gRPC port (<=0 disables) |
 | `grpcAdminServerAuthEnable` | false | fail-closed mode; requires cluster authentication **and** authorization to be enabled (see D2) |
 | `grpcAdminServerRequestTimeoutMillis` | 3000 | per-broker-hop deadline for the broker calls an admin RPC fans out to |
+| `grpcAdminServerForwardTimeoutMillis` | 15000 | timeout for a complete admin RPC forwarded to a peer proxy, including its broker queries and telemetry relay; a shorter incoming gRPC deadline still applies |
 
 ## 8. Honest boundaries
 
