@@ -239,8 +239,9 @@ public class TieredMessageStoreTest {
         Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
         Assert.assertEquals(100L, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
 
-        Mockito.when(flatFile.getConsumeQueueMinOffset()).thenReturn(10L);
-        Assert.assertEquals(10L, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(-1L);
+        Assert.assertEquals(flatFile.getConsumeQueueMinOffset(),
+            currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
     }
 
     @Test
