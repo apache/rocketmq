@@ -356,7 +356,10 @@ public class ConsumerLagCalculator {
         long earliestUnconsumedTimestamp = Long.MAX_VALUE;
 
         if (group == null || topic == null) {
-            return new Pair<>(total, earliestUnconsumedTimestamp);
+            // an unknown topic (a POP group whose retry topic does not exist yet) has no lag, and the
+            // "no timestamp" sentinel must not escape here: the recorded latency would become
+            // 'now - Long.MAX_VALUE', about -9.2e18 milliseconds
+            return new Pair<>(total, 0L);
         }
 
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
@@ -417,7 +420,9 @@ public class ConsumerLagCalculator {
         long earliestUnPulledTimestamp = Long.MAX_VALUE;
 
         if (group == null || topic == null) {
-            return new Pair<>(total, earliestUnPulledTimestamp);
+            // same normalization as getConsumerLagStats: the sentinel timestamp must not reach the
+            // recorded latency
+            return new Pair<>(total, 0L);
         }
 
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
