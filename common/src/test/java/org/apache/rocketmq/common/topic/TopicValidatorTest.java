@@ -88,6 +88,27 @@ public class TopicValidatorTest {
     }
 
     @Test
+    public void testGroupValidator_WithCustomMaxLength() {
+        try {
+            TopicValidator.setGroupMaxLength(255);
+            assertThat(TopicValidator.validateGroup(generateString2(255)).isValid()).isTrue();
+            assertThat(TopicValidator.validateGroup(generateString2(256)).isValid()).isFalse();
+
+            // values above 255 are capped at 255
+            TopicValidator.setGroupMaxLength(300);
+            assertThat(TopicValidator.validateGroup(generateString2(255)).isValid()).isTrue();
+            assertThat(TopicValidator.validateGroup(generateString2(256)).isValid()).isFalse();
+
+            // non-positive values fall back to the default of 120
+            TopicValidator.setGroupMaxLength(0);
+            assertThat(TopicValidator.validateGroup(generateString2(120)).isValid()).isTrue();
+            assertThat(TopicValidator.validateGroup(generateString2(121)).isValid()).isFalse();
+        } finally {
+            TopicValidator.setGroupMaxLength(120);
+        }
+    }
+
+    @Test
     public void testAddSystemTopic() {
         String topic = "SYSTEM_TOPIC_TEST";
         TopicValidator.addSystemTopic(topic);
