@@ -109,6 +109,7 @@ public class PopConsumerService extends ServiceThread {
     }
 
     /**
+     * No external callers, only called by unit tests.
      * In-flight messages are those that have been received from a queue
      * by a consumer but have not yet been deleted. For standard queues,
      * there is a limit on the number of in-flight messages, depending on queue traffic and message backlog.
@@ -119,6 +120,7 @@ public class PopConsumerService extends ServiceThread {
                 brokerConfig.getPopInflightMessageThreshold();
     }
 
+    // No external callers, only called by unit tests.
     public long getPendingFilterCount(String groupId, String topicId, int queueId) {
         try {
             long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topicId, queueId);
@@ -129,6 +131,7 @@ public class PopConsumerService extends ServiceThread {
         }
     }
 
+    // No external callers, only called by unit tests.
     public GetMessageResult recodeRetryMessage(GetMessageResult getMessageResult,
         String topicId, long offset, long popTime, long invisibleTime) {
 
@@ -168,6 +171,34 @@ public class PopConsumerService extends ServiceThread {
         return result;
     }
 
+    /**
+     * Merge a GetMessageResult into the pop context and commit the consumer offset.
+     * No external callers, only called by unit tests.
+     *
+     * <p>If messages were found:
+     * <ul>
+     *   <li>For FIFO — the queue is blocked via {@link #setFifoBlocked} so that
+     *       subsequent pops on the same queue wait for the ack</li>
+     *   <li>The result is appended to the context along with the topic, queue,
+     *       and retry type metadata</li>
+     * </ul>
+     *
+     * <p>The consumer offset is then committed:
+     * <ul>
+     *   <li>For FIFO when no messages found — committed to the next begin offset</li>
+     *   <li>For non-FIFO — the pull offset is updated. If buffer merge is enabled,
+     *       the offset is clamped to the minimum offset still in the cache to
+     *       prevent regression</li>
+     * </ul>
+     *
+     * @param context    the pop context to update
+     * @param result     the result from the message store
+     * @param topicId    topic name
+     * @param queueId    queue id
+     * @param retryType  whether this is a retry topic V1/V2
+     * @param offset     the original consume offset used for this fetch
+     * @return the updated pop context
+     */
     public PopConsumerContext handleGetMessageResult(PopConsumerContext context, GetMessageResult result,
         String topicId, int queueId, PopConsumerRecord.RetryType retryType, long offset) {
 
@@ -205,6 +236,29 @@ public class PopConsumerService extends ServiceThread {
         return context;
     }
 
+    /**
+     * Retrieve the starting consume offset for a pop request.
+     * should be private, no external callers.
+     *
+     * <p>For FIFO consumers, the offset is read from the regular consumer offset.
+     * For non-FIFO consumers, a separate pull offset is used (compatibility with
+     * pull consumer switchover).
+     *
+     * <p>If no offset is stored (first pop), it is initialized via
+     * {@code PopMessageProcessor#getInitOffset} based on {@code initMode}
+     * (beginning or end of the queue).
+     *
+     * <p>If a reset offset exists (offset reset command issued), the cache is
+     * cleared, FIFO lock unlock, and the reset offset takes effect
+     * immediately.
+     *
+     * @param groupId   consumer group id
+     * @param topicId   topic name
+     * @param queueId   queue id
+     * @param initMode  consume init mode (min/max)
+     * @param fifo      whether this is a FIFO ordered consumption
+     * @return the consume offset to start popping from
+     */
     public long getPopOffset(String groupId, String topicId, int queueId, int initMode, boolean fifo) {
 
         // For FIFO messages, the pull offset is not used.
@@ -213,6 +267,7 @@ public class PopConsumerService extends ServiceThread {
             this.brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, queueId) :
             this.brokerController.getConsumerOffsetManager().queryPullOffset(groupId, topicId, queueId);
 
+        // init offset
         if (offset < 0L) {
             try {
                 offset = this.brokerController.getPopMessageProcessor()
@@ -223,6 +278,8 @@ public class PopConsumerService extends ServiceThread {
                 throw new RuntimeException(e);
             }
         }
+
+        // get reset offset
         Long resetOffset =
             this.brokerController.getConsumerOffsetManager().queryThenEraseResetOffset(topicId, groupId, queueId);
         if (resetOffset != null) {
@@ -231,9 +288,29 @@ public class PopConsumerService extends ServiceThread {
             this.brokerController.getConsumerOffsetManager()
                 .commitOffset("ResetPopOffset", groupId, topicId, queueId, resetOffset);
         }
+
         return resetOffset != null ? resetOffset : offset;
     }
 
+    /**
+     * Fetch messages from the store with automatic offset correction.
+     * No external callers, except unit tests.
+     *
+     * <p>If the stored offset is behind the actual consume queue offset
+     * ({@code OFFSET_TOO_SMALL}, {@code OFFSET_OVERFLOW_BADLY},
+     * {@code OFFSET_FOUND_NULL}), the offset is corrected and a retry is
+     * issued with the corrected offset. This prevents duplicate messages
+     * when the Pop buffer offset has not yet been committed.
+     *
+     * @param clientHost the client address
+     * @param groupId    consumer group id
+     * @param topicId    topic name
+     * @param queueId    queue id
+     * @param offset     the consume offset to start from
+     * @param batchSize  max number of messages
+     * @param filter     message filter
+     * @return a future completing with the fetch result
+     */
     public CompletableFuture<GetMessageResult> getMessageAsync(String clientHost,
         String groupId, String topicId, int queueId, long offset, int batchSize, MessageFilter filter) {
 
@@ -279,6 +356,7 @@ public class PopConsumerService extends ServiceThread {
 
     /**
      * Fifo message does not have retry feature in broker
+     * No external callers, only called by unit tests.
      */
     public void setFifoBlocked(PopConsumerContext context,
         String groupId, String topicId, int queueId, List<Long> queueOffsetList, GetMessageResult getMessageResult) {
@@ -287,6 +365,7 @@ public class PopConsumerService extends ServiceThread {
             context.getPopTime(), context.getInvisibleTime(), queueOffsetList, context.getOrderCountInfoBuilder(), getMessageResult);
     }
 
+    // No external callers, only called by unit tests.
     public boolean isFifoBlocked(PopConsumerContext context, String groupId, String topicId, int queueId) {
         // If server-side reset offset is enabled, and there is a reset offset,
         // then return false to make sure that the reset offset takes effect.
@@ -298,6 +377,32 @@ public class PopConsumerService extends ServiceThread {
             context.getAttemptId(), topicId, groupId, queueId, context.getInvisibleTime());
     }
 
+    /**
+     * Fetch messages from a single queue and append them to the pop context.
+     * No external callers, except unit tests.
+     *
+     * <p>Chained via {@link CompletableFuture#thenCompose} from
+     * {@link #getMessageFromTopicAsync}. When the batch is already full
+     * ({@code remain <= 0}), the pending count is added to the context and
+     * the chain stops. Otherwise, messages are fetched from the store and
+     * the result is merged into the context via {@link #handleGetMessageResult}.
+     *
+     * <p>Early termination can occur inside this method when:
+     * <ul>
+     *   <li>Too many inflight (un-acked) messages exist</li>
+     *   <li>A FIFO queue is blocked</li>
+     * </ul>
+     *
+     * @param future    the accumulator future carrying the pop context
+     * @param clientHost the client address
+     * @param groupId   consumer group id
+     * @param topicId   topic name
+     * @param queueId   queue id
+     * @param batchSize max number of messages still needed
+     * @param filter    message filter
+     * @param retryType whether this is a retry topic V1/V2
+     * @return a future completing with the pop context updated with results
+     */
     protected CompletableFuture<PopConsumerContext> getMessageAsync(CompletableFuture<PopConsumerContext> future,
         String clientHost, String groupId, String topicId, int queueId, int batchSize, MessageFilter filter,
         PopConsumerRecord.RetryType retryType) {
@@ -335,13 +440,38 @@ public class PopConsumerService extends ServiceThread {
         });
     }
 
+    /**
+     * Fetch messages from every read queue of a topic via a CompletableFuture chain.
+     *
+     * <p>Each queue is visited once. For each queue the
+     * {@link #getMessageAsync(CompletableFuture, String, String, String, int, int, MessageFilter, PopConsumerRecord.RetryType)}
+     * method is chained via {@link CompletableFuture#thenCompose}. The chain carries
+     * the accumulated result through all queues, stopping early when the batch is
+     * filled, the queue is blocked, or the inflight threshold is reached.
+     *
+     * <p>Queue iteration order respects {@code priorityOrderAsc} and uses
+     * {@code requestCount} as a round-robin offset for load balancing.
+     *
+     * @param future       the accumulator future
+     * @param clientHost   the client address
+     * @param groupId      consumer group id
+     * @param topicId      topic name
+     * @param requestCount round-robin counter for queue selection
+     * @param batchSize    max number of messages to return
+     * @param filter       message filter expression
+     * @param retryType    whether this is a retry topic V1/V2
+     * @return a future completing with the pop result context
+     */
     protected CompletableFuture<PopConsumerContext> getMessageFromTopicAsync(CompletableFuture<PopConsumerContext> future,
         String clientHost, String groupId, String topicId, long requestCount, int batchSize, MessageFilter filter,
         PopConsumerRecord.RetryType retryType) {
+        // get topic config
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topicId);
         if (null == topicConfig) {
             return future;
         }
+
+        // iterate all queues of the topic
         for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
             long index = (brokerController.getBrokerConfig().isPriorityOrderAsc() ?
                 topicConfig.getReadQueueNums() - 1 - i : i) + requestCount;
@@ -352,10 +482,38 @@ public class PopConsumerService extends ServiceThread {
         return future;
     }
 
+    /**
+     * Asynchronously pop messages for the KVStore-based ack path.
+     *
+     * <p>This method coordinates the full Pop lifecycle:
+     * <ol>
+     *   <li>Validates topic, group, and acquires the consumer lock</li>
+     *   <li>Determines whether to pull from retry topic first
+     *       (based on {@code popFromRetryProbability})</li>
+     *   <li>Pulls messages from normal topic (and retry topic V1/V2 if configured)</li>
+     *   <li>Writes checkpoints to {@link PopConsumerCache} (buffer merge) or
+     *       {@link PopConsumerKVStore} (RocksDB)</li>
+     *   <li>Re-encodes retry messages if needed</li>
+     * </ol>
+     *
+     * @param clientHost   the client address
+     * @param popTime      the pop invocation timestamp
+     * @param invisibleTime the message visibility timeout
+     * @param groupId      consumer group id
+     * @param topicId      topic name
+     * @param queueId      queue id (-1 for all queues)
+     * @param batchSize    max number of messages to return
+     * @param fifo         whether this is a FIFO ordered consumption
+     * @param attemptId    attempt id for idempotent consumption
+     * @param initMode     consume init mode (min/max)
+     * @param filter       message filter expression
+     * @return a future that completes with the pop result context
+     */
     public CompletableFuture<PopConsumerContext> popAsync(String clientHost, long popTime, long invisibleTime,
         String groupId, String topicId, int queueId, int batchSize, boolean fifo, String attemptId, int initMode,
         MessageFilter filter) {
 
+        // init context params
         PopConsumerContext popConsumerContext =
             new PopConsumerContext(clientHost, popTime, invisibleTime, groupId, fifo, initMode, attemptId);
 
@@ -391,18 +549,22 @@ public class PopConsumerService extends ServiceThread {
             CompletableFuture.completedFuture(popConsumerContext);
 
         try {
+            // get message from retry topic,
             if (!fifo && preferRetry) {
+                // default config of retrieveMessageFromPopRetryTopicV1 is true,
                 if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
                     getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
                         retryTopicV1, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
                 }
 
+                // default config of enableRetryTopicV2 is false
                 if (brokerConfig.isEnableRetryTopicV2()) {
                     getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
                         retryTopicV2, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
                 }
             }
 
+            // get message from normal topic
             if (queueId != -1) {
                 getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
                     topicId, queueId, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
@@ -410,6 +572,7 @@ public class PopConsumerService extends ServiceThread {
                 getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
                     topicId, requestCount, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
 
+                // get message from retry topic
                 if (!fifo && !preferRetry) {
                     if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
                         getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
@@ -425,6 +588,8 @@ public class PopConsumerService extends ServiceThread {
 
             return getMessageFuture.thenCompose(result -> {
                 if (result.isFound() && !result.isFifo()) {
+                    // write checkpoint to cache or store
+                    // default config of enablePopBufferMerge is false
                     if (brokerConfig.isEnablePopBufferMerge() &&
                         popConsumerCache != null && !popConsumerCache.isCacheFull()) {
                         this.popConsumerCache.writeRecords(result.getPopConsumerRecordList());
@@ -432,6 +597,7 @@ public class PopConsumerService extends ServiceThread {
                         this.popConsumerStore.writeRecords(result.getPopConsumerRecordList());
                     }
 
+                    // format result
                     for (int i = 0; i < result.getGetMessageResultList().size(); i++) {
                         GetMessageResult getMessageResult = result.getGetMessageResultList().get(i);
                         PopConsumerRecord popConsumerRecord = result.getPopConsumerRecordList().get(i);
@@ -449,6 +615,7 @@ public class PopConsumerService extends ServiceThread {
                 }
                 return CompletableFuture.completedFuture(result);
             }).whenComplete((result, throwable) -> {
+                // unlock by consumerLockService
                 try {
                     if (throwable != null) {
                         log.error("PopConsumerService popAsync get message error",
@@ -496,6 +663,28 @@ public class PopConsumerService extends ServiceThread {
         return true;
     }
 
+    /**
+     * Delete the acked record from the cache and/or RocksDB store.
+     *
+     * <p>The deletion is a two-step fallback:
+     * <ul>
+     *   <li>First, the record is deleted from {@link PopConsumerCache} (if buffer
+     *       merge is enabled). If the record was present in the cache and removed
+     *       successfully, the operation returns immediately without touching RocksDB</li>
+     *   <li>If the cache is not enabled or the record was not found in the cache,
+     *       deletion falls through to {@link PopConsumerKVStore#deleteRecords}</li>
+     * </ul>
+     *
+     * <p>memo: Notify polling request when receive orderly ack
+     *
+     * @param popTime       the original pop time of the message
+     * @param invisibleTime the original visibility timeout
+     * @param groupId       consumer group id
+     * @param topicId       topic name
+     * @param queueId       queue id
+     * @param offset        the acked offset
+     * @return a future that completes with {@code true} on success
+     */
     // Notify polling request when receive orderly ack
     public CompletableFuture<Boolean> ackAsync(
         long popTime, long invisibleTime, String groupId, String topicId, int queueId, long offset) {
@@ -518,7 +707,30 @@ public class PopConsumerService extends ServiceThread {
         return CompletableFuture.completedFuture(true);
     }
 
-    // refer ChangeInvisibleTimeProcessor.appendCheckPointThenAckOrigin
+    /**
+     * Extend the visibility timeout of a popped message (KVStore path).
+     *
+     * <p>refer: ChangeInvisibleTimeProcessor.appendCheckPointThenAckOrigin
+     * This is the KVStore equivalent of {@code ChangeInvisibleTimeProcessor#appendCheckPointThenAckOrigin}.
+     *
+     * <p>A new record with the updated timeout is written to the KVStore, and the
+     * old record (identified by the original {@code popTime + invisibleTime}) is
+     * deleted from the cache and KVStore.
+     *
+     * <p>If the new and old records have the same visibility timeout (e.g. the
+     * consumer extended by the same duration it already had), the delete one is
+     * skipped because the write one already overwrites the old record in RocksDB.
+     *
+     * @param popTime             the original pop time
+     * @param invisibleTime       the original visibility timeout
+     * @param changedPopTime      the new pop time (typically current time)
+     * @param changedInvisibleTime the new visibility timeout
+     * @param groupId             consumer group id
+     * @param topicId             topic name
+     * @param queueId             queue id
+     * @param offset              the message offset
+     * @param suspend             whether to suspend (nack without incrementing reconsume count)
+     */
     public void changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
                                            long changedInvisibleTime, String groupId, String topicId,
                                            int queueId, long offset, boolean suspend) {
@@ -537,6 +749,7 @@ public class PopConsumerService extends ServiceThread {
 
         // No need to generate new records when the group does not exist,
         // because these retry messages will not be consumed by anyone.
+        // default value of popReviveSkipIfGroupAbsent is true
         boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
             !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId);
 
@@ -554,19 +767,41 @@ public class PopConsumerService extends ServiceThread {
         }
 
         // If the new CK has the same key as the old CK (same visibilityTimeout),
-        // the write already overwrites the old record in RocksDB, skip delete
+        // the write one already overwrites the old record in RocksDB, skip delete
         // to avoid removing the newly written record.
         if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
             this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
         }
     }
 
+    /**
+     * Read the original message from storage for revival.
+     * No external callers, except unit tests.
+     *
+     * <p>Used by {@link #revive(PopConsumerRecord)} when a visibility timeout
+     * expires. Delegates to {@link org.apache.rocketmq.broker.EscapeBridge}
+     * which can read from either the local store or a remote broker's store.
+     *
+     * @param consumerRecord the expired record
+     * @return a triple of (message, info, needRetry)
+     */
     // Use broker escape bridge to support remote read
     public CompletableFuture<Triple<MessageExt, String, Boolean>> getMessageAsync(PopConsumerRecord consumerRecord) {
         return this.brokerController.getEscapeBridge().getMessageAsync(consumerRecord.getTopicId(),
             consumerRecord.getOffset(), consumerRecord.getQueueId(), brokerConfig.getBrokerName(), false);
     }
 
+    /**
+     * Revive a single expired record by re-publishing it to the retry topic.
+     * No external callers, only called by unit tests.
+     *
+     * <p>Skips the record if the consumer group no longer exists.
+     * Otherwise, reads the original message,
+     * and re-publishes it via {@link #reviveRetry}.
+     *
+     * @param record the expired record to revive
+     * @return a future completing with {@code true} on success
+     */
     public CompletableFuture<Boolean> revive(PopConsumerRecord record) {
 
         if (brokerConfig.isPopReviveSkipIfGroupAbsent() &&
@@ -586,21 +821,48 @@ public class PopConsumerService extends ServiceThread {
                     log.info("PopConsumerService revive no need retry, record={}", record);
                     return CompletableFuture.completedFuture(!result.getRight());
                 }
+
                 return CompletableFuture.completedFuture(this.reviveRetry(record, result.getLeft()));
             });
     }
 
+    // No external callers, only called by unit tests.
     public void clearCache(String groupId, String topicId, int queueId) {
         if (popConsumerCache != null) {
             popConsumerCache.removeRecords(groupId, topicId, queueId);
         }
     }
 
+    /**
+     * Scan the KVStore for expired records and revive them.
+     * No external callers, only called by unit tests.
+     *
+     * <p>This is the core revival loop called by {@link #run()}:
+     * <ol>
+     *   <li>Scans {@link PopConsumerKVStore#scanExpiredRecords} for records
+     *       whose visibility timeout falls within {@code [currentTime-3s, now)}</li>
+     *   <li>For each expired record, calls {@link #revive(PopConsumerRecord)} to
+     *       read the original message and re-publish it to the retry topic.
+     *       Concurrency is controlled by a semaphore</li>
+     *   <li>Failed revive attempts are retried with exponential backoff via a
+     *       new record with increased {@code invisibleTime} and
+     *       {@code attemptTimes}</li>
+     *   <li>After the maximum retry attempts, the record is dropped</li>
+     * </ol>
+     *
+     * @param currentTime tracks the last scanned visibility timeout (for incremental progress)
+     * @param maxCount    maximum number of records to process per batch(load from config: 16 * 1024)
+     * @return the number of consumed (revived) records
+     */
     public long revive(AtomicLong currentTime, int maxCount) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         long upperTime = System.currentTimeMillis() - 50L;
+
+        // scan expired records between [currentTime-3s, now-50ms)]
         List<PopConsumerRecord> consumerRecords = this.popConsumerStore.scanExpiredRecords(
                 currentTime.get() - TimeUnit.SECONDS.toMillis(3), upperTime, maxCount);
+
+        // init context params
         long scanCostTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
 
         // When reading messages from local storage, the current thread is used
@@ -614,6 +876,7 @@ public class PopConsumerService extends ServiceThread {
         // could merge read operation here
         for (PopConsumerRecord record : consumerRecords) {
             CompletableFuture<Boolean> future;
+            // revive record
             try {
                 semaphore.acquire();
                 future = this.revive(record);
@@ -621,6 +884,8 @@ public class PopConsumerService extends ServiceThread {
                 semaphore.release();
                 throw new RuntimeException(e);
             }
+
+            // add future result to futureList
             futureList.add(future.thenAccept(result -> {
                 if (!result) {
                     if (record.getAttemptTimes() < brokerConfig.getPopReviveMaxAttemptTimes()) {
@@ -640,9 +905,14 @@ public class PopConsumerService extends ServiceThread {
             }).whenComplete((result, ex) -> semaphore.release()));
         }
 
+        // wait for all futures to complete
         CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
+
+        // then restore failure records and delete successful records
         this.popConsumerStore.writeRecords(new ArrayList<>(failureList));
         this.popConsumerStore.deleteRecords(consumerRecords);
+
+        // set currentTime and logging
         currentTime.set(consumerRecords.isEmpty() ?
             upperTime : consumerRecords.get(consumerRecords.size() - 1).getVisibilityTimeout());
 
@@ -662,6 +932,7 @@ public class PopConsumerService extends ServiceThread {
         return consumerRecords.size();
     }
 
+    // No external callers, only called by unit tests.
     public void createRetryTopicIfNeeded(String groupId, String retryTopic) {
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(retryTopic);
         if (topicConfig != null && !brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
@@ -694,6 +965,7 @@ public class PopConsumerService extends ServiceThread {
 
     @SuppressWarnings("DuplicatedCode")
     // org.apache.rocketmq.broker.processor.PopReviveService#reviveRetry
+    // No external callers, only called by unit tests.
     public boolean reviveRetry(PopConsumerRecord record, MessageExt messageExt) {
 
         if (brokerConfig.isPopConsumerKVServiceLog()) {
@@ -702,11 +974,13 @@ public class PopConsumerService extends ServiceThread {
                 record.getQueueId(), record.getOffset());
         }
 
+        // create retry topic if needed
         boolean retry = StringUtils.startsWith(record.getTopicId(), MixAll.RETRY_GROUP_TOPIC_PREFIX);
         String retryTopic = retry ? record.getTopicId() : KeyBuilder.buildPopRetryTopic(
             record.getTopicId(), record.getGroupId(), brokerConfig.isEnableRetryTopicV2());
         this.createRetryTopicIfNeeded(record.getGroupId(), retryTopic);
 
+        // create retry message
         // deep copy here
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(retryTopic);
@@ -771,6 +1045,7 @@ public class PopConsumerService extends ServiceThread {
     }
 
     // Export kv store record to revive topic
+    // admin service
     @SuppressWarnings("ExtractMethodRecommender")
     public synchronized void transferToFsStore() {
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -850,6 +1125,19 @@ public class PopConsumerService extends ServiceThread {
         }
     }
 
+    /**
+     * Background thread that periodically revives expired Pop records.
+     *
+     * <p>Each iteration:
+     * <ol>
+     *   <li>Calls {@link #revive(AtomicLong, int)} to scan the RocksDB store for
+     *       records whose visibility timeout has elapsed, fetch the original
+     *       message, and re-publish it to the retry topic</li>
+     *   <li>Cleans up stale consumer locks every minute</li>
+     *   <li>When the number of revived records is below the batch limit, sleeps
+     *       for a short interval to avoid busy-waiting</li>
+     * </ol>
+     */
     @Override
     public void run() {
         this.consumerRunning.set(true);

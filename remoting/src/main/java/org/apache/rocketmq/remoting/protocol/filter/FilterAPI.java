@@ -24,6 +24,27 @@ import java.util.Arrays;
 
 public class FilterAPI {
 
+    /**
+     * Build a {@link SubscriptionData} from a topic and a tag expression.
+     *
+     * <p>The {@code subString} is either
+     *    - {@link SubscriptionData#SUB_ALL} ({@code "*"}, meaning "subscribe to everything")
+     *    - or a list of tags joined by {@code "||"}.
+     * Each tag is recorded twice:
+     *    - once verbatim in {@link SubscriptionData#getTagsSet()} (for display/debug)
+     *    - and once as its {@code hashCode()} in {@link SubscriptionData#getCodeSet()}
+     *      (for the broker-side O(1) tag match against the per-message {@code tagsCode}).
+     *
+     * <p>Note the hash collision trade-off:
+     * because {@code codeSet} stores only 32-bit hashes,
+     * a matching code may occasionally be a false positive on the broker,
+     * which is why the consumer still performs exact tag filtering after delivery.
+     *
+     * @param topic     the topic being subscribed
+     * @param subString tag expression: {@code "*"} or tags joined by {@code "||"}
+     * @return the built subscription data
+     * @throws Exception if the tag expression cannot be split
+     */
     public static SubscriptionData buildSubscriptionData(String topic, String subString) throws Exception {
         final SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setTopic(topic);
@@ -33,9 +54,11 @@ public class FilterAPI {
             subscriptionData.setSubString(SubscriptionData.SUB_ALL);
             return subscriptionData;
         }
+        // split "tagA||tagB" into individual tags; trim and drop empty segments
         String[] tags = subString.split("\\|\\|");
         if (tags.length > 0) {
             Arrays.stream(tags).map(String::trim).filter(tag -> !tag.isEmpty()).forEach(tag -> {
+                // store verbatim tag for display plus its hashCode for broker-side matching
                 subscriptionData.getTagsSet().add(tag);
                 subscriptionData.getCodeSet().add(tag.hashCode());
             });
