@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -94,15 +96,10 @@ public class ProduceAccumulator {
             Collection<MessageAccumulation> values = syncSendBatchs.values();
             final int sleepTime = Math.max(1, holdMs / 2);
             for (MessageAccumulation v : values) {
-                v.wakeup();
-                synchronized (v) {
-                    synchronized (v.closed) {
-                        if (v.messagesSize.get() == 0) {
-                            v.closed.set(true);
-                            syncSendBatchs.remove(v.aggregateKey, v);
-                        } else {
-                            v.notify();
-                        }
+                synchronized (v.closed) {
+                    if (v.messagesSize.get() == 0) {
+                        v.closed.set(true);
+                        syncSendBatchs.remove(v.aggregateKey, v);
                     }
                 }
             }
@@ -278,15 +275,14 @@ public class ProduceAccumulator {
     }
 
     boolean tryAddMessage(Message message) {
-        synchronized (currentlyHoldSize) {
-            if (currentlyHoldSize.get() < totalHoldSize) {
-                int bodySize = null == message.getBody() ? 0 : message.getBody().length;
-                if (bodySize > 0) {
-                    currentlyHoldSize.addAndGet(bodySize);
-                }
-                return true;
-            } else {
+        int bodySize = null == message.getBody() ? 0 : message.getBody().length;
+        while (true) {
+            long current = currentlyHoldSize.get();
+            if (current >= totalHoldSize) {
                 return false;
+            }
+            if (bodySize <= 0 || currentlyHoldSize.compareAndSet(current, current + bodySize)) {
+                return true;
             }
         }
     }
@@ -335,6 +331,8 @@ public class ProduceAccumulator {
         private Set<String> keys;
         private final AtomicBoolean closed;
         private SendResult[] sendResults;
+        private final CountDownLatch sendCompleted = new CountDownLatch(1);
+        private volatile Throwable sendException;
         private AggregateKey aggregateKey;
         private AtomicInteger messagesSize;
         private int count;
@@ -377,17 +375,63 @@ public class ProduceAccumulator {
                     this.keys.addAll(Arrays.asList(msgKeys.split(MessageConst.KEY_SEPARATOR)));
                 }
             }
-            synchronized (this) {
+            // The message is already part of this batch, so wait until the batch is sent instead of giving up on
+            // interruption; otherwise the message would be stranded in the batch.
+            boolean interrupted = false;
+            try {
                 while (!this.closed.get()) {
                     if (readyToSend()) {
+                        // Only the thread that wins the close flag sends; others fall through and wait for the result.
                         this.send();
                         break;
-                    } else {
-                        this.wait();
+                    }
+                    long waitMs = Math.max(1, this.createTime + holdMs - System.currentTimeMillis());
+                    try {
+                        if (this.sendCompleted.await(waitMs, TimeUnit.MILLISECONDS)) {
+                            break;
+                        }
+                    } catch (InterruptedException e) {
+                        interrupted = true;
                     }
                 }
-                return ret;
+                while (true) {
+                    try {
+                        this.sendCompleted.await();
+                        break;
+                    } catch (InterruptedException e) {
+                        interrupted = true;
+                    }
+                }
+            } finally {
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
             }
+            rethrowSendException();
+            return ret;
+        }
+
+        private void rethrowSendException() throws MQBrokerException, RemotingException, MQClientException {
+            Throwable e = this.sendException;
+            if (e == null) {
+                return;
+            }
+            if (e instanceof MQBrokerException) {
+                throw (MQBrokerException) e;
+            }
+            if (e instanceof RemotingException) {
+                throw (RemotingException) e;
+            }
+            if (e instanceof MQClientException) {
+                throw (MQClientException) e;
+            }
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            if (e instanceof Error) {
+                throw (Error) e;
+            }
+            throw new MQClientException("send message batch failed", e);
         }
 
         public boolean add(Message msg,
@@ -409,13 +453,6 @@ public class ProduceAccumulator {
             }
             return true;
 
-        }
-
-        public synchronized void wakeup() {
-            if (this.closed.get()) {
-                return;
-            }
-            this.notify();
         }
 
         private MessageBatch batch() {
@@ -459,18 +496,20 @@ public class ProduceAccumulator {
                     return;
                 }
             }
-            MessageBatch messageBatch = this.batch();
-            SendResult sendResult = null;
             try {
                 if (defaultMQProducer != null) {
-                    sendResult = defaultMQProducer.sendDirect(messageBatch, aggregateKey.mq, null);
+                    MessageBatch messageBatch = this.batch();
+                    SendResult sendResult = defaultMQProducer.sendDirect(messageBatch, aggregateKey.mq, null);
                     this.splitSendResults(sendResult);
                 } else {
                     throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
                 }
+            } catch (Throwable e) {
+                this.sendException = e;
+                throw e;
             } finally {
                 currentlyHoldSize.addAndGet(-messagesSize.get());
-                this.notifyAll();
+                this.sendCompleted.countDown();
             }
         }
 
@@ -480,14 +519,15 @@ public class ProduceAccumulator {
                     return;
                 }
             }
-            MessageBatch messageBatch = this.batch();
-            SendResult sendResult = null;
+            final int size = messagesSize.get();
+            final AtomicBoolean holdSizeReleased = new AtomicBoolean(false);
             try {
                 if (defaultMQProducer != null) {
-                    final int size = messagesSize.get();
+                    MessageBatch messageBatch = this.batch();
                     defaultMQProducer.sendDirect(messageBatch, aggregateKey.mq, new SendCallback() {
                         @Override
                         public void onSuccess(SendResult sendResult) {
+                            releaseHoldSize(size, holdSizeReleased);
                             try {
                                 splitSendResults(sendResult);
                                 int i = 0;
@@ -499,7 +539,6 @@ public class ProduceAccumulator {
                                 if (i != count) {
                                     throw new IllegalArgumentException("sendResult is illegal");
                                 }
-                                currentlyHoldSize.addAndGet(-size);
                             } catch (Exception e) {
                                 onException(e);
                             }
@@ -507,19 +546,26 @@ public class ProduceAccumulator {
 
                         @Override
                         public void onException(Throwable e) {
+                            releaseHoldSize(size, holdSizeReleased);
                             for (SendCallback v : sendCallbacks) {
                                 v.onException(e);
                             }
-                            currentlyHoldSize.addAndGet(-size);
                         }
                     });
                 } else {
                     throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
                 }
             } catch (Exception e) {
+                releaseHoldSize(size, holdSizeReleased);
                 for (SendCallback v : sendCallbacks) {
                     v.onException(e);
                 }
+            }
+        }
+
+        private void releaseHoldSize(int size, AtomicBoolean released) {
+            if (released.compareAndSet(false, true)) {
+                currentlyHoldSize.addAndGet(-size);
             }
         }
     }

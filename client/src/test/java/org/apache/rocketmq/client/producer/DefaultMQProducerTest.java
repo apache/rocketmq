@@ -63,6 +63,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -538,6 +539,45 @@ public class DefaultMQProducerTest {
 
         countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
         producer.setAutoBatch(false);
+    }
+
+    @Test
+    public void testAutoBatch_unbatchableMessageReleasesHoldSize() throws Exception {
+        producer.setAutoBatch(true);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        AtomicLong holdSize = getAccumulatorHoldSize();
+        long before = holdSize.get();
+
+        Message delayMessage = new Message(topic, "delay message body".getBytes());
+        delayMessage.setDelayTimeLevel(1);
+        SendResult sendResult = producer.send(delayMessage);
+
+        assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+        assertThat(holdSize.get()).isEqualTo(before);
+        producer.setAutoBatch(false);
+    }
+
+    @Test
+    public void testAutoBatch_invalidMessageReleasesHoldSize() throws Exception {
+        producer.setAutoBatch(true);
+        producer.setMaxMessageSize(4);
+        AtomicLong holdSize = getAccumulatorHoldSize();
+        long before = holdSize.get();
+        try {
+            producer.send(bigMessage);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("the message body size over max value");
+        }
+        assertThat(holdSize.get()).isEqualTo(before);
+        producer.setAutoBatch(false);
+    }
+
+    private AtomicLong getAccumulatorHoldSize() throws NoSuchFieldException, IllegalAccessException {
+        ProduceAccumulator accumulator = getField(producer, "produceAccumulator", ProduceAccumulator.class);
+        Field field = ProduceAccumulator.class.getDeclaredField("currentlyHoldSize");
+        field.setAccessible(true);
+        return (AtomicLong) field.get(accumulator);
     }
 
     @Test

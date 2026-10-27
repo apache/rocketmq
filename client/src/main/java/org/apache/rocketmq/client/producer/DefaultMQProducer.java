@@ -432,10 +432,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     private boolean canBatch(Message msg) {
-        // produceAccumulator is full
-        if (!produceAccumulator.tryAddMessage(msg)) {
-            return false;
-        }
         // delay message do not support batch processing
         if (msg.getDelayTimeLevel() > 0 || msg.getDelayTimeMs() > 0 || msg.getDelayTimeSec() > 0 || msg.getDeliverTimeMs() > 0) {
             return false;
@@ -780,8 +776,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         // check whether it can batch
         if (!canBatch(msg)) {
             return sendDirect(msg, mq, sendCallback);
+        }
+        // validate before reserving hold size, otherwise the reserved size would never be released
+        Validators.checkMessage(msg, this);
+        // produceAccumulator is full
+        if (!produceAccumulator.tryAddMessage(msg)) {
+            return sendDirect(msg, mq, sendCallback);
         } else {
-            Validators.checkMessage(msg, this);
             MessageClientIDSetter.setUniqID(msg);
             if (sendCallback == null) {
                 return this.produceAccumulator.send(msg, mq, this);
