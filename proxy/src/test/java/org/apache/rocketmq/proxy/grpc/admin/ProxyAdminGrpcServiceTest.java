@@ -83,10 +83,14 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.ch.qos.logback.classic.Level;
+import org.apache.rocketmq.logging.ch.qos.logback.classic.LoggerContext;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -364,6 +368,30 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         assertNotNull(observer.value);
         assertTrue(observer.value.getRemark(), observer.value.getRemark().contains("log level changed"));
         assertTrue(observer.completed);
+    }
+
+    @Test
+    public void changeLogLevelAppliesToOneOfThePinnedComponentLoggersTest() {
+        // the shipped rmq.proxy.logback.xml pins every component logger with its own level and
+        // additivity=false, so a runtime change that only touches the root logger leaves all
+        // application logs exactly as they were while the RPC reports success
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        org.apache.rocketmq.logging.ch.qos.logback.classic.Logger proxyLogger =
+            loggerContext.getLogger(LoggerName.PROXY_LOGGER_NAME);
+        Level original = proxyLogger.getLevel();
+        try {
+            proxyLogger.setLevel(Level.INFO);
+
+            SimpleObserver<ChangeLogLevelResponse> observer = new SimpleObserver<>();
+            service.changeLogLevel(ChangeLogLevelRequest.newBuilder()
+                .setLevel(ChangeLogLevelRequest.Level.DEBUG).build(), observer);
+
+            assertNotNull(observer.value);
+            assertTrue("a logger pinned by the configuration has to observe the runtime change",
+                LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME).isDebugEnabled());
+        } finally {
+            proxyLogger.setLevel(original);
+        }
     }
 
     // ------------------------------------------------------------------ 2. DescribeTopicStatus
