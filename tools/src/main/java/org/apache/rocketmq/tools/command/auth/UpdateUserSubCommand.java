@@ -78,12 +78,14 @@ public class UpdateUserSubCommand implements SubCommand {
     public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = createAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
             String username = StringUtils.trim(commandLine.getOptionValue('u'));
-            String password = StringUtils.trim(commandLine.getOptionValue('p'));
+            // The secret is a payload, not a name: leading or trailing spaces are part of it, and
+            // trimming it here stores a secret the operator never typed.
+            String password = commandLine.getOptionValue('p');
             String userType = StringUtils.trim(commandLine.getOptionValue('t'));
             String userStatus = StringUtils.trim(commandLine.getOptionValue('s'));
 
@@ -114,5 +116,9 @@ public class UpdateUserSubCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+    DefaultMQAdminExt createAdminExt(RPCHook rpcHook) {
+        return new DefaultMQAdminExt(rpcHook);
     }
 }

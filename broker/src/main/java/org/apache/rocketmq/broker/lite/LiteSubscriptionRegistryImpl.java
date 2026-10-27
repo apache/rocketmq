@@ -214,15 +214,18 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         Set<String> lmqsToRemove = LiteSubscription.removals(thisSub.getLmqSet(), targetLmqs);
 
         // 3) Apply removals, then idempotent adds over the full target set
+        boolean isExclusiveGroup = LiteMetadataUtil.isSubLiteExclusive(group, brokerController);
         ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
         lmqsToRemove.forEach(lmqName -> {
             thisSub.removeLmq(lmqName);
             removeClientGroup(clientGroup, lmqName, false);
         });
-        targetLmqs.forEach(lmqName -> addClientGroup(thisSub, clientGroup, lmqName));
+        targetLmqs.stream()
+            .filter(lmqName -> !isExclusiveGroup || !exclusiveEvictionTombstones.contains(clientId, lmqName))
+            .forEach(lmqName -> addClientGroup(thisSub, clientGroup, lmqName));
 
         // Tombstone operations only apply to exclusive groups.
-        if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
+        if (isExclusiveGroup) {
             // If any lmqName in the client's full subscription still has a tombstone,
             // the previous notifyUnsubscribeLite was likely lost. Re-send to drive convergence.
             targetLmqs.stream()

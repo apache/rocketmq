@@ -48,6 +48,8 @@ public class TopicValidator {
     private static final int GROUP_MAX_LENGTH = 120;
     private static final int RETRY_OR_DLQ_TOPIC_MAX_LENGTH = 255;
 
+    private static volatile int groupMaxLength = GROUP_MAX_LENGTH;
+
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<>();
 
     /**
@@ -139,6 +141,11 @@ public class TopicValidator {
         return new ValidateResult(true, "");
     }
 
+    public static void setGroupMaxLength(int maxLength) {
+        groupMaxLength = maxLength <= 0 ? GROUP_MAX_LENGTH
+            : Math.min(maxLength, RETRY_OR_DLQ_TOPIC_MAX_LENGTH);
+    }
+
     public static ValidateResult validateGroup(String group) {
 
         if (UtilAll.isBlank(group)) {
@@ -150,8 +157,8 @@ public class TopicValidator {
             return new ValidateResult(false, falseRemark);
         }
 
-        if (group.length() > GROUP_MAX_LENGTH) {
-            String falseRemark = "The specified group: " + group + ", is longer than group max length: " + GROUP_MAX_LENGTH;
+        if (group.length() > groupMaxLength) {
+            String falseRemark = "The specified group: " + group + ", is longer than group max length: " + groupMaxLength;
             return new ValidateResult(false, falseRemark);
         }
 
