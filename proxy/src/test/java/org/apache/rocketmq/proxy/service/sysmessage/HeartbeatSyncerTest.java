@@ -246,7 +246,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
         heartbeatSyncer.consumeMessage(Lists.newArrayList(convertFromMessage(messageArgumentCaptor.getValue())), null);
 
         assertTrue(heartbeatSyncer.remoteChannelMap.isEmpty());
-        verify(consumerManager, never()).unregisterConsumer(anyString(), any(), anyBoolean());
+        verify(consumerManager).unregisterConsumer(eq(consumerGroup), any(), eq(false));
     }
 
     @Test
