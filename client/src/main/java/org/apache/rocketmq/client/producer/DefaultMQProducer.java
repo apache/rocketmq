@@ -782,15 +782,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         // produceAccumulator is full
         if (!produceAccumulator.tryAddMessage(msg)) {
             return sendDirect(msg, mq, sendCallback);
-        } else {
-            MessageClientIDSetter.setUniqID(msg);
-            if (sendCallback == null) {
-                return this.produceAccumulator.send(msg, mq, this);
-            } else {
-                this.produceAccumulator.send(msg, mq, sendCallback, this);
-                return null;
-            }
         }
+        MessageClientIDSetter.setUniqID(msg);
+        if (sendCallback == null) {
+            return this.produceAccumulator.send(msg, mq, this);
+        }
+        this.produceAccumulator.send(msg, mq, sendCallback, this);
+        return null;
     }
 
     /**

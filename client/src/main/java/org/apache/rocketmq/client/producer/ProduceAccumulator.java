@@ -17,19 +17,20 @@
 
 package org.apache.rocketmq.client.producer;
 
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.Uninterruptibles;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -52,7 +53,6 @@ public class ProduceAccumulator {
     // holdMs normal value
     private int holdMs = 10;
     private final Logger log = LoggerFactory.getLogger(DefaultMQProducer.class);
-    private final GuardForSyncSendService guardThreadForSyncSend;
     private final GuardForAsyncSendService guardThreadForAsyncSend;
     private final Map<AggregateKey, MessageAccumulation> syncSendBatchs = new ConcurrentHashMap<AggregateKey, MessageAccumulation>();
     private final Map<AggregateKey, MessageAccumulation> asyncSendBatchs = new ConcurrentHashMap<AggregateKey, MessageAccumulation>();
@@ -61,52 +61,13 @@ public class ProduceAccumulator {
 
     public ProduceAccumulator(String instanceName) {
         this.instanceName = instanceName;
-        this.guardThreadForSyncSend = new GuardForSyncSendService(this.instanceName);
         this.guardThreadForAsyncSend = new GuardForAsyncSendService(this.instanceName);
     }
 
-    private class GuardForSyncSendService extends ServiceThread {
-        private final String serviceName;
-
-        public GuardForSyncSendService(String clientInstanceName) {
-            serviceName = String.format("Client_%s_GuardForSyncSend", clientInstanceName);
-        }
-
-        @Override
-        public String getServiceName() {
-            return serviceName;
-        }
-
-        @Override
-        public void run() {
-            log.info(this.getServiceName() + " service started");
-
-            while (!this.isStopped()) {
-                try {
-                    this.doWork();
-                } catch (Exception e) {
-                    log.warn(this.getServiceName() + " service has exception. ", e);
-                }
-            }
-
-            log.info(this.getServiceName() + " service end");
-        }
-
-        private void doWork() throws InterruptedException {
-            Collection<MessageAccumulation> values = syncSendBatchs.values();
-            final int sleepTime = Math.max(1, holdMs / 2);
-            for (MessageAccumulation v : values) {
-                synchronized (v.closed) {
-                    if (v.messagesSize.get() == 0) {
-                        v.closed.set(true);
-                        syncSendBatchs.remove(v.aggregateKey, v);
-                    }
-                }
-            }
-            Thread.sleep(sleepTime);
-        }
-    }
-
+    /**
+     * Sends async batches whose hold time has expired. Sync batches need no guard: their callers wait for the hold
+     * time themselves and send the batch on expiry.
+     */
     private class GuardForAsyncSendService extends ServiceThread {
         private final String serviceName;
 
@@ -134,31 +95,21 @@ public class ProduceAccumulator {
             log.info(this.getServiceName() + " service end");
         }
 
-        private void doWork() throws Exception {
-            Collection<MessageAccumulation> values = asyncSendBatchs.values();
-            final int sleepTime = Math.max(1, holdMs / 2);
-            for (MessageAccumulation v : values) {
+        private void doWork() throws InterruptedException {
+            for (MessageAccumulation v : asyncSendBatchs.values()) {
                 if (v.readyToSend()) {
-                    v.send(null);
-                }
-                synchronized (v.closed) {
-                    if (v.messagesSize.get() == 0) {
-                        v.closed.set(true);
-                        asyncSendBatchs.remove(v.aggregateKey, v);
-                    }
+                    v.send();
                 }
             }
-            Thread.sleep(sleepTime);
+            Thread.sleep(Math.max(1, holdMs / 2));
         }
     }
 
     void start() {
-        guardThreadForSyncSend.start();
         guardThreadForAsyncSend.start();
     }
 
     void shutdown() {
-        guardThreadForSyncSend.shutdown();
         guardThreadForAsyncSend.shutdown();
     }
 
@@ -195,83 +146,63 @@ public class ProduceAccumulator {
         this.totalHoldSize = totalHoldSize;
     }
 
-    private MessageAccumulation getOrCreateSyncSendBatch(AggregateKey aggregateKey,
-        DefaultMQProducer defaultMQProducer) {
-        MessageAccumulation batch = syncSendBatchs.get(aggregateKey);
-        if (batch != null) {
-            return batch;
-        }
-        batch = new MessageAccumulation(aggregateKey, defaultMQProducer);
-        MessageAccumulation previous = syncSendBatchs.putIfAbsent(aggregateKey, batch);
-
-        return previous == null ? batch : previous;
-    }
-
-    private MessageAccumulation getOrCreateAsyncSendBatch(AggregateKey aggregateKey,
-        DefaultMQProducer defaultMQProducer) {
-        MessageAccumulation batch = asyncSendBatchs.get(aggregateKey);
-        if (batch != null) {
-            return batch;
-        }
-        batch = new MessageAccumulation(aggregateKey, defaultMQProducer);
-        MessageAccumulation previous = asyncSendBatchs.putIfAbsent(aggregateKey, batch);
-
-        return previous == null ? batch : previous;
-    }
-
-    SendResult send(Message msg,
-        DefaultMQProducer defaultMQProducer) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg);
-        while (true) {
-            MessageAccumulation batch = getOrCreateSyncSendBatch(partitionKey, defaultMQProducer);
-            int index = batch.add(msg);
-            if (index == -1) {
-                syncSendBatchs.remove(partitionKey, batch);
-            } else {
-                return batch.sendResults[index];
-            }
-        }
-    }
-
     SendResult send(Message msg, MessageQueue mq,
         DefaultMQProducer defaultMQProducer) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg, mq);
+        CompletableFuture<SendResult> result = new CompletableFuture<>();
+        MessageAccumulation batch = addToBatch(syncSendBatchs, false, msg, mq, completing(result), defaultMQProducer);
+        try {
+            try {
+                return Uninterruptibles.getUninterruptibly(result, batch.remainingHoldMs(), TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                batch.send();
+            }
+            return Uninterruptibles.getUninterruptibly(result);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            Throwables.throwIfInstanceOf(cause, MQBrokerException.class);
+            Throwables.throwIfInstanceOf(cause, RemotingException.class);
+            Throwables.throwIfInstanceOf(cause, MQClientException.class);
+            Throwables.throwIfInstanceOf(cause, InterruptedException.class);
+            Throwables.throwIfUnchecked(cause);
+            throw new MQClientException("send message batch failed", cause);
+        }
+    }
+
+    void send(Message msg, MessageQueue mq, SendCallback sendCallback, DefaultMQProducer defaultMQProducer) {
+        addToBatch(asyncSendBatchs, true, msg, mq, sendCallback, defaultMQProducer);
+    }
+
+    private MessageAccumulation addToBatch(Map<AggregateKey, MessageAccumulation> batches, boolean asyncSend,
+        Message msg, MessageQueue mq, SendCallback sendCallback, DefaultMQProducer defaultMQProducer) {
+        AggregateKey aggregateKey = new AggregateKey(msg, mq);
         while (true) {
-            MessageAccumulation batch = getOrCreateSyncSendBatch(partitionKey, defaultMQProducer);
-            int index = batch.add(msg);
-            if (index == -1) {
-                syncSendBatchs.remove(partitionKey, batch);
-            } else {
-                return batch.sendResults[index];
+            MessageAccumulation batch = batches.get(aggregateKey);
+            if (batch == null) {
+                MessageAccumulation created = new MessageAccumulation(aggregateKey, batches, asyncSend, defaultMQProducer);
+                batch = batches.putIfAbsent(aggregateKey, created);
+                if (batch == null) {
+                    batch = created;
+                }
+            }
+            // a closed batch has already removed itself from the map, so the retry picks up a fresh one
+            if (batch.add(msg, sendCallback)) {
+                return batch;
             }
         }
     }
 
-    void send(Message msg, SendCallback sendCallback,
-        DefaultMQProducer defaultMQProducer) throws InterruptedException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg);
-        while (true) {
-            MessageAccumulation batch = getOrCreateAsyncSendBatch(partitionKey, defaultMQProducer);
-            if (!batch.add(msg, sendCallback)) {
-                asyncSendBatchs.remove(partitionKey, batch);
-            } else {
-                return;
+    private static SendCallback completing(final CompletableFuture<SendResult> future) {
+        return new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                future.complete(sendResult);
             }
-        }
-    }
 
-    void send(Message msg, MessageQueue mq,
-        SendCallback sendCallback,
-        DefaultMQProducer defaultMQProducer) throws InterruptedException, RemotingException, MQClientException {
-        AggregateKey partitionKey = new AggregateKey(msg, mq);
-        while (true) {
-            MessageAccumulation batch = getOrCreateAsyncSendBatch(partitionKey, defaultMQProducer);
-            if (!batch.add(msg, sendCallback)) {
-                asyncSendBatchs.remove(partitionKey, batch);
-            } else {
-                return;
+            @Override
+            public void onException(Throwable e) {
+                future.completeExceptionally(e);
             }
-        }
+        };
     }
 
     boolean tryAddMessage(Message message) {
@@ -287,25 +218,25 @@ public class ProduceAccumulator {
         }
     }
 
-    private class AggregateKey {
-        public String topic = null;
-        public MessageQueue mq = null;
-        public boolean waitStoreMsgOK = false;
-        public String tag = null;
+    long getCurrentlyHoldSize() {
+        return currentlyHoldSize.get();
+    }
 
-        public AggregateKey(Message message) {
-            this(message.getTopic(), null, message.isWaitStoreMsgOK(), message.getTags());
-        }
+    int pendingBatchCount() {
+        return syncSendBatchs.size() + asyncSendBatchs.size();
+    }
 
-        public AggregateKey(Message message, MessageQueue mq) {
-            this(message.getTopic(), mq, message.isWaitStoreMsgOK(), message.getTags());
-        }
+    private static class AggregateKey {
+        private final String topic;
+        private final MessageQueue mq;
+        private final boolean waitStoreMsgOK;
+        private final String tag;
 
-        public AggregateKey(String topic, MessageQueue mq, boolean waitStoreMsgOK, String tag) {
-            this.topic = topic;
+        AggregateKey(Message message, MessageQueue mq) {
+            this.topic = message.getTopic();
             this.mq = mq;
-            this.waitStoreMsgOK = waitStoreMsgOK;
-            this.tag = tag;
+            this.waitStoreMsgOK = message.isWaitStoreMsgOK();
+            this.tag = message.getTags();
         }
 
         @Override
@@ -324,135 +255,118 @@ public class ProduceAccumulator {
         }
     }
 
+    /**
+     * One batch of messages sharing an {@link AggregateKey}. Lifecycle: open (accepting messages) -> closed (removed
+     * from its map and handed to sendDirect exactly once) -> completed ({@link #sent} resolved, hold size released and
+     * each message's callback invoked in add order).
+     */
     private class MessageAccumulation {
+        private final AggregateKey aggregateKey;
+        private final Map<AggregateKey, MessageAccumulation> batches;
+        private final boolean asyncSend;
         private final DefaultMQProducer defaultMQProducer;
-        private LinkedList<Message> messages;
-        private LinkedList<SendCallback> sendCallbacks;
-        private Set<String> keys;
-        private final AtomicBoolean closed;
-        private SendResult[] sendResults;
-        private final CountDownLatch sendCompleted = new CountDownLatch(1);
-        private volatile Throwable sendException;
-        private AggregateKey aggregateKey;
-        private AtomicInteger messagesSize;
-        private int count;
-        private long createTime;
+        private final long createTime = System.currentTimeMillis();
+        private final CompletableFuture<SendResult> sent = new CompletableFuture<>();
+        // guarded by this; frozen once closed
+        private final List<Message> messages = new ArrayList<>();
+        private final List<SendCallback> sendCallbacks = new ArrayList<>();
+        private final Set<String> keys = new HashSet<>();
+        private long messagesSize;
+        private boolean closed;
 
-        public MessageAccumulation(AggregateKey aggregateKey, DefaultMQProducer defaultMQProducer) {
-            this.defaultMQProducer = defaultMQProducer;
-            this.messages = new LinkedList<Message>();
-            this.sendCallbacks = new LinkedList<SendCallback>();
-            this.keys = new HashSet<String>();
-            this.closed = new AtomicBoolean(false);
-            this.messagesSize = new AtomicInteger(0);
+        MessageAccumulation(AggregateKey aggregateKey, Map<AggregateKey, MessageAccumulation> batches,
+            boolean asyncSend, DefaultMQProducer defaultMQProducer) {
             this.aggregateKey = aggregateKey;
-            this.count = 0;
-            this.createTime = System.currentTimeMillis();
+            this.batches = batches;
+            this.asyncSend = asyncSend;
+            this.defaultMQProducer = defaultMQProducer;
+            this.sent.whenComplete(this::complete);
         }
 
-        private boolean readyToSend() {
-            if (this.messagesSize.get() > holdSize
-                || System.currentTimeMillis() >= this.createTime + holdMs) {
-                return true;
-            }
-            return false;
+        synchronized boolean readyToSend() {
+            return !messages.isEmpty() && (messagesSize > holdSize || remainingHoldMs() <= 0);
         }
 
-        public int add(Message msg) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
-            int ret = -1;
-            synchronized (this.closed) {
-                if (this.closed.get()) {
-                    return ret;
+        long remainingHoldMs() {
+            return createTime + holdMs - System.currentTimeMillis();
+        }
+
+        /**
+         * @return false if the batch is already closed and the message was not added
+         */
+        boolean add(Message msg, SendCallback sendCallback) {
+            boolean ready;
+            synchronized (this) {
+                if (closed) {
+                    return false;
                 }
-                ret = this.count++;
-                this.messages.add(msg);
-                int bodySize = null == msg.getBody() ? 0 : msg.getBody().length;
-                if (bodySize > 0) {
-                    messagesSize.addAndGet(bodySize);
-                }
+                messages.add(msg);
+                sendCallbacks.add(sendCallback);
+                messagesSize += null == msg.getBody() ? 0 : msg.getBody().length;
                 String msgKeys = msg.getKeys();
                 if (msgKeys != null) {
-                    this.keys.addAll(Arrays.asList(msgKeys.split(MessageConst.KEY_SEPARATOR)));
+                    keys.addAll(Arrays.asList(msgKeys.split(MessageConst.KEY_SEPARATOR)));
                 }
+                ready = readyToSend();
             }
-            // The message is already part of this batch, so wait until the batch is sent instead of giving up on
-            // interruption; otherwise the message would be stranded in the batch.
-            boolean interrupted = false;
+            if (ready) {
+                send();
+            }
+            return true;
+        }
+
+        /**
+         * Closes the batch and sends it. Only the first caller sends; later calls are no-ops.
+         */
+        void send() {
+            synchronized (this) {
+                if (closed) {
+                    return;
+                }
+                closed = true;
+                batches.remove(aggregateKey, this);
+            }
+            // the batch carries other callers' messages, so the triggering caller's interrupt must not abort it
+            boolean interrupted = Thread.interrupted();
             try {
-                while (!this.closed.get()) {
-                    if (readyToSend()) {
-                        // Only the thread that wins the close flag sends; others fall through and wait for the result.
-                        this.send();
-                        break;
-                    }
-                    long waitMs = Math.max(1, this.createTime + holdMs - System.currentTimeMillis());
-                    try {
-                        if (this.sendCompleted.await(waitMs, TimeUnit.MILLISECONDS)) {
-                            break;
-                        }
-                    } catch (InterruptedException e) {
-                        interrupted = true;
-                    }
+                if (defaultMQProducer == null) {
+                    throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
                 }
-                while (true) {
-                    try {
-                        this.sendCompleted.await();
-                        break;
-                    } catch (InterruptedException e) {
-                        interrupted = true;
-                    }
+                if (asyncSend) {
+                    defaultMQProducer.sendDirect(batch(), aggregateKey.mq, completing(sent));
+                } else {
+                    sent.complete(defaultMQProducer.sendDirect(batch(), aggregateKey.mq, null));
                 }
+            } catch (Throwable e) {
+                sent.completeExceptionally(e);
             } finally {
                 if (interrupted) {
                     Thread.currentThread().interrupt();
                 }
             }
-            rethrowSendException();
-            return ret;
         }
 
-        private void rethrowSendException() throws MQBrokerException, RemotingException, MQClientException {
-            Throwable e = this.sendException;
-            if (e == null) {
-                return;
-            }
-            if (e instanceof MQBrokerException) {
-                throw (MQBrokerException) e;
-            }
-            if (e instanceof RemotingException) {
-                throw (RemotingException) e;
-            }
-            if (e instanceof MQClientException) {
-                throw (MQClientException) e;
-            }
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            }
-            if (e instanceof Error) {
-                throw (Error) e;
-            }
-            throw new MQClientException("send message batch failed", e);
-        }
-
-        public boolean add(Message msg,
-            SendCallback sendCallback) throws InterruptedException, RemotingException, MQClientException {
-            synchronized (this.closed) {
-                if (this.closed.get()) {
-                    return false;
-                }
-                this.count++;
-                this.messages.add(msg);
-                this.sendCallbacks.add(sendCallback);
-                int bodySize = null == msg.getBody() ? 0 : msg.getBody().length;
-                if (bodySize > 0) {
-                    messagesSize.addAndGet(bodySize);
+        private void complete(SendResult sendResult, Throwable error) {
+            currentlyHoldSize.addAndGet(-messagesSize);
+            SendResult[] sendResults = null;
+            if (error == null) {
+                try {
+                    sendResults = splitSendResults(sendResult);
+                } catch (Exception e) {
+                    error = e;
                 }
             }
-            if (readyToSend()) {
-                this.send(sendCallback);
+            for (int i = 0; i < sendCallbacks.size(); i++) {
+                try {
+                    if (error == null) {
+                        sendCallbacks.get(i).onSuccess(sendResults[i]);
+                    } else {
+                        sendCallbacks.get(i).onException(error);
+                    }
+                } catch (Throwable e) {
+                    log.warn("execute send callback of batch message failed", e);
+                }
             }
-            return true;
-
         }
 
         private MessageBatch batch() {
@@ -466,107 +380,30 @@ public class ProduceAccumulator {
             return messageBatch;
         }
 
-        private void splitSendResults(SendResult sendResult) {
+        private SendResult[] splitSendResults(SendResult sendResult) {
             if (sendResult == null) {
                 throw new IllegalArgumentException("sendResult is null");
             }
+            int count = this.messages.size();
             boolean isBatchConsumerQueue = !sendResult.getMsgId().contains(",");
-            this.sendResults = new SendResult[this.count];
+            SendResult[] sendResults = new SendResult[count];
             if (!isBatchConsumerQueue) {
                 String[] msgIds = sendResult.getMsgId().split(",");
                 String[] offsetMsgIds = sendResult.getOffsetMsgId().split(",");
-                if (offsetMsgIds.length != this.count || msgIds.length != this.count) {
+                if (offsetMsgIds.length != count || msgIds.length != count) {
                     throw new IllegalArgumentException("sendResult is illegal");
                 }
-                for (int i = 0; i < this.count; i++) {
-                    this.sendResults[i] = new SendResult(sendResult.getSendStatus(), msgIds[i],
+                for (int i = 0; i < count; i++) {
+                    sendResults[i] = new SendResult(sendResult.getSendStatus(), msgIds[i],
                         sendResult.getMessageQueue(), sendResult.getQueueOffset() + i,
                         sendResult.getTransactionId(), offsetMsgIds[i], sendResult.getRegionId());
                 }
             } else {
-                for (int i = 0; i < this.count; i++) {
-                    this.sendResults[i] = sendResult;
+                for (int i = 0; i < count; i++) {
+                    sendResults[i] = sendResult;
                 }
             }
-        }
-
-        private void send() throws InterruptedException, MQClientException, MQBrokerException, RemotingException {
-            synchronized (this.closed) {
-                if (this.closed.getAndSet(true)) {
-                    return;
-                }
-            }
-            try {
-                if (defaultMQProducer != null) {
-                    MessageBatch messageBatch = this.batch();
-                    SendResult sendResult = defaultMQProducer.sendDirect(messageBatch, aggregateKey.mq, null);
-                    this.splitSendResults(sendResult);
-                } else {
-                    throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
-                }
-            } catch (Throwable e) {
-                this.sendException = e;
-                throw e;
-            } finally {
-                currentlyHoldSize.addAndGet(-messagesSize.get());
-                this.sendCompleted.countDown();
-            }
-        }
-
-        private void send(SendCallback sendCallback) {
-            synchronized (this.closed) {
-                if (this.closed.getAndSet(true)) {
-                    return;
-                }
-            }
-            final int size = messagesSize.get();
-            final AtomicBoolean holdSizeReleased = new AtomicBoolean(false);
-            try {
-                if (defaultMQProducer != null) {
-                    MessageBatch messageBatch = this.batch();
-                    defaultMQProducer.sendDirect(messageBatch, aggregateKey.mq, new SendCallback() {
-                        @Override
-                        public void onSuccess(SendResult sendResult) {
-                            releaseHoldSize(size, holdSizeReleased);
-                            try {
-                                splitSendResults(sendResult);
-                                int i = 0;
-                                Iterator<SendCallback> it = sendCallbacks.iterator();
-                                while (it.hasNext()) {
-                                    SendCallback v = it.next();
-                                    v.onSuccess(sendResults[i++]);
-                                }
-                                if (i != count) {
-                                    throw new IllegalArgumentException("sendResult is illegal");
-                                }
-                            } catch (Exception e) {
-                                onException(e);
-                            }
-                        }
-
-                        @Override
-                        public void onException(Throwable e) {
-                            releaseHoldSize(size, holdSizeReleased);
-                            for (SendCallback v : sendCallbacks) {
-                                v.onException(e);
-                            }
-                        }
-                    });
-                } else {
-                    throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
-                }
-            } catch (Exception e) {
-                releaseHoldSize(size, holdSizeReleased);
-                for (SendCallback v : sendCallbacks) {
-                    v.onException(e);
-                }
-            }
-        }
-
-        private void releaseHoldSize(int size, AtomicBoolean released) {
-            if (released.compareAndSet(false, true)) {
-                currentlyHoldSize.addAndGet(-size);
-            }
+            return sendResults;
         }
     }
 }
