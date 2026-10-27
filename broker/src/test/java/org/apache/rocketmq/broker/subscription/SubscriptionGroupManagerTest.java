@@ -27,9 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
@@ -120,26 +118,6 @@ public class SubscriptionGroupManagerTest {
     private boolean notToBeExecuted() {
         return MixAll.isMac();
     }
-
-    @Test
-    public void testFindSubscriptionGroupConfigAutoCreateWithConfigurableMaxLength() {
-        BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setAutoCreateSubscriptionGroup(true);
-        Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(brokerConfig);
-        Mockito.doNothing().when(subscriptionGroupManager).persist();
-
-        String groupName = StringUtils.repeat('a', 121);
-        assertThat(subscriptionGroupManager.findSubscriptionGroupConfig(groupName)).isNull();
-        assertThat(subscriptionGroupManager.getSubscriptionGroupTable()).doesNotContainKey(groupName);
-
-        brokerConfig.setSubscriptionGroupMaxLength(255);
-        SubscriptionGroupConfig result = subscriptionGroupManager.findSubscriptionGroupConfig(groupName);
-        assertThat(result).isNotNull();
-        assertThat(result.getGroupName()).isEqualTo(groupName);
-        assertThat(subscriptionGroupManager.findSubscriptionGroupConfig(StringUtils.repeat('b', 256))).isNull();
-        verify(subscriptionGroupManager).persist();
-    }
-
     @Test
     public void testUpdateSubscriptionGroupConfigList_NullConfigList() {
         if (notToBeExecuted()) {

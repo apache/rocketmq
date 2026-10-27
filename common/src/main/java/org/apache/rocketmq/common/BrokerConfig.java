@@ -56,12 +56,6 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean brokerTopicEnable = true;
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
-    /**
-     * Maximum subscription group name length (default 120, capped at 255).
-     * Callers must keep retry topics within 255 characters. Groups over 122 characters cannot write to
-     * {@code %DLQ%<group>} because broker writes reject topics over 127 bytes.
-     */
-    private int subscriptionGroupMaxLength = 120;
     private String messageStorePlugIn = "";
 
     private static final int PROCESSOR_NUMBER = Runtime.getRuntime().availableProcessors();
@@ -1057,14 +1051,6 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAutoCreateSubscriptionGroup(boolean autoCreateSubscriptionGroup) {
         this.autoCreateSubscriptionGroup = autoCreateSubscriptionGroup;
-    }
-
-    public int getSubscriptionGroupMaxLength() {
-        return subscriptionGroupMaxLength;
-    }
-
-    public void setSubscriptionGroupMaxLength(int subscriptionGroupMaxLength) {
-        this.subscriptionGroupMaxLength = subscriptionGroupMaxLength;
     }
 
     public String getBrokerConfigPath() {

@@ -260,8 +260,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         if (null == subscriptionGroupConfig) {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup()
                     || MixAll.isSysConsumerGroupAndEnableCreate(group, brokerController.getBrokerConfig().isEnableCreateSysGroup())) {
-                TopicValidator.ValidateResult result = TopicValidator.validateGroup(group,
-                    brokerController.getBrokerConfig().getSubscriptionGroupMaxLength());
+                TopicValidator.ValidateResult result = TopicValidator.validateGroup(group);
                 if (!result.isValid()) {
                     return null;
                 }
