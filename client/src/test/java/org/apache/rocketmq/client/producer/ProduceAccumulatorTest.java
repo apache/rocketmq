@@ -392,4 +392,37 @@ public class ProduceAccumulatorTest {
         assertThat(other.error.get()).isNull();
         assertThat(accumulator.getCurrentlyHoldSize()).isZero();
     }
+
+    @Test
+    public void testSyncSend_firstCallerSendsBatchOnHoldTimeout() throws Exception {
+        AtomicReference<Thread> sender = new AtomicReference<>();
+        FakeProducer producer = new FakeProducer((msg, mq) -> {
+            sender.set(Thread.currentThread());
+            return FakeProducer.ok();
+        });
+        accumulator.batchMaxDelayMs(300);
+        List<Thread> callers = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            Message message = new Message(TOPIC, ("caller-" + i).getBytes());
+            Thread caller = new Thread(() -> {
+                try {
+                    accumulator.send(message, null, producer);
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+            callers.add(caller);
+            caller.start();
+            if (i == 0) {
+                // let the first caller open the batch before the others join it
+                Thread.sleep(50);
+            }
+        }
+        for (Thread caller : callers) {
+            caller.join(3000);
+            assertThat(caller.isAlive()).isFalse();
+        }
+        assertThat(producer.sendTimes.get()).isEqualTo(1);
+        assertThat(sender.get()).isSameAs(callers.get(0));
+    }
 }

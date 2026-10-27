@@ -151,10 +151,14 @@ public class ProduceAccumulator {
         CompletableFuture<SendResult> result = new CompletableFuture<>();
         MessageAccumulation batch = addToBatch(syncSendBatchs, false, msg, mq, completing(result), defaultMQProducer);
         try {
-            try {
-                return Uninterruptibles.getUninterruptibly(result, batch.remainingHoldMs(), TimeUnit.MILLISECONDS);
-            } catch (TimeoutException e) {
-                batch.send();
+            // Only the batch's first caller times the hold delay; the rest wait untimed. A timed wait per caller
+            // registers one timer each, which dominates under many concurrent (e.g. virtual thread) callers.
+            if (batch != null) {
+                try {
+                    return Uninterruptibles.getUninterruptibly(result, batch.remainingHoldMs(), TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    batch.send();
+                }
             }
             return Uninterruptibles.getUninterruptibly(result);
         } catch (ExecutionException e) {
@@ -172,6 +176,9 @@ public class ProduceAccumulator {
         addToBatch(asyncSendBatchs, true, msg, mq, sendCallback, defaultMQProducer);
     }
 
+    /**
+     * @return the batch if this message opened it, otherwise null
+     */
     private MessageAccumulation addToBatch(Map<AggregateKey, MessageAccumulation> batches, boolean asyncSend,
         Message msg, MessageQueue mq, SendCallback sendCallback, DefaultMQProducer defaultMQProducer) {
         AggregateKey aggregateKey = new AggregateKey(msg, mq);
@@ -185,8 +192,9 @@ public class ProduceAccumulator {
                 }
             }
             // a closed batch has already removed itself from the map, so the retry picks up a fresh one
-            if (batch.add(msg, sendCallback)) {
-                return batch;
+            AddResult added = batch.add(msg, sendCallback);
+            if (added != AddResult.REJECTED) {
+                return added == AddResult.OPENED ? batch : null;
             }
         }
     }
@@ -255,6 +263,15 @@ public class ProduceAccumulator {
         }
     }
 
+    private enum AddResult {
+        /** the message is the first of the batch */
+        OPENED,
+        /** the message joined a batch that already had messages */
+        JOINED,
+        /** the batch is closed and the message was not added */
+        REJECTED
+    }
+
     /**
      * One batch of messages sharing an {@link AggregateKey}. Lifecycle: open (accepting messages) -> closed (removed
      * from its map and handed to sendDirect exactly once) -> completed ({@link #sent} resolved, hold size released and
@@ -291,15 +308,14 @@ public class ProduceAccumulator {
             return createTime + holdMs - System.currentTimeMillis();
         }
 
-        /**
-         * @return false if the batch is already closed and the message was not added
-         */
-        boolean add(Message msg, SendCallback sendCallback) {
+        AddResult add(Message msg, SendCallback sendCallback) {
+            boolean opened;
             boolean ready;
             synchronized (this) {
                 if (closed) {
-                    return false;
+                    return AddResult.REJECTED;
                 }
+                opened = messages.isEmpty();
                 messages.add(msg);
                 sendCallbacks.add(sendCallback);
                 messagesSize += null == msg.getBody() ? 0 : msg.getBody().length;
@@ -312,7 +328,7 @@ public class ProduceAccumulator {
             if (ready) {
                 send();
             }
-            return true;
+            return opened ? AddResult.OPENED : AddResult.JOINED;
         }
 
         /**
