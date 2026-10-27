@@ -218,6 +218,38 @@ public class HeartbeatSyncerTest extends InitConfigTest {
     }
 
     @Test
+    public void testSyncUnregisterWithoutRegister() throws Exception {
+        String consumerGroup = "consumerGroup";
+        GrpcClientSettingsManager grpcClientSettingsManager = mock(GrpcClientSettingsManager.class);
+        GrpcChannelManager grpcChannelManager = mock(GrpcChannelManager.class);
+        GrpcClientChannel grpcClientChannel = new GrpcClientChannel(
+            proxyRelayService, grpcClientSettingsManager, grpcChannelManager,
+            ProxyContext.create().setRemoteAddress(remoteAddress).setLocalAddress(localAddress),
+            clientId);
+        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+            grpcClientChannel,
+            clientId,
+            LanguageCode.JAVA,
+            5
+        );
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, consumerManager, mqClientAPIFactory, null);
+
+        ArgumentCaptor<Message> messageArgumentCaptor = ArgumentCaptor.forClass(Message.class);
+        SendResult sendResult = new SendResult();
+        sendResult.setSendStatus(SendStatus.SEND_OK);
+        doReturn(CompletableFuture.completedFuture(sendResult)).when(this.mqClientAPIExt)
+            .sendMessageAsync(anyString(), anyString(), messageArgumentCaptor.capture(), any(), anyLong());
+        heartbeatSyncer.onConsumerUnRegister(consumerGroup, clientChannelInfo);
+        await().atMost(Duration.ofSeconds(3)).until(() -> !messageArgumentCaptor.getAllValues().isEmpty());
+
+        heartbeatSyncer.localProxyId = RandomStringUtils.randomAlphabetic(10);
+        heartbeatSyncer.consumeMessage(Lists.newArrayList(convertFromMessage(messageArgumentCaptor.getValue())), null);
+
+        assertTrue(heartbeatSyncer.remoteChannelMap.isEmpty());
+        verify(consumerManager, never()).unregisterConsumer(anyString(), any(), anyBoolean());
+    }
+
+    @Test
     public void testSyncRemotingChannel() throws Exception {
         String consumerGroup = "consumerGroup";
         String consumerGroup2 = "consumerGroup2";
