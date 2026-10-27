@@ -80,6 +80,32 @@ public class GrpcServerInterceptorOrderTest {
     }
 
     /**
+     * The admin server registers two post-header interceptors, auth first and metrics second
+     * ({@code ProxyStartup}). Reversed execution therefore makes metrics the outer wrapper, which is
+     * what lets it observe the status auth closes a rejected call with. Pin the relative order so a
+     * future re-registration cannot silently stop counting rejected admin calls.
+     */
+    @Test
+    public void metricsInterceptorIsRegisteredAfterAuthInterceptorTest() {
+        ServerInterceptor authInterceptor = mock(ServerInterceptor.class);
+        ServerInterceptor metricsInterceptor = mock(ServerInterceptor.class);
+        @SuppressWarnings("unchecked")
+        ServerBuilder<?> serverBuilder = mock(ServerBuilder.class);
+
+        GrpcServerBuilder.configureInterceptors(serverBuilder, authInterceptor, metricsInterceptor);
+
+        ArgumentCaptor<ServerInterceptor> captor = ArgumentCaptor.forClass(ServerInterceptor.class);
+        verify(serverBuilder, atLeastOnce()).intercept(captor.capture());
+        List<ServerInterceptor> registrationOrder = captor.getAllValues();
+
+        assertSame("auth is registered first", authInterceptor, registrationOrder.get(0));
+        assertSame("metrics is registered second", metricsInterceptor, registrationOrder.get(1));
+        // registered later means executed earlier: metrics wraps the call, auth closes through it
+        assertTrue("metrics must run before auth so rejected closes are recorded",
+            registrationOrder.indexOf(authInterceptor) < registrationOrder.indexOf(metricsInterceptor));
+    }
+
+    /**
      * The normalization the ordering above depends on: whatever channel id the client puts on the
      * wire is discarded in favour of the one derived from the transport.
      */
