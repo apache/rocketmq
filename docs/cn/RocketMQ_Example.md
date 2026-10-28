@@ -59,8 +59,14 @@
 ```
 `gradle`
 ```
-compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
+repositories {
+    mavenCentral()
+}
+dependencies {
+    implementation 'org.apache.rocketmq:rocketmq-client:5.5.0'
+}
 ```
+Gradle 7.0 已移除 `compile` 配置，请改用 `implementation`；如果 RocketMQ 类型出现在你自己的公共 API 中，则应使用 `api`。
 ### 1.2 消息发送
 
 #### 1、Producer端发送同步消息

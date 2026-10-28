@@ -13,9 +13,15 @@ maven:
 </dependency>
 ```
 gradle: 
-``` java 
-compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
+``` groovy
+repositories {
+    mavenCentral()
+}
+dependencies {
+    implementation 'org.apache.rocketmq:rocketmq-client:5.5.0'
+}
 ```
+Gradle 7.0 removed the `compile` configuration, so declare the dependency with `implementation` (use `api` instead when RocketMQ types are exposed in your own public API).
 ### 2 Send Messages
 ##### 2.1 Use Producer to Send Synchronous Messages
 Reliable synchronous transmission is used in extensive scenes, such as important notification messages, SMS notification.
