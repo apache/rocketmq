@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.MessageOrBuilder;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -52,21 +54,58 @@ public class ResponseWriter {
         if (null == response) {
             return false;
         }
-        log.debug("start to write response. response: {}", response);
+        if (log.isDebugEnabled()) {
+            log.debug("start to write response. responseSummary: {}", summarizeResponse(response));
+        }
         if (isCancelled(observer)) {
-            log.warn("client has cancelled the request. response to write: {}", response);
+            log.warn("client has cancelled the request. responseSummary: {}", summarizeResponse(response));
             return false;
         }
         try {
             observer.onNext(response);
         } catch (StatusRuntimeException statusRuntimeException) {
             if (Status.CANCELLED.equals(statusRuntimeException.getStatus())) {
-                log.warn("client has cancelled the request. response to write: {}", response);
+                log.warn("client has cancelled the request. responseSummary: {}", summarizeResponse(response));
                 return false;
             }
             throw statusRuntimeException;
         }
         return true;
+    }
+
+    static String summarizeResponse(Object response) {
+        if (!(response instanceof MessageOrBuilder)) {
+            return response.getClass().getSimpleName();
+        }
+        MessageOrBuilder message = (MessageOrBuilder) response;
+        StringBuilder summary = new StringBuilder()
+            .append("type=")
+            .append(message.getDescriptorForType().getFullName());
+        appendStatusCode(summary, message);
+        return summary.toString();
+    }
+
+    private static void appendStatusCode(StringBuilder summary, MessageOrBuilder message) {
+        Descriptors.FieldDescriptor statusField = message.getDescriptorForType().findFieldByName("status");
+        if (statusField == null || statusField.isRepeated()
+            || statusField.getJavaType() != Descriptors.FieldDescriptor.JavaType.MESSAGE
+            || !message.hasField(statusField)) {
+            return;
+        }
+        Object status = message.getField(statusField);
+        if (!(status instanceof MessageOrBuilder)) {
+            return;
+        }
+        MessageOrBuilder statusMessage = (MessageOrBuilder) status;
+        Descriptors.FieldDescriptor codeField = statusMessage.getDescriptorForType().findFieldByName("code");
+        if (codeField == null || codeField.isRepeated()
+            || codeField.getJavaType() != Descriptors.FieldDescriptor.JavaType.ENUM) {
+            return;
+        }
+        Object code = statusMessage.getField(codeField);
+        if (code instanceof Descriptors.EnumValueDescriptor) {
+            summary.append(", statusCode=").append(((Descriptors.EnumValueDescriptor) code).getName());
+        }
     }
 
     public <T> boolean isCancelled(StreamObserver<T> observer) {
@@ -77,4 +116,3 @@ public class ResponseWriter {
         return false;
     }
 }
-
