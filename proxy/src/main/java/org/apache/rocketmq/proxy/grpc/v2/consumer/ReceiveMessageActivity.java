@@ -142,7 +142,9 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
             CompletableFuture<PopResult> popFuture = this.messagingProcessor.popMessage(
                 ctx,
                 new ReceiveMessageQueueSelector(
-                    request.getMessageQueue().getBroker().getName()
+                    request.getMessageQueue().getBroker().getName(),
+                    // Reentrant FIFO POP must stay on the original broker instead of falling back.
+                    fifo && request.hasAttemptId()
                 ),
                 group,
                 topic,
@@ -216,9 +218,19 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
     protected static class ReceiveMessageQueueSelector implements QueueSelector {
 
         private final String brokerName;
+        private final boolean brokerSticky;
 
         public ReceiveMessageQueueSelector(String brokerName) {
+            this(brokerName, false);
+        }
+
+        /**
+         * @param brokerSticky if true, keep the target broker sticky and return null when the
+         * target broker is unavailable instead of falling back to another broker.
+         */
+        public ReceiveMessageQueueSelector(String brokerName, boolean brokerSticky) {
             this.brokerName = brokerName;
+            this.brokerSticky = brokerSticky;
         }
 
         @Override
@@ -229,6 +241,9 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
 
                 if (StringUtils.isNotBlank(brokerName)) {
                     addressableMessageQueue = messageQueueSelector.getQueueByBrokerName(brokerName);
+                    if (addressableMessageQueue != null || brokerSticky) {
+                        return addressableMessageQueue;
+                    }
                 }
 
                 if (addressableMessageQueue == null) {

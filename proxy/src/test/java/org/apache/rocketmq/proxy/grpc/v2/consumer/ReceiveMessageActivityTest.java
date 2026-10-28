@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.consumer;
 
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Broker;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.FilterType;
@@ -26,6 +27,7 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -50,6 +52,7 @@ import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -61,6 +64,8 @@ import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -422,6 +427,53 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
 
+    @Test
+    public void testReceiveFifoMessageWithAttemptIdUsesStickyBrokerSelector() throws Exception {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        doNothing().when(receiveStreamObserver).onNext(any());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder()
+            .setSubscription(Subscription.newBuilder().setFifo(true).build())
+            .build());
+
+        PopResult popResult = new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList());
+        ArgumentCaptor<QueueSelector> queueSelectorCaptor = ArgumentCaptor.forClass(QueueSelector.class);
+        when(this.messagingProcessor.popMessage(
+            any(),
+            queueSelectorCaptor.capture(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyLong(),
+            anyLong(),
+            anyInt(),
+            any(),
+            eq(true),
+            any(),
+            eq("attempt-id"),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder()
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .setBroker(Broker.newBuilder().setName("missing-broker").build())
+                    .build())
+                .setAttemptId("attempt-id")
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        assertNull(queueSelectorCaptor.getValue().select(ProxyContext.create(), createMessageQueueView()));
+    }
+
     private Code getResponseCodeFromReceiveMessageResponseList(List<ReceiveMessageResponse> responseList) {
         for (ReceiveMessageResponse response : responseList) {
             if (response.hasStatus()) {
@@ -433,6 +485,34 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
 
     @Test
     public void testReceiveMessageQueueSelector() throws Exception {
+        MessageQueueView messageQueueView = createMessageQueueView();
+        ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
+
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
+
+        assertEquals(firstSelect, thirdSelect);
+        assertNotEquals(firstSelect, secondSelect);
+
+        for (int i = 0; i < 2; i++) {
+            ReceiveMessageActivity.ReceiveMessageQueueSelector selectorBrokerName =
+                new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
+            assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
+        }
+
+        ReceiveMessageActivity.ReceiveMessageQueueSelector nonStickyMissingBroker =
+            new ReceiveMessageActivity.ReceiveMessageQueueSelector("missing-broker", false);
+        AddressableMessageQueue fallbackQueue = nonStickyMissingBroker.select(ProxyContext.create(), messageQueueView);
+        assertNotNull(fallbackQueue);
+        assertNotEquals("missing-broker", fallbackQueue.getBrokerName());
+
+        ReceiveMessageActivity.ReceiveMessageQueueSelector stickyMissingBroker =
+            new ReceiveMessageActivity.ReceiveMessageQueueSelector("missing-broker", true);
+        assertNull(stickyMissingBroker.select(ProxyContext.create(), messageQueueView));
+    }
+
+    private MessageQueueView createMessageQueueView() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         List<QueueData> queueDatas = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
@@ -456,20 +536,6 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         }
         topicRouteData.setBrokerDatas(brokerDatas);
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
-        ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
-
-        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
-        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
-        AddressableMessageQueue thirdSelect = selector.select(ProxyContext.create(), messageQueueView);
-
-        assertEquals(firstSelect, thirdSelect);
-        assertNotEquals(firstSelect, secondSelect);
-
-        for (int i = 0; i < 2; i++) {
-            ReceiveMessageActivity.ReceiveMessageQueueSelector selectorBrokerName =
-                new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
-            assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
-        }
+        return new MessageQueueView(TOPIC, topicRouteData, null);
     }
 }
