@@ -442,6 +442,23 @@ public class PopReviveServiceTest {
         assertEquals(1, commitOffsetCaptor.getValue().longValue());
     }
 
+    @Test
+    public void testGenSortListOrdersByReviveOffsetWithoutTruncation() {
+        PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
+        PopCheckPoint zero = buildPopCheckPoint(0L, 0L, 0L);
+        PopCheckPoint overInt = buildPopCheckPoint(0L, 0L, (long) Integer.MAX_VALUE + 1L);
+        PopCheckPoint max = buildPopCheckPoint(0L, 0L, Long.MAX_VALUE);
+        reviveObj.map.put("zero", zero);
+        reviveObj.map.put("max", max);
+        reviveObj.map.put("over-int", overInt);
+
+        ArrayList<PopCheckPoint> sorted = reviveObj.genSortList();
+
+        // reviveOffset is committed from the last entry and decides which checkpoint is revived
+        // first, so the ordering must keep the full 64-bit value instead of a truncated difference.
+        assertEquals(Arrays.asList(zero, overInt, max), sorted);
+    }
+
     public static MessageExtBrokerInner buildBatchAckMsg(BatchAckMsg batchAckMsg, long deliverMs, long reviveOffset, long deliverTime) {
         MessageExtBrokerInner result = buildBatchAckInnerMessage(REVIVE_TOPIC, batchAckMsg, REVIVE_QUEUE_ID, STORE_HOST, deliverMs, PopMessageProcessor.genAckUniqueId(batchAckMsg));
         result.setQueueOffset(reviveOffset);
