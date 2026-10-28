@@ -22,6 +22,8 @@ import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class MessageQueueSelectorTest extends BaseServiceTest {
@@ -80,5 +82,53 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
         messageQueueSelector.selectOne(false);
         messageQueueSelector.selectOne(false);
         assertEquals(queue, messageQueueSelector.selectOne(false));
+    }
+
+    @Test
+    public void testWriteMessageQueueSkipsInvalidOrderTopicConfItems() {
+        topicRouteData.setOrderTopicConf("invalid;:2;" + BROKER_NAME + ":not-a-number;" + BROKER_NAME + ":0;"
+            + BROKER_NAME + ":-1;" + BROKER_NAME + ":2147483647;" + BROKER_NAME + ":2147483648;unknownBroker:1;"
+            + BROKER_NAME + ":2");
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertEquals(2, messageQueueSelector.getQueues().size());
+        assertEquals(1, messageQueueSelector.getBrokerActingQueues().size());
+        for (int i = 0; i < messageQueueSelector.getQueues().size(); i++) {
+            AddressableMessageQueue messageQueue = messageQueueSelector.getQueues().get(i);
+            assertEquals(BROKER_NAME, messageQueue.getBrokerName());
+            assertEquals(i, messageQueue.getQueueId());
+        }
+    }
+
+    @Test
+    public void testGetMasterAddrReturnsEmptyForUnknownBroker() {
+        TopicRouteWrapper topicRouteWrapper = new TopicRouteWrapper(topicRouteData, TOPIC);
+
+        assertNull(topicRouteWrapper.getMasterAddr("unknownBroker"));
+        assertFalse(topicRouteWrapper.getOptionalMasterAddr("unknownBroker").isPresent());
+    }
+
+    @Test
+    public void testWriteMessageQueueReturnsEmptyWhenAllOrderTopicConfItemsAreInvalid() {
+        topicRouteData.setOrderTopicConf("invalid;" + BROKER_NAME + ":0;" + BROKER_NAME + ":-1;"
+            + BROKER_NAME + ":2147483647;" + BROKER_NAME + ":2147483648;unknownBroker:1");
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertTrue(messageQueueSelector.getQueues().isEmpty());
+        assertTrue(messageQueueSelector.getBrokerActingQueues().isEmpty());
+    }
+
+    @Test
+    public void testWriteMessageQueueSkipsQueueDataWithoutMasterAddr() {
+        queueData.setPerm(PermName.PERM_WRITE);
+        queueData.setWriteQueueNums(3);
+        queueData.setBrokerName("unknownBroker");
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertTrue(messageQueueSelector.getQueues().isEmpty());
+        assertTrue(messageQueueSelector.getBrokerActingQueues().isEmpty());
     }
 }

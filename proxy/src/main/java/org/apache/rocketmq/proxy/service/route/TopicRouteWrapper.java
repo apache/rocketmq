@@ -43,7 +43,15 @@ public class TopicRouteWrapper {
     }
 
     public String getMasterAddr(String brokerName) {
-        return this.brokerNameRouteData.get(brokerName).getBrokerAddrs().get(MixAll.MASTER_ID);
+        return getOptionalMasterAddr(brokerName).orElse(null);
+    }
+
+    public Optional<String> getOptionalMasterAddr(String brokerName) {
+        BrokerData brokerData = this.brokerNameRouteData.get(brokerName);
+        if (brokerData == null || brokerData.getBrokerAddrs() == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID));
     }
 
     public String getMasterAddrPrefer(String brokerName) {
