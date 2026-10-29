@@ -19,7 +19,14 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.junit.Assert;
@@ -38,6 +45,11 @@ public class DefaultMessagingProcessorTest extends BaseProcessorTest {
     @Before
     public void before() throws Throwable {
         super.before();
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        proxyConfig.setProducerProcessorThreadPoolNums(1);
+        proxyConfig.setProducerProcessorThreadPoolQueueCapacity(1);
+        proxyConfig.setConsumerProcessorThreadPoolNums(1);
+        proxyConfig.setConsumerProcessorThreadPoolQueueCapacity(1);
         this.defaultMessagingProcessor = new DefaultMessagingProcessor(this.serviceManager);
     }
 
@@ -106,5 +118,55 @@ public class DefaultMessagingProcessorTest extends BaseProcessorTest {
             () -> this.defaultMessagingProcessor.requestOneway(createContext(), "broker-a", request, 3000));
 
         Assert.assertEquals(originalOpaque, request.getOpaque());
+    }
+
+    @Test
+    public void testProcessorFutureCompletesWhenExecutorIsShutDown() {
+        defaultMessagingProcessor.producerProcessorExecutor.shutdown();
+        defaultMessagingProcessor.consumerProcessorExecutor.shutdown();
+
+        assertRejectedExecutor(FutureUtils.addExecutor(
+            CompletableFuture.completedFuture("value"),
+            defaultMessagingProcessor.producerProcessorExecutor));
+        assertRejectedExecutor(FutureUtils.addExecutor(
+            CompletableFuture.completedFuture("value"),
+            defaultMessagingProcessor.consumerProcessorExecutor));
+    }
+
+    @Test
+    public void testProcessorFutureCompletesWhenExecutorIsSaturated() throws Exception {
+        assertSaturatedExecutorRejectsCompletion(defaultMessagingProcessor.producerProcessorExecutor);
+        assertSaturatedExecutorRejectsCompletion(defaultMessagingProcessor.consumerProcessorExecutor);
+    }
+
+    private void assertSaturatedExecutorRejectsCompletion(ThreadPoolExecutor executor) throws Exception {
+        CountDownLatch workerStarted = new CountDownLatch(1);
+        CountDownLatch releaseWorker = new CountDownLatch(1);
+        executor.execute(() -> {
+            workerStarted.countDown();
+            try {
+                releaseWorker.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        Assert.assertTrue(workerStarted.await(5, TimeUnit.SECONDS));
+        executor.execute(() -> {
+        });
+        Assert.assertEquals(0, executor.getQueue().remainingCapacity());
+
+        try {
+            assertRejectedExecutor(FutureUtils.addExecutor(CompletableFuture.completedFuture("value"), executor));
+        } finally {
+            releaseWorker.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    private void assertRejectedExecutor(CompletableFuture<String> result) {
+        Assert.assertTrue("the returned future must not remain pending", result.isDone());
+        Assert.assertTrue(result.isCompletedExceptionally());
+        CompletionException exception = Assert.assertThrows(CompletionException.class, () -> result.join());
+        Assert.assertTrue(exception.getCause() instanceof RejectedExecutionException);
     }
 }
