@@ -30,7 +30,6 @@ import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContex
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.chain.HandlerChain;
 import org.apache.rocketmq.auth.authorization.model.Resource;
@@ -56,9 +55,6 @@ public class UserAuthorizationHandlerTest {
 
     @Before
     public void setUp() {
-        if (MixAll.isMac()) {
-            return;
-        }
         this.authConfig = AuthTestHelper.createDefaultConfig();
         this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
         this.handler = new UserAuthorizationHandler(this.authConfig, null);
@@ -68,18 +64,12 @@ public class UserAuthorizationHandlerTest {
 
     @After
     public void tearDown() {
-        if (MixAll.isMac()) {
-            return;
-        }
         clearAllUsers();
         this.authenticationMetadataManager.shutdown();
     }
 
     @Test
     public void testUserNotFoundThrows() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User noSuchUser = User.of("no_such_user", "pwd");
         DefaultAuthorizationContext ctx = buildContext(noSuchUser, Resource.ofTopic("t1"), Action.SUB, "127.0.0.1");
 
@@ -95,9 +85,6 @@ public class UserAuthorizationHandlerTest {
 
     @Test
     public void testUserDisabledThrows() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("disabled", "pwd");
         authenticationMetadataManager.createUser(user).join();
         User saved = authenticationMetadataManager.getUser("disabled").join();
@@ -120,9 +107,6 @@ public class UserAuthorizationHandlerTest {
 
     @Test
     public void testSuperUserBypassNextChain() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User superUser = User.of("super", "pwd", UserType.SUPER);
         authenticationMetadataManager.createUser(superUser).join();
 
@@ -135,9 +119,6 @@ public class UserAuthorizationHandlerTest {
 
     @Test
     public void testNormalUserGoesToNextChain() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User normalUser = User.of("normal", "pwd", UserType.NORMAL);
         authenticationMetadataManager.createUser(normalUser).join();
 

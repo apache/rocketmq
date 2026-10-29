@@ -26,8 +26,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMELINE_CHECK_POINT;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMELINE_ROLL_CHECK_POINT;
@@ -56,6 +59,24 @@ public class MessageRocksDBStorageTest {
             storage.shutdown();
         }
         UtilAll.deleteFile(new File(storePath));
+    }
+
+    @Test
+    public void testShutdownStopsFlushSchedulerAndSupportsRestart() throws Exception {
+        Field schedulerField = MessageRocksDBStorage.class.getDeclaredField("scheduler");
+        schedulerField.setAccessible(true);
+        ScheduledExecutorService scheduler = (ScheduledExecutorService) schedulerField.get(storage);
+        storage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT, FIXED_DELAY_TIME_BASE);
+
+        Assert.assertTrue(storage.shutdown());
+        Assert.assertTrue(scheduler.awaitTermination(3, TimeUnit.SECONDS));
+        Assert.assertTrue(storage.shutdown());
+
+        Assert.assertTrue(storage.start());
+        Assert.assertEquals(FIXED_DELAY_TIME_BASE,
+            storage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, TIMELINE_ROLL_CHECK_POINT));
+        ScheduledExecutorService restartedScheduler = (ScheduledExecutorService) schedulerField.get(storage);
+        Assert.assertEquals("running", restartedScheduler.submit(() -> "running").get(3, TimeUnit.SECONDS));
     }
 
     @Test

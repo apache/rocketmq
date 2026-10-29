@@ -298,7 +298,7 @@ public class ConsumeQueueTest {
 
     @Test
     public void testPutMessagePositionInfoWrapper_MultiQueue() throws Exception {
-        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
+        Assume.assumeFalse(MixAll.isWindows());
         DefaultMessageStore messageStore = null;
         try {
             messageStore = genForMultiQueue();
@@ -562,7 +562,7 @@ public class ConsumeQueueTest {
 
     @Test
     public void correctMinOffsetWithReadAheadOptimizationTest() throws IOException {
-        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
+        Assume.assumeFalse(MixAll.isWindows());
         String topic = "ReadAheadOptimizationTestTopic";
         int queueId = 0;
         MessageStoreConfig storeConfig = new MessageStoreConfig();
@@ -636,7 +636,7 @@ public class ConsumeQueueTest {
 
     @Test
     public void correctMinOffsetWithSmallDatasetReadAheadOptimizationTest() throws IOException {
-        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
+        Assume.assumeFalse(MixAll.isWindows());
         String topic = "SmallDatasetTopic";
         int queueId = 0;
         MessageStoreConfig storeConfig = new MessageStoreConfig();
@@ -685,7 +685,7 @@ public class ConsumeQueueTest {
 
     @Test
     public void correctMinOffsetWithEmptyQueueReadAheadOptimizationTest() throws IOException {
-        Assume.assumeTrue(!MixAll.isWindows() && !MixAll.isMac());
+        Assume.assumeFalse(MixAll.isWindows());
         String topic = "EmptyQueueTopic";
         int queueId = 0;
         MessageStoreConfig storeConfig = new MessageStoreConfig();

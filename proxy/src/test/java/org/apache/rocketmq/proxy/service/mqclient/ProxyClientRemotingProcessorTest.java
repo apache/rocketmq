@@ -29,7 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.client.ProducerManager;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.service.client.ProxyClientRemotingProcessor;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -73,10 +72,6 @@ public class ProxyClientRemotingProcessorTest {
 
     @Test
     public void testTransactionCheck() throws Exception {
-        // Temporarily skip this test on the Mac system as it is flaky
-        if (MixAll.isMac()) {
-            return;
-        }
         CompletableFuture<ProxyRelayResult<Void>> proxyRelayResultFuture = new CompletableFuture<>();
         when(proxyRelayService.processCheckTransactionState(any(), any(), any(), any()))
             .thenReturn(new RelayData<>(
@@ -118,18 +113,22 @@ public class ProxyClientRemotingProcessorTest {
         doThrow(new StatusRuntimeException(Status.CANCELLED)).when(observer).onNext(any());
 
         ExecutorService executorService = Executors.newCachedThreadPool();
-        AtomicInteger count = new AtomicInteger();
-        for (int i = 0; i < 100; i++) {
-            executorService.submit(() -> {
-                try {
-                    processor.processRequest(new MockChannelHandlerContext(null), command);
-                    count.incrementAndGet();
-                } catch (RemotingCommandException ignored) {
-                }
-            });
+        try {
+            AtomicInteger count = new AtomicInteger();
+            for (int i = 0; i < 100; i++) {
+                executorService.submit(() -> {
+                    try {
+                        processor.processRequest(new MockChannelHandlerContext(null), command);
+                        count.incrementAndGet();
+                    } catch (RemotingCommandException ignored) {
+                    }
+                });
+            }
+            await().atMost(Duration.ofSeconds(3)).until(() -> count.get() == 100);
+            verify(observer, times(2)).onNext(any());
+        } finally {
+            executorService.shutdownNow();
         }
-        await().atMost(Duration.ofSeconds(3)).until(() -> count.get() == 100);
-        verify(observer, times(2)).onNext(any());
     }
 
     protected static class MockChannelHandlerContext extends SimpleChannelHandlerContext {
