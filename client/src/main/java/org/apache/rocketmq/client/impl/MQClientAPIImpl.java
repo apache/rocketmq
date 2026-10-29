@@ -133,6 +133,7 @@ import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicListResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -193,6 +194,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeRespo
 import org.apache.rocketmq.remoting.protocol.header.GetLiteClientInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteGroupInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
@@ -3838,6 +3840,17 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         requestHeader.setLiteTopic(liteTopic);
         return invokeBrokerMethod(addr, RequestCode.GET_LITE_TOPIC_INFO, requestHeader,
             GetLiteTopicInfoResponseBody.class, timeoutMillis);
+    }
+
+    public GetLiteTopicListResponseBody getLiteTopicList(String addr, String parentTopic, String prefix,
+        int maxCount, long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        GetLiteTopicListRequestHeader requestHeader = new GetLiteTopicListRequestHeader();
+        requestHeader.setParentTopic(parentTopic);
+        requestHeader.setPrefix(prefix);
+        requestHeader.setMaxCount(maxCount);
+        return invokeBrokerMethod(addr, RequestCode.GET_LITE_TOPIC_LIST, requestHeader,
+            GetLiteTopicListResponseBody.class, timeoutMillis);
     }
 
     public GetLiteClientInfoResponseBody getLiteClientInfo(String addr, String parentTopic, String group,

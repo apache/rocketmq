@@ -84,6 +84,7 @@ import org.apache.rocketmq.tools.command.lite.GetBrokerLiteInfoSubCommand;
 import org.apache.rocketmq.tools.command.lite.GetLiteClientInfoSubCommand;
 import org.apache.rocketmq.tools.command.lite.GetLiteGroupInfoSubCommand;
 import org.apache.rocketmq.tools.command.lite.GetLiteTopicInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetLiteTopicListSubCommand;
 import org.apache.rocketmq.tools.command.lite.GetParentTopicInfoSubCommand;
 import org.apache.rocketmq.tools.command.lite.TriggerLiteDispatchSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
@@ -312,6 +313,7 @@ public class MQAdminStartup {
         initCommand(new GetBrokerLiteInfoSubCommand());
         initCommand(new GetParentTopicInfoSubCommand());
         initCommand(new GetLiteTopicInfoSubCommand());
+        initCommand(new GetLiteTopicListSubCommand());
         initCommand(new GetLiteClientInfoSubCommand());
         initCommand(new GetLiteGroupInfoSubCommand());
         initCommand(new TriggerLiteDispatchSubCommand());
