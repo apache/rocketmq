@@ -25,12 +25,16 @@ import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.EndTransactionResponse;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueResponse;
+import apache.rocketmq.v2.GetOffsetRequest;
+import apache.rocketmq.v2.GetOffsetResponse;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.HeartbeatResponse;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.NotifyClientTerminationResponse;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
+import apache.rocketmq.v2.QueryOffsetRequest;
+import apache.rocketmq.v2.QueryOffsetResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.RecallMessageRequest;
@@ -56,6 +60,10 @@ public interface GrpcMessagingActivity extends StartAndShutdown {
     CompletableFuture<SendMessageResponse> sendMessage(ProxyContext ctx, SendMessageRequest request);
 
     CompletableFuture<QueryAssignmentResponse> queryAssignment(ProxyContext ctx, QueryAssignmentRequest request);
+
+    CompletableFuture<QueryOffsetResponse> queryOffset(ProxyContext ctx, QueryOffsetRequest request);
+
+    CompletableFuture<GetOffsetResponse> getOffset(ProxyContext ctx, GetOffsetRequest request);
 
     void receiveMessage(ProxyContext ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver);
