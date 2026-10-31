@@ -1,7 +1,10 @@
 package org.apache.rocketmq.store.delay;
 
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.AllocateMappedFileService;
 import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.MappedFileQueue;
@@ -9,17 +12,16 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.apache.rocketmq.store.delay.DelayService.resolveFolder;
 
 public class DelayLogService {
-    private static final int DELAY_LOG_FILE_SIZE = 50 * 1024 * 1024; // 专属延时 WAL 文件固定 50MB
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final int DELAY_LOG_FILE_SIZE = 50 * 1024 * 1024; // 延时消息 WAL 文件，50MB
     private final String storePath;
     private final AllocateMappedFileService allocateMappedFileService;
-    private final ConcurrentHashMap<Long, MappedFileQueue> delayCommitLogPool = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, MappedFileQueue> walFileMap = new ConcurrentHashMap<>();
 
     public DelayLogService(String logDir, AllocateMappedFileService allocateMappedFileService) {
         this.storePath = logDir;
@@ -28,8 +30,11 @@ public class DelayLogService {
 
     public long appendMessage(long fileId, byte[] rawBytes) {
         try {
-            MappedFileQueue walFileQueue = getOrCreateLogQueue(fileId);
-            MappedFile activeLogFile = walFileQueue.getLastMappedFile(0);
+            MappedFileQueue logQueue = getOrCreateLogQueue(fileId);
+            MappedFile activeLogFile = logQueue.getLastMappedFile();
+            if (activeLogFile == null || activeLogFile.isFull()) {
+                activeLogFile = logQueue.getLastMappedFile(0);
+            }
 
             long delayWalOffset = activeLogFile.getFileFromOffset() + activeLogFile.getWrotePosition();
 
@@ -37,7 +42,8 @@ public class DelayLogService {
 
             return delayWalOffset;
         } catch (Exception e) {
-            throw new RuntimeException("Append to shadow delay commitlog failed", e);
+            log.error("[DelayLog] append log failed", e);
+            throw new RuntimeException("Append to delay commitlog failed", e);
         }
     }
 
@@ -64,7 +70,7 @@ public class DelayLogService {
     }
 
     private MappedFileQueue getOrCreateLogQueue(long fileId) {
-        return delayCommitLogPool.computeIfAbsent(fileId, id -> {
+        return walFileMap.computeIfAbsent(fileId, id -> {
             String folderName = resolveFolder(id);
             String delayWalDir = storePath + File.separator + folderName;
             File dir = new File(delayWalDir);
@@ -74,13 +80,13 @@ public class DelayLogService {
     }
 
     public void deleteExpiredLogs(long expiredTimeBound) {
-        delayCommitLogPool.forEach((fileId, queue) -> {
+        walFileMap.forEach((fileId, queue) -> {
             if (fileId < expiredTimeBound) {
                 queue.shutdown(1000 * 10);
                 String folderName = resolveFolder(fileId);
-                String delayWalDir = storePath + folderName;
+                String delayWalDir = storePath + File.separator + folderName;
                 deleteDirectory(new File(delayWalDir));
-                delayCommitLogPool.remove(fileId);
+                walFileMap.remove(fileId);
             }
         });
     }

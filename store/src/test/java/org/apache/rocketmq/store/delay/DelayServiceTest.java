@@ -12,9 +12,8 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Test;
 
+import java.io.File;
 import java.net.InetSocketAddress;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,7 +25,7 @@ public class DelayServiceTest {
     @Test
     public void testDelayService() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setStorePathRootDir("/Users/machunxiao/OpenSource/rocketmq/store/target");
+        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "delay_test_" + System.currentTimeMillis());
         DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager(clusterName, true), new MessageArrivingListener() {
             @Override
             public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
@@ -72,7 +71,7 @@ public class DelayServiceTest {
         msg.setReconsumeTimes(0);
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CLUSTER, clusterName);
         long fu = System.currentTimeMillis() + 5000;
-        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL + MessageConst.PROPERTY_DELAY_TIME_LEVEL, fu + "");
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_DELAY_TIME, fu + "");
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         // msg.setMsgId(MessageClientIDSetter.createUniqID());
         return msg;
