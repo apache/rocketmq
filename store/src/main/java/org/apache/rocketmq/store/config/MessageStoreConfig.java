@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.store.config;
 
-import java.io.File;
-
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
+
+import java.io.File;
 
 public class MessageStoreConfig {
 
@@ -309,6 +309,10 @@ public class MessageStoreConfig {
             return storePathRootDir + File.separator + "commitlog";
         }
         return storePathCommitLog;
+    }
+
+    public String getStorePathDelayIndex() {
+        return storePathRootDir + File.separator + "delaylog";
     }
 
     public void setStorePathCommitLog(String storePathCommitLog) {
