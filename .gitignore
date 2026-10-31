@@ -13,3 +13,5 @@ devenv
 .DS_Store
 localbin
 nohup.out
+
+.flattened-pom.xml
