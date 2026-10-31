@@ -30,7 +30,7 @@ import static org.apache.rocketmq.store.delay.DelayService.resolveFolder;
 public class DelayIdxService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final long TIME_SLICE_MS = 30 * 60 * 1000; // 30分钟一个切片
-    private static final int DELAY_IDX_FILE_SIZE = 50 * 1024 * 1024; // 延时消息索引文件，50MB
+    private static final int DELAY_IDX_FILE_SIZE = 10 * 1024 * 1024; // 延时消息索引文件，10MB
 
     private final String indexDir;
     private final DelayLogService delayLogService;
@@ -56,24 +56,30 @@ public class DelayIdxService {
             long fileId = (scheduleTime / TIME_SLICE_MS) * TIME_SLICE_MS;
 
             // 2.
-            MappedFileQueue indexQueue = getOrCreateIdxQueue(fileId);
-            MappedFile activeFile = indexQueue.getLastMappedFile(0);
+            MappedFileQueue idxQueue = getOrCreateIdxQueue(fileId);
+            MappedFile activeIdxFile = idxQueue.getLastMappedFile();
+            if (activeIdxFile == null || activeIdxFile.isFull()) {
+                activeIdxFile = idxQueue.getLastMappedFile(0);
+            }
 
-            // 3. 计算checksum
+            // 3.
             ByteBuffer buffer = ByteBuffer.allocate(DelayIndex.ENTRY_SIZE);
             long reserved = 0L;
             buffer.putLong(scheduleTime);
             buffer.putLong(offset);
             buffer.putInt(msgSize);
             buffer.putLong(reserved);
+
+            // 计算checksum
             java.util.zip.CRC32 crc32 = new java.util.zip.CRC32();
             crc32.update(buffer.array(), 0, 28);
             int checksum = (int) crc32.getValue();
+
             buffer.putInt(checksum);
             buffer.flip();
 
             // 4. 写入index
-            activeFile.appendMessage(buffer.array());
+            activeIdxFile.appendMessage(buffer.array());
         } catch (Exception e) {
             log.error("[DelayIdx] append idx failed", e);
         }
