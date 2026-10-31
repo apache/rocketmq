@@ -1,7 +1,10 @@
 package org.apache.rocketmq.store.delay;
 
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.AllocateMappedFileService;
 import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.MappedFileQueue;
@@ -16,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.apache.rocketmq.store.delay.DelayService.resolveFolder;
 
 public class DelayLogService {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final int DELAY_LOG_FILE_SIZE = 50 * 1024 * 1024; // 专属延时 WAL 文件固定 50MB
     private final String storePath;
     private final AllocateMappedFileService allocateMappedFileService;
@@ -37,6 +41,7 @@ public class DelayLogService {
 
             return delayWalOffset;
         } catch (Exception e) {
+            log.error("[DelayLog] append log failed", e);
             throw new RuntimeException("Append to shadow delay commitlog failed", e);
         }
     }

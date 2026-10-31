@@ -1,6 +1,9 @@
 package org.apache.rocketmq.store.delay;
 
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -14,9 +17,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 public class DelayService {
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final long TIME_SLICE_MS = 30 * 60 * 1000; // 30分钟一个切片
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
-    private static final ZoneId SYSTEM_ZONE = ZoneId.systemDefault();
 
     private final DefaultMessageStore messageStore;
     private final DelayLogService delayLogService;
@@ -53,8 +56,7 @@ public class DelayService {
             this.delayIdxService.buildIndex(scheduleTime, delayWalOffset, dispatchRequest.getMsgSize());
 
         } catch (Exception e) {
-            e.printStackTrace();
-            // 内核级异常拦截与强隔离，确保自研任意延时引擎出现任何异常时，100% 不引发原生分发线程崩溃
+            log.error("build delay service failed", e);
         } finally {
             if (rawResult != null) {
                 rawResult.release();
@@ -72,7 +74,7 @@ public class DelayService {
             // 2. 物理清空 30 天前的 idx
             this.delayIdxService.cleanExpiredIndices(expiredTimeBound);
         } catch (Exception e) {
-            // 记录异常日志
+            log.error("clean expired delay file failed", e);
         }
     }
 
@@ -110,7 +112,7 @@ public class DelayService {
 
     public static String resolveFolder(long fileId) {
         Instant instant = Instant.ofEpochMilli(fileId);
-        LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, SYSTEM_ZONE);
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
         return FORMATTER.format(localDateTime);
     }
 

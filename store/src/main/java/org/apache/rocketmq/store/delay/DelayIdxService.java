@@ -5,8 +5,11 @@ import com.alibaba.fastjson.TypeReference;
 import io.netty.util.HashedWheelTimer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.AllocateMappedFileService;
 import org.apache.rocketmq.store.MappedFile;
 import org.apache.rocketmq.store.MappedFileQueue;
@@ -25,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.rocketmq.store.delay.DelayService.resolveFolder;
 
 public class DelayIdxService {
-
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final long TIME_SLICE_MS = 30 * 60 * 1000; // 30分钟一个切片
 
     private final String indexDir;
@@ -71,7 +74,7 @@ public class DelayIdxService {
             // 4. 写入index
             activeFile.appendMessage(buffer.array());
         } catch (Exception e) {
-            // 切面异常强隔离
+            log.error("[DelayIdx] append idx failed", e);
         }
     }
 
