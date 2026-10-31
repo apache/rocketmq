@@ -3,7 +3,7 @@ package org.apache.rocketmq.store.delay;
 import java.nio.ByteBuffer;
 
 public class DelayIndex {
-    public static final int ENTRY_SIZE = 32; // 严格锁死 32 字节
+    public static final int ENTRY_SIZE = 32;
 
     private final long scheduleTime;
     private final long offset;

@@ -13,8 +13,6 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,7 +24,7 @@ public class DelayServiceTest {
     @Test
     public void testDelayService() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setStorePathRootDir("/Users/machunxiao/OpenSource/rocketmq/store/target");
+        messageStoreConfig.setStorePathRootDir("/Users");
         DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager(clusterName, true), new MessageArrivingListener() {
             @Override
             public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {

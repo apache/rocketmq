@@ -30,6 +30,7 @@ import static org.apache.rocketmq.store.delay.DelayService.resolveFolder;
 public class DelayIdxService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final long TIME_SLICE_MS = 30 * 60 * 1000; // 30分钟一个切片
+    private static final int DELAY_IDX_FILE_SIZE = 50 * 1024 * 1024; // 延时消息索引文件，50MB
 
     private final String indexDir;
     private final DelayLogService delayLogService;
@@ -184,7 +185,7 @@ public class DelayIdxService {
                     newIndices.add(index);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("[DelayIdx] decode failed", e);
             } finally {
                 sbr.release();
             }
@@ -214,6 +215,8 @@ public class DelayIdxService {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             long ss = Long.parseLong(s);
             try {
+                // TODO: 1. 写入远端的 delay-server
+                //       2. 失败重新写入wal或者idx
                 System.out.printf("[消息到期] 现在[%s],延迟:[%s] msg = %s\n", sdf.format(new Date()), sdf.format(new Date(ss)), msgExt);
             } catch (Exception e) {
                 // 异常退避：转发失败可扔进本地轻量级 DelayQueue 执行 5s、10s 指数退避重试，确保 At-least-once 语义
@@ -226,11 +229,12 @@ public class DelayIdxService {
             String sliceIndexDir = indexDir + File.separator + resolveFolder(id);
             File dir = new File(sliceIndexDir);
             if (!dir.exists()) dir.mkdirs();
-            return new MappedFileQueue(sliceIndexDir, 10 * 1024 * 1024, allocateMappedFileService);
+            return new MappedFileQueue(sliceIndexDir, DELAY_IDX_FILE_SIZE, allocateMappedFileService);
         });
     }
 
     public class DelayIndexScanner extends ServiceThread {
+
         private static final long SCAN_INTERVAL_MS = 500;
 
         @Override
@@ -246,8 +250,7 @@ public class DelayIdxService {
                     if (!this.isStopped()) {
                         loadAndDispatch();
                     }
-                } catch (Exception e) {
-                    // 异常保护，防后台单线程意外死亡
+                } catch (Exception ignore) {
                 }
             }
         }

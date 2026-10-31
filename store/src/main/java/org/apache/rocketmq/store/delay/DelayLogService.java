@@ -12,15 +12,13 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.apache.rocketmq.store.delay.DelayService.resolveFolder;
 
 public class DelayLogService {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private static final int DELAY_LOG_FILE_SIZE = 50 * 1024 * 1024; // 专属延时 WAL 文件固定 50MB
+    private static final int DELAY_LOG_FILE_SIZE = 50 * 1024 * 1024; // 延时消息 WAL 文件，50MB
     private final String storePath;
     private final AllocateMappedFileService allocateMappedFileService;
     private final ConcurrentHashMap<Long, MappedFileQueue> delayCommitLogPool = new ConcurrentHashMap<>();
