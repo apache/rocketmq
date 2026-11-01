@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -94,6 +95,7 @@ public class ConsumeMessagePopOrderlyServiceTest {
         when(defaultMQPushConsumer.getConsumeThreadMax()).thenReturn(3);
         when(defaultMQPushConsumer.getMaxReconsumeTimes()).thenReturn(16);
         when(defaultMQPushConsumer.getConsumeTimeout()).thenReturn(15L);
+        when(defaultMQPushConsumer.getConsumeMessageBatchMaxSize()).thenReturn(1);
         when(defaultMQPushConsumerImpl.getDefaultMQPushConsumer()).thenReturn(defaultMQPushConsumer);
         when(defaultMQPushConsumerImpl.getRebalanceImpl()).thenReturn(rebalanceImpl);
         when(defaultMQPushConsumerImpl.getConsumerStatsManager()).thenReturn(consumerStatsManager);
@@ -447,6 +449,53 @@ public class ConsumeMessagePopOrderlyServiceTest {
         List<MessageExt> msgs = Collections.singletonList(createMessageExt());
         popService.resetNamespace(msgs);
         assertEquals(defaultTopic, msgs.get(0).getTopic());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testPopResultIsSplitByConsumeMessageBatchMaxSize() throws Exception {
+        when(defaultMQPushConsumer.getConsumeMessageBatchMaxSize()).thenReturn(2);
+        List<MessageExt> msgs = Arrays.asList(createMessageExt(), createMessageExt(), createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class)))
+            .thenReturn(ConsumeOrderlyStatus.SUCCESS);
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        ArgumentCaptor<List> batches = ArgumentCaptor.forClass(List.class);
+        verify(messageListener, times(2)).consumeMessage(batches.capture(), any(ConsumeOrderlyContext.class));
+        assertEquals(Arrays.asList(msgs.get(0), msgs.get(1)), batches.getAllValues().get(0));
+        assertEquals(Collections.singletonList(msgs.get(2)), batches.getAllValues().get(1));
+        verify(defaultMQPushConsumerImpl, times(3)).ackAsync(any(MessageExt.class), eq(defaultGroup));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+    }
+
+    @Test
+    public void testSuspendOnSubBatchLeavesRemainingMessagesForRetry() throws Exception {
+        List<MessageExt> msgs = Arrays.asList(createMessageExt(), createMessageExt());
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        ThreadPoolExecutor consumeExecutor = installCaptureExecutor();
+        when(messageListener.consumeMessage(any(), any(ConsumeOrderlyContext.class)))
+            .thenReturn(ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT);
+
+        popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
+        captureSubmittedRequest(consumeExecutor, 1).run();
+
+        // Only the first sub-batch reached the listener. Neither it nor the untouched message
+        // may be acknowledged, and both keep their broker-side retry schedule.
+        verify(messageListener, times(1)).consumeMessage(any(), any(ConsumeOrderlyContext.class));
+        verify(defaultMQPushConsumerImpl, never()).ackAsync(any(MessageExt.class), anyString());
+        verify(defaultMQPushConsumerImpl, times(2)).changePopInvisibleTimeAsync(eq(defaultTopic), eq(defaultGroup),
+            anyString(), anyLong(), any(AckCallback.class));
+        assertEquals(1, msgs.get(0).getReconsumeTimes());
+        assertEquals(1, msgs.get(1).getReconsumeTimes());
+        assertEquals(0, processQueue.getWaiAckMsgCount());
     }
 
     private ThreadPoolExecutor installCaptureExecutor() throws IllegalAccessException {

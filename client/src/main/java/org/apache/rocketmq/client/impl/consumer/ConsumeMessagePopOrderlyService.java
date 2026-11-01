@@ -558,72 +558,98 @@ public class ConsumeMessagePopOrderlyService extends AbstractConsumeMessageServi
 
                 defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, consumerGroup);
 
-                ConsumeOrderlyContext context = new ConsumeOrderlyContext(this.messageQueue);
-                ConsumeMessageContext consumeMessageContext = null;
-                if (defaultMQPushConsumerImpl.hasHook()) {
-                    consumeMessageContext = new ConsumeMessageContext();
-                    consumeMessageContext.setNamespace(defaultMQPushConsumer.getNamespace());
-                    consumeMessageContext.setConsumerGroup(defaultMQPushConsumer.getConsumerGroup());
-                    consumeMessageContext.setProps(new HashMap<>());
-                    consumeMessageContext.setMq(this.messageQueue);
-                    consumeMessageContext.setMsgList(msgs);
-                    consumeMessageContext.setSuccess(false);
-                    defaultMQPushConsumerImpl.executeHookBefore(consumeMessageContext);
-                }
+                // A POP result can hold more messages than the listener is configured to receive.
+                // Consume it in the same bounded sub-batches as push mode, in queue order, so the
+                // default batch size of one never acknowledges messages the listener did not see.
+                int batchMaxSize = Math.max(1, defaultMQPushConsumer.getConsumeMessageBatchMaxSize());
+                int offset = 0;
+                while (offset < msgs.size()) {
+                    int end = Math.min(offset + batchMaxSize, msgs.size());
+                    List<MessageExt> subBatch = msgs.subList(offset, end);
+                    ConsumeOrderlyContext context = new ConsumeOrderlyContext(this.messageQueue);
+                    ConsumeOrderlyStatus status = consumeSubBatch(subBatch, context);
 
-                long beginTimestamp = System.currentTimeMillis();
-                boolean hasException = false;
-                ConsumeReturnType returnType = ConsumeReturnType.SUCCESS;
-                ConsumeOrderlyStatus status = null;
-                try {
-                    for (MessageExt msg : msgs) {
-                        MessageAccessor.setConsumeStartTimeStamp(msg, String.valueOf(System.currentTimeMillis()));
+                    if (this.processQueue.isDropped() || batch.isPopTimeout()) {
+                        log.warn("processQueue invalid or popTimeout after consume. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
+                            this.processQueue.isDropped(), batch.isPopTimeout(), this.messageQueue, subBatch);
+                        releaseWaitAck(msgs.size() - offset);
+                        return false;
                     }
-                    status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
-                } catch (Throwable e) {
-                    log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
-                        UtilAll.exceptionSimpleDesc(e), consumerGroup, msgs, this.messageQueue, e);
-                    hasException = true;
-                }
 
-                long consumeRT = System.currentTimeMillis() - beginTimestamp;
-                if (null == status) {
-                    if (hasException) {
-                        returnType = ConsumeReturnType.EXCEPTION;
-                    } else {
-                        returnType = ConsumeReturnType.RETURNNULL;
+                    if (!processConsumeResult(subBatch, status, context, this)) {
+                        // The listener asked for a retry. Messages of earlier sub-batches are
+                        // already acknowledged; the failed and untouched remainder keeps the
+                        // broker-side retry schedule as one unit.
+                        if (end < msgs.size()) {
+                            processConsumeResult(msgs.subList(end, msgs.size()), status, context, this);
+                        }
+                        return false;
                     }
-                    log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",
-                        consumerGroup, msgs, this.messageQueue);
-                    status = ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
-                } else if (consumeRT >= defaultMQPushConsumer.getConsumeTimeout() * 60 * 1000) {
-                    returnType = ConsumeReturnType.TIME_OUT;
-                } else if (ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT == status) {
-                    returnType = ConsumeReturnType.FAILED;
-                } else if (ConsumeOrderlyStatus.SUCCESS == status) {
-                    returnType = ConsumeReturnType.SUCCESS;
+                    offset = end;
                 }
 
-                if (defaultMQPushConsumerImpl.hasHook()) {
-                    consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
-                    consumeMessageContext.setStatus(status.toString());
-                    consumeMessageContext.setSuccess(ConsumeOrderlyStatus.SUCCESS == status
-                        || ConsumeOrderlyStatus.COMMIT == status);
-                    consumeMessageContext.setAccessChannel(defaultMQPushConsumer.getAccessChannel());
-                    defaultMQPushConsumerImpl.executeHookAfter(consumeMessageContext);
-                }
-
-                getConsumerStatsManager().incConsumeRT(consumerGroup, this.messageQueue.getTopic(), consumeRT);
-
-                if (this.processQueue.isDropped() || batch.isPopTimeout()) {
-                    log.warn("processQueue invalid or popTimeout after consume. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
-                        this.processQueue.isDropped(), batch.isPopTimeout(), this.messageQueue, msgs);
-                    releaseWaitAck(msgs.size());
-                    return false;
-                }
-
-                return processConsumeResult(msgs, status, context, this);
+                return true;
             }
+        }
+
+        private ConsumeOrderlyStatus consumeSubBatch(final List<MessageExt> msgs,
+            final ConsumeOrderlyContext context) {
+            ConsumeMessageContext consumeMessageContext = null;
+            if (defaultMQPushConsumerImpl.hasHook()) {
+                consumeMessageContext = new ConsumeMessageContext();
+                consumeMessageContext.setNamespace(defaultMQPushConsumer.getNamespace());
+                consumeMessageContext.setConsumerGroup(defaultMQPushConsumer.getConsumerGroup());
+                consumeMessageContext.setProps(new HashMap<>());
+                consumeMessageContext.setMq(this.messageQueue);
+                consumeMessageContext.setMsgList(msgs);
+                consumeMessageContext.setSuccess(false);
+                defaultMQPushConsumerImpl.executeHookBefore(consumeMessageContext);
+            }
+
+            long beginTimestamp = System.currentTimeMillis();
+            boolean hasException = false;
+            ConsumeReturnType returnType = ConsumeReturnType.SUCCESS;
+            ConsumeOrderlyStatus status = null;
+            try {
+                for (MessageExt msg : msgs) {
+                    MessageAccessor.setConsumeStartTimeStamp(msg, String.valueOf(System.currentTimeMillis()));
+                }
+                status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
+            } catch (Throwable e) {
+                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
+                    UtilAll.exceptionSimpleDesc(e), consumerGroup, msgs, this.messageQueue, e);
+                hasException = true;
+            }
+
+            long consumeRT = System.currentTimeMillis() - beginTimestamp;
+            if (null == status) {
+                if (hasException) {
+                    returnType = ConsumeReturnType.EXCEPTION;
+                } else {
+                    returnType = ConsumeReturnType.RETURNNULL;
+                }
+                log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",
+                    consumerGroup, msgs, this.messageQueue);
+                status = ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
+            } else if (consumeRT >= defaultMQPushConsumer.getConsumeTimeout() * 60 * 1000) {
+                returnType = ConsumeReturnType.TIME_OUT;
+            } else if (ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT == status) {
+                returnType = ConsumeReturnType.FAILED;
+            } else if (ConsumeOrderlyStatus.SUCCESS == status) {
+                returnType = ConsumeReturnType.SUCCESS;
+            }
+
+            if (defaultMQPushConsumerImpl.hasHook()) {
+                consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
+                consumeMessageContext.setStatus(status.toString());
+                consumeMessageContext.setSuccess(ConsumeOrderlyStatus.SUCCESS == status
+                    || ConsumeOrderlyStatus.COMMIT == status);
+                consumeMessageContext.setAccessChannel(defaultMQPushConsumer.getAccessChannel());
+                defaultMQPushConsumerImpl.executeHookAfter(consumeMessageContext);
+            }
+
+            getConsumerStatsManager().incConsumeRT(consumerGroup, this.messageQueue.getTopic(), consumeRT);
+            return status;
         }
 
         @Override
