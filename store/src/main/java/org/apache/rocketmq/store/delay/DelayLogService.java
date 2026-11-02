@@ -32,13 +32,26 @@ public class DelayLogService {
         try {
             MappedFileQueue logQueue = getOrCreateLogQueue(fileId);
             MappedFile activeLogFile = logQueue.getLastMappedFile();
-            if (activeLogFile == null || activeLogFile.isFull()) {
+
+            boolean needCreate = activeLogFile == null
+                    || activeLogFile.isFull()
+                    || activeLogFile.getWrotePosition() + rawBytes.length > DELAY_LOG_FILE_SIZE;
+
+            // fill full
+            if (activeLogFile != null && (activeLogFile.getWrotePosition() + rawBytes.length) > DELAY_LOG_FILE_SIZE) {
+                activeLogFile.appendMessage(new byte[DELAY_LOG_FILE_SIZE - activeLogFile.getWrotePosition()]);
+            }
+
+            if (needCreate) {
                 activeLogFile = logQueue.getLastMappedFile(0);
             }
 
             long delayWalOffset = activeLogFile.getFileFromOffset() + activeLogFile.getWrotePosition();
 
-            activeLogFile.appendMessage(rawBytes);
+            if (!activeLogFile.appendMessage(rawBytes)) {
+                throw new RuntimeException("appendMessage returned false, WAL space insufficient, fileId=" + fileId
+                        + ", bytes=" + rawBytes.length);
+            }
 
             return delayWalOffset;
         } catch (Exception e) {

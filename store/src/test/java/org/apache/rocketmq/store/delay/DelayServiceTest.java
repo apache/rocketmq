@@ -4,26 +4,27 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class DelayServiceTest {
 
     String clusterName = "delay-cluster";
 
-
-    @Test
-    public void testDelayService() throws Exception {
+    private DefaultMessageStore buildStore() throws Exception {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "delay_test_" + System.currentTimeMillis());
         DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager(clusterName, true), new MessageArrivingListener() {
@@ -44,12 +45,51 @@ public class DelayServiceTest {
         });
         t.start();
         t.join();
+        return store;
+    }
+
+    @Test
+    public void testDelayService() throws Exception {
+        DefaultMessageStore store = buildStore();
 
         for (int i = 0; i < 1000; i++) {
             MessageExtBrokerInner msg = createMsg("t1");
             PutMessageResult result = store.putMessage(msg);
             Thread.sleep(500);
         }
+        store.shutdown();
+    }
+
+    @Test
+    public void testAppendMessageAcrossFileBoundary() throws Exception {
+        DefaultMessageStore store = buildStore();
+        DelayLogService delayLogService = store.delayService.getDelayLogService();
+
+        long fileId = 0L; // 任意固定 fileId，append 与 getMessage 用同一个即可
+        int bodySize = 6 * 1024 * 1024; // 6MB
+        byte[] body = new byte[bodySize];
+        new Random(42).nextBytes(body);
+
+        int msgCount = 12; // 12 * 6MB = 72MB，必跨过 50MB 边界
+        long[][] records = new long[msgCount][2]; // [offset, size]
+
+        for (int i = 0; i < msgCount; i++) {
+            MessageExtBrokerInner msg = createMsg("t_boundary");
+            msg.setBody(body);
+
+            byte[] encoded = MessageDecoder.encode(msg, false);
+            long offset = delayLogService.appendMessage(fileId, encoded);
+            records[i][0] = offset;
+            records[i][1] = encoded.length;
+        }
+
+        // 验证每条都能正确取回，body 完整一致
+        for (int i = 0; i < msgCount; i++) {
+            MessageExt decoded = delayLogService.getMessage(fileId, records[i][0], (int) records[i][1]);
+            Assert.assertNotNull("message " + i + " at offset " + records[i][0] + " should be retrievable", decoded);
+            Assert.assertArrayEquals("message " + i + " body mismatch (cross-boundary bug?)", body, decoded.getBody());
+        }
+
         store.shutdown();
     }
 
