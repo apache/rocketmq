@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -331,22 +332,24 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
 
     @Test
     public void testAcquireExpiredLockWithoutWaiting() throws Exception {
+        assertEquals(4000, ConfigurationManager.getProxyConfig().getLockExpiredTimeMsInHandleGroup());
+        ConfigurationManager.getProxyConfig().setLockExpiredTimeMsInHandleGroup(8000);
         ReceiptHandleGroup.HandleData data = new ReceiptHandleGroup.HandleData(null);
         assertNotNull(data.lock(0));
         assertNull(data.lock(0));
         Field field = ReceiptHandleGroup.HandleData.class.getDeclaredField("lastLockTimeMs");
         field.setAccessible(true);
         AtomicLong lastLockTimeMs = (AtomicLong) field.get(data);
-        lastLockTimeMs.set(System.currentTimeMillis() - 3000);
+        lastLockTimeMs.set(System.currentTimeMillis() - 7000);
         assertNull(data.lock(0));
-        long expiredLockTime = System.currentTimeMillis() - 4100;
+        long expiredLockTime = System.currentTimeMillis() - 8100;
         lastLockTimeMs.set(expiredLockTime);
 
         long start = System.nanoTime();
         Long lockTime = data.lock(3000);
         assertNotNull(lockTime);
         assertTrue(Duration.ofNanos(System.nanoTime() - start).toMillis() < 1000);
-        // The old owner must not release the semaphore after takeover at four seconds.
+        // The old owner must not release the semaphore after the configured expiration.
         data.unlock(expiredLockTime);
         assertNull(data.lock(0));
         data.unlock(lockTime);
