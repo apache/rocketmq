@@ -102,6 +102,7 @@ public class ReceiptHandleGroup {
     }
 
     public static class HandleData {
+        private static final long LOCK_EXPIRED_TIME_MS = TimeUnit.SECONDS.toMillis(4);
         private final Semaphore semaphore = new Semaphore(1);
         private final AtomicLong lastLockTimeMs = new AtomicLong(-1L);
         private volatile boolean needRemove = false;
@@ -113,17 +114,35 @@ public class ReceiptHandleGroup {
 
         public Long lock(long timeoutMs) {
             try {
-                boolean result = this.semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS);
+                // Try non-blocking acquire first, preserving interruption handling.
+                boolean result = this.semaphore.tryAcquire(0, TimeUnit.MILLISECONDS);
                 long currentTimeMs = System.currentTimeMillis();
+                if (result) {
+                    this.lastLockTimeMs.set(currentTimeMs);
+                    return currentTimeMs;
+                }
+                // Check expiration before waiting for the semaphore.
+                if (currentTimeMs - this.lastLockTimeMs.get() > LOCK_EXPIRED_TIME_MS) {
+                    synchronized (this) {
+                        if (currentTimeMs - this.lastLockTimeMs.get() > LOCK_EXPIRED_TIME_MS) {
+                            log.warn("HandleData lock expired, acquire lock success without blocking " +
+                                "and reset lock time. MessageReceiptHandle={}, lockTime={}",
+                                messageReceiptHandle, currentTimeMs);
+                            this.lastLockTimeMs.set(currentTimeMs);
+                            return currentTimeMs;
+                        }
+                    }
+                }
+                result = this.semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS);
+                currentTimeMs = System.currentTimeMillis();
                 if (result) {
                     this.lastLockTimeMs.set(currentTimeMs);
                     return currentTimeMs;
                 } else {
                     // if the lock is expired, can be acquired again
-                    long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
-                    if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
+                    if (currentTimeMs - this.lastLockTimeMs.get() > LOCK_EXPIRED_TIME_MS) {
                         synchronized (this) {
-                            if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
+                            if (currentTimeMs - this.lastLockTimeMs.get() > LOCK_EXPIRED_TIME_MS) {
                                 log.warn("HandleData lock expired, acquire lock success and reset lock time. " +
                                     "MessageReceiptHandle={}, lockTime={}", messageReceiptHandle, currentTimeMs);
                                 this.lastLockTimeMs.set(currentTimeMs);
@@ -140,7 +159,7 @@ public class ReceiptHandleGroup {
 
         public void unlock(long lockTimeMs) {
             // if the lock is expired, we don't need to unlock it
-            if (System.currentTimeMillis() - lockTimeMs > ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 2) {
+            if (System.currentTimeMillis() - lockTimeMs > LOCK_EXPIRED_TIME_MS) {
                 log.warn("HandleData lock expired, unlock fail. MessageReceiptHandle={}, lockTime={}, now={}",
                     messageReceiptHandle, lockTimeMs, System.currentTimeMillis());
                 return;

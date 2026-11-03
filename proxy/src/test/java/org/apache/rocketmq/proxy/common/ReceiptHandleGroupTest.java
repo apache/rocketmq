@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.common;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -23,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -34,6 +36,7 @@ import org.junit.Test;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -311,5 +314,42 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
 
     private MessageReceiptHandle createMessageReceiptHandle(String handle, String msgID) {
         return new MessageReceiptHandle(GROUP, TOPIC, 0, handle, msgID, 0, 0);
+    }
+
+    @Test
+    public void testInterruptedLockAcquisition() {
+        ReceiptHandleGroup.HandleData data = new ReceiptHandleGroup.HandleData(null);
+        Thread.currentThread().interrupt();
+        try {
+            assertNull(data.lock(0));
+            assertFalse(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+        assertNotNull(data.lock(0));
+    }
+
+    @Test
+    public void testAcquireExpiredLockWithoutWaiting() throws Exception {
+        ReceiptHandleGroup.HandleData data = new ReceiptHandleGroup.HandleData(null);
+        assertNotNull(data.lock(0));
+        assertNull(data.lock(0));
+        Field field = ReceiptHandleGroup.HandleData.class.getDeclaredField("lastLockTimeMs");
+        field.setAccessible(true);
+        AtomicLong lastLockTimeMs = (AtomicLong) field.get(data);
+        lastLockTimeMs.set(System.currentTimeMillis() - 3000);
+        assertNull(data.lock(0));
+        long expiredLockTime = System.currentTimeMillis() - 4100;
+        lastLockTimeMs.set(expiredLockTime);
+
+        long start = System.nanoTime();
+        Long lockTime = data.lock(3000);
+        assertNotNull(lockTime);
+        assertTrue(Duration.ofNanos(System.nanoTime() - start).toMillis() < 1000);
+        // The old owner must not release the semaphore after takeover at four seconds.
+        data.unlock(expiredLockTime);
+        assertNull(data.lock(0));
+        data.unlock(lockTime);
+        assertNotNull(data.lock(0));
     }
 }
