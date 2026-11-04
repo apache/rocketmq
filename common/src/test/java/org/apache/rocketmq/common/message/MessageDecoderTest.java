@@ -428,4 +428,129 @@ public class MessageDecoderTest {
         assertThat(messageId.getAddress()).isEqualTo(msgExt.getStoreHost());
         assertThat(messageId.getOffset()).isEqualTo(msgExt.getCommitLogOffset());
     }
+
+    /**
+     * messageProperties2Bytes must produce the exact same bytes as
+     * messageProperties2String(...).getBytes(UTF_8) for any well-formed input map (i.e.
+     * for any map without null keys or values, which is the contract enforced by both
+     * methods after the fix). Covers ASCII, multi-byte UTF-8, and a paired surrogate.
+     */
+    @Test
+    public void testMessageProperties2BytesMatchesString() {
+        java.util.Map<String, String> props = new java.util.LinkedHashMap<>();
+        props.put("KEYS", "abc");                  // ASCII
+        props.put("UNIQ_KEY", "value-123");        // ASCII
+        props.put("\u4E2D\u6587\u952E", "\u4E2D\u6587\u503C"); // multi-byte UTF-8 (CJK)
+        props.put("emoji", "a\uD83D\uDE00b");      // paired surrogate (U+1F600)
+
+        String s = MessageDecoder.messageProperties2String(props);
+        byte[] viaBytes = MessageDecoder.messageProperties2Bytes(props);
+
+        assertThat(viaBytes).isNotNull();
+        assertThat(viaBytes).isEqualTo(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Both messageProperties2String and messageProperties2Bytes must skip entries with
+     * a null key or null value, keeping the two encoding paths byte-for-byte identical.
+     */
+    @Test
+    public void testMessageProperties2StringAndBytesSkipNullKeyAndValue() {
+        java.util.Map<String, String> props = new java.util.LinkedHashMap<>();
+        props.put("a", "1");
+        props.put(null, "skip-null-key");
+        props.put("b", null);
+        props.put("c", "2");
+
+        String s = MessageDecoder.messageProperties2String(props);
+        byte[] bytes = MessageDecoder.messageProperties2Bytes(props);
+
+        // Only "a=1" and "c=2" should survive; "null" literal must not appear.
+        assertThat(s).doesNotContain("null");
+        assertThat(bytes).isEqualTo(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        java.util.Map<String, String> roundTrip = MessageDecoder.string2messageProperties(s);
+        assertThat(roundTrip).hasSize(2);
+        assertThat(roundTrip.get("a")).isEqualTo("1");
+        assertThat(roundTrip.get("c")).isEqualTo("2");
+    }
+
+    /**
+     * Custom UTF-8 encoder must match JDK String.getBytes(UTF_8) for unpaired surrogates,
+     * which JDK replaces with the U+FFFD replacement character (3 bytes EF BF BD).
+     */
+    @Test
+    public void testMessageProperties2BytesUnpairedSurrogateMatchesJdk() {
+        // Lone high surrogate, lone low surrogate, and a high-then-non-low sequence.
+        String[] malformed = new String[] {
+            "\uD83D",                              // unpaired high
+            "\uDE00",                              // unpaired low
+            "x\uD83Dy",                            // high followed by non-low
+            "x\uDE00y",                            // low followed by non-low
+            "\uD83D\uD83D"                         // two highs in a row
+        };
+
+        for (String value : malformed) {
+            java.util.Map<String, String> props = new java.util.LinkedHashMap<>();
+            props.put("k", value);
+
+            byte[] expected = MessageDecoder.messageProperties2String(props)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            byte[] actual = MessageDecoder.messageProperties2Bytes(props);
+
+            assertThat(actual).as("input = %s", java.util.Arrays.toString(value.toCharArray()))
+                .isEqualTo(expected);
+        }
+    }
+
+    /**
+     * bytes2messageProperties must return an independent (not ThreadLocal-shared) map so
+     * that consecutive decodes on the same thread don't corrupt each other. Also verifies
+     * the standard HashMap contract is preserved (mutable Entry.setValue).
+     */
+    @Test
+    public void testBytes2messagePropertiesReturnsIndependentMap() {
+        java.util.Map<String, String> first = new java.util.LinkedHashMap<>();
+        first.put("k1", "v1");
+        first.put("k2", "v2");
+
+        java.util.Map<String, String> second = new java.util.LinkedHashMap<>();
+        second.put("k3", "v3");
+
+        byte[] firstBytes = MessageDecoder.messageProperties2Bytes(first);
+        byte[] secondBytes = MessageDecoder.messageProperties2Bytes(second);
+
+        java.util.Map<String, String> firstDecoded =
+            MessageDecoder.bytes2messageProperties(firstBytes, 0, firstBytes.length);
+        java.util.Map<String, String> secondDecoded =
+            MessageDecoder.bytes2messageProperties(secondBytes, 0, secondBytes.length);
+
+        // Decoding the second message must not mutate the first decoded map.
+        assertThat(firstDecoded).hasSize(2);
+        assertThat(firstDecoded.get("k1")).isEqualTo("v1");
+        assertThat(firstDecoded.get("k2")).isEqualTo("v2");
+        assertThat(secondDecoded).hasSize(1);
+        assertThat(secondDecoded.get("k3")).isEqualTo("v3");
+
+        // Standard HashMap contract: Entry.setValue must work.
+        for (Map.Entry<String, String> e : firstDecoded.entrySet()) {
+            e.setValue("mutated");
+        }
+        assertThat(firstDecoded.get("k1")).isEqualTo("mutated");
+    }
+
+    /**
+     * messageProperties2Bytes returns null for null/empty input; callers (broker encoders)
+     * treat null and a 0-length byte[] identically. The Javadoc must reflect this.
+     */
+    @Test
+    public void testMessageProperties2BytesNullAndEmpty() {
+        assertThat(MessageDecoder.messageProperties2Bytes(null)).isNull();
+        assertThat(MessageDecoder.messageProperties2Bytes(new java.util.HashMap<>())).isNull();
+
+        // A map containing only null-valued entries also produces no bytes.
+        java.util.Map<String, String> nullOnly = new java.util.HashMap<>();
+        nullOnly.put("k", null);
+        assertThat(MessageDecoder.messageProperties2Bytes(nullOnly)).isNull();
+    }
 }
