@@ -25,6 +25,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Map;
 
 import static org.apache.rocketmq.common.message.MessageDecoder.NAME_VALUE_SEPARATOR;
@@ -32,6 +33,7 @@ import static org.apache.rocketmq.common.message.MessageDecoder.PROPERTY_SEPARAT
 import static org.apache.rocketmq.common.message.MessageDecoder.createMessageId;
 import static org.apache.rocketmq.common.message.MessageDecoder.decodeMessageId;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class MessageDecoderTest {
 
@@ -427,5 +429,52 @@ public class MessageDecoderTest {
         MessageId messageId = decodeMessageId(msgId);
         assertThat(messageId.getAddress()).isEqualTo(msgExt.getStoreHost());
         assertThat(messageId.getOffset()).isEqualTo(msgExt.getCommitLogOffset());
+    }
+
+    @Test(timeout = 2000, expected = IllegalArgumentException.class)
+    public void testCountInnerMsgNumRejectsZeroLength() {
+        MessageDecoder.countInnerMsgNum(ByteBuffer.allocate(22));
+    }
+
+    @Test(timeout = 3000)
+    public void testCountInnerMsgNumRejectsInvalidBoundaries() {
+        for (int size : new int[] {Integer.MIN_VALUE, -1, 1, 4, 21, 23, Integer.MAX_VALUE}) {
+            ByteBuffer buffer = ByteBuffer.allocate(22);
+            buffer.putInt(0, size);
+            assertThatThrownBy(() -> MessageDecoder.countInnerMsgNum(buffer))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+        for (int size = 1; size < Integer.BYTES; size++) {
+            ByteBuffer buffer = ByteBuffer.allocate(size);
+            assertThatThrownBy(() -> MessageDecoder.countInnerMsgNum(buffer))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test(timeout = 2000, expected = IllegalArgumentException.class)
+    public void testCountInnerMsgNumRejectsInvalidFollowingRecord() {
+        byte[] encoded = MessageDecoder.encodeMessage(new Message("topic", new byte[0]));
+        ByteBuffer buffer = ByteBuffer.allocate(encoded.length + Integer.BYTES);
+        buffer.put(encoded).putInt(0).flip();
+        MessageDecoder.countInnerMsgNum(buffer);
+    }
+
+    @Test
+    public void testCountInnerMsgNumPreservesEncodedBatchAndBufferRange() throws Exception {
+        Message first = new Message("topic", new byte[0]);
+        Message second = new Message("topic", "body".getBytes(MessageDecoder.CHARSET_UTF8));
+        second.putUserProperty("key", "value");
+        byte[] encoded = MessageDecoder.encodeMessages(Arrays.asList(first, second));
+        assertThat(MessageDecoder.decodeMessages(ByteBuffer.wrap(encoded))).hasSize(2);
+        for (ByteBuffer buffer : new ByteBuffer[] {
+            ByteBuffer.allocate(encoded.length + 12), ByteBuffer.allocateDirect(encoded.length + 12)}) {
+            buffer.position(5);
+            buffer.put(encoded);
+            buffer.limit(buffer.position()).position(5);
+            assertThat(MessageDecoder.countInnerMsgNum(buffer.asReadOnlyBuffer())).isEqualTo(2);
+            assertThat(MessageDecoder.countInnerMsgNum(buffer)).isEqualTo(2);
+            assertThat(buffer.hasRemaining()).isFalse();
+        }
+        assertThat(MessageDecoder.countInnerMsgNum(ByteBuffer.allocate(0))).isZero();
     }
 }
