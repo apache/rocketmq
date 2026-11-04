@@ -42,13 +42,19 @@ public class CompressionFlagTest {
         flag &= ~MessageSysFlag.COMPRESSION_TYPE_COMPARATOR;
         flag |= MessageSysFlag.COMPRESSION_ZLIB_TYPE;
         assertThat(MessageSysFlag.getCompressionType(flag)).isEqualTo(CompressionType.ZLIB);
+
+
+        flag &= ~MessageSysFlag.COMPRESSION_TYPE_COMPARATOR;
+        flag |= MessageSysFlag.COMPRESSION_GZIP_TYPE;
+        assertThat(MessageSysFlag.getCompressionType(flag)).isEqualTo(CompressionType.GZIP);
     }
 
     @Test(expected = RuntimeException.class)
     public void testCompressionFlagNotMatch() {
         int flag = 0;
         flag |= MessageSysFlag.COMPRESSED_FLAG;
-        flag |= 0x4 << 8;
+        // 0x5 is still unassigned, so it is the value that has to be rejected
+        flag |= 0x5 << 8;
 
         MessageSysFlag.getCompressionType(flag);
     }

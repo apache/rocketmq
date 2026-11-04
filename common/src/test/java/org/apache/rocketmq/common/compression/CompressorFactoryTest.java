@@ -36,7 +36,8 @@ public class CompressorFactoryTest {
             Assert.assertTrue("Compressor type mismatch for " + type,
                 compressor instanceof Lz4Compressor && type == CompressionType.LZ4 ||
                     compressor instanceof ZstdCompressor && type == CompressionType.ZSTD ||
-                    compressor instanceof ZlibCompressor && type == CompressionType.ZLIB);
+                    compressor instanceof ZlibCompressor && type == CompressionType.ZLIB ||
+                    compressor instanceof GzipCompressor && type == CompressionType.GZIP);
         }
     }
 }

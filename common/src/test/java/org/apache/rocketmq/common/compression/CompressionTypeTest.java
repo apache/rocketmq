@@ -29,6 +29,7 @@ public class CompressionTypeTest {
         assertEquals(1, CompressionType.LZ4.getValue());
         assertEquals(2, CompressionType.ZSTD.getValue());
         assertEquals(3, CompressionType.ZLIB.getValue());
+        assertEquals(4, CompressionType.GZIP.getValue());
     }
 
     @Test
@@ -36,6 +37,8 @@ public class CompressionTypeTest {
         assertEquals(CompressionType.LZ4, CompressionType.of("LZ4"));
         assertEquals(CompressionType.ZSTD, CompressionType.of("ZSTD"));
         assertEquals(CompressionType.ZLIB, CompressionType.of("ZLIB"));
+        assertEquals(CompressionType.GZIP, CompressionType.of("GZIP"));
+        assertEquals(CompressionType.GZIP, CompressionType.of(" gzip "));
         assertThrows(RuntimeException.class, () -> CompressionType.of("UNKNOWN"));
     }
 
@@ -45,7 +48,9 @@ public class CompressionTypeTest {
         assertEquals(CompressionType.ZSTD, CompressionType.findByValue(2));
         assertEquals(CompressionType.ZLIB, CompressionType.findByValue(3));
         assertEquals(CompressionType.ZLIB, CompressionType.findByValue(0));
+        assertEquals(CompressionType.GZIP, CompressionType.findByValue(4));
         assertThrows(RuntimeException.class, () -> CompressionType.findByValue(99));
+        assertThrows(RuntimeException.class, () -> CompressionType.findByValue(5));
     }
 
     @Test
@@ -53,5 +58,6 @@ public class CompressionTypeTest {
         assertEquals(MessageSysFlag.COMPRESSION_LZ4_TYPE, CompressionType.LZ4.getCompressionFlag());
         assertEquals(MessageSysFlag.COMPRESSION_ZSTD_TYPE, CompressionType.ZSTD.getCompressionFlag());
         assertEquals(MessageSysFlag.COMPRESSION_ZLIB_TYPE, CompressionType.ZLIB.getCompressionFlag());
+        assertEquals(MessageSysFlag.COMPRESSION_GZIP_TYPE, CompressionType.GZIP.getCompressionFlag());
     }
 }
