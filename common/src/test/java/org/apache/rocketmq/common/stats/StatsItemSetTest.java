@@ -17,11 +17,16 @@
 
 package org.apache.rocketmq.common.stats;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -37,37 +42,33 @@ public class StatsItemSetTest {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     @Test
-    public void test_getAndCreateStatsItem_multiThread() throws InterruptedException {
+    public void test_getAndCreateStatsItem_multiThread() throws InterruptedException, ExecutionException, TimeoutException {
         assertEquals(20L, test_unit().longValue());
     }
 
     @Test
-    public void test_getAndCreateMomentStatsItem_multiThread() throws InterruptedException {
+    public void test_getAndCreateMomentStatsItem_multiThread() throws InterruptedException, ExecutionException, TimeoutException {
         assertEquals(10, test_unit_moment().longValue());
     }
 
     @Test
-    public void test_statsOfFirstStatisticsCycle() throws InterruptedException {
+    public void test_statsOfFirstStatisticsCycle() throws InterruptedException, ExecutionException, TimeoutException {
         final String tpsStatKey = "tpsTest";
         final String rtStatKey = "rtTest";
         final StatsItemSet statsItemSet = new StatsItemSet(tpsStatKey, scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
+        List<Future<?>> tasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            executor.submit(new Runnable() {
+            tasks.add(executor.submit(new Runnable() {
                 @Override
                 public void run() {
                     statsItemSet.addValue(tpsStatKey, 2, 1);
                     statsItemSet.addRTValue(rtStatKey, 2, 1);
                 }
-            });
+            }));
         }
-        while (true) {
-            if (executor.getCompletedTaskCount() == 10) {
-                break;
-            }
-            Thread.sleep(1000);
-        }
+        awaitTasks(tasks);
         // simulate schedule task execution , tps stat
         {
             statsItemSet.getStatsItem(tpsStatKey).samplingInSeconds();
@@ -97,50 +98,51 @@ public class StatsItemSetTest {
         }
     }
 
-    private LongAdder test_unit() throws InterruptedException {
+    private LongAdder test_unit() throws InterruptedException, ExecutionException, TimeoutException {
         final StatsItemSet statsItemSet = new StatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
+        List<Future<?>> tasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            executor.submit(new Runnable() {
+            tasks.add(executor.submit(new Runnable() {
                 @Override
                 public void run() {
                     statsItemSet.addValue("topicTest", 2, 1);
                 }
-            });
+            }));
         }
-        while (true) {
-            if (executor.getCompletedTaskCount() == 10) {
-                break;
-            }
-            Thread.sleep(1000);
-        }
+        awaitTasks(tasks);
         return statsItemSet.getStatsItem("topicTest").getValue();
     }
 
-    private AtomicLong test_unit_moment() throws InterruptedException {
+    private AtomicLong test_unit_moment() throws InterruptedException, ExecutionException, TimeoutException {
         final MomentStatsItemSet statsItemSet = new MomentStatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
+        List<Future<?>> tasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            executor.submit(new Runnable() {
+            tasks.add(executor.submit(new Runnable() {
                 @Override
                 public void run() {
                     statsItemSet.setValue("test", 10);
                 }
-            });
+            }));
         }
-        while (true) {
-            if (executor.getCompletedTaskCount() == 10) {
-                break;
-            }
-            Thread.sleep(1000);
-        }
+        awaitTasks(tasks);
         return statsItemSet.getAndCreateStatsItem("test").getValue();
+    }
+
+    private void awaitTasks(List<Future<?>> tasks) throws InterruptedException, ExecutionException, TimeoutException {
+        for (Future<?> task : tasks) {
+            task.get(10, TimeUnit.SECONDS);
+        }
     }
 
     @After
     public void shutdown() {
-        executor.shutdown();
+        if (executor != null) {
+            executor.shutdownNow();
+        }
+        scheduler.shutdownNow();
     }
 }
