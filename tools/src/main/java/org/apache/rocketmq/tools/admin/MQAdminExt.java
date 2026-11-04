@@ -100,6 +100,21 @@ public interface MQAdminExt extends MQAdmin {
     void createAndUpdateTopicConfigList(final String addr,
         final List<TopicConfig> topicConfigList) throws InterruptedException, RemotingException, MQClientException;
 
+    /**
+     * Delete a batch of topics from a single broker with one request. The broker side
+     * ({@code AdminBrokerProcessor#deleteTopicList}) de-duplicates the names and throttles the
+     * request through {@code BrokerConfig#batchDeleteTopicMaxRate}, so callers are expected to hand
+     * over the whole list at once instead of looping over the single topic delete call.
+     *
+     * @param brokerAddr target broker address, e.g. {@code 127.0.0.1:10911}
+     * @param topicList topic names to delete; duplicated names in the list are tolerated
+     * @param timeoutMillis remoting timeout in milliseconds
+     */
+    void deleteTopicInBrokerList(final String brokerAddr,
+        final List<String> topicList,
+        final long timeoutMillis) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
+
     void createAndUpdateSubscriptionGroupConfig(final String addr,
         final SubscriptionGroupConfig config) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
@@ -107,6 +122,22 @@ public interface MQAdminExt extends MQAdmin {
     void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
         List<SubscriptionGroupConfig> configs) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
+
+    /**
+     * Delete a batch of subscription groups from a single broker with one request. The broker side
+     * ({@code AdminBrokerProcessor#deleteSubscriptionGroupList}) de-duplicates the names, throttles the
+     * request through {@code BrokerConfig#batchDeleteSubscriptionGroupMaxRate} and persists the
+     * resulting metadata in one shot.
+     *
+     * @param brokerAddr target broker address, e.g. {@code 127.0.0.1:10911}
+     * @param groupNameList subscription group names to delete; duplicated names are tolerated
+     * @param removeOffset whether the consumer offsets of the groups should be removed as well
+     * @param timeoutMillis remoting timeout in milliseconds
+     */
+    void deleteSubscriptionGroupList(final String brokerAddr,
+        final List<String> groupNameList, final boolean removeOffset,
+        final long timeoutMillis) throws RemotingException, MQBrokerException,
+        InterruptedException, MQClientException;
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr,
         final String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;

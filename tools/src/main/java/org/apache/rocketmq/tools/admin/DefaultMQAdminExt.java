@@ -218,6 +218,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void deleteTopicInBrokerList(String brokerAddr, List<String> topicList, long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.deleteTopicInBrokerList(brokerAddr, topicList, timeoutMillis);
+    }
+
+    @Override
     public void createAndUpdateSubscriptionGroupConfig(String addr,
         SubscriptionGroupConfig config) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException {
@@ -228,6 +234,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
         List<SubscriptionGroupConfig> configs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfigList(brokerAddr, configs);
+    }
+
+    @Override
+    public void deleteSubscriptionGroupList(String brokerAddr, List<String> groupNameList, boolean removeOffset,
+        long timeoutMillis) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.deleteSubscriptionGroupList(brokerAddr, groupNameList, removeOffset, timeoutMillis);
     }
 
     @Override
