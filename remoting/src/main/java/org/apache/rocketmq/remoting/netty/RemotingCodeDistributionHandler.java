@@ -16,89 +16,76 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.LongAdder;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-@ChannelHandler.Sharable
-public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
+/**
+ * Thread-safe tracker for per-requestCode count and traffic distribution.
+ * <p>
+ */
+public class RemotingCodeDistributionHandler {
 
-    private final ConcurrentMap<Integer, LongAdder> inboundDistribution;
-    private final ConcurrentMap<Integer, LongAdder> outboundDistribution;
+    private final ConcurrentMap<Integer, TrafficStats> inboundStats = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, TrafficStats> outboundStats = new ConcurrentHashMap<>();
 
-    public RemotingCodeDistributionHandler() {
-        inboundDistribution = new ConcurrentHashMap<>();
-        outboundDistribution = new ConcurrentHashMap<>();
+    public void recordInbound(int code, int wireSize) {
+        TrafficStats stats = inboundStats.computeIfAbsent(code, k -> new TrafficStats());
+        stats.count.increment();
+        stats.trafficSize.add(wireSize);
     }
 
-    private void countInbound(int requestCode) {
-        LongAdder item = inboundDistribution.computeIfAbsent(requestCode, k -> new LongAdder());
-        item.increment();
+    public void recordOutbound(int code, int wireSize) {
+        TrafficStats stats = outboundStats.computeIfAbsent(code, k -> new TrafficStats());
+        stats.count.increment();
+        stats.trafficSize.add(wireSize);
     }
 
-    private void countOutbound(int responseCode) {
-        LongAdder item = outboundDistribution.computeIfAbsent(responseCode, k -> new LongAdder());
-        item.increment();
+    public String getInBoundSnapshotString() {
+        return snapshotToString(getSnapshot(inboundStats, true));
     }
 
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        if (msg instanceof RemotingCommand) {
-            RemotingCommand cmd = (RemotingCommand) msg;
-            countInbound(cmd.getCode());
-        }
-        ctx.fireChannelRead(msg);
+    public String getOutBoundSnapshotString() {
+        return snapshotToString(getSnapshot(outboundStats, true));
     }
 
-    @Override
-    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        if (msg instanceof RemotingCommand) {
-            RemotingCommand cmd = (RemotingCommand) msg;
-            countOutbound(cmd.getCode());
-        }
-        ctx.write(msg, promise);
+    public String getInBoundTrafficSnapshotString() {
+        return snapshotToString(getSnapshot(inboundStats, false));
     }
 
-    private Map<Integer, Long> getDistributionSnapshot(Map<Integer, LongAdder> countMap) {
-        Map<Integer, Long> map = new HashMap<>(countMap.size());
-        for (Map.Entry<Integer, LongAdder> entry : countMap.entrySet()) {
-            map.put(entry.getKey(), entry.getValue().sumThenReset());
+    public String getOutBoundTrafficSnapshotString() {
+        return snapshotToString(getSnapshot(outboundStats, false));
+    }
+
+    private Map<Integer, Long> getSnapshot(ConcurrentMap<Integer, TrafficStats> statsMap, boolean count) {
+        Map<Integer, Long> map = new HashMap<>(statsMap.size());
+        for (Map.Entry<Integer, TrafficStats> entry : statsMap.entrySet()) {
+            LongAdder adder = count ? entry.getValue().count : entry.getValue().trafficSize;
+            map.put(entry.getKey(), adder.sumThenReset());
         }
         return map;
     }
 
     private String snapshotToString(Map<Integer, Long> distribution) {
-        if (null != distribution && !distribution.isEmpty()) {
-            StringBuilder sb = new StringBuilder("{");
-            boolean first = true;
-            for (Map.Entry<Integer, Long> entry : distribution.entrySet()) {
-                if (0L == entry.getValue()) {
-                    continue;
-                }
-                sb.append(first ? "" : ", ").append(entry.getKey()).append(":").append(entry.getValue());
-                first = false;
-            }
-            if (first) {
-                return null;
-            }
-            sb.append("}");
-            return sb.toString();
+        if (null == distribution || distribution.isEmpty()) {
+            return null;
         }
-        return null;
+        StringBuilder sb = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<Integer, Long> entry : distribution.entrySet()) {
+            if (0L == entry.getValue()) {
+                continue;
+            }
+            sb.append(first ? "" : ", ").append(entry.getKey()).append(":").append(entry.getValue());
+            first = false;
+        }
+        return first ? null : sb.append("}").toString();
     }
 
-    public String getInBoundSnapshotString() {
-        return this.snapshotToString(this.getDistributionSnapshot(this.inboundDistribution));
-    }
-
-    public String getOutBoundSnapshotString() {
-        return this.snapshotToString(this.getDistributionSnapshot(this.outboundDistribution));
+    static class TrafficStats {
+        final LongAdder count = new LongAdder();
+        final LongAdder trafficSize = new LongAdder();
     }
 }
