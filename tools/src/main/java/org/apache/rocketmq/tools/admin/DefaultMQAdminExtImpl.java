@@ -93,6 +93,7 @@ import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicListResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -2083,6 +2084,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().getLiteTopicInfo(brokerAddr, parentTopic, liteTopic,
             timeoutMillis);
+    }
+
+    @Override
+    public GetLiteTopicListResponseBody getLiteTopicList(String brokerAddr, String parentTopic, String prefix,
+        int maxCount)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQClientAPIImpl().getLiteTopicList(brokerAddr, parentTopic, prefix,
+            maxCount, timeoutMillis);
     }
 
     @Override
