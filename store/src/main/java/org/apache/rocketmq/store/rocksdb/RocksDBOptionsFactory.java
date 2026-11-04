@@ -126,8 +126,9 @@ public class RocksDBOptionsFactory {
                 setTargetFileSizeMultiplier(2).
                 setMaxBytesForLevelBase(256 * SizeUnit.MB).
                 setMaxBytesForLevelMultiplier(2).
-                setMergeOperator(new StringAppendOperator()).
-                setInplaceUpdateSupport(true);
+                // Do not enable inplace update: the max offset in this CF is written in the same WriteBatch as
+                // consume queue units, and an inplace update would be visible before the rest of the batch.
+                setMergeOperator(new StringAppendOperator());
     }
 
     public static ColumnFamilyOptions createPopCFOptions(long blockCacheSize, long writeBufferSize) {
