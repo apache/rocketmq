@@ -22,6 +22,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -338,7 +339,7 @@ public class TopicQueueMappingUtils {
 
 
     public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
-        mappingDetailList.sort((o1, o2) -> (int) (o2.getEpoch() - o1.getEpoch()));
+        mappingDetailList.sort(Comparator.comparingLong(TopicQueueMappingDetail::getEpoch).reversed());
 
         int maxNum = 0;
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();
