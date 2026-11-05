@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -117,13 +118,13 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         final Metric.Builder metricBuilder = Metric.newBuilder();
         switch (metricCollectorMode) {
             case ON:
-                final String[] split = metricCollectorAddress.split(":");
-                final String host = split[0];
-                final int port = Integer.parseInt(split[1]);
-                Address address = Address.newBuilder().setHost(host).setPort(port).build();
-                final Endpoints endpoints = Endpoints.newBuilder().setScheme(AddressScheme.IPv4)
-                    .addAddresses(address).build();
-                metricBuilder.setOn(true).setEndpoints(endpoints);
+                Address address = parseMetricCollectorAddress(metricCollectorAddress);
+                if (address == null) {
+                    metricBuilder.setOn(false);
+                    break;
+                }
+                metricBuilder.setOn(true).setEndpoints(Endpoints.newBuilder().setScheme(AddressScheme.IPv4)
+                    .addAddresses(address).build());
                 break;
             case PROXY:
                 metricBuilder.setOn(true).setEndpoints(settings.getAccessPoint());
@@ -135,6 +136,39 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         }
         Metric metric = metricBuilder.build();
         return settings.toBuilder().setMetric(metric).build();
+    }
+
+    private Address parseMetricCollectorAddress(String metricCollectorAddress) {
+        if (StringUtils.isBlank(metricCollectorAddress)) {
+            log.warn("Disable gRPC client metric collection because metricCollectorAddress is blank");
+            return null;
+        }
+        String[] addressSegments = metricCollectorAddress.trim().split(":", -1);
+        if (addressSegments.length != 2) {
+            log.warn("Disable gRPC client metric collection because metricCollectorAddress is invalid: {}",
+                metricCollectorAddress);
+            return null;
+        }
+        String host = addressSegments[0].trim();
+        String portSegment = addressSegments[1].trim();
+        if (StringUtils.isBlank(host) || StringUtils.isBlank(portSegment)) {
+            log.warn("Disable gRPC client metric collection because metricCollectorAddress is invalid: {}",
+                metricCollectorAddress);
+            return null;
+        }
+        try {
+            int port = Integer.parseInt(portSegment);
+            if (port <= 0 || port > 65535) {
+                log.warn("Disable gRPC client metric collection because metricCollectorAddress port is out of range: {}",
+                    metricCollectorAddress);
+                return null;
+            }
+            return Address.newBuilder().setHost(host).setPort(port).build();
+        } catch (NumberFormatException e) {
+            log.warn("Disable gRPC client metric collection because metricCollectorAddress port is invalid: {}",
+                metricCollectorAddress);
+            return null;
+        }
     }
 
     protected static Settings mergeSubscriptionData(Settings settings, SubscriptionGroupConfig groupConfig) {
