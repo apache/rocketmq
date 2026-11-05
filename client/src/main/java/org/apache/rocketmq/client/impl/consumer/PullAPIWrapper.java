@@ -19,9 +19,9 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -61,7 +61,6 @@ public class PullAPIWrapper {
         new ConcurrentHashMap<>(32);
     private volatile boolean connectBrokerByUser = false;
     private volatile long defaultBrokerId = MixAll.MASTER_ID;
-    private Random random = new Random(System.nanoTime());
     private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<>();
 
     public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean unitMode) {
@@ -324,7 +323,7 @@ public class PullAPIWrapper {
     }
 
     public int randomNum() {
-        int value = random.nextInt();
+        int value = ThreadLocalRandom.current().nextInt();
         if (value < 0) {
             value = Math.abs(value);
             if (value < 0)
