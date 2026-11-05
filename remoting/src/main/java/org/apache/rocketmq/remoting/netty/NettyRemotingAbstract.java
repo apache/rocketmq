@@ -66,10 +66,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_IS_LONG_POLLING;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_REQUEST_CODE;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESPONSE_CODE;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESULT;
+import io.opentelemetry.api.common.Attributes;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_REQUEST_CODE_KEY;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESULT_KEY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_ONEWAY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_PROCESS_REQUEST_FAILED;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_WRITE_CHANNEL_FAILED;
@@ -235,19 +234,14 @@ public abstract class NettyRemotingAbstract {
         if (response == null) {
             return;
         }
-        final AttributesBuilder attributesBuilder;
-        if (remotingMetricsManager != null) {
-            attributesBuilder = remotingMetricsManager.newAttributesBuilder();
-            attributesBuilder.put(LABEL_IS_LONG_POLLING, request.isSuspended())
-                .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
-                .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()));
-        } else {
-            attributesBuilder = null;
-        }
+        final int requestCode = request.getCode();
+        final int responseCode = response.getCode();
+        final boolean isLongPolling = request.isSuspended();
         if (request.isOnewayRPC()) {
-            if (attributesBuilder != null) {
-                attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
-                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            if (remotingMetricsManager != null) {
+                Attributes attrs = remotingMetricsManager.getOrBuildAttributes(
+                    requestCode, responseCode, isLongPolling, RESULT_ONEWAY);
+                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attrs);
             }
             return;
         }
@@ -256,15 +250,19 @@ public abstract class NettyRemotingAbstract {
         try {
             channel.writeAndFlush(response).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
-                    log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
-                        request.getCode(), response.getCode(), response.getOpaque(), channel);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
+                            requestCode, responseCode, response.getOpaque(), channel);
+                    }
                 } else {
                     log.error("Failed to write response[request code: {}, response code: {}, opaque: {}] to channel{}",
-                        request.getCode(), response.getCode(), response.getOpaque(), channel, future.cause());
+                        requestCode, responseCode, response.getOpaque(), channel, future.cause());
                 }
                 if (remotingMetricsManager != null) {
-                    attributesBuilder.put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future));
-                    remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                    String result = remotingMetricsManager.getWriteAndFlushResult(future);
+                    Attributes attrs = remotingMetricsManager.getOrBuildAttributes(
+                        requestCode, responseCode, isLongPolling, result);
+                    remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attrs);
                 }
                 if (callback != null) {
                     callback.accept(future);
@@ -275,8 +273,9 @@ public abstract class NettyRemotingAbstract {
             log.error(request.toString());
             log.error(response.toString());
             if (remotingMetricsManager != null) {
-                attributesBuilder.put(LABEL_RESULT, RESULT_WRITE_CHANNEL_FAILED);
-                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                Attributes attrs = remotingMetricsManager.getOrBuildAttributes(
+                    requestCode, responseCode, isLongPolling, RESULT_WRITE_CHANNEL_FAILED);
+                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attrs);
             }
         }
 
@@ -287,19 +286,14 @@ public abstract class NettyRemotingAbstract {
         if (response == null) {
             return;
         }
-        final AttributesBuilder attributesBuilder;
-        if (this.remotingMetricsManager != null) {
-            attributesBuilder = this.remotingMetricsManager.newAttributesBuilder();
-            attributesBuilder.put(LABEL_IS_LONG_POLLING, request.isSuspended())
-                .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
-                .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()));
-        } else {
-            attributesBuilder = null;
-        }
+        final int requestCode = request.getCode();
+        final int responseCode = response.getCode();
+        final boolean isLongPolling = request.isSuspended();
         if (request.isOnewayRPC()) {
-            if (attributesBuilder != null) {
-                attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
-                this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            if (this.remotingMetricsManager != null) {
+                Attributes attrs = this.remotingMetricsManager.getOrBuildAttributes(
+                    requestCode, responseCode, isLongPolling, RESULT_ONEWAY);
+                this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attrs);
             }
             return;
         }
@@ -308,15 +302,19 @@ public abstract class NettyRemotingAbstract {
         try {
             channel.writeAndFlush(response).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
-                    log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
-                        request.getCode(), response.getCode(), response.getOpaque(), channel);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
+                            requestCode, responseCode, response.getOpaque(), channel);
+                    }
                 } else {
                     log.error("Failed to write response[request code: {}, response code: {}, opaque: {}] to channel{}",
-                        request.getCode(), response.getCode(), response.getOpaque(), channel, future.cause());
+                        requestCode, responseCode, response.getOpaque(), channel, future.cause());
                 }
-                if (this.remotingMetricsManager != null && attributesBuilder != null) {
-                    attributesBuilder.put(LABEL_RESULT, this.remotingMetricsManager.getWriteAndFlushResult(future));
-                    this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                if (this.remotingMetricsManager != null) {
+                    String result = this.remotingMetricsManager.getWriteAndFlushResult(future);
+                    Attributes attrs = this.remotingMetricsManager.getOrBuildAttributes(
+                        requestCode, responseCode, isLongPolling, result);
+                    this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attrs);
                 }
                 if (callback != null) {
                     callback.accept(future);
@@ -326,9 +324,10 @@ public abstract class NettyRemotingAbstract {
             log.error("process request over, but response failed", e);
             log.error(request.toString());
             log.error(response.toString());
-            if (this.remotingMetricsManager != null && attributesBuilder != null) {
-                attributesBuilder.put(LABEL_RESULT, RESULT_WRITE_CHANNEL_FAILED);
-                this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            if (this.remotingMetricsManager != null) {
+                Attributes attrs = this.remotingMetricsManager.getOrBuildAttributes(
+                    requestCode, responseCode, isLongPolling, RESULT_WRITE_CHANNEL_FAILED);
+                this.remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attrs);
             }
         }
     }
@@ -394,8 +393,8 @@ public abstract class NettyRemotingAbstract {
         } catch (Throwable e) {
             if (remotingMetricsManager != null) {
                 AttributesBuilder attributesBuilder = remotingMetricsManager.newAttributesBuilder()
-                    .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(cmd.getCode()))
-                    .put(LABEL_RESULT, RESULT_PROCESS_REQUEST_FAILED);
+                    .put(LABEL_REQUEST_CODE_KEY, RemotingHelper.getRequestCodeDesc(cmd.getCode()))
+                    .put(LABEL_RESULT_KEY, RESULT_PROCESS_REQUEST_FAILED);
                 remotingMetricsManager.getRpcLatency().record(cmd.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
             }
         }
