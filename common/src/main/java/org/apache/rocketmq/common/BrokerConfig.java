@@ -237,7 +237,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean initPopOffsetByCheckMsgInMem = true;
     // read message from pop retry topic v1, for the compatibility, will be removed in the future version
     private boolean retrieveMessageFromPopRetryTopicV1 = true;
-    private boolean enableRetryTopicV2 = false;
+    private boolean enableRetryTopicV2 = true;
     private int popFromRetryProbability = 20;
     // pop retry probability for priority mode
     private int popFromRetryProbabilityForPriority = 0;
