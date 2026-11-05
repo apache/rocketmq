@@ -472,4 +472,14 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             assertTrue(receiptHandleManager.receiptHandleGroupMap.isEmpty());
         });
     }
+
+    @Test
+    public void testShutdownStopsTheWorkerPools() throws Exception {
+        // the manager creates both pools for itself, so shutdown has to release them: nothing else
+        // in the proxy owns them
+        receiptHandleManager.shutdown();
+
+        assertTrue(receiptHandleManager.renewalWorkerService.isShutdown());
+        assertTrue(receiptHandleManager.returnHandleGroupWorkerService.isShutdown());
+    }
 }
