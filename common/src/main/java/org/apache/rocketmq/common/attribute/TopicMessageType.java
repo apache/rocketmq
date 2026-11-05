@@ -48,6 +48,9 @@ public enum TopicMessageType {
     }
 
     public static TopicMessageType parseFromMessageProperty(Map<String, String> messageProperty) {
+        if (messageProperty == null) {
+            return TopicMessageType.NORMAL;
+        }
         // the parse order keeps message types mutually exclusive
         if (Boolean.parseBoolean(messageProperty.get(MessageConst.PROPERTY_TRANSACTION_PREPARED))) {
             return TopicMessageType.TRANSACTION;
