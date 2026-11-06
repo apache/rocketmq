@@ -526,6 +526,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             (GetTopicsByClusterRequestHeader) request.decodeCommandCustomHeader(GetTopicsByClusterRequestHeader.class);
 
         TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
+        if (topicsByCluster == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("cluster[%s] not exist", requestHeader.getCluster()));
+            return response;
+        }
         byte[] body = topicsByCluster.encode();
 
         response.setBody(body);

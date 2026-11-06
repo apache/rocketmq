@@ -1028,6 +1028,12 @@ public class RouteInfoManager {
             try {
                 this.lock.readLock().lockInterruptibly();
                 Set<String> brokerNameSet = this.clusterAddrTable.get(cluster);
+                if (brokerNameSet == null) {
+                    // An unknown cluster (never registered, or all its brokers
+                    // unregistered, which drops the cluster key) is not the same
+                    // as a cluster whose brokers serve no topics.
+                    return null;
+                }
                 for (String brokerName : brokerNameSet) {
                     for (Entry<String, Map<String, QueueData>> topicEntry : this.topicQueueTable.entrySet()) {
                         String topic = topicEntry.getKey();
