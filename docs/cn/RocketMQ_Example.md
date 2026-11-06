@@ -59,7 +59,7 @@
 ```
 `gradle`
 ```
-compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
+implementation 'org.apache.rocketmq:rocketmq-client:5.5.0'
 ```
 ### 1.2 消息发送
 
