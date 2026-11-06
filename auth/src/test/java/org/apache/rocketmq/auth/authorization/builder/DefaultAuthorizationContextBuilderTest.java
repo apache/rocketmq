@@ -938,6 +938,27 @@ public class DefaultAuthorizationContextBuilderTest {
     }
 
     @Test
+    public void buildQueryMessageRequestsForTopicAndRetryTopic() {
+        mockRemotingChannel();
+
+        QueryMessageRequestHeader header = new QueryMessageRequestHeader();
+        header.setTopic("topic");
+
+        List<DefaultAuthorizationContext> result = builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.QUERY_MESSAGE, header, null));
+
+        assertResourceOrder(result, "Topic:topic");
+        assertActions(result, "Topic:topic", Action.SUB, Action.GET);
+
+        header.setTopic("%RETRY%group");
+        result = builder.build(channelHandlerContext,
+            remotingRequest(RequestCode.QUERY_MESSAGE, header, null));
+
+        assertResourceOrder(result, "Group:group");
+        assertActions(result, "Group:group", Action.SUB, Action.GET);
+    }
+
+    @Test
     public void rejectMalformedAdditionalRemotingDataRequests() {
         mockRemotingChannel();
 
