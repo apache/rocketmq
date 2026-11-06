@@ -16,22 +16,53 @@
  */
 package org.apache.rocketmq.example.quickstart;
 
+import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageExt;
 
 /**
- * This example shows how to subscribe and consume messages using providing {@link DefaultMQPushConsumer}.
+ * This example shows how to subscribe and consume messages using providing
+ * {@link DefaultMQPushConsumer}.
  */
 public class Consumer {
 
-    public static final String CONSUMER_GROUP = "please_rename_unique_group_name_4";
+    /**
+     * Consumer group name.
+     */
+    public static final String CONSUMER_GROUP = "please_rename_unique_group_name";
+
+    /**
+     * Default NameServer address for testing.
+     */
     public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+
+    /**
+     * Topic to consume from.
+     */
     public static final String TOPIC = "TopicTest";
 
-    public static void main(String[] args) throws MQClientException {
+    /**
+     * Message tag filter expression.
+     */
+    public static final String TAG_FILTER = "*";
+
+    private Consumer() {
+    }
+
+    /**
+     * Main method to demonstrate message consumption.
+     *
+     * @param args Command line arguments
+     * @throws InterruptedException if interrupted while consuming
+     * @throws MQClientException    if consumer initialization fails
+     */
+    public static void main(final String[] args)
+            throws InterruptedException, MQClientException {
 
         /*
          * Instantiate with specified consumer group name.
@@ -42,36 +73,45 @@ public class Consumer {
          * Specify name server addresses.
          * <p/>
          *
-         * Alternatively, you may specify name server addresses via exporting environmental variable: NAMESRV_ADDR
+         * Alternatively, you may specify name server addresses via exporting
+         * environmental variable: NAMESRV_ADDR
          * <pre>
          * {@code
          * consumer.setNamesrvAddr("name-server1-ip:9876;name-server2-ip:9876");
          * }
          * </pre>
          */
-        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+        // Uncomment the following line while debugging
         // consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         /*
-         * Specify where to start in case the specific consumer group is a brand-new one.
+         * Specify where to start in case the specific consumer group is a brand-new
+         * one.
          */
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
         /*
          * Subscribe one more topic to consume.
          */
-        consumer.subscribe(TOPIC, "*");
+        consumer.subscribe(TOPIC, TAG_FILTER);
 
         /*
-         *  Register callback to execute on arrival of messages fetched from brokers.
+         * Register callback to execute on arrival of messages fetched from brokers.
          */
-        consumer.registerMessageListener((MessageListenerConcurrently) (msg, context) -> {
-            System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msg);
-            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        consumer.registerMessageListener(new MessageListenerConcurrently() {
+
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(
+                    final List<MessageExt> msgs,
+                    final ConsumeConcurrentlyContext context) {
+                System.out.printf("%s Receive New Messages: %s %n",
+                        Thread.currentThread().getName(), msgs);
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
         });
 
         /*
-         *  Launch the consumer instance.
+         * Launch the consumer instance.
          */
         consumer.start();
 
