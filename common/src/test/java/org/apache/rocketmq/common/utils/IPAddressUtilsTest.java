@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.utils;
 
 import org.junit.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.apache.rocketmq.common.utils.NetworkUtil.validCommonInet6Address;
 
 public class IPAddressUtilsTest {
@@ -28,15 +29,15 @@ public class IPAddressUtilsTest {
         // IPv4 test
         String ipv4Address = "192.168.1.10";
         String ipv4Cidr = "192.168.1.0/24";
-        assert IPAddressUtils.isIPInRange(ipv4Address, ipv4Cidr);
+        assertThat(IPAddressUtils.isIPInRange(ipv4Address, ipv4Cidr)).isTrue();
 
         ipv4Address = "192.168.2.10";
-        assert !IPAddressUtils.isIPInRange(ipv4Address, ipv4Cidr);
+        assertThat(IPAddressUtils.isIPInRange(ipv4Address, ipv4Cidr)).isFalse();
 
         // IPv6 test
         String ipv6Address = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
         String ipv6Cidr = "2001:0db8:85a3::/48";
-        assert IPAddressUtils.isIPInRange(ipv6Address, ipv6Cidr);
+        assertThat(IPAddressUtils.isIPInRange(ipv6Address, ipv6Cidr)).isTrue();
     }
 
     @Test
@@ -45,9 +46,9 @@ public class IPAddressUtilsTest {
         String ipv6Cidr = "2001:0db8:1234:5678::/64";
         String invalidCidr = "192.168.1.0";
 
-        assert IPAddressUtils.isValidCidr(ipv4Cidr);
-        assert IPAddressUtils.isValidCidr(ipv6Cidr);
-        assert !IPAddressUtils.isValidCidr(invalidCidr);
+        assertThat(IPAddressUtils.isValidCidr(ipv4Cidr)).isTrue();
+        assertThat(IPAddressUtils.isValidCidr(ipv6Cidr)).isTrue();
+        assertThat(IPAddressUtils.isValidCidr(invalidCidr)).isFalse();
     }
 
     @Test
@@ -57,10 +58,10 @@ public class IPAddressUtilsTest {
         String invalidIp = "192.168.1.256";
         String ipv4Cidr = "192.168.1.0/24";
 
-        assert IPAddressUtils.isValidIp(ipv4);
-        assert IPAddressUtils.isValidIp(ipv6);
-        assert !IPAddressUtils.isValidIp(invalidIp);
-        assert !IPAddressUtils.isValidIp(ipv4Cidr);
+        assertThat(IPAddressUtils.isValidIp(ipv4)).isTrue();
+        assertThat(IPAddressUtils.isValidIp(ipv6)).isTrue();
+        assertThat(IPAddressUtils.isValidIp(invalidIp)).isFalse();
+        assertThat(IPAddressUtils.isValidIp(ipv4Cidr)).isFalse();
     }
 
     @Test
@@ -69,24 +70,24 @@ public class IPAddressUtilsTest {
         String ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
         String ipv4Cidr = "192.168.1.0/24";
         String ipv6Cidr = "2001:0db8:1234:5678::/64";
-        assert IPAddressUtils.isValidIPOrCidr(ipv4);
-        assert IPAddressUtils.isValidIPOrCidr(ipv6);
-        assert IPAddressUtils.isValidIPOrCidr(ipv4Cidr);
-        assert IPAddressUtils.isValidIPOrCidr(ipv6Cidr);
+        assertThat(IPAddressUtils.isValidIPOrCidr(ipv4)).isTrue();
+        assertThat(IPAddressUtils.isValidIPOrCidr(ipv6)).isTrue();
+        assertThat(IPAddressUtils.isValidIPOrCidr(ipv4Cidr)).isTrue();
+        assertThat(IPAddressUtils.isValidIPOrCidr(ipv6Cidr)).isTrue();
     }
 
     @Test
     public void isValidIPv6Common() {
         String ipv6WithoutScope = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
-        assert validCommonInet6Address(ipv6WithoutScope);
+        assertThat(validCommonInet6Address(ipv6WithoutScope)).isTrue();
         String ipv6WithScope = "2001:0db8:85a3:0000:0000:8a2e:0370:7334%eth0";
-        assert validCommonInet6Address(ipv6WithScope);
+        assertThat(validCommonInet6Address(ipv6WithScope)).isTrue();
         String ipv6WithBracketedAndScope = "[2001:0db8:85a3:0000:0000:8a2e:0370:7334%eth0]";
-        assert validCommonInet6Address(ipv6WithBracketedAndScope);
+        assertThat(validCommonInet6Address(ipv6WithBracketedAndScope)).isTrue();
         String ipv4 = "192.168.1.0";
-        assert !validCommonInet6Address(ipv4);
+        assertThat(validCommonInet6Address(ipv4)).isFalse();
         String ipv4Cidr = "192.168.1.0/24";
-        assert !validCommonInet6Address(ipv4Cidr);
+        assertThat(validCommonInet6Address(ipv4Cidr)).isFalse();
     }
 
 }
