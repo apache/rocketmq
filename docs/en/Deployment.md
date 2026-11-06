@@ -26,11 +26,11 @@ We can see 'The Name Server boot success.. ' in namesrv.log that indicates the N
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### Then verify that the broker is started successfully, for example, the IP of broker is 192.168.1.2 and the name is broker-a
-$ tail -f ~/logs/rocketmqlogs/Broker.log 
+$ tail -f ~/logs/rocketmqlogs/broker.log 
 The broker[broker-a,192.168.1.2:10911] boot success...
 ```
 
-We can see 'The broker[brokerName,ip:port] boot success..' in Broker.log that indicates the broker has been started successfully.
+We can see 'The broker[brokerName,ip:port] boot success..' in broker.log that indicates the broker has been started successfully.
 
 ### 2 Multiple Master mode
 
