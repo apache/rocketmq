@@ -305,6 +305,7 @@ public class TimerMessageStoreTest {
 
         int passFlowControlNum = 0;
         for (int i = 0; i < 500; i++) {
+            long expectedCongestNum = timerMessageStore.getCongestNum(delayMs - precisionMs) + 1;
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
 
             PutMessageResult putMessageResult = transformTimerMessage(timerMessageStore,inner);
@@ -313,6 +314,13 @@ public class TimerMessageStoreTest {
             }
             else {
                 putMessageResult = new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL,null);
+            }
+
+            if (putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+                // Wait until this accepted message reaches the wheel before checking the next one.
+                await().pollDelay(0, TimeUnit.MILLISECONDS).pollInterval(10, TimeUnit.MILLISECONDS)
+                    .atMost(10, TimeUnit.SECONDS)
+                    .until(() -> timerMessageStore.getCongestNum(delayMs - precisionMs) == expectedCongestNum);
             }
 
             // Message with delayMs in getSlotIndex(delayMs - precisionMs).
@@ -327,8 +335,6 @@ public class TimerMessageStoreTest {
                     passFlowControlNum++;
                 }
             }
-            //wait reput
-            Thread.sleep(5);
         }
         assertThat(passFlowControlNum).isGreaterThan(0).isLessThan(120);
     }
