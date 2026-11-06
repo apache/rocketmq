@@ -20,6 +20,8 @@ import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageType;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +31,8 @@ import java.util.List;
  * Encode/decode for Trace Data
  */
 public class TraceDataEncoder {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TraceDataEncoder.class);
 
     /**
      * Resolving traceContext list From trace data String
@@ -44,107 +48,114 @@ public class TraceDataEncoder {
         String[] contextList = traceData.split(String.valueOf(TraceConstants.FIELD_SPLITOR));
         for (String context : contextList) {
             String[] line = context.split(String.valueOf(TraceConstants.CONTENT_SPLITOR));
-            if (line[0].equals(TraceType.Pub.name())) {
-                TraceContext pubContext = new TraceContext();
-                pubContext.setTraceType(TraceType.Pub);
-                pubContext.setTimeStamp(Long.parseLong(line[1]));
-                pubContext.setRegionId(line[2]);
-                pubContext.setGroupName(line[3]);
-                TraceBean bean = new TraceBean();
-                bean.setTopic(line[4]);
-                bean.setMsgId(line[5]);
-                bean.setTags(line[6]);
-                bean.setKeys(line[7]);
-                bean.setStoreHost(line[8]);
-                bean.setBodyLength(Integer.parseInt(line[9]));
-                pubContext.setCostTime(Integer.parseInt(line[10]));
-                bean.setMsgType(MessageType.values()[Integer.parseInt(line[11])]);
+            try {
+                if (line[0].equals(TraceType.Pub.name())) {
+                    TraceContext pubContext = new TraceContext();
+                    pubContext.setTraceType(TraceType.Pub);
+                    pubContext.setTimeStamp(Long.parseLong(line[1]));
+                    pubContext.setRegionId(line[2]);
+                    pubContext.setGroupName(line[3]);
+                    TraceBean bean = new TraceBean();
+                    bean.setTopic(line[4]);
+                    bean.setMsgId(line[5]);
+                    bean.setTags(line[6]);
+                    bean.setKeys(line[7]);
+                    bean.setStoreHost(line[8]);
+                    bean.setBodyLength(Integer.parseInt(line[9]));
+                    pubContext.setCostTime(Integer.parseInt(line[10]));
+                    bean.setMsgType(MessageType.values()[Integer.parseInt(line[11])]);
 
-                if (line.length == 13) {
-                    pubContext.setSuccess(Boolean.parseBoolean(line[12]));
-                } else if (line.length == 14) {
-                    bean.setOffsetMsgId(line[12]);
-                    pubContext.setSuccess(Boolean.parseBoolean(line[13]));
-                }
+                    if (line.length == 13) {
+                        pubContext.setSuccess(Boolean.parseBoolean(line[12]));
+                    } else if (line.length == 14) {
+                        bean.setOffsetMsgId(line[12]);
+                        pubContext.setSuccess(Boolean.parseBoolean(line[13]));
+                    }
 
-                // compatible with the old version
-                if (line.length >= 15) {
-                    bean.setOffsetMsgId(line[12]);
-                    pubContext.setSuccess(Boolean.parseBoolean(line[13]));
-                    bean.setClientHost(line[14]);
-                }
+                    // compatible with the old version
+                    if (line.length >= 15) {
+                        bean.setOffsetMsgId(line[12]);
+                        pubContext.setSuccess(Boolean.parseBoolean(line[13]));
+                        bean.setClientHost(line[14]);
+                    }
 
-                pubContext.setTraceBeans(new ArrayList<>(1));
-                pubContext.getTraceBeans().add(bean);
-                resList.add(pubContext);
-            } else if (line[0].equals(TraceType.SubBefore.name())) {
-                TraceContext subBeforeContext = new TraceContext();
-                subBeforeContext.setTraceType(TraceType.SubBefore);
-                subBeforeContext.setTimeStamp(Long.parseLong(line[1]));
-                subBeforeContext.setRegionId(line[2]);
-                subBeforeContext.setGroupName(line[3]);
-                subBeforeContext.setRequestId(line[4]);
-                TraceBean bean = new TraceBean();
-                bean.setMsgId(line[5]);
-                bean.setRetryTimes(Integer.parseInt(line[6]));
-                bean.setKeys(line[7]);
-                subBeforeContext.setTraceBeans(new ArrayList<>(1));
-                subBeforeContext.getTraceBeans().add(bean);
-                resList.add(subBeforeContext);
-            } else if (line[0].equals(TraceType.SubAfter.name())) {
-                TraceContext subAfterContext = new TraceContext();
-                subAfterContext.setTraceType(TraceType.SubAfter);
-                subAfterContext.setRequestId(line[1]);
-                TraceBean bean = new TraceBean();
-                bean.setMsgId(line[2]);
-                bean.setKeys(line[5]);
-                subAfterContext.setTraceBeans(new ArrayList<>(1));
-                subAfterContext.getTraceBeans().add(bean);
-                subAfterContext.setCostTime(Integer.parseInt(line[3]));
-                subAfterContext.setSuccess(Boolean.parseBoolean(line[4]));
-                if (line.length >= 7) {
-                    // add the context type
-                    subAfterContext.setContextCode(Integer.parseInt(line[6]));
-                }
-                // compatible with the old version
-                if (line.length >= 9) {
-                    subAfterContext.setTimeStamp(Long.parseLong(line[7]));
-                    subAfterContext.setGroupName(line[8]);
-                }
-                resList.add(subAfterContext);
-            } else if (line[0].equals(TraceType.EndTransaction.name())) {
-                TraceContext endTransactionContext = new TraceContext();
-                endTransactionContext.setTraceType(TraceType.EndTransaction);
-                endTransactionContext.setTimeStamp(Long.parseLong(line[1]));
-                endTransactionContext.setRegionId(line[2]);
-                endTransactionContext.setGroupName(line[3]);
-                TraceBean bean = new TraceBean();
-                bean.setTopic(line[4]);
-                bean.setMsgId(line[5]);
-                bean.setTags(line[6]);
-                bean.setKeys(line[7]);
-                bean.setStoreHost(line[8]);
-                bean.setMsgType(MessageType.values()[Integer.parseInt(line[9])]);
-                bean.setTransactionId(line[10]);
-                bean.setTransactionState(LocalTransactionState.valueOf(line[11]));
-                bean.setFromTransactionCheck(Boolean.parseBoolean(line[12]));
+                    pubContext.setTraceBeans(new ArrayList<>(1));
+                    pubContext.getTraceBeans().add(bean);
+                    resList.add(pubContext);
+                } else if (line[0].equals(TraceType.SubBefore.name())) {
+                    TraceContext subBeforeContext = new TraceContext();
+                    subBeforeContext.setTraceType(TraceType.SubBefore);
+                    subBeforeContext.setTimeStamp(Long.parseLong(line[1]));
+                    subBeforeContext.setRegionId(line[2]);
+                    subBeforeContext.setGroupName(line[3]);
+                    subBeforeContext.setRequestId(line[4]);
+                    TraceBean bean = new TraceBean();
+                    bean.setMsgId(line[5]);
+                    bean.setRetryTimes(Integer.parseInt(line[6]));
+                    bean.setKeys(line[7]);
+                    subBeforeContext.setTraceBeans(new ArrayList<>(1));
+                    subBeforeContext.getTraceBeans().add(bean);
+                    resList.add(subBeforeContext);
+                } else if (line[0].equals(TraceType.SubAfter.name())) {
+                    TraceContext subAfterContext = new TraceContext();
+                    subAfterContext.setTraceType(TraceType.SubAfter);
+                    subAfterContext.setRequestId(line[1]);
+                    TraceBean bean = new TraceBean();
+                    bean.setMsgId(line[2]);
+                    bean.setKeys(line[5]);
+                    subAfterContext.setTraceBeans(new ArrayList<>(1));
+                    subAfterContext.getTraceBeans().add(bean);
+                    subAfterContext.setCostTime(Integer.parseInt(line[3]));
+                    subAfterContext.setSuccess(Boolean.parseBoolean(line[4]));
+                    if (line.length >= 7) {
+                        // add the context type
+                        subAfterContext.setContextCode(Integer.parseInt(line[6]));
+                    }
+                    // compatible with the old version
+                    if (line.length >= 9) {
+                        subAfterContext.setTimeStamp(Long.parseLong(line[7]));
+                        subAfterContext.setGroupName(line[8]);
+                    }
+                    resList.add(subAfterContext);
+                } else if (line[0].equals(TraceType.EndTransaction.name())) {
+                    TraceContext endTransactionContext = new TraceContext();
+                    endTransactionContext.setTraceType(TraceType.EndTransaction);
+                    endTransactionContext.setTimeStamp(Long.parseLong(line[1]));
+                    endTransactionContext.setRegionId(line[2]);
+                    endTransactionContext.setGroupName(line[3]);
+                    TraceBean bean = new TraceBean();
+                    bean.setTopic(line[4]);
+                    bean.setMsgId(line[5]);
+                    bean.setTags(line[6]);
+                    bean.setKeys(line[7]);
+                    bean.setStoreHost(line[8]);
+                    bean.setMsgType(MessageType.values()[Integer.parseInt(line[9])]);
+                    bean.setTransactionId(line[10]);
+                    bean.setTransactionState(LocalTransactionState.valueOf(line[11]));
+                    bean.setFromTransactionCheck(Boolean.parseBoolean(line[12]));
 
-                endTransactionContext.setTraceBeans(new ArrayList<>(1));
-                endTransactionContext.getTraceBeans().add(bean);
-                resList.add(endTransactionContext);
-            } else if (line[0].equals(TraceType.Recall.name())) {
-                TraceContext recallContext = new TraceContext();
-                recallContext.setTraceType(TraceType.Recall);
-                recallContext.setTimeStamp(Long.parseLong(line[1]));
-                recallContext.setRegionId(line[2]);
-                recallContext.setGroupName(line[3]);
-                TraceBean bean = new TraceBean();
-                bean.setTopic(line[4]);
-                bean.setMsgId(line[5]);
-                recallContext.setSuccess(Boolean.parseBoolean(line[6]));
-                recallContext.setTraceBeans(new ArrayList<>(1));
-                recallContext.getTraceBeans().add(bean);
-                resList.add(recallContext);
+                    endTransactionContext.setTraceBeans(new ArrayList<>(1));
+                    endTransactionContext.getTraceBeans().add(bean);
+                    resList.add(endTransactionContext);
+                } else if (line[0].equals(TraceType.Recall.name())) {
+                    TraceContext recallContext = new TraceContext();
+                    recallContext.setTraceType(TraceType.Recall);
+                    recallContext.setTimeStamp(Long.parseLong(line[1]));
+                    recallContext.setRegionId(line[2]);
+                    recallContext.setGroupName(line[3]);
+                    TraceBean bean = new TraceBean();
+                    bean.setTopic(line[4]);
+                    bean.setMsgId(line[5]);
+                    recallContext.setSuccess(Boolean.parseBoolean(line[6]));
+                    recallContext.setTraceBeans(new ArrayList<>(1));
+                    recallContext.getTraceBeans().add(bean);
+                    resList.add(recallContext);
+                }
+            } catch (Exception e) {
+                // The trace topic is a plain topic any client can publish to, and the
+                // field layout differs across client versions; a single malformed line
+                // must not abort decoding of the remaining contexts.
+                LOGGER.warn("Failed to decode trace context, skip it. line={}", context, e);
             }
         }
         return resList;
