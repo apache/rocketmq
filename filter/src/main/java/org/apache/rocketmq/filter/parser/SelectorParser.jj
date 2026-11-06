@@ -203,7 +203,7 @@ BooleanExpression JmsSelector() :
 }
 {
     (
-        left = orExpression()
+        left = orExpression() <EOF>
     )
     {
         return asBooleanExpression(left);
