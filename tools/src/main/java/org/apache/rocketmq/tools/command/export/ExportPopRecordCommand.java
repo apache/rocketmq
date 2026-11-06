@@ -66,7 +66,7 @@ public class ExportPopRecordCommand implements SubCommand {
         try {
             adminExt.start();
             boolean dryRun = commandLine.hasOption('d') &&
-                Boolean.FALSE.toString().equalsIgnoreCase(commandLine.getOptionValue('d'));
+                Boolean.parseBoolean(commandLine.getOptionValue('d'));
             if (commandLine.hasOption('b')) {
                 String brokerAddr = commandLine.getOptionValue('b').trim();
                 String brokerName = adminExt.getBrokerConfig(brokerAddr).getProperty("brokerName");
