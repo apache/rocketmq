@@ -218,6 +218,17 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             if (getMessageNullCount++ > MAX_RETRY_COUNT_WHEN_HALF_NULL) {
                                 break;
                             }
+                            // The bridge answers a null pull result when the store
+                            // itself cannot serve the read (e.g. during shutdown);
+                            // retry this offset on the next check round instead of
+                            // throwing, which would abort the check of the
+                            // remaining queues too. The tail of this method guards
+                            // the same lookup for null.
+                            if (getResult.getPullResult() == null) {
+                                log.warn("Get half message from store failed, the miss offset={} in={}, continue check={}",
+                                    i, messageQueue, getMessageNullCount);
+                                break;
+                            }
                             if (getResult.getPullResult().getPullStatus() == PullStatus.NO_NEW_MSG) {
                                 log.debug("No new msg, the miss offset={} in={}, continue check={}, pull result={}", i,
                                     messageQueue, getMessageNullCount, getResult.getPullResult());
