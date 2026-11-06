@@ -18,18 +18,16 @@
 package org.apache.rocketmq.broker.subscription;
 
 import com.google.common.collect.ImmutableMap;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
+import org.apache.rocketmq.common.attribute.Attribute;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -37,7 +35,9 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -53,49 +53,50 @@ import static org.mockito.Mockito.verify;
 public class SubscriptionGroupManagerTest {
     private String group = "group";
 
-    private final String basePath = Paths.get(System.getProperty("user.home"),
-            "unit-test-store", UUID.randomUUID().toString().substring(0, 16).toUpperCase()).toString();
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().assureDeletion().build();
+
     @Mock
     private BrokerController brokerControllerMock;
     private SubscriptionGroupManager subscriptionGroupManager;
+    private Attribute previousTestAttribute;
 
     @Before
-    public void before() {
-        SubscriptionGroupAttributes.ALL.put("test", new BooleanAttribute(
+    public void before() throws Exception {
+        previousTestAttribute = SubscriptionGroupAttributes.ALL.put("test", new BooleanAttribute(
             "test",
             false,
             false
         ));
         subscriptionGroupManager = spy(new SubscriptionGroupManager(brokerControllerMock));
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setStorePathRootDir(basePath);
+        messageStoreConfig.setStorePathRootDir(temporaryFolder.newFolder("store").getAbsolutePath());
         Mockito.lenient().when(brokerControllerMock.getMessageStoreConfig()).thenReturn(messageStoreConfig);
     }
 
     @After
     public void destroy() {
-        if (notToBeExecuted()) {
-            return;
-        }
-        if (subscriptionGroupManager != null) {
-            subscriptionGroupManager.stop();
+        try {
+            if (subscriptionGroupManager != null) {
+                subscriptionGroupManager.stop();
+            }
+        } finally {
+            if (previousTestAttribute == null) {
+                SubscriptionGroupAttributes.ALL.remove("test");
+            } else {
+                SubscriptionGroupAttributes.ALL.put("test", previousTestAttribute);
+            }
         }
     }
 
     @Test
     public void testUpdateAndCreateSubscriptionGroupInRocksdb() {
-        if (notToBeExecuted()) {
-            return;
-        }
         group += System.currentTimeMillis();
         updateSubscriptionGroupConfig();
     }
 
     @Test
     public void updateSubscriptionGroupConfig() {
-        if (notToBeExecuted()) {
-            return;
-        }
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName(group);
         Map<String, String> attr = ImmutableMap.of("+test", "true");
@@ -115,15 +116,8 @@ public class SubscriptionGroupManagerTest {
             .isInstanceOf(RuntimeException.class).hasMessage("attempt to update an unchangeable attribute. key: test");
     }
 
-    private boolean notToBeExecuted() {
-        return MixAll.isMac();
-    }
     @Test
     public void testUpdateSubscriptionGroupConfigList_NullConfigList() {
-        if (notToBeExecuted()) {
-            return;
-        }
-
         subscriptionGroupManager.updateSubscriptionGroupConfigList(null);
         // Verifying that persist() is not called
         verify(subscriptionGroupManager, never()).persist();
@@ -131,10 +125,6 @@ public class SubscriptionGroupManagerTest {
 
     @Test
     public void testUpdateSubscriptionGroupConfigList_EmptyConfigList() {
-        if (notToBeExecuted()) {
-            return;
-        }
-
         subscriptionGroupManager.updateSubscriptionGroupConfigList(Collections.emptyList());
         // Verifying that persist() is not called
         verify(subscriptionGroupManager, never()).persist();
@@ -142,10 +132,6 @@ public class SubscriptionGroupManagerTest {
 
     @Test
     public void testUpdateSubscriptionGroupConfigList_ValidConfigList() {
-        if (notToBeExecuted()) {
-            return;
-        }
-
         final List<SubscriptionGroupConfig> configList = new LinkedList<>();
         final List<String> groupNames = new LinkedList<>();
         for (int i = 0; i < 10; i++) {
