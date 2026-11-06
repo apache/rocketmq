@@ -95,6 +95,10 @@ public class ExportMetricsCommand implements SubCommand {
 
             ClusterInfo clusterInfoSerializeWrapper = defaultMQAdminExt.examineBrokerClusterInfo();
             Set<String> brokerNameSet = clusterInfoSerializeWrapper.getClusterAddrTable().get(clusterName);
+            if (brokerNameSet == null) {
+                System.out.printf("cluster [%s] not exist%n", clusterName);
+                return;
+            }
             for (String brokerName : brokerNameSet) {
                 BrokerData brokerData = clusterInfoSerializeWrapper.getBrokerAddrTable().get(brokerName);
                 if (brokerData != null) {
