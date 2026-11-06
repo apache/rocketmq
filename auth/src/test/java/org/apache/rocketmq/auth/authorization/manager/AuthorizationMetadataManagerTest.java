@@ -120,10 +120,12 @@ public class AuthorizationMetadataManagerTest {
         Acl acl1 = AuthTestHelper.buildAcl("User:test", "Topic:test,Group:test", "PUB,SUB",
             "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.createAcl(acl1).join();
+        Acl cachedAcl = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
 
         Acl acl2 = AuthTestHelper.buildAcl("User:test", "Topic:abc,Group:abc", "PUB,SUB",
             "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.updateAcl(acl2).join();
+        Assert.assertTrue(AuthTestHelper.isEquals(acl1, cachedAcl));
 
         Acl acl3 = AuthTestHelper.buildAcl("User:test", "Topic:test,Group:test,Topic:abc,Group:abc", "PUB,SUB",
             "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
@@ -131,10 +133,13 @@ public class AuthorizationMetadataManagerTest {
         Assert.assertTrue(AuthTestHelper.isEquals(acl3, acl4));
 
         Policy policy = AuthTestHelper.buildPolicy("Topic:test,Group:test", "PUB,SUB,Create", "192.168.0.0/24", Decision.DENY);
-        acl4.updatePolicy(policy);
-        this.authorizationMetadataManager.updateAcl(acl4);
+        cachedAcl = acl4;
+        Acl updateAcl = cachedAcl.copy();
+        updateAcl.updatePolicy(policy);
+        this.authorizationMetadataManager.updateAcl(updateAcl);
+        Assert.assertTrue(AuthTestHelper.isEquals(acl3, cachedAcl));
         Acl acl5 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
-        Assert.assertTrue(AuthTestHelper.isEquals(acl4, acl5));
+        Assert.assertTrue(AuthTestHelper.isEquals(updateAcl, acl5));
 
         User user2 = User.of("abc", "abc");
         this.authenticationMetadataManager.createUser(user2).join();
