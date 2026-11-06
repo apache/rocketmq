@@ -73,6 +73,8 @@ public class NamesrvConfig {
 
     private volatile boolean notifyMinBrokerIdChanged = false;
 
+    private long notifyMinBrokerIdChangeTimeoutMillis = 3000;
+
     /**
      * Is startup the controller in this name-srv
      */
@@ -239,6 +241,14 @@ public class NamesrvConfig {
 
     public void setNotifyMinBrokerIdChanged(boolean notifyMinBrokerIdChanged) {
         this.notifyMinBrokerIdChanged = notifyMinBrokerIdChanged;
+    }
+
+    public long getNotifyMinBrokerIdChangeTimeoutMillis() {
+        return notifyMinBrokerIdChangeTimeoutMillis;
+    }
+
+    public void setNotifyMinBrokerIdChangeTimeoutMillis(long notifyMinBrokerIdChangeTimeoutMillis) {
+        this.notifyMinBrokerIdChangeTimeoutMillis = notifyMinBrokerIdChangeTimeoutMillis;
     }
 
     public boolean isEnableControllerInNamesrv() {
