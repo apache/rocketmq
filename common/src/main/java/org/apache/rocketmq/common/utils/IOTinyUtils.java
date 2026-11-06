@@ -86,19 +86,11 @@ public class IOTinyUtils {
             throw new RuntimeException("failed to create target file.");
         }
 
-        FileChannel sc = null;
-        FileChannel tc = null;
-        try {
-            tc = new FileOutputStream(tf).getChannel();
-            sc = new FileInputStream(sf).getChannel();
+        try (FileInputStream fis = new FileInputStream(sf);
+             FileOutputStream fos = new FileOutputStream(tf);
+             FileChannel sc = fis.getChannel();
+             FileChannel tc = fos.getChannel()) {
             sc.transferTo(0, sc.size(), tc);
-        } finally {
-            if (null != sc) {
-                sc.close();
-            }
-            if (null != tc) {
-                tc.close();
-            }
         }
     }
 
