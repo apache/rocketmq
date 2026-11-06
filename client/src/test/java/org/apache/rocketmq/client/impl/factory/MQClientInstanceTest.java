@@ -681,4 +681,122 @@ public class MQClientInstanceTest {
             fail("failed: " + e.getMessage());
         }
     }
+
+    @Test
+    public void testFindBrokerVersionWhenVersionExists() throws Exception {
+        String brokerName = "broker-a";
+        String brokerAddr = "127.0.0.1:10911";
+
+        // Populate brokerAddrTable so findBrokerAddressInSubscribe reaches findBrokerVersion
+        ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable =
+            (ConcurrentMap<String, HashMap<Long, String>>) FieldUtils.readDeclaredField(
+                mqClientInstance, "brokerAddrTable", true);
+        HashMap<Long, String> addrMap = new HashMap<>();
+        addrMap.put(MixAll.MASTER_ID, brokerAddr);
+        brokerAddrTable.put(brokerName, addrMap);
+
+        // Populate brokerVersionTable with a known version
+        ConcurrentMap<String, ConcurrentHashMap<String, Integer>> brokerVersionTable =
+            (ConcurrentMap<String, ConcurrentHashMap<String, Integer>>) FieldUtils.readDeclaredField(
+                mqClientInstance, "brokerVersionTable", true);
+        ConcurrentHashMap<String, Integer> versionMap = new ConcurrentHashMap<>();
+        versionMap.put(brokerAddr, 401);
+        brokerVersionTable.put(brokerName, versionMap);
+
+        FindBrokerResult result = mqClientInstance.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
+        assertNotNull(result);
+        assertEquals(brokerAddr, result.getBrokerAddr());
+        assertEquals(401, result.getBrokerVersion());
+
+        // Cleanup
+        brokerAddrTable.remove(brokerName);
+        brokerVersionTable.remove(brokerName);
+    }
+
+    @Test
+    public void testFindBrokerVersionWhenBrokerNameNotInVersionTable() throws Exception {
+        String brokerName = "broker-a";
+        String brokerAddr = "127.0.0.1:10911";
+
+        // Populate brokerAddrTable so findBrokerAddressInSubscribe reaches findBrokerVersion
+        ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable =
+            (ConcurrentMap<String, HashMap<Long, String>>) FieldUtils.readDeclaredField(
+                mqClientInstance, "brokerAddrTable", true);
+        HashMap<Long, String> addrMap = new HashMap<>();
+        addrMap.put(MixAll.MASTER_ID, brokerAddr);
+        brokerAddrTable.put(brokerName, addrMap);
+
+        // Do NOT populate brokerVersionTable - simulates broker not yet heartbeated
+        ConcurrentMap<String, ConcurrentHashMap<String, Integer>> brokerVersionTable =
+            (ConcurrentMap<String, ConcurrentHashMap<String, Integer>>) FieldUtils.readDeclaredField(
+                mqClientInstance, "brokerVersionTable", true);
+        brokerVersionTable.remove(brokerName);
+
+        FindBrokerResult result = mqClientInstance.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
+        assertNotNull(result);
+        assertEquals(brokerAddr, result.getBrokerAddr());
+        // findBrokerVersion returns 0 when brokerName not in version table
+        assertEquals(0, result.getBrokerVersion());
+
+        // Cleanup
+        brokerAddrTable.remove(brokerName);
+    }
+
+    @Test
+    public void testFindBrokerVersionWhenAddrNotInVersionTable() throws Exception {
+        String brokerName = "broker-a";
+        String brokerAddr = "127.0.0.1:10911";
+
+        // Populate brokerAddrTable
+        ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable =
+            (ConcurrentMap<String, HashMap<Long, String>>) FieldUtils.readDeclaredField(
+                mqClientInstance, "brokerAddrTable", true);
+        HashMap<Long, String> addrMap = new HashMap<>();
+        addrMap.put(MixAll.MASTER_ID, brokerAddr);
+        brokerAddrTable.put(brokerName, addrMap);
+
+        // Populate brokerVersionTable with broker name but different address
+        ConcurrentMap<String, ConcurrentHashMap<String, Integer>> brokerVersionTable =
+            (ConcurrentMap<String, ConcurrentHashMap<String, Integer>>) FieldUtils.readDeclaredField(
+                mqClientInstance, "brokerVersionTable", true);
+        ConcurrentHashMap<String, Integer> versionMap = new ConcurrentHashMap<>();
+        versionMap.put("127.0.0.1:99999", 401); // different address
+        brokerVersionTable.put(brokerName, versionMap);
+
+        FindBrokerResult result = mqClientInstance.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
+        assertNotNull(result);
+        // findBrokerVersion returns 0 when addr not found in the version map
+        assertEquals(0, result.getBrokerVersion());
+
+        // Cleanup
+        brokerAddrTable.remove(brokerName);
+        brokerVersionTable.remove(brokerName);
+    }
+
+    @Test
+    public void testBrokerVersionTableComputeIfAbsent() throws Exception {
+        ConcurrentMap<String, ConcurrentHashMap<String, Integer>> brokerVersionTable =
+            (ConcurrentMap<String, ConcurrentHashMap<String, Integer>>) FieldUtils.readDeclaredField(
+                mqClientInstance, "brokerVersionTable", true);
+
+        String brokerName = "broker-computeIfAbsent-test";
+
+        // Use computeIfAbsent as the fix does
+        ConcurrentHashMap<String, Integer> inner = brokerVersionTable.computeIfAbsent(
+            brokerName, k -> new ConcurrentHashMap<>(4));
+        inner.put("127.0.0.1:10911", 401);
+
+        // Verify the entry was created atomically
+        assertNotNull(brokerVersionTable.get(brokerName));
+        assertEquals(Integer.valueOf(401), brokerVersionTable.get(brokerName).get("127.0.0.1:10911"));
+
+        // Calling computeIfAbsent again should return the same map, not create a new one
+        ConcurrentHashMap<String, Integer> inner2 = brokerVersionTable.computeIfAbsent(
+            brokerName, k -> new ConcurrentHashMap<>(4));
+        assertEquals(inner, inner2);
+        assertEquals(Integer.valueOf(401), inner2.get("127.0.0.1:10911"));
+
+        // Cleanup
+        brokerVersionTable.remove(brokerName);
+    }
 }
