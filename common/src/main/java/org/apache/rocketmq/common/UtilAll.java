@@ -341,13 +341,19 @@ public class UtilAll {
         if (hexString == null || hexString.equals("")) {
             return null;
         }
-        hexString = hexString.toUpperCase();
+        if ((hexString.length() & 1) != 0) {
+            throw new IllegalArgumentException("Hex string must contain an even number of characters");
+        }
         int length = hexString.length() / 2;
-        char[] hexChars = hexString.toCharArray();
         byte[] d = new byte[length];
         for (int i = 0; i < length; i++) {
             int pos = i * 2;
-            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
+            int high = charToByte(Character.toUpperCase(hexString.charAt(pos)));
+            int low = charToByte(Character.toUpperCase(hexString.charAt(pos + 1)));
+            if (high < 0 || low < 0) {
+                throw new IllegalArgumentException("Hex string contains a non-hexadecimal character");
+            }
+            d[i] = (byte) (high << 4 | low);
         }
         return d;
     }
