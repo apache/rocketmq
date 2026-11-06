@@ -263,6 +263,11 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     protected void decodeForbidden(byte[] key, byte[] body) {
         String forbiddenGroupName = new String(key, RocksDBConfigManager.CHARSET);
         JSONObject jsonObject = JSON.parseObject(new String(body, RocksDBConfigManager.CHARSET));
+        if (jsonObject == null) {
+            // a group without forbidden bits has nothing to restore; older brokers persisted the literal "null" here
+            log.warn("ignore empty forbidden config for group {}", forbiddenGroupName);
+            return;
+        }
         Set<Map.Entry<String, Object>> entries = jsonObject.entrySet();
         ConcurrentMap<String, Integer> forbiddenGroup = new ConcurrentHashMap<>(entries.size());
         for (Map.Entry<String, Object> entry : entries) {
@@ -272,12 +277,22 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         log.info("load forbidden,{} value {}", forbiddenGroupName, forbiddenGroup.toString());
     }
 
+    protected void persistForbidden(String group) throws Exception {
+        ConcurrentMap<String, Integer> forbidden = this.getForbiddenTable().get(group);
+        if (forbidden == null || forbidden.isEmpty()) {
+            // nothing forbidden left for this group: drop the persisted entry instead of writing JSON "null"
+            this.rocksDBConfigManager.configRocksDBStorage.delete(FORBIDDEN_COLUMN_FAMILY_NAME,
+                group.getBytes(RocksDBConfigManager.CHARSET));
+            return;
+        }
+        this.rocksDBConfigManager.put(FORBIDDEN_COLUMN_FAMILY_NAME, group, JSON.toJSONString(forbidden));
+    }
+
     @Override
     public void updateForbidden(String group, String topic, int forbiddenIndex, boolean setOrClear) {
         try {
             super.updateForbidden(group, topic, forbiddenIndex, setOrClear);
-            this.rocksDBConfigManager.put(FORBIDDEN_COLUMN_FAMILY_NAME, group,
-                JSON.toJSONString(this.getForbiddenTable().get(group)));
+            this.persistForbidden(group);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -287,8 +302,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     public void setForbidden(String group, String topic, int forbiddenIndex) {
         try {
             super.setForbidden(group, topic, forbiddenIndex);
-            this.rocksDBConfigManager.put(FORBIDDEN_COLUMN_FAMILY_NAME, group,
-                JSON.toJSONString(this.getForbiddenTable().get(group)));
+            this.persistForbidden(group);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -298,8 +312,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     public void clearForbidden(String group, String topic, int forbiddenIndex) {
         try {
             super.clearForbidden(group, topic, forbiddenIndex);
-            this.rocksDBConfigManager.put(FORBIDDEN_COLUMN_FAMILY_NAME, group,
-                JSON.toJSONString(this.getForbiddenTable().get(group)));
+            this.persistForbidden(group);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
