@@ -22,10 +22,12 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -78,6 +80,8 @@ public class MQAdminImplTest {
     private final String defaultBrokerAddr = "127.0.0.1:10911";
 
     private final long defaultTimeout = 3000L;
+
+    private final String sysWheelTimerTopic = TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer";
 
     @Before
     public void init() throws RemotingException, InterruptedException, MQClientException {
@@ -198,6 +202,29 @@ public class MQAdminImplTest {
         assertNotNull(queryResult);
         assertEquals(1, queryResult.getMessageList().size());
         assertEquals(defaultTopic, queryResult.getMessageList().get(0).getTopic());
+    }
+
+    @Test
+    public void testQueryMessageBySysWheelTimerTopicShouldUseClusterNameAsRouteTopic() throws Exception {
+        String realTopic = "realTopic";
+
+        doAnswer(invocation -> {
+            InvokeCallback callback = invocation.getArgument(3);
+            QueryMessageResponseHeader responseHeader = new QueryMessageResponseHeader();
+            responseHeader.setIndexLastUpdatePhyoffset(1L);
+            responseHeader.setIndexLastUpdateTimestamp(System.currentTimeMillis());
+            RemotingCommand response = mock(RemotingCommand.class);
+            when(response.decodeCommandCustomHeader(QueryMessageResponseHeader.class)).thenReturn(responseHeader);
+            when(response.getBody()).thenReturn(getMessageResult());
+            when(response.getCode()).thenReturn(ResponseCode.SUCCESS);
+            callback.operationSucceed(response);
+            return null;
+        }).when(mQClientAPIImpl).queryMessage(anyString(), any(), anyLong(), any(InvokeCallback.class), any());
+        String msgId = buildMsgId();
+        QueryResult result = mqAdminImpl.queryMessage(realTopic, sysWheelTimerTopic, msgId, 32,
+                0L, Long.MAX_VALUE, true, MessageConst.INDEX_UNIQUE_TYPE, null);
+        assertNotNull(result);
+        assertNotNull(result.getMessageList());
     }
 
     private String buildMsgId() {
