@@ -16,9 +16,31 @@
  */
 package org.apache.rocketmq.proxy.common.utils;
 
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
+
 public class ProxyUtils {
 
     public static final int MAX_MSG_NUMS_FOR_POP_REQUEST = 32;
 
     public static final String BROKER_ADDR = "brokerAddr";
+
+    /**
+     * Decodes a receipt handle, reporting one that cannot be parsed as
+     * {@link ProxyExceptionCode#INVALID_RECEIPT_HANDLE} instead of letting the parse error surface
+     * as an internal server error.
+     *
+     * <p>This mirrors how an expired handle is reported ({@code AbstractProcessor#validateReceiptHandle}),
+     * and it matters to the official clients: they only give up on a message when the status is
+     * {@code INVALID_RECEIPT_HANDLE} and retry the ack forever on any other non-OK code.
+     */
+    public static ReceiptHandle decodeReceiptHandle(String receiptHandle) {
+        try {
+            return ReceiptHandle.decode(receiptHandle);
+        } catch (RuntimeException e) {
+            throw new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE,
+                "invalid receipt handle: " + e.getMessage());
+        }
+    }
 }
