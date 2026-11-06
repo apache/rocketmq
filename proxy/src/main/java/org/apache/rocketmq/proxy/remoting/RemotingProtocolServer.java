@@ -393,8 +393,23 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
                 } else {
                     break;
                 }
-            } catch (Throwable ignored) {
+            } catch (Throwable t) {
+                log.warn("clean expired remoting request failed. queueSize:{}, maxWaitTimeMillsInQueue:{}",
+                    safeQueueSize(threadPoolExecutor), maxWaitTimeMillsInQueue, t);
+                break;
             }
+        }
+    }
+
+    private int safeQueueSize(ThreadPoolExecutor threadPoolExecutor) {
+        try {
+            BlockingQueue<Runnable> queue = threadPoolExecutor == null ? null : threadPoolExecutor.getQueue();
+            if (queue == null) {
+                return -1;
+            }
+            return queue.size();
+        } catch (Throwable ignored) {
+            return -1;
         }
     }
 
