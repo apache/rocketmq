@@ -51,8 +51,8 @@ public class Producer {
 |int|defaultTopicQueueNums|The default number of queues to create a topic|
 |int|sendMsgTimeout|The timeout for the message to be sent|
 |int|compressMsgBodyOverHowmuch|the threshold of the compress of  message body|
-|int|retryTimesWhenSendFailed|Maximum number of internal attempts to send a message in synchronous mode|
-|int|retryTimesWhenSendAsyncFailed|Maximum number of internal attempts to send a message in asynchronous mode|
+|int|retryTimesWhenSendFailed|Maximum number of internal retries in synchronous mode before claiming send failure; total attempts are 1 plus this value|
+|int|retryTimesWhenSendAsyncFailed|Maximum number of internal retries in asynchronous mode before claiming send failure; total attempts are 1 plus this value|
 |boolean|retryAnotherBrokerWhenNotStoreOK|Whether to retry another broker if an internal send fails|
 |int|maxMessageSize| Maximum length of message body                                   |
 |TraceDispatcher|traceDispatcher| Message trackers. Use rpcHook to track messages              |
