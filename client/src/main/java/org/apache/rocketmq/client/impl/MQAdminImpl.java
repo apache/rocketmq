@@ -157,9 +157,14 @@ public class MQAdminImpl {
     }
 
     public List<MessageQueue> parsePublishMessageQueues(List<MessageQueue> messageQueueList) {
-        List<MessageQueue> resultQueues = new ArrayList<>();
+        String namespace = this.mQClientFactory.getClientConfig().getNamespace();
+        if (StringUtils.isEmpty(namespace)) {
+            return messageQueueList;
+        }
+
+        List<MessageQueue> resultQueues = new ArrayList<>(messageQueueList.size());
         for (MessageQueue queue : messageQueueList) {
-            String userTopic = NamespaceUtil.withoutNamespace(queue.getTopic(), this.mQClientFactory.getClientConfig().getNamespace());
+            String userTopic = NamespaceUtil.withoutNamespace(queue.getTopic(), namespace);
             resultQueues.add(new MessageQueue(userTopic, queue.getBrokerName(), queue.getQueueId()));
         }
 
