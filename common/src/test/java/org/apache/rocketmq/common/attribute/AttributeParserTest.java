@@ -122,6 +122,13 @@ public class AttributeParserTest {
     }
 
     @Test
+    public void parseToMap_ValueContainingEqualsSign_PreservesFullValue() {
+        String attributesModification = "+key=val=ue";
+        Map<String, String> result = AttributeParser.parseToMap(attributesModification);
+        assertEquals("val=ue", result.get("+key"));
+    }
+
+    @Test
     public void testParseBetweenStringAndMapWithoutDistortion() {
         List<String> testCases = Arrays.asList("-a", "+a=b,+c=d,+z=z,+e=e", "+a=b,-d", "+a=b", "-a,-b");
         for (String testCase : testCases) {
