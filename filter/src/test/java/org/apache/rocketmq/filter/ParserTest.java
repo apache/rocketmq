@@ -129,4 +129,10 @@ public class ParserTest {
             assertThat(Boolean.TRUE).isFalse();
         }
     }
+    @Test
+    public void testParseZeroFloat() throws Exception {
+        assertThat(SelectorParser.parse("a = 0.0")).isNotNull();
+        assertThat(SelectorParser.parse("a = -0.5")).isNotNull();
+    }
+
 }
