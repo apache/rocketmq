@@ -66,6 +66,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.apache.rocketmq.store.kv.CompactionLog.COMPACTING_SUB_FOLDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -264,4 +265,41 @@ public class CompactionLogTest {
         });
     }
 
+
+    @Test
+    public void testCompactionCleansTheScratchFolderOfAnInterruptedRound() throws Exception {
+        // a round that is interrupted before replaceFiles() leaves its output in the scratch sub-folder
+        File subFolder = Paths.get(logPath, topic, String.valueOf(queueId), COMPACTING_SUB_FOLDER).toFile();
+        assertTrue(subFolder.mkdirs());
+        File leftover = new File(subFolder, String.format("%010d", 0));
+        Files.write(leftover.toPath(), new byte[compactionFileSize]);
+        assertTrue(leftover.exists());
+
+        Iterator<SelectMappedBufferResult> iterator = mock(Iterator.class);
+        when(iterator.hasNext()).thenReturn(false);
+        MappedFile mf = mock(MappedFile.class);
+        doReturn(iterator).when(mf).iterator(0);
+        List<MappedFile> mappedFileList = Lists.newArrayList(mf);
+
+        CommitLog commitLog = mock(CommitLog.class);
+        when(commitLog.getCommitLogSize()).thenReturn(1024 * 1024);
+        when(((DefaultMessageStore) defaultMessageStore).getCommitLog()).thenReturn(commitLog);
+
+        CompactionLog clog = mock(CompactionLog.class);
+        FieldUtils.writeField(clog, "topic", topic, true);
+        FieldUtils.writeField(clog, "queueId", queueId, true);
+        FieldUtils.writeField(clog, "defaultMessageStore", defaultMessageStore, true);
+        FieldUtils.writeField(clog, "compactionLogFilePath",
+            Paths.get(logPath, topic, String.valueOf(queueId)).toString(), true);
+        FieldUtils.writeField(clog, "compactionCqFilePath", cqPath, true);
+        FieldUtils.writeField(clog, "compactionLogMappedFileSize", compactionFileSize, true);
+        FieldUtils.writeField(clog, "compactionCqMappedFileSize", compactionCqFileSize, true);
+        doCallRealMethod().when(clog).compaction(anyList(), any(CompactionLog.OffsetMap.class));
+        doNothing().when(clog).putEndMessage(any(MappedFileQueue.class));
+
+        clog.compaction(mappedFileList, mock(CompactionLog.OffsetMap.class));
+
+        assertFalse("a scratch file left by an interrupted round must not survive into the next round",
+            leftover.exists());
+    }
 }
