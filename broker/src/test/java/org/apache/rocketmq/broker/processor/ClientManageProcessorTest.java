@@ -166,6 +166,13 @@ public class ClientManageProcessorTest {
     }
 
     @Test
+    public void testHeartbeatWithNullBody() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
     public void test_heartbeat_costTime() {
         String topic = "TOPIC_TEST";
         List<String> topicList = new ArrayList<>();
