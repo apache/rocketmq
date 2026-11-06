@@ -17,6 +17,7 @@
 package org.apache.rocketmq.namesrv;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,6 +28,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.JraftConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -50,6 +52,7 @@ public class NamesrvStartup {
     private static NettyServerConfig nettyServerConfig = null;
     private static NettyClientConfig nettyClientConfig = null;
     private static ControllerConfig controllerConfig = null;
+    private static AuthConfig controllerAuthConfig = new AuthConfig();
 
     public static void main(String[] args) {
         main0(args);
@@ -109,6 +112,7 @@ public class NamesrvStartup {
                     JraftConfig jraftConfig = new JraftConfig();
                     controllerConfig.setJraftConfig(jraftConfig);
                     MixAll.properties2Object(properties, controllerConfig);
+                    MixAll.properties2Object(properties, controllerAuthConfig);
                     MixAll.properties2Object(properties, jraftConfig);
                 }
                 namesrvConfig.setConfigStorePath(file);
@@ -190,7 +194,11 @@ public class NamesrvStartup {
 
     public static ControllerManager createControllerManager() throws Exception {
         NettyServerConfig controllerNettyServerConfig = (NettyServerConfig) nettyServerConfig.clone();
-        ControllerManager controllerManager = new ControllerManager(controllerConfig, controllerNettyServerConfig, nettyClientConfig);
+        controllerAuthConfig.setConfigName("controller-" + controllerConfig.getControllerDLegerSelfId());
+        controllerAuthConfig.setClusterName(controllerConfig.getControllerDLegerGroup());
+        controllerAuthConfig.setAuthConfigPath(controllerConfig.getControllerStorePath() + File.separator + "config");
+        ControllerManager controllerManager = new ControllerManager(controllerConfig, controllerNettyServerConfig,
+            nettyClientConfig, controllerAuthConfig);
         // remember all configs to prevent discard
         controllerManager.getConfiguration().registerConfig(properties);
         return controllerManager;
