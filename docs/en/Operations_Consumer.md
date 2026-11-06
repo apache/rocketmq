@@ -29,7 +29,7 @@ public ConsumeConcurrentlyStatus consumeMessage(
         ConsumeConcurrentlyContext context){
    long offset = msgs.get(0).getQueueOffset();
    String maxOffset =    
-               msgs.get(0).getProperty(Message.PROPERTY_MAX_OFFSET);
+               msgs.get(0).getProperty(org.apache.rocketmq.common.message.MessageConst.PROPERTY_MAX_OFFSET);
    long diff = Long.parseLong(maxOffset) - offset;
    if(diff > 100000){
         //TODO Special handling of message accumulation
