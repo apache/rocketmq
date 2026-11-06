@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 
 public class ProxyAuthenticationMetadataProvider implements AuthenticationMetadataProvider {
@@ -44,17 +45,17 @@ public class ProxyAuthenticationMetadataProvider implements AuthenticationMetada
 
     @Override
     public CompletableFuture<Void> createUser(User user) {
-        return null;
+        return unsupported("createUser");
     }
 
     @Override
     public CompletableFuture<Void> deleteUser(String username) {
-        return null;
+        return unsupported("deleteUser");
     }
 
     @Override
     public CompletableFuture<Void> updateUser(User user) {
-        return null;
+        return unsupported("updateUser");
     }
 
     @Override
@@ -64,6 +65,11 @@ public class ProxyAuthenticationMetadataProvider implements AuthenticationMetada
 
     @Override
     public CompletableFuture<List<User>> listUser(String filter) {
-        return null;
+        return unsupported("listUser");
+    }
+
+    private static <T> CompletableFuture<T> unsupported(String operation) {
+        return FutureUtils.completeExceptionally(new UnsupportedOperationException(
+            "Proxy authentication metadata provider does not support " + operation));
     }
 }
