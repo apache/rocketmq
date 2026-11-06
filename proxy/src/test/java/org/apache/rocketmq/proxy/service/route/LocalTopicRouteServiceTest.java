@@ -38,7 +38,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -88,6 +90,16 @@ public class LocalTopicRouteServiceTest extends BaseServiceTest {
         assertEquals(LOCAL_ADDR, messageQueueView.getReadSelector().selectOne(true).getBrokerAddr());
         assertEquals(LOCAL_BROKER_NAME, messageQueueView.getReadSelector().selectOne(true).getBrokerName());
         assertEquals(messageQueueView.getReadSelector().selectOne(true), messageQueueView.getWriteSelector().selectOne(true));
+    }
+
+    @Test
+    public void testGetCurrentMessageQueueViewForUnknownTopic() throws Throwable {
+        ProxyContext ctx = ProxyContext.create();
+        MQClientException exception = catchThrowableOfType(
+            () -> this.topicRouteService.getCurrentMessageQueueView(ctx, "topicNotInBroker"),
+            MQClientException.class);
+        assertNotNull(exception);
+        assertEquals(ResponseCode.TOPIC_NOT_EXIST, exception.getResponseCode());
     }
 
     @Test

@@ -20,6 +20,7 @@ import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
@@ -53,6 +55,10 @@ public class LocalTopicRouteService extends TopicRouteService {
     @Override
     public MessageQueueView getCurrentMessageQueueView(ProxyContext ctx, String topic) throws Exception {
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
+        if (topicConfig == null) {
+            throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST,
+                "No topic route info in local broker for the topic: " + topic);
+        }
         return new MessageQueueView(topic, toTopicRouteData(topicConfig), null);
     }
 
