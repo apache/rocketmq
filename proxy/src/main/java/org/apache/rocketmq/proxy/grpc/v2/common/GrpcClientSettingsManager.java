@@ -25,6 +25,7 @@ import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.ExponentialBackoff;
 import apache.rocketmq.v2.Metric;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 import java.util.Arrays;
@@ -236,6 +237,11 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             && ClientType.LITE_SIMPLE_CONSUMER != settings.getClientType()) {
             return;
         }
+        if (!settings.hasSubscription() || settings.getSubscription().getSubscriptionsCount() == 0) {
+            log.warn("skip offline lite subscription cleanup because subscriptions are missing. clientId:{}, settings:{}",
+                clientId, summarizeLiteSettings(settings));
+            return;
+        }
         try {
             String topic = settings.getSubscription().getSubscriptions(0).getTopic().getName();
             String group = settings.getSubscription().getGroup().getName();
@@ -253,8 +259,30 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                     }
                 });
         } catch (Exception e) {
-            log.error("offlineClientLiteSubscription error, clientId:{}, settings:{}", clientId, settings, e);
+            log.error("offlineClientLiteSubscription error, clientId:{}, settings:{}",
+                clientId, summarizeLiteSettings(settings), e);
         }
+    }
+
+    protected static String summarizeLiteSettings(Settings settings) {
+        if (settings == null) {
+            return "null";
+        }
+        String group = "";
+        String topic = "";
+        int subscriptionCount = 0;
+        if (settings.hasSubscription()) {
+            Subscription subscription = settings.getSubscription();
+            group = subscription.getGroup().getName();
+            subscriptionCount = subscription.getSubscriptionsCount();
+            if (subscriptionCount > 0) {
+                topic = subscription.getSubscriptions(0).getTopic().getName();
+            }
+        }
+        return "clientType:" + settings.getClientType()
+            + ", group:" + group
+            + ", topic:" + topic
+            + ", subscriptionCount:" + subscriptionCount;
     }
 
     @Override
@@ -282,7 +310,8 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                         consumerGroup
                     );
                     if (consumerGroupInfo == null || consumerGroupInfo.findChannel(clientId) == null) {
-                        log.info("remove unused grpc client settings. group:{}, settings:{}", consumerGroupInfo, settings);
+                        log.info("remove unused grpc client settings. group:{}, clientId:{}, settingsSummary:{}",
+                            consumerGroup, clientId, summarizeClientSettings(settings));
                         return null;
                     }
                     return settings;
@@ -291,5 +320,15 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                 log.error("check expired grpc client settings failed. clientId:{}", clientId, t);
             }
         }
+    }
+
+    static String summarizeClientSettings(Settings settings) {
+        if (settings == null) {
+            return "null";
+        }
+        int publishingTopicCount = settings.hasPublishing() ? settings.getPublishing().getTopicsCount() : 0;
+        int subscriptionCount = settings.hasSubscription() ? settings.getSubscription().getSubscriptionsCount() : 0;
+        return String.format("clientType=%s, publishingTopicCount=%d, subscriptionCount=%d",
+            settings.getClientType(), publishingTopicCount, subscriptionCount);
     }
 }
