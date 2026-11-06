@@ -1179,7 +1179,7 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     }
 
     @Test
-    public void verifyMessageReportsCorruptedOnFailureTest() throws Exception {
+    public void verifyMessageReportsFailedConsumeWhenTheClientThrowsTest() throws Exception {
         stubRoute(false, ADDRESS_A);
         stubLocalClient();
         when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
@@ -1200,9 +1200,85 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
             .build(), observer);
 
         assertNotNull(observer.value);
-        assertEquals(Code.MESSAGE_CORRUPTED, observer.value.getStatus().getCode());
+        // the client threw while consuming: that is a failed consumption, not a statement that the
+        // message is corrupt
+        assertEquals(Code.FAILED_TO_CONSUME_MESSAGE, observer.value.getStatus().getCode());
         assertTrue(observer.value.getStatus().getMessage().contains("failed to consume message UNIQ-9"));
         assertTrue(observer.value.getStatus().getMessage().contains("consume crashed"));
+    }
+
+    @Test
+    public void verifyMessageReportsFailedConsumeWhenTheClientAsksForRetryTest() throws Exception {
+        stubRoute(false, ADDRESS_A);
+        stubLocalClient();
+        when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(messageExt("UNIQ-9"))));
+        ConsumeMessageDirectlyResult directlyResult = new ConsumeMessageDirectlyResult();
+        // a gRPC client reports Code.FAILED_TO_CONSUME_MESSAGE, which ClientActivity maps to CR_LATER
+        directlyResult.setConsumeResult(CMResult.CR_LATER);
+        answerRelayWith(RequestCode.CONSUME_MESSAGE_DIRECTLY,
+            new ProxyRelayResult<>(ResponseCode.SUCCESS, "ok", directlyResult));
+
+        SimpleObserver<VerifyMessageResponse> observer = new SimpleObserver<>();
+        service.verifyMessage(VerifyMessageRequest.newBuilder()
+            .setGroup(resource(GROUP))
+            .setClientId(CLIENT_ID)
+            .setTopic(resource(TOPIC))
+            .setMessageId("UNIQ-9")
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.FAILED_TO_CONSUME_MESSAGE, observer.value.getStatus().getCode());
+    }
+
+    @Test
+    public void verifyMessageReportsCorruptedWhenTheClientReturnsNullTest() throws Exception {
+        stubRoute(false, ADDRESS_A);
+        stubLocalClient();
+        when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(messageExt("UNIQ-9"))));
+        ConsumeMessageDirectlyResult directlyResult = new ConsumeMessageDirectlyResult();
+        // CR_RETURN_NULL is what a client reports for Code.MESSAGE_CORRUPTED
+        directlyResult.setConsumeResult(CMResult.CR_RETURN_NULL);
+        answerRelayWith(RequestCode.CONSUME_MESSAGE_DIRECTLY,
+            new ProxyRelayResult<>(ResponseCode.SUCCESS, "ok", directlyResult));
+
+        SimpleObserver<VerifyMessageResponse> observer = new SimpleObserver<>();
+        service.verifyMessage(VerifyMessageRequest.newBuilder()
+            .setGroup(resource(GROUP))
+            .setClientId(CLIENT_ID)
+            .setTopic(resource(TOPIC))
+            .setMessageId("UNIQ-9")
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.MESSAGE_CORRUPTED, observer.value.getStatus().getCode());
+    }
+
+    @Test
+    public void verifyMessageReportsFailedConsumeWhenTheClientNeverAnsweredTest() throws Exception {
+        stubRoute(false, ADDRESS_A);
+        stubLocalClient();
+        when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(messageExt("UNIQ-9"))));
+        // the relay explains why nothing was consumed; the message is not part of that answer
+        answerRelayWith(RequestCode.CONSUME_MESSAGE_DIRECTLY,
+            new ProxyRelayResult<>(ResponseCode.SYSTEM_ERROR, "client " + CLIENT_ID + " is not connected", null));
+
+        SimpleObserver<VerifyMessageResponse> observer = new SimpleObserver<>();
+        service.verifyMessage(VerifyMessageRequest.newBuilder()
+            .setGroup(resource(GROUP))
+            .setClientId(CLIENT_ID)
+            .setTopic(resource(TOPIC))
+            .setMessageId("UNIQ-9")
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.FAILED_TO_CONSUME_MESSAGE, observer.value.getStatus().getCode());
+        assertTrue(observer.value.getStatus().getMessage().contains("is not connected"));
     }
 
     @Test
