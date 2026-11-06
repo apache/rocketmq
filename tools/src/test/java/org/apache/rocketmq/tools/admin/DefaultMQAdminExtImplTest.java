@@ -60,6 +60,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.net.InetAddress;
@@ -603,6 +604,32 @@ public class DefaultMQAdminExtImplTest {
         boolean actual = defaultMQAdminExtImpl.deleteExpiredCommitLogByAddr(defaultBrokerAddr);
         assertTrue(actual);
         verify(mqClientAPIImpl, times(1)).deleteExpiredCommitLog(defaultBrokerAddr, timeoutMillis);
+    }
+
+    @Test
+    public void testConsumedWithSlaveOnlyBrokerInRoute() throws Exception {
+        DefaultMQAdminExtImpl spyImpl = Mockito.spy(defaultMQAdminExtImpl);
+        ConsumeStats consumeStats = new ConsumeStats();
+        OffsetWrapper offsetWrapper = new OffsetWrapper();
+        offsetWrapper.setConsumerOffset(1L);
+        consumeStats.getOffsetTable().put(new MessageQueue(defaultTopic, defaultBroker, 0), offsetWrapper);
+        Mockito.doReturn(consumeStats).when(spyImpl).examineConsumeStats(defaultGroup);
+        ClusterInfo clusterInfo = new ClusterInfo();
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(1L, defaultBrokerAddr);
+        HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
+        brokerAddrTable.put(defaultBroker, new BrokerData(defaultCluster, defaultBroker, brokerAddrs));
+        clusterInfo.setBrokerAddrTable(brokerAddrTable);
+        Mockito.doReturn(clusterInfo).when(spyImpl).examineBrokerClusterInfo();
+
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(defaultTopic);
+        messageExt.setQueueId(0);
+        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
+
+        boolean actual = spyImpl.consumed(messageExt, defaultGroup);
+
+        assertFalse(actual);
     }
 
     @Test
