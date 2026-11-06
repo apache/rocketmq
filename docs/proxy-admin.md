@@ -141,7 +141,7 @@ queries each proxy directly.
 | Client-directed telemetry relay | PrintThreadStackTrace, VerifyMessage, GetConsumerRunningInfo | telemetry command relayed to the owning `GrpcClientChannel`; forwarded to the peer proxy when the client is remote (D3) |
 | Broker gateway (async, multi-broker fan-out) | DescribeTopicStatus, DescribeGroupAccumulation, ResetGroupOffset, QueryMessage, QueryTimeSpan, GetTopicRoute, DeleteSubscription | the proxy's own async `AdminService` remoting gateway; each broker hop is bounded by its own deadline so a slow/unresponsive broker cannot hang the RPC |
 | Proxy producer path | AdminSendMessage | `MessagingProcessor.sendMessage` (system properties honoured for timer / FIFO messages) |
-| Proxy runtime | ChangeLogLevel | relocated logback API on the root logger |
+| Proxy runtime | ChangeLogLevel | relocated logback API on the root logger and on the loggers the configuration pins (component loggers carry their own level, so the root alone would change nothing) |
 
 Every broker-facing call goes through the asynchronous `AdminService` gateway and
 is fanned out to all relevant brokers concurrently, so the gRPC executor thread is
