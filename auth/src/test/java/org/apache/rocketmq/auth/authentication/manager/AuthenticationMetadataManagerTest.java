@@ -22,6 +22,7 @@ import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
 import org.apache.rocketmq.common.MixAll;
@@ -174,6 +175,32 @@ public class AuthenticationMetadataManagerTest {
         this.authenticationMetadataManager.createUser(user).join();
         users = this.authenticationMetadataManager.listUser("test").join();
         Assert.assertEquals(users.size(), 2);
+    }
+
+    @Test
+    public void updateUserDoesNotMutateCachedInstance() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        User user = User.of("test", "test");
+        this.authenticationMetadataManager.createUser(user).join();
+
+        AuthenticationMetadataProvider provider = AuthenticationFactory.getMetadataProvider(this.authConfig);
+        User cachedBefore = provider.getUser("test").join();
+        Assert.assertEquals(UserType.NORMAL, cachedBefore.getUserType());
+        Assert.assertEquals("test", cachedBefore.getPassword());
+
+        User update = User.of("test", "123", UserType.SUPER);
+        this.authenticationMetadataManager.updateUser(update).join();
+
+        // The cached instance must not have been mutated in place by the admin write.
+        Assert.assertEquals(UserType.NORMAL, cachedBefore.getUserType());
+        Assert.assertEquals("test", cachedBefore.getPassword());
+
+        // A fresh read must reflect the update.
+        User updated = this.authenticationMetadataManager.getUser("test").join();
+        Assert.assertEquals("123", updated.getPassword());
+        Assert.assertEquals(UserType.SUPER, updated.getUserType());
     }
 
     private void clearAllUsers() {
