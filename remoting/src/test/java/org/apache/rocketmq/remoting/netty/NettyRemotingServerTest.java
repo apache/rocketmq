@@ -23,6 +23,11 @@ import io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,6 +36,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -59,5 +65,58 @@ public class NettyRemotingServerTest {
         content.writeBytes("xxxx".getBytes(StandardCharsets.UTF_8));
         HAProxyTLV haProxyTLV = new HAProxyTLV((byte) 0xE1, content);
         nettyRemotingServer.handleHAProxyTLV(haProxyTLV, channel);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRegisterProcessorRejectsCallerRunsPolicy() {
+        NettyRequestProcessor processor = mock(NettyRequestProcessor.class);
+        ExecutorService executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(1), new ThreadPoolExecutor.CallerRunsPolicy());
+        try {
+            nettyRemotingServer.registerProcessor(0, processor, executor);
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRegisterDefaultProcessorRejectsCallerRunsPolicy() {
+        NettyRequestProcessor processor = mock(NettyRequestProcessor.class);
+        ExecutorService executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(1), new ThreadPoolExecutor.CallerRunsPolicy());
+        try {
+            nettyRemotingServer.registerDefaultProcessor(processor, executor);
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    @Test
+    public void testRegisterProcessorAllowsNonCallerRunsPolicy() {
+        NettyRequestProcessor processor = mock(NettyRequestProcessor.class);
+        ExecutorService executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(1), new ThreadPoolExecutor.AbortPolicy());
+        try {
+            nettyRemotingServer.registerProcessor(0, processor, executor);
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    @Test
+    public void testRegisterProcessorAllowsNullExecutor() {
+        NettyRequestProcessor processor = mock(NettyRequestProcessor.class);
+        nettyRemotingServer.registerProcessor(0, processor, null);
+    }
+
+    @Test
+    public void testRegisterProcessorAllowsFixedThreadPool() {
+        NettyRequestProcessor processor = mock(NettyRequestProcessor.class);
+        ExecutorService executor = Executors.newFixedThreadPool(1);
+        try {
+            nettyRemotingServer.registerProcessor(0, processor, executor);
+        } finally {
+            executor.shutdown();
+        }
     }
 }
