@@ -89,11 +89,17 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
+                // the option takes the boolean as its argument, so "-a false" has to leave the
+                // slaves alone; a bare presence used to mean "include slaves" and the value was
+                // never read
+                boolean updateAllBroker = commandLine.hasOption('a')
+                    && Boolean.parseBoolean(commandLine.getOptionValue('a').trim());
+
                 defaultMQAdminExt.start();
 
                 Set<String> brokerAddrSet;
 
-                if (commandLine.hasOption('a')) {
+                if (updateAllBroker) {
                     brokerAddrSet = CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
                 } else {
                     brokerAddrSet = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
