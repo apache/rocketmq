@@ -89,6 +89,9 @@ public class BrokerData implements Comparable<BrokerData> {
      * @return Broker address.
      */
     public String selectBrokerAddr() {
+        if (this.brokerAddrs == null || this.brokerAddrs.isEmpty()) {
+            return null;
+        }
         String masterAddress = this.brokerAddrs.get(MixAll.MASTER_ID);
 
         if (masterAddress == null) {
