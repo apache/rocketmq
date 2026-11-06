@@ -392,6 +392,8 @@ public class AdminModelConverterTest {
             AdminModelConverter.toMessageModel(MessageModel.BROADCASTING));
         assertEquals(apache.rocketmq.v2.MessageModel.CLUSTERING,
             AdminModelConverter.toMessageModel(MessageModel.CLUSTERING));
+        assertEquals(apache.rocketmq.v2.MessageModel.LITE_SELECTIVE,
+            AdminModelConverter.toMessageModel(MessageModel.LITE_SELECTIVE));
         assertEquals(apache.rocketmq.v2.MessageModel.MESSAGE_MODEL_UNSPECIFIED,
             AdminModelConverter.toMessageModel(null));
     }
