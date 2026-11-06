@@ -61,6 +61,14 @@ public class ClientChannelInfo {
         this.lastUpdateTimestamp = lastUpdateTimestamp;
     }
 
+    public boolean isActive() {
+        return channel != null && channel.isActive();
+    }
+
+    public boolean isWritable() {
+        return channel != null && channel.isWritable();
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
