@@ -190,7 +190,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
                 for (String item : kvPairs) {
                     String[] split = item.split(":");
                     if (split.length != 2) {
-                        log.warn("metricsGrpcExporterHeader is not valid: {}", headers);
+                        log.warn("metricsGrpcExporterHeader is not valid; expected comma-separated key:value pairs");
                         continue;
                     }
                     headerMap.put(split[0], split[1]);

@@ -76,10 +76,10 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQLitePullConsumerWithTraceTest {
 
@@ -235,8 +235,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
         mqClientInstance = (MQClientInstance) field.get(litePullConsumerImpl);
-        mQClientFactory = spy(mqClientInstance);
-        mQClientFactory.getClientConfig().setDecodeReadBody(true);
+        mQClientFactory = mqClientInstance;
         field.set(litePullConsumerImpl, mQClientFactory);
 
         PullAPIWrapper pullAPIWrapper = litePullConsumerImpl.getPullAPIWrapper();
@@ -249,14 +248,6 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         traceMqClientInstance = traceProducer.getDefaultMQProducerImpl().getMqClientFactory();
         fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
-
-        field = MQClientInstance.class.getDeclaredField("mQAdminImpl");
-        field.setAccessible(true);
-        field.set(mQClientFactory, mQAdminImpl);
-
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         rebalanceImpl = (RebalanceImpl) field.get(litePullConsumerImpl);
@@ -265,39 +256,34 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         field.set(rebalanceImpl, mQClientFactory);
 
         offsetStore = spy(litePullConsumerImpl.getOffsetStore());
+        doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("offsetStore");
         field.setAccessible(true);
         field.set(litePullConsumerImpl, offsetStore);
 
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
+    }
 
-        lenient().when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+    private void stubClientAPI() throws Exception {
+        lenient().doReturn(createTopicRoute()).when(mQClientAPIImpl).getTopicRouteInfoFromNameServer(anyString(), anyLong());
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
-            anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
-            .thenAnswer(new Answer<Object>() {
-                @Override
-                public Object answer(InvocationOnMock mock) throws Throwable {
-                    PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                    MessageClientExt messageClientExt = new MessageClientExt();
-                    messageClientExt.setTopic(topic);
-                    messageClientExt.setQueueId(0);
-                    messageClientExt.setMsgId("123");
-                    messageClientExt.setBody(new byte[] {'a'});
-                    messageClientExt.setOffsetMsgId("234");
-                    messageClientExt.setBornHost(new InetSocketAddress(8080));
-                    messageClientExt.setStoreHost(new InetSocketAddress(8080));
-                    PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
-                    return pullResult;
-                }
-            });
-
-        when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
-
-        doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
-
-        doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
-
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock mock) throws Throwable {
+                PullMessageRequestHeader requestHeader = mock.getArgument(1);
+                MessageClientExt messageClientExt = new MessageClientExt();
+                messageClientExt.setTopic(topic);
+                messageClientExt.setQueueId(0);
+                messageClientExt.setMsgId("123");
+                messageClientExt.setBody(new byte[] {'a'});
+                messageClientExt.setOffsetMsgId("234");
+                messageClientExt.setBornHost(new InetSocketAddress(8080));
+                messageClientExt.setStoreHost(new InetSocketAddress(8080));
+                PullResult pullResult = createPullResult(requestHeader, PullStatus.FOUND, Collections.<MessageExt>singletonList(messageClientExt));
+                return pullResult;
+            }
+        }).when(mQClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class),
+            anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
     }
 
     private List<MessageExt> pollUntilFound(DefaultLitePullConsumer litePullConsumer) {
@@ -366,15 +352,26 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         return sendResult;
     }
 
-    private static void suppressUpdateTopicRouteInfoFromNameServer(DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
+    private void suppressUpdateTopicRouteInfoFromNameServer(DefaultLitePullConsumer litePullConsumer) throws Exception {
+        // Configure mocks before client startup exposes them to scheduled and pull threads.
+        stubClientAPI();
         DefaultLitePullConsumerImpl defaultLitePullConsumerImpl = (DefaultLitePullConsumerImpl) FieldUtils.readDeclaredField(litePullConsumer, "defaultLitePullConsumerImpl", true);
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
             litePullConsumer.changeInstanceNameToPID();
         }
         MQClientInstance mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(litePullConsumer, (RPCHook) FieldUtils.readDeclaredField(defaultLitePullConsumerImpl, "rpcHook", true)));
+        mQClientFactory.getClientConfig().setDecodeReadBody(true);
+        // Release the real client's timer and executors before replacing it with a mock.
+        mQClientFactory.getMQClientAPIImpl().shutdown();
+        FieldUtils.writeField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
+        FieldUtils.writeField(mQClientFactory, "mQAdminImpl", mQAdminImpl, true);
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        factoryTable.put(litePullConsumer.buildMQClientId(), mQClientFactory);
         doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory)
+            .findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+        doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory)
+            .findConsumerIdList(anyString(), anyString());
+        factoryTable.put(litePullConsumer.buildMQClientId(), mQClientFactory);
     }
 
 }

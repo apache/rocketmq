@@ -19,15 +19,19 @@ package org.apache.rocketmq.proxy.config;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter.Feature;
+import com.alibaba.fastjson2.filter.ValueFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.utils.ConfigLogUtils;
 
 public class ConfigurationManager {
     public static final String RMQ_PROXY_HOME = "RMQ_PROXY_HOME";
     protected static final String DEFAULT_RMQ_PROXY_HOME = MixAll.ROCKETMQ_HOME_DIR;
     protected static String proxyHome;
     protected static Configuration configuration;
+    private static final ValueFilter CONFIG_LOG_FILTER =
+        ConfigLogUtils::getValueForLog;
 
     public static void initEnv() {
         proxyHome = System.getenv(RMQ_PROXY_HOME);
@@ -59,6 +63,11 @@ public class ConfigurationManager {
 
     public static String formatProxyConfig() {
         return JSON.toJSONString(ConfigurationManager.getProxyConfig(),
+                Feature.PrettyFormat, Feature.WriteMapNullValue, Feature.WriteNullListAsEmpty);
+    }
+
+    public static String formatProxyConfigForLog() {
+        return JSON.toJSONString(ConfigurationManager.getProxyConfig(), CONFIG_LOG_FILTER,
                 Feature.PrettyFormat, Feature.WriteMapNullValue, Feature.WriteNullListAsEmpty);
     }
 }
