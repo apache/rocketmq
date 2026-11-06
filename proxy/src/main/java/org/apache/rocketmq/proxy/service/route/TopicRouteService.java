@@ -22,6 +22,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -134,10 +135,11 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     // pickup one topic in the topic cache
     private Optional<String> pickTopic() {
-        if (topicCache.asMap().isEmpty()) {
+        Iterator<String> iterator = topicCache.asMap().keySet().iterator();
+        if (!iterator.hasNext()) {
             return Optional.empty();
         }
-        return Optional.of(topicCache.asMap().keySet().iterator().next());
+        return Optional.of(iterator.next());
     }
 
     protected void init() {
