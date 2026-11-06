@@ -197,6 +197,18 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             .toBuilder();
     }
 
+    /**
+     * Build the default consumer settings derived from the default {@link SubscriptionGroupConfig}.
+     *
+     * Unlike {@link Settings#getDefaultInstance()}, which leaves {@code backoffPolicy.maxAttempts} at the protobuf
+     * default of 0, this yields a real consumer default (e.g. {@code maxAttempts = retryMaxTimes + 1}) so that
+     * {@link org.apache.rocketmq.proxy.grpc.v2.consumer.PopMessageResultFilterImpl} does not route fresh messages
+     * ({@code reconsumeTimes == 0}) straight to the DLQ when client settings are not yet cached.
+     */
+    public Settings getDefaultConsumerSettings() {
+        return createDefaultConsumerSettingsBuilder().build();
+    }
+
     public Settings removeAndGetRawClientSettings(String clientId) {
         return CLIENT_SETTINGS_MAP.remove(clientId);
     }
