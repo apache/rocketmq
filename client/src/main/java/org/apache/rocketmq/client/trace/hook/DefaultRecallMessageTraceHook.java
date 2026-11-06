@@ -18,6 +18,8 @@
 package org.apache.rocketmq.client.trace.hook;
 
 import org.apache.rocketmq.client.trace.TraceBean;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.client.trace.TraceContext;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceType;
@@ -33,7 +35,7 @@ import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import java.util.ArrayList;
 
 public class DefaultRecallMessageTraceHook implements RPCHook {
-
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultRecallMessageTraceHook.class);
     private static final String RECALL_TRACE_ENABLE_KEY = "com.rocketmq.recall.default.trace.enable";
     private boolean enableDefaultTrace = Boolean.parseBoolean(System.getProperty(RECALL_TRACE_ENABLE_KEY, "false"));
     private TraceDispatcher traceDispatcher;
@@ -80,6 +82,7 @@ public class DefaultRecallMessageTraceHook implements RPCHook {
 
             traceDispatcher.append(traceContext);
         } catch (Exception e) {
+            LOG.error("Failed to append recall trace context", e);
         }
     }
 }
