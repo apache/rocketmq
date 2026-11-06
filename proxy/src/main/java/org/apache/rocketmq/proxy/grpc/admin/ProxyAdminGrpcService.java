@@ -1109,7 +1109,33 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                 .setStatus(err(Code.BAD_REQUEST, "topic is required")).build());
             return;
         }
+        // The answer can only ever be a first page: the broker provides no ordering and no cursor, so
+        // page_size is honored as a cap on the query while the parts that would need a cursor are
+        // refused instead of silently returning the same first page again.
+        if (request.hasPageNum() && request.getPageNum() > 1) {
+            respond(responseObserver, ListMessageResponse.newBuilder()
+                .setStatus(err(Code.BAD_REQUEST,
+                    "page_num > 1 is not supported: the broker provides no paging cursor, "
+                        + "narrow the query with the search key and a time range instead"))
+                .build());
+            return;
+        }
+        if (!request.getScrollId().isEmpty()) {
+            respond(responseObserver, ListMessageResponse.newBuilder()
+                .setStatus(err(Code.BAD_REQUEST,
+                    "scroll_id is not supported: this proxy never issues a paging cursor"))
+                .build());
+            return;
+        }
         int maxNums = request.getMaxMessageNums() > 0 ? request.getMaxMessageNums() : DEFAULT_MAX_MESSAGE_NUMS;
+        if (request.hasPageSize()) {
+            if (request.getPageSize() <= 0) {
+                respond(responseObserver, ListMessageResponse.newBuilder()
+                    .setStatus(err(Code.BAD_REQUEST, "page_size must be positive")).build());
+                return;
+            }
+            maxNums = Math.min(maxNums, request.getPageSize());
+        }
         long begin = request.hasBeginTimestamp() ? TimeUnit.SECONDS.toMillis(request.getBeginTimestamp().getSeconds()) : 0L;
         long end = request.hasEndTimestamp() ? TimeUnit.SECONDS.toMillis(request.getEndTimestamp().getSeconds())
             : Long.MAX_VALUE;
@@ -1155,17 +1181,17 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
 
         final String queryKey = key;
         final boolean queryUniqueKey = uniqueKey;
+        final int queryMaxNums = maxNums;
         queryAllBrokers(brokerAddrs, (addr, timeout) ->
-                admin().queryMessage(addr, topic, queryKey, maxNums, begin, end, queryUniqueKey, true, timeout))
+                admin().queryMessage(addr, topic, queryKey, queryMaxNums, begin, end, queryUniqueKey, true, timeout))
             .whenComplete((byBroker, throwable) -> {
                 if (throwable != null) {
                     respond(responseObserver, ListMessageResponse.newBuilder().setStatus(err(throwable)).build());
                     return;
                 }
+                // scroll_id is left unset: this proxy never issues a cursor, so echoing one back
+                // would advertise a continuation that cannot be fetched
                 ListMessageResponse.Builder builder = ListMessageResponse.newBuilder().setStatus(ok());
-                if (request.hasScrollId()) {
-                    builder.setScrollId(request.getScrollId());
-                }
                 int count = 0;
                 outer:
                 for (List<MessageExt> messages : byBroker.values()) {
@@ -1176,7 +1202,7 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                         if (messageExt == null) {
                             continue;
                         }
-                        if (count >= maxNums) {
+                        if (count >= queryMaxNums) {
                             break outer;
                         }
                         // reuse the data plane converter so born/store timestamps, hosts, delivery
