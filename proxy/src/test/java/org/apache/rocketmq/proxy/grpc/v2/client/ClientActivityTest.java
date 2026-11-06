@@ -71,6 +71,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -182,6 +183,42 @@ public class ClientActivityTest extends BaseActivityTest {
             .setClientType(ClientType.PUSH_CONSUMER)
             .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
             .build()).get();
+    }
+
+    @Test
+    public void testSummarizeSettingsDoesNotExposeResourceNames() {
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName("sensitive-publish-topic").build())
+                .build())
+            .build();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("sensitive-group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression("sensitive-tag")
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName("sensitive-subscription-topic").build())
+                    .build())
+                .build())
+            .build();
+
+        String producerSummary = ClientActivity.summarizeSettings(producerSettings);
+        String consumerSummary = ClientActivity.summarizeSettings(consumerSettings);
+
+        assertThat(producerSummary).contains("clientType=PRODUCER");
+        assertThat(producerSummary).contains("publishingTopicCount=1");
+        assertThat(producerSummary).doesNotContain("sensitive-publish-topic");
+
+        assertThat(consumerSummary).contains("clientType=PUSH_CONSUMER");
+        assertThat(consumerSummary).contains("subscriptionCount=1");
+        assertThat(consumerSummary).doesNotContain("sensitive-subscription-topic");
+        assertThat(consumerSummary).doesNotContain("sensitive-group");
+        assertThat(consumerSummary).doesNotContain("sensitive-tag");
     }
 
     @Test
@@ -414,6 +451,25 @@ public class ClientActivityTest extends BaseActivityTest {
         ProxyRelayResult<ConsumeMessageDirectlyResult> result = resultArgumentCaptor.getValue();
         assertThat(result.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(result.getResult().getConsumeResult()).isEqualTo(CMResult.CR_SUCCESS);
+    }
+
+    @Test
+    public void testSummarizeTelemetryCommandDoesNotIncludeThreadStackTrace() {
+        TelemetryCommand command = TelemetryCommand.newBuilder()
+            .setThreadStackTrace(ThreadStackTrace.newBuilder()
+                .setNonce("nonce-1")
+                .setThreadStackTrace("secret-stack-trace")
+                .build())
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+            .build();
+
+        String summary = ClientActivity.summarizeTelemetryCommand(command);
+
+        assertTrue(summary.contains("THREAD_STACK_TRACE"));
+        assertTrue(summary.contains("statusCode=OK"));
+        assertTrue(summary.contains("nonce-1"));
+        assertTrue(summary.contains("details omitted"));
+        assertFalse(summary.contains("secret-stack-trace"));
     }
 
     protected CompletableFuture<TelemetryCommand> sendClientTelemetry(ProxyContext ctx, Settings settings) {
