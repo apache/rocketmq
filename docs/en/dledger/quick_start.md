@@ -60,7 +60,7 @@ Quick deployment, default configuration is in directory conf/dledger, default st
 
 ### 3. Failover
 
-After successful deployment, kill Leader process(as the above example, kill process that binds port 30931), about 10 seconds elapses, use clusterList command check cluster's status, Leader switch to another node.
+After successful deployment, first use clusterList to confirm which node is the current Leader (the entry with BID 0 is the Master), then kill that Leader process (the listenPort of broker-n0, broker-n1 and broker-n2 in conf/dledger is 30911, 30921 and 30931 respectively; the Leader is elected by DLedger and is not fixed). About 10 seconds later, check the cluster's status with clusterList again, the Leader should have switched to another node.
 
 
 

@@ -61,7 +61,7 @@ $ sh bin/dledger/fast-try.sh stop
 
 ### 3. 容灾切换
 
-部署成功，杀掉 Leader 之后（在上面的例子中，杀掉端口 30931 所在的进程），等待约 10s 左右，用 clusterList 命令查看集群，就会发现 Leader 切换到另一个节点了。
+部署成功后，先用 clusterList 命令确认当前 Leader 所在的节点（BID 为 0 的表示 Master），再杀掉该 Leader 进程（conf/dledger 中 broker-n0、broker-n1、broker-n2 的 listenPort 分别为 30911、30921、30931，Leader 由 DLedger 选举产生，并不固定是哪一个）。等待约 10s 左右，再次用 clusterList 命令查看集群，就会发现 Leader 切换到另一个节点了。
 
 
 
