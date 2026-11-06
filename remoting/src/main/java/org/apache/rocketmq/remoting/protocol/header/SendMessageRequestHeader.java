@@ -20,7 +20,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -203,20 +202,20 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("producerGroup", producerGroup)
-            .add("topic", topic)
-            .add("defaultTopic", defaultTopic)
-            .add("defaultTopicQueueNums", defaultTopicQueueNums)
-            .add("queueId", queueId)
-            .add("sysFlag", sysFlag)
-            .add("bornTimestamp", bornTimestamp)
-            .add("flag", flag)
-            .add("properties", properties)
-            .add("reconsumeTimes", reconsumeTimes)
-            .add("unitMode", unitMode)
-            .add("batch", batch)
-            .add("maxReconsumeTimes", maxReconsumeTimes)
-            .toString();
+        StringBuilder sb = new StringBuilder(557);
+        sb.append("SendMessageRequestHeader{producerGroup=").append(producerGroup)
+            .append(", topic=").append(topic)
+            .append(", defaultTopic=").append(defaultTopic)
+            .append(", defaultTopicQueueNums=").append(defaultTopicQueueNums)
+            .append(", queueId=").append(queueId)
+            .append(", sysFlag=").append(sysFlag)
+            .append(", bornTimestamp=").append(bornTimestamp)
+            .append(", flag=").append(flag)
+            .append(", properties=").append(properties)
+            .append(", reconsumeTimes=").append(reconsumeTimes)
+            .append(", unitMode=").append(unitMode)
+            .append(", batch=").append(batch)
+            .append(", maxReconsumeTimes=").append(maxReconsumeTimes).append('}');
+        return sb.toString();
     }
 }

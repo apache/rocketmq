@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -125,16 +124,64 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("consumerGroup", consumerGroup)
-            .add("topic", topic)
-            .add("queueId", queueId)
-            .add("extraInfo", extraInfo)
-            .add("offset", offset)
-            .add("invisibleTime", invisibleTime)
-            .add("liteTopic", liteTopic)
-            .add("suspend", suspend)
-            .omitNullValues()
-            .toString();
+        StringBuilder sb = new StringBuilder(451);
+        sb.append("ChangeInvisibleTimeRequestHeader{");
+        boolean first = true;
+        if (consumerGroup != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("consumerGroup=").append(consumerGroup);
+            first = false;
+        }
+        if (topic != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("topic=").append(topic);
+            first = false;
+        }
+        if (queueId != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("queueId=").append(queueId);
+            first = false;
+        }
+        if (extraInfo != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("extraInfo=").append(extraInfo);
+            first = false;
+        }
+        if (offset != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("offset=").append(offset);
+            first = false;
+        }
+        if (invisibleTime != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("invisibleTime=").append(invisibleTime);
+            first = false;
+        }
+        if (liteTopic != null) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("liteTopic=").append(liteTopic);
+            first = false;
+        }
+        if (!first) {
+            sb.append(", ");
+        }
+        sb.append("suspend=").append(suspend);
+        first = false;
+        sb.append('}');
+        return sb.toString();
     }
 }
