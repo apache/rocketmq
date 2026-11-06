@@ -80,4 +80,28 @@ public class LatencyFaultToleranceImplTest {
         latencyFaultTolerance.updateFaultItem(anotherBrokerName, 1001, 3000, false);
         assertThat(latencyFaultTolerance.isReachable(anotherBrokerName)).isEqualTo(false);
     }
+
+    @Test
+    public void testDetectByOneRoundClearsReachableFlagWhenDetectFails() {
+        LatencyFaultToleranceImpl faultTolerance =
+            new LatencyFaultToleranceImpl(name -> name, (addr, timeoutMillis) -> false);
+        faultTolerance.updateFaultItem(brokerName, 0, 0, true);
+        assertThat(faultTolerance.isReachable(brokerName)).isTrue();
+
+        faultTolerance.detectByOneRound();
+
+        assertThat(faultTolerance.isReachable(brokerName)).isFalse();
+    }
+
+    @Test
+    public void testDetectByOneRoundKeepsReachableFlagWhenDetectSucceeds() {
+        LatencyFaultToleranceImpl faultTolerance =
+            new LatencyFaultToleranceImpl(name -> name, (addr, timeoutMillis) -> true);
+        faultTolerance.updateFaultItem(brokerName, 0, 0, false);
+        assertThat(faultTolerance.isReachable(brokerName)).isFalse();
+
+        faultTolerance.detectByOneRound();
+
+        assertThat(faultTolerance.isReachable(brokerName)).isTrue();
+    }
 }

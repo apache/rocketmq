@@ -73,6 +73,9 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
                 if (serviceOK && !brokerItem.reachableFlag) {
                     log.info(brokerItem.name + " is reachable now, then it can be used.");
                     brokerItem.reachableFlag = true;
+                } else if (!serviceOK && brokerItem.reachableFlag) {
+                    log.info(brokerItem.name + " is unreachable now, it will not be used until it's reachable.");
+                    brokerItem.reachableFlag = false;
                 }
             }
         }
