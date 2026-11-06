@@ -86,7 +86,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
             1,
             TimeUnit.MINUTES,
             "ProducerProcessorExecutor",
-            proxyConfig.getProducerProcessorThreadPoolQueueCapacity()
+            proxyConfig.getProducerProcessorThreadPoolQueueCapacity(),
+            new ThreadPoolExecutor.AbortPolicy()
         );
         this.consumerProcessorExecutor = ThreadPoolMonitor.createAndMonitor(
             proxyConfig.getConsumerProcessorThreadPoolNums(),
@@ -94,7 +95,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
             1,
             TimeUnit.MINUTES,
             "ConsumerProcessorExecutor",
-            proxyConfig.getConsumerProcessorThreadPoolQueueCapacity()
+            proxyConfig.getConsumerProcessorThreadPoolQueueCapacity(),
+            new ThreadPoolExecutor.AbortPolicy()
         );
 
         this.serviceManager = serviceManager;
