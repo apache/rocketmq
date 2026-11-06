@@ -68,15 +68,21 @@ public class LocalProxyRelayServiceTest {
         GetConsumerRunningInfoRequestHeader requestHeader = new GetConsumerRunningInfoRequestHeader();
         requestHeader.setJstackEnable(true);
         ArgumentCaptor<RemotingCommand> argumentCaptor = ArgumentCaptor.forClass(RemotingCommand.class);
+        ArgumentCaptor<SimpleChannelHandlerContext> contextCaptor =
+            ArgumentCaptor.forClass(SimpleChannelHandlerContext.class);
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future =
-            localProxyRelayService.processGetConsumerRunningInfo(ProxyContext.create(), remotingCommand, requestHeader);
+            localProxyRelayService.processGetConsumerRunningInfo(ProxyContext.create()
+                .setRemoteAddress("127.0.0.1:65536")
+                .setLocalAddress("127.0.0.1:-1"), remotingCommand, requestHeader);
         future.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, remark, runningInfo));
         Mockito.verify(nettyRemotingServerMock, Mockito.times(1))
-            .processResponseCommand(Mockito.any(SimpleChannelHandlerContext.class), argumentCaptor.capture());
+            .processResponseCommand(contextCaptor.capture(), argumentCaptor.capture());
         RemotingCommand remotingCommand1 = argumentCaptor.getValue();
         assertThat(remotingCommand1.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(remotingCommand1.getRemark()).isEqualTo(remark);
         assertThat(remotingCommand1.getBody()).isEqualTo(runningInfo.encode());
+        assertThat(contextCaptor.getValue().channel().remoteAddress()).isNull();
+        assertThat(contextCaptor.getValue().channel().localAddress()).isNull();
     }
 
     @Test

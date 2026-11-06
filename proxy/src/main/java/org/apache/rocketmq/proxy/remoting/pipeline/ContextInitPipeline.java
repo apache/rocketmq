@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.remoting.pipeline;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.net.SocketAddress;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -38,7 +39,7 @@ public class ContextInitPipeline implements RequestPipeline {
         context.setAction(RemotingHelper.getRequestCodeDesc(request.getCode()))
             .setProtocolType(ChannelProtocolType.REMOTING.getName())
             .setChannel(channel)
-            .setLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
+            .setLocalAddress(socketAddress2String(ctx.channel().localAddress()))
             .setRemoteAddress(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         if (languageCode != null) {
             context.setLanguage(languageCode.name());
@@ -48,6 +49,17 @@ public class ContextInitPipeline implements RequestPipeline {
         }
         if (version != null) {
             context.setClientVersion(MQVersion.getVersionDesc(version));
+        }
+    }
+
+    private static String socketAddress2String(SocketAddress address) {
+        if (address == null) {
+            return null;
+        }
+        try {
+            return NetworkUtil.socketAddress2String(address);
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 }
