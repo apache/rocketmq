@@ -84,10 +84,16 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
                 System.out.print("clusterAddrTable is empty");
                 return;
             }
-            for (Map.Entry<String, BrokerData> entry : brokerAddrTable.entrySet()) {
-                String brokerName = entry.getKey();
-                BrokerData brokerData = entry.getValue();
+            for (String brokerName : clusterAddrTable.get(clusterName)) {
+                BrokerData brokerData = brokerAddrTable.get(brokerName);
+                if (brokerData == null) {
+                    continue;
+                }
                 String brokerAddr = brokerData.getBrokerAddrs().get(0L);
+                if (brokerAddr == null) {
+                    System.out.printf("broker %s has no master, skip it.%n", brokerName);
+                    continue;
+                }
                 CheckRocksdbCqWriteResult result = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr, topic, checkStoreTime);
                 if (result.getCheckStatus() == CheckRocksdbCqWriteResult.CheckStatus.CHECK_ERROR.getValue()) {
                     System.out.print(brokerName + " check error, please check log... errInfo: " + result.getCheckResult());
