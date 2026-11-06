@@ -20,12 +20,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -43,13 +44,14 @@ public class PopConsumerCache extends ServiceThread {
     private final BrokerController brokerController;
     private final PopConsumerKVStore consumerRecordStore;
     private final PopConsumerLockService consumerLockService;
-    private final Consumer<PopConsumerRecord> reviveConsumer;
+    private final Function<PopConsumerRecord, CompletableFuture<Boolean>> reviveConsumer;
 
     private final AtomicInteger estimateCacheSize;
     private final ConcurrentMap<String, ConsumerRecords> consumerRecordTable;
 
     public PopConsumerCache(BrokerController brokerController, PopConsumerKVStore consumerRecordStore,
-        PopConsumerLockService popConsumerLockService, Consumer<PopConsumerRecord> reviveConsumer) {
+        PopConsumerLockService popConsumerLockService,
+        Function<PopConsumerRecord, CompletableFuture<Boolean>> reviveConsumer) {
 
         this.reviveConsumer = reviveConsumer;
         this.brokerController = brokerController;
@@ -116,7 +118,7 @@ public class PopConsumerCache extends ServiceThread {
         return remain;
     }
 
-    public int cleanupRecords(Consumer<PopConsumerRecord> consumer) {
+    public int cleanupRecords(Function<PopConsumerRecord, CompletableFuture<Boolean>> consumer) {
         int remain = 0;
         Iterator<Map.Entry<String, ConsumerRecords>> iterator = consumerRecordTable.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -126,6 +128,12 @@ public class PopConsumerCache extends ServiceThread {
                 records.getGroupId(), records.getTopicId());
 
             if (timeout) {
+                // An in-flight revive still owns its staged checkpoint. Wait for its result before
+                // moving the remaining records to the durable store or removing this cache entry.
+                if (records.hasRevivingRecords()) {
+                    remain += records.getInFlightRecordCount();
+                    continue;
+                }
                 records.stageExpiredRecords(Long.MAX_VALUE);
                 List<PopConsumerRecord> writeConsumerRecords =
                     new ArrayList<>(records.getRemoveTreeMap().values());
@@ -144,7 +152,21 @@ public class PopConsumerCache extends ServiceThread {
             List<PopConsumerRecord> writeConsumerRecords = new ArrayList<>();
             records.getRemoveTreeMap().values().forEach(record -> {
                 if (record.getVisibilityTimeout() <= currentTime) {
-                    consumer.accept(record);
+                    if (records.markReviving(record)) {
+                        try {
+                            consumer.apply(record).whenComplete((success, error) -> {
+                                if (error == null && Boolean.TRUE.equals(success)) {
+                                    records.getRemoveTreeMap().remove(record.getOffset(), record);
+                                } else if (error != null) {
+                                    log.warn("PopConsumerCache revive failed, will retry record={}", record, error);
+                                }
+                                records.finishReviving(record);
+                            });
+                        } catch (Exception e) {
+                            records.finishReviving(record);
+                            log.warn("PopConsumerCache revive failed, will retry record={}", record, e);
+                        }
+                    }
                 } else {
                     writeConsumerRecords.add(record);
                 }
@@ -152,7 +174,8 @@ public class PopConsumerCache extends ServiceThread {
 
             // write to store and handle it later
             consumerRecordStore.writeRecords(writeConsumerRecords);
-            records.clearStagedRecords();
+            writeConsumerRecords.forEach(record ->
+                records.getRemoveTreeMap().remove(record.getOffset(), record));
 
             // commit min offset in buffer to offset store
             long offset = records.getMinOffsetInBuffer();
@@ -213,6 +236,7 @@ public class PopConsumerCache extends ServiceThread {
         private final BrokerConfig brokerConfig;
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> removeTreeMap;
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> recordTreeMap;
+        private final ConcurrentMap<Long /* offset */, PopConsumerRecord> revivingRecords;
 
         public ConsumerRecords(BrokerConfig brokerConfig, String groupId, String topicId, int queueId) {
             this.groupId = groupId;
@@ -221,6 +245,7 @@ public class PopConsumerCache extends ServiceThread {
             this.brokerConfig = brokerConfig;
             this.removeTreeMap = new ConcurrentSkipListMap<>();
             this.recordTreeMap = new ConcurrentSkipListMap<>();
+            this.revivingRecords = new ConcurrentHashMap<>();
         }
 
         public void write(PopConsumerRecord record) {
@@ -261,6 +286,18 @@ public class PopConsumerCache extends ServiceThread {
 
         public void clearStagedRecords() {
             removeTreeMap.clear();
+        }
+
+        public boolean markReviving(PopConsumerRecord record) {
+            return revivingRecords.putIfAbsent(record.getOffset(), record) == null;
+        }
+
+        public void finishReviving(PopConsumerRecord record) {
+            revivingRecords.remove(record.getOffset(), record);
+        }
+
+        public boolean hasRevivingRecords() {
+            return !revivingRecords.isEmpty();
         }
 
         public ConcurrentSkipListMap<Long, PopConsumerRecord> getRemoveTreeMap() {
