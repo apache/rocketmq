@@ -45,7 +45,7 @@ public class BrokerStatsManagerTest {
     private BrokerStatsManager brokerStatsManager;
 
     private static final String TOPIC = "TOPIC_TEST";
-    private static final Integer QUEUE_ID = 0;
+    private static final int QUEUE_ID = 0;
     private static final String GROUP_NAME = "GROUP_TEST";
     private static final String CLUSTER_NAME = "DefaultCluster";
 
