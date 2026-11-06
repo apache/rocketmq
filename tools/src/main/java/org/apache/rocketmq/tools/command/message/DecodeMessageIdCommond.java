@@ -39,7 +39,7 @@ public class DecodeMessageIdCommond implements SubCommand {
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("i", "messageId", true, "unique message ID");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
         return options;
     }
