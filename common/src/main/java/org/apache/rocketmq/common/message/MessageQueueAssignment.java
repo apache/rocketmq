@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.message;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Objects;
 
 public class MessageQueueAssignment implements Serializable {
 
@@ -48,7 +49,9 @@ public class MessageQueueAssignment implements Serializable {
         if (getClass() != obj.getClass())
             return false;
         MessageQueueAssignment other = (MessageQueueAssignment) obj;
-        return messageQueue.equals(other.messageQueue);
+        return Objects.equals(messageQueue, other.messageQueue)
+            && Objects.equals(mode, other.mode)
+            && Objects.equals(attachments, other.attachments);
     }
 
     @Override
