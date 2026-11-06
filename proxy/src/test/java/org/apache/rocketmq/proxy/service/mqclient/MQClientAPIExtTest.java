@@ -21,6 +21,8 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -120,6 +122,39 @@ public class MQClientAPIExtTest {
         doReturn(future).when(remotingClient).invoke(anyString(), any(RemotingCommand.class), anyLong());
 
         assertNotNull(mqClientAPI.sendHeartbeatAsync(BROKER_ADDR, new HeartbeatData(), TIMEOUT).get());
+    }
+
+    @Test
+    public void testGetActiveBrokerAddressesExcludesNameServerChannels() {
+        String configuredNameServer = "127.0.0.1:9876";
+        String discoveredNameServer = "127.0.0.2:9876";
+        String secondBroker = "127.0.0.2:10911";
+        doReturn(Arrays.asList(BROKER_ADDR, secondBroker, configuredNameServer, discoveredNameServer, null, ""))
+            .when(remotingClient).getActiveChannelAddresses();
+        doReturn(Collections.singletonList(configuredNameServer)).when(remotingClient).getNameServerAddressList();
+        doReturn(Collections.singletonList(discoveredNameServer)).when(remotingClient).getAvailableNameSrvList();
+
+        Set<String> activeBrokerAddresses = mqClientAPI.getActiveBrokerAddresses();
+
+        assertEquals(2, activeBrokerAddresses.size());
+        assertTrue(activeBrokerAddresses.contains(BROKER_ADDR));
+        assertTrue(activeBrokerAddresses.contains(secondBroker));
+    }
+
+    @Test
+    public void testGetActiveBrokerAddressesHandlesMissingNameServerLists() {
+        doReturn(Collections.singletonList(BROKER_ADDR)).when(remotingClient).getActiveChannelAddresses();
+        doReturn(null).when(remotingClient).getNameServerAddressList();
+        doReturn(null).when(remotingClient).getAvailableNameSrvList();
+
+        assertEquals(Collections.singleton(BROKER_ADDR), mqClientAPI.getActiveBrokerAddresses());
+    }
+
+    @Test
+    public void testGetActiveBrokerAddressesHandlesMissingActiveChannelSnapshot() {
+        doReturn(null).when(remotingClient).getActiveChannelAddresses();
+
+        assertTrue(mqClientAPI.getActiveBrokerAddresses().isEmpty());
     }
 
     @Test

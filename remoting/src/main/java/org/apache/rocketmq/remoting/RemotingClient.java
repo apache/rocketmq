@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.remoting;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +35,13 @@ public interface RemotingClient extends RemotingService {
     List<String> getNameServerAddressList();
 
     List<String> getAvailableNameSrvList();
+
+    /**
+     * Return a snapshot of remote addresses whose channels are currently active.
+     */
+    default List<String> getActiveChannelAddresses() {
+        return Collections.emptyList();
+    }
 
     RemotingCommand invokeSync(final String addr, final RemotingCommand request,
         final long timeoutMillis) throws InterruptedException, RemotingConnectException,
