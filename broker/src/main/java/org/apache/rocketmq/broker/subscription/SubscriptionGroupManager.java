@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.subscription;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -430,11 +431,11 @@ public class SubscriptionGroupManager extends ConfigManager {
     private Map<String, String> current(String groupName) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(groupName);
         if (subscriptionGroupConfig == null) {
-            return new HashMap<>();
+            return Collections.emptyMap();
         } else {
             Map<String, String> attributes = subscriptionGroupConfig.getAttributes();
             if (attributes == null) {
-                return new HashMap<>();
+                return Collections.emptyMap();
             } else {
                 return attributes;
             }
