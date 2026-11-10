@@ -32,6 +32,7 @@ import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.compression.CompressionType;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -479,9 +480,8 @@ public class DefaultMQProducerTest {
     }
 
     @Test
-    public void testAsyncRequest_OnException() throws Exception {
+    public void testAsyncRequest_SynchronousExceptionRemovesFuture() throws Exception {
         final AtomicInteger cc = new AtomicInteger(0);
-        final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
             @Override
             public void onSuccess(Message message) {
@@ -491,13 +491,6 @@ public class DefaultMQProducerTest {
             @Override
             public void onException(Throwable e) {
                 cc.incrementAndGet();
-                countDownLatch.countDown();
-            }
-        };
-        MessageQueueSelector messageQueueSelector = new MessageQueueSelector() {
-            @Override
-            public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
-                return null;
             }
         };
 
@@ -506,14 +499,10 @@ public class DefaultMQProducerTest {
             failBecauseExceptionWasNotThrown(Exception.class);
         } catch (Exception e) {
             ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
-            assertThat(responseMap).isNotNull();
-            for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
-                RequestResponseFuture future = entry.getValue();
-                future.getRequestCallback().onException(e);
-            }
+            String correlationId = message.getProperty(MessageConst.PROPERTY_CORRELATION_ID);
+            assertThat(responseMap).doesNotContainKey(correlationId);
         }
-        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
-        assertThat(cc.get()).isEqualTo(1);
+        assertThat(cc.get()).isZero();
     }
 
     @Test
