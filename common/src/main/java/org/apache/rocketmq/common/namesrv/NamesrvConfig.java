@@ -32,6 +32,11 @@ public class NamesrvConfig {
     private boolean clusterTest = false;
     private boolean orderMessageEnable = false;
     private boolean returnOrderTopicConfigToBroker = true;
+    /**
+     * Maximum weight in bytes of lazily cached topic route responses. Zero disables caching.
+     * This startup-only option bounds both JSON variants, topic names and ordering configuration.
+     */
+    private int routeInfoCacheMaxBytes = 0;
 
     /**
      * Indicates the nums of thread to handle client requests, like GET_ROUTEINTO_BY_TOPIC.
@@ -95,7 +100,15 @@ public class NamesrvConfig {
      * Try to update this config black list by restart process.
      * Try to update configures in black list by restart process.
      */
-    private String configBlackList = "configBlackList;configStorePath;kvConfigPath";
+    private String configBlackList = "configBlackList;configStorePath;kvConfigPath;routeInfoCacheMaxBytes";
+
+    public int getRouteInfoCacheMaxBytes() {
+        return routeInfoCacheMaxBytes;
+    }
+
+    public void setRouteInfoCacheMaxBytes(int routeInfoCacheMaxBytes) {
+        this.routeInfoCacheMaxBytes = routeInfoCacheMaxBytes;
+    }
 
     public String getConfigBlackList() {
         return configBlackList;

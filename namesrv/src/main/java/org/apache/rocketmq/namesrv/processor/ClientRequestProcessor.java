@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.namesrv.processor;
 
-import com.alibaba.fastjson2.JSONWriter;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -31,7 +30,6 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -74,25 +72,17 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         }
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
+        String orderTopicConf = null;
+        if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
+            orderTopicConf = this.namesrvController.getKvConfigManager().getKVConfig(
+                NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, requestHeader.getTopic());
+        }
+        boolean standardJson = request.getVersion() >= MQVersion.Version.V4_9_4.ordinal()
+            || Optional.ofNullable(requestHeader.getAcceptStandardJsonOnly()).orElse(false);
+        byte[] content = this.namesrvController.getRouteInfoManager().pickupTopicRouteDataEncoded(
+            requestHeader.getTopic(), orderTopicConf, standardJson);
 
-        if (topicRouteData != null) {
-            if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
-                String orderTopicConf =
-                    this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
-                        requestHeader.getTopic());
-                topicRouteData.setOrderTopicConf(orderTopicConf);
-            }
-
-            byte[] content;
-            Boolean standardJsonOnly = Optional.ofNullable(requestHeader.getAcceptStandardJsonOnly()).orElse(false);
-            if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || standardJsonOnly) {
-                content = topicRouteData.encode(JSONWriter.Feature.BrowserCompatible,
-                        JSONWriter.Feature.MapSortField);
-            } else {
-                content = topicRouteData.encode();
-            }
-
+        if (content != null) {
             response.setBody(content);
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
