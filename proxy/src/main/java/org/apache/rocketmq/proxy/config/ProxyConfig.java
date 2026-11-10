@@ -249,6 +249,7 @@ public class ProxyConfig implements ConfigFile {
     private int renewMaxThreadPoolNums = 4;
     private int renewThreadPoolQueueCapacity = 300;
     private long lockTimeoutMsInHandleGroup = TimeUnit.SECONDS.toMillis(3);
+    private long lockExpiredTimeMsInHandleGroup = TimeUnit.SECONDS.toMillis(4);
     private long renewAheadTimeMillis = TimeUnit.SECONDS.toMillis(10);
     private long renewMaxTimeMillis = TimeUnit.HOURS.toMillis(3);
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
@@ -1221,6 +1222,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setLockTimeoutMsInHandleGroup(long lockTimeoutMsInHandleGroup) {
         this.lockTimeoutMsInHandleGroup = lockTimeoutMsInHandleGroup;
+    }
+
+    public long getLockExpiredTimeMsInHandleGroup() {
+        return lockExpiredTimeMsInHandleGroup;
+    }
+
+    public void setLockExpiredTimeMsInHandleGroup(long lockExpiredTimeMsInHandleGroup) {
+        this.lockExpiredTimeMsInHandleGroup = lockExpiredTimeMsInHandleGroup;
     }
 
     public long getRenewAheadTimeMillis() {
