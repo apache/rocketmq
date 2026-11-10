@@ -34,18 +34,18 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.state.StateEventListener;
-import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.ReceiptHandleGroup;
+import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
+import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -120,6 +120,45 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
         Mockito.doNothing().when(consumerManager).appendConsumerIdsChangeListener(Mockito.any(ConsumerIdsChangeListener.class));
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
+    }
+
+    @Test
+    public void testLegacyConstructorKeepsRenewContextHookWhenBatchEnabled() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableBatchChangeInvisibleTime(true);
+        DefaultReceiptHandleManager original = receiptHandleManager;
+        AtomicInteger contextHookCalls = new AtomicInteger();
+        receiptHandleManager = new DefaultReceiptHandleManager(metadataService, consumerManager, original.eventListener) {
+            @Override
+            protected void renewMessage(ProxyContext ctx, ReceiptHandleGroupKey key, ReceiptHandleGroup group,
+                String messageId, String handle) {
+                super.renewMessage(ctx.withVal("instance", "tenant"), key, group, messageId, handle);
+            }
+
+            @Override
+            protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ProxyContext ctx,
+                ReceiptHandleGroupKey key, MessageReceiptHandle message) {
+                if ("tenant".equals(ctx.getVal("instance"))) {
+                    contextHookCalls.incrementAndGet();
+                }
+                return super.startRenewMessage(ctx, key, message);
+            }
+        };
+        original.shutdown();
+        try {
+            Channel channel = PROXY_CONTEXT.getChannel();
+            AckResult result = new AckResult();
+            result.setStatus(AckStatus.OK);
+            result.setExtraInfo(receiptHandle);
+            Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(), Mockito.any(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong())).thenReturn(CompletableFuture.completedFuture(result));
+            Mockito.when(consumerManager.findChannel(GROUP, channel)).thenReturn(Mockito.mock(ClientChannelInfo.class));
+            receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+            receiptHandleManager.scheduleRenewTask();
+            await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertEquals(1, messageReceiptHandle.getRenewTimes()));
+            assertEquals(1, contextHookCalls.get());
+        } finally {
+            receiptHandleManager.shutdown();
+        }
     }
 
     @Test
