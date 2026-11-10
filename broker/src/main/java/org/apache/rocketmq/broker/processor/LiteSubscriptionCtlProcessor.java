@@ -37,6 +37,26 @@ import org.apache.rocketmq.remoting.protocol.body.LiteSubscriptionCtlRequestBody
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Handles subscription control requests for Lite Topics, dispatched to
+ * {@link LiteSubscriptionRegistry} which manages client → topic → lmq set
+ * mappings.
+ *
+ * <p>Supports four actions on each {@link LiteSubscriptionDTO} entry:
+ * <ul>
+ *   <li>{@code PARTIAL_ADD} — add specific lmq subscriptions without
+ *   overwriting the existing complete subscription set</li>
+ *   <li>{@code PARTIAL_REMOVE} — remove specific lmq subscriptions</li>
+ *   <li>{@code COMPLETE_ADD} — replace the entire subscription set for the
+ *   client with the provided lmq list</li>
+ *   <li>{@code COMPLETE_REMOVE} — drop the entire subscription set for the
+ *   client</li>
+ * </ul>
+ *
+ * <p>Quota and ACL errors surface as
+ * {@link ResponseCode#LITE_SUBSCRIPTION_QUOTA_EXCEEDED} and
+ * {@link ResponseCode#ILLEGAL_OPERATION} respectively.
+ */
 public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
     protected final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
 
@@ -48,8 +68,15 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
         this.liteSubscriptionRegistry = liteSubscriptionRegistry;
     }
 
+    /**
+     * Process a batch of subscription control requests. Each entry is validated
+     * and dispatched to {@link LiteSubscriptionRegistry} according to its
+     * action. Blank fields cause the entry to be skipped with a warning rather
+     * than failing the whole batch.
+     */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        // decode and validate request
         if (request.getBody() == null) {
             return RemotingCommand.createResponseCommand(ResponseCode.ILLEGAL_OPERATION,
                 "Request body is null.");
@@ -66,6 +93,7 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
 
         try {
             for (LiteSubscriptionDTO entry : entrySet) {
+                // validate LiteSubscriptionDTO
                 final String clientId = entry.getClientId();
                 final String group = entry.getGroup();
                 final String topic = entry.getTopic();
@@ -82,6 +110,7 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
                     continue;
                 }
                 final Set<String> lmqNameSet = toLmqNameSet(entry);
+
                 switch (entry.getAction()) {
                     case PARTIAL_ADD:
                         checkConsumeEnable(group);

@@ -28,6 +28,17 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 import java.util.List;
 
+/**
+ * Default {@link LiteSharding} implementation: assigns each LMQ to a broker
+ * queue via consistent hashing of the lite topic segment. The sharding
+ * result is consumed by {@code AbstractLiteLifecycleManager} to decide
+ * whether a subscription should be accepted locally.
+ *
+ * <p>When the parent topic has no known route, or the LMQ name does not
+ * parse into a lite topic, the current broker is returned as a fallback so
+ * that subscription requests are not silently dropped during transient
+ * routing gaps.
+ */
 public class LiteShardingImpl implements LiteSharding {
 
     private final BrokerController brokerController;
@@ -38,6 +49,14 @@ public class LiteShardingImpl implements LiteSharding {
         this.topicRouteInfoManager = topicRouteInfoManager;
     }
 
+    /**
+     * Compute the broker that owns the given LMQ via consistent hashing of
+     * the lite topic segment over the parent's write queues.
+     * Falls back to the current broker name when
+     *  - the parent route is missing,
+     *  - or has no queues,
+     *  - or the LMQ name is not a valid lite topic.
+     */
     @Override
     public String shardingByLmqName(String parentTopic, String lmqName) {
         TopicPublishInfo topicPublishInfo = topicRouteInfoManager.tryToFindTopicPublishInfo(parentTopic);
@@ -53,6 +72,7 @@ public class LiteShardingImpl implements LiteSharding {
         if (StringUtils.isEmpty(liteTopic)) {
             return brokerController.getBrokerConfig().getBrokerName();
         }
+
         int bucket = Hashing.consistentHash(liteTopic.hashCode(), writeQueues.size());
         MessageQueue targetQueue = writeQueues.get(bucket);
         return targetQueue.getBrokerName();

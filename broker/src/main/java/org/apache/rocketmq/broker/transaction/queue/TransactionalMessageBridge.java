@@ -213,24 +213,54 @@ public class TransactionalMessageBridge {
     }
 
     public CompletableFuture<PutMessageResult> asyncPutHalfMessage(MessageExtBrokerInner messageInner) {
+        // store is DefaultMessageStore
         return store.asyncPutMessage(parseHalfMessageInner(messageInner));
     }
 
+    /**
+     * Transform a transactional message into a half message and redirect it to
+     * the half-message topic.
+     *
+     * <p>The method:
+     * <ol>
+     *   <li>Copies the client message ID as the transaction ID for later
+     *       checkpoint lookup</li>
+     *   <li>Preserves the original topic and queue as properties so that
+     *       they can be restored when the transaction commits</li>
+     *   <li>Clears the transaction sys-flag to prevent re-interception</li>
+     *   <li>Redirects the message to {@code RMQ_SYS_TRANS_HALF_TOPIC}
+     *       or {@code RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC} depending on config</li>
+     * </ol>
+     *
+     * @param msgInner the original transactional message
+     * @return the transformed half message
+     */
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
+        // set transactionId
         String uniqId = msgInner.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         if (uniqId != null && !uniqId.isEmpty()) {
             MessageAccessor.putProperty(msgInner, TransactionalMessageUtil.TRANSACTION_ID, uniqId);
         }
+
+        // store real topic and queueId to properties
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
             String.valueOf(msgInner.getQueueId()));
+
+        // Clears the transaction sys-flag to prevent re-interception
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
+
+        // set transactional topic
+        // 1. TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC if rocksdb enable
+        // 2. TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC
         if (null != store.getMessageStoreConfig() && store.getMessageStoreConfig().isTransRocksDBEnable() && !store.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
             msgInner.setTopic(TransactionalMessageUtil.buildHalfTopicForRocksDB());
         } else {
             msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
         }
+
+        // set queueId and propertiesString
         msgInner.setQueueId(0);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
@@ -260,6 +290,19 @@ public class TransactionalMessageBridge {
         }
     }
 
+    /**
+     * Renew a half message and set property MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET if not exists
+     *
+     * <p>This is used when re-putting a half message back to the HALF topic
+     * during the transaction check-back process. The
+     * {@code PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET} property records the
+     * original queue offset so that later checks can determine whether the
+     * producer has already committed or rolled back the message within the
+     * immunity window.
+     *
+     * @param msgExt the original half message
+     * @return a new half message with the prepared queue offset preserved
+     */
     public MessageExtBrokerInner renewImmunityHalfMessageInner(MessageExt msgExt) {
         MessageExtBrokerInner msgInner = renewHalfMessageInner(msgExt);
         String queueOffsetFromPrepare = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);

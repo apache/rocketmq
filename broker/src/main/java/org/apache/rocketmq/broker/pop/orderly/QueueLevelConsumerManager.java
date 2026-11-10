@@ -46,6 +46,33 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private static final long CLEAN_SPAN_FROM_LAST = 24 * 3600 * 1000;
 
+    /**
+     * In-memory registry of per-queue ordered-consumption state.
+     *
+     * <p>Two-level nested map keyed by {@code topic@group} then {@code queueId},
+     * holding the {@link OrderInfo} of the currently in-flight (popped but not
+     * fully acked) ordered batch for each queue:
+     * <pre>
+     * table
+     *   └─ "topic@group" (ConcurrentHashMap)
+     *        └─ queueId (Integer)
+     *             └─ OrderInfo (in-flight ordered batch state)
+     * </pre>
+     *
+     * <p>Lifecycle of an {@link OrderInfo} entry:
+     * <ul>
+     *   <li>Created by {@link #update} when a FIFO pop delivers a batch</li>
+     *   <li>Queried by {@link #checkBlock} to decide whether a new pop must block</li>
+     *   <li>Mutated by {@link #commitAndNext} / {@link #updateNextVisibleTime} as
+     *       the consumer acks or delays individual messages</li>
+     *   <li>Removed by {@link #clearBlock} (rebalance) or {@link #autoClean}
+     *       (topic/group deleted or long idle)</li>
+     * </ul>
+     *
+     * <p>Both levels use {@link ConcurrentHashMap} so {@code update} / {@code checkBlock}
+     * / {@code commitAndNext} can run concurrently without an external lock. The
+     * whole table is persisted to disk via {@link #encode} / {@link #decode}.
+     */
     private ConcurrentHashMap<String/* topic@group*/, ConcurrentHashMap<Integer/*queueId*/, OrderInfo>> table =
         new ConcurrentHashMap<>(128);
 
@@ -84,7 +111,9 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
 
     /**
      * update the message list received
+     * called after message pop
      *
+     * @param attemptId attemptId
      * @param isRetry is retry topic or not
      * @param topic topic
      * @param group group
@@ -97,6 +126,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     public void update(String attemptId, boolean isRetry, String topic, String group, int queueId, long popTime,
         long invisibleTime,
         List<Long> msgQueueOffsetList, StringBuilder orderInfoBuilder) {
+        // init orderInfo map
         String key = buildKey(topic, group);
         ConcurrentHashMap<Integer/*queueId*/, OrderInfo> qs = table.get(key);
         if (qs == null) {
@@ -107,18 +137,20 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
             }
         }
 
+        // create or merge orderInfo
         OrderInfo orderInfo = qs.get(queueId);
 
-        if (orderInfo != null) {
+        if (orderInfo != null) { // merge order info
             OrderInfo newOrderInfo = new OrderInfo(attemptId, popTime, invisibleTime, msgQueueOffsetList, System.currentTimeMillis(), 0);
             newOrderInfo.mergeOffsetConsumedCount(orderInfo.attemptId, orderInfo.offsetList, orderInfo.offsetConsumedCount);
 
             orderInfo = newOrderInfo;
-        } else {
+        } else { // create order info
             orderInfo = new OrderInfo(attemptId, popTime, invisibleTime, msgQueueOffsetList, System.currentTimeMillis(), 0);
         }
         qs.put(queueId, orderInfo);
 
+        // calculate minConsumedTimes and build orderCountInfo
         Map<Long, Integer> offsetConsumedCount = orderInfo.offsetConsumedCount;
         int minConsumedTimes = Integer.MAX_VALUE;
         if (offsetConsumedCount != null) {
@@ -151,6 +183,16 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         update(attemptId, isRetry, topic, group, queueId, popTime, invisibleTime, msgQueueOffsetList, orderInfoBuilder);
     }
 
+    /**
+     * Check whether a new Pop request on this queue must be blocked
+     * due to an in-flight ordered-consumption lock.
+     *
+     * <p>Looks up the {@link OrderInfo} for the given topic-group-queue triple.
+     * Delegates to {@link OrderInfo#needBlock} which returns {@code true} if
+     * any message in the current batch is still within its invisible window
+     * and has not yet been ACKed — meaning another consumer is already
+     * working on this queue's ordered batch.
+     */
     @Override
     public boolean checkBlock(String attemptId, String topic, String group, int queueId, long invisibleTime) {
         String key = buildKey(topic, group);
@@ -213,7 +255,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     /**
-     * mark message is consumed finished. return the consumer offset
+     * mark message is consumed finished. return next consumer offset
      *
      * @param topic topic
      * @param group group
@@ -414,6 +456,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         private long popTime;
         /**
          * the invisibleTime when pop message
+         * it was set the first time when message pop
          */
         @JSONField(name = "i")
         private Long invisibleTime;
@@ -425,8 +468,12 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         @JSONField(name = "o")
         private List<Long> offsetList;
         /**
-         * next visible timestamp for message
-         * key: message queue offset
+         * Per-message override of the next visible timestamp (epoch millis).
+         * Key: message queue offset. Value: timestamp when the message becomes
+         * visible again, set by {@code ChangeInvisibleTimeProcessor} to delay
+         * a specific message beyond the batch default {@link #invisibleTime}.
+         * Used by {@link #needBlock}, {@link #getLockFreeTimestamp}, and
+         * {@link #getMaxLockFreeTimestamp} when present.
          */
         @JSONField(name = "ot")
         private Map<Long, Long> offsetNextVisibleTime;
@@ -541,22 +588,43 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
             return simple;
         }
 
+        /**
+         * Determine whether a new Pop request must be blocked by this in-flight
+         * ordered batch.
+         *
+         * <p>Returns {@code true} (must block) only if all of the following hold:
+         * <ul>
+         *   <li>The current attemptId is different from the in-flight one (same
+         *   request retrying is not blocked)</li>
+         *   <li>At least one message in the batch is not yet ACKed
+         *   ({@link #isNotAck})</li>
+         *   <li>That message's invisible window has not yet expired — either
+         *   {@code popTime + invisibleTime} or its individually updated
+         *   {@code offsetNextVisibleTime} is still in the future</li>
+         * </ul>
+         */
         @JSONField(serialize = false, deserialize = false)
         public boolean needBlock(String attemptId, long currentInvisibleTime) {
+            // all offsets are not consumed, do not block
             if (offsetList == null || offsetList.isEmpty()) {
                 return false;
             }
+
+            // same request, do not block
             if (this.attemptId != null && this.attemptId.equals(attemptId)) {
                 return false;
             }
+
             int num = offsetList.size();
             int i = 0;
             if (this.invisibleTime == null || this.invisibleTime <= 0) {
                 this.invisibleTime = currentInvisibleTime;
             }
             long currentTime = System.currentTimeMillis();
+
             for (; i < num; i++) {
                 if (isNotAck(i)) {
+                    // calculate nextVisibleTime
                     long nextVisibleTime = popTime + invisibleTime;
                     if (offsetNextVisibleTime != null) {
                         Long time = offsetNextVisibleTime.get(this.getQueueOffset(i));
@@ -564,10 +632,14 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
                             nextVisibleTime = time;
                         }
                     }
+
+                    // if offset is not expired, block
                     if (currentTime < nextVisibleTime) {
                         return true;
                     }
                 }
+
+                // if acked, do nothing
             }
             return false;
         }
@@ -685,6 +757,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         @JSONField(serialize = false, deserialize = false)
         public void mergeOffsetConsumedCount(String preAttemptId, List<Long> preOffsetList,
             Map<Long, Integer> prevOffsetConsumedCount) {
+            // validate input
             Map<Long, Integer> offsetConsumedCount = new HashMap<>();
             if (prevOffsetConsumedCount == null) {
                 prevOffsetConsumedCount = new HashMap<>();
@@ -693,16 +766,20 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
                 this.offsetConsumedCount = prevOffsetConsumedCount;
                 return;
             }
+
+            // get pre offset set
             Set<Long> preQueueOffsetSet = new HashSet<>();
             for (int i = 0; i < preOffsetList.size(); i++) {
                 preQueueOffsetSet.add(getQueueOffset(preOffsetList, i));
             }
+
+            // merge offsetConsumedCount
             for (int i = 0; i < offsetList.size(); i++) {
                 long queueOffset = this.getQueueOffset(i);
-                if (preQueueOffsetSet.contains(queueOffset)) {
+                if (preQueueOffsetSet.contains(queueOffset)) { // offset has be consumed
                     int count = 1;
                     Integer preCount = prevOffsetConsumedCount.get(queueOffset);
-                    if (preCount != null) {
+                    if (preCount != null) { // consumeTimes +1
                         count = preCount + 1;
                     }
                     offsetConsumedCount.put(queueOffset, count);

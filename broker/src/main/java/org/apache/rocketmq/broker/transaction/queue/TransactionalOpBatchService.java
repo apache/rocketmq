@@ -22,6 +22,17 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+/**
+ * Background service that periodically flushes buffered OP (operation) messages
+ * to the {@code RMQ_SYS_TRANS_OP_HALF_TOPIC}.
+ *
+ * <p>Half-message delete offsets are accumulated in per-queue
+ * {@link MessageQueueOpContext} buffers. This service wakes up either when the
+ * buffer exceeds {@code transactionOpMsgMaxSize} or when the time-based
+ * {@code transactionOpBatchInterval} elapses, calling
+ * {@link TransactionalMessageServiceImpl#batchSendOpMessage()} to batch-write
+ * the buffered offsets as a single OP message.
+ */
 public class TransactionalOpBatchService extends ServiceThread {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 

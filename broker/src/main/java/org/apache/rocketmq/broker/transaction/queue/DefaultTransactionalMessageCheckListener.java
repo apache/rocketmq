@@ -37,6 +37,15 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
         super();
     }
 
+    /**
+     * Move a half message to the dead-letter system topic
+     * {@code TRANS_CHECK_MAXTIME_TOPIC} when it has been checked too many
+     * times without a definitive commit or rollback.
+     *
+     * <p>Once moved, the message is no longer tracked by the transaction check
+     * loop and will never be delivered to the consumer. This prevents endless
+     * rechecking of messages whose producer is permanently unable to respond.
+     */
     @Override
     public void resolveDiscardMsg(MessageExt msgExt) {
         log.error("MsgExt:{} has been checked too many times, so discard it by moving it to system topic TRANS_CHECK_MAXTIME_TOPIC", msgExt);
