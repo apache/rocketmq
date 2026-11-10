@@ -272,6 +272,44 @@ public class ConsumeMessagePopOrderlyServiceTest {
     }
 
     @Test
+    public void testSuccessWithoutAutoCommitKeepsMessagesForRedelivery() {
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        ConsumeMessagePopOrderlyService.ConsumeRequest consumeRequest =
+            mock(ConsumeMessagePopOrderlyService.ConsumeRequest.class);
+        when(consumeRequest.getProcessQueue()).thenReturn(processQueue);
+        when(consumeRequest.getMessageQueue()).thenReturn(messageQueue);
+        ConsumeOrderlyContext context = new ConsumeOrderlyContext(messageQueue);
+        context.setAutoCommit(false);
+
+        assertTrue(popService.processConsumeResult(msgs, ConsumeOrderlyStatus.SUCCESS, context, consumeRequest));
+
+        verify(defaultMQPushConsumerImpl, never()).ackAsync(any(MessageExt.class), anyString());
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+    }
+
+    @Test
+    public void testExplicitCommitAcksEvenWithoutAutoCommit() {
+        List<MessageExt> msgs = Collections.singletonList(createMessageExt());
+        MessageQueue messageQueue = new MessageQueue(defaultTopic, defaultBroker, 0);
+        PopProcessQueue processQueue = new PopProcessQueue();
+        processQueue.incFoundMsg(msgs.size());
+        ConsumeMessagePopOrderlyService.ConsumeRequest consumeRequest =
+            mock(ConsumeMessagePopOrderlyService.ConsumeRequest.class);
+        when(consumeRequest.getProcessQueue()).thenReturn(processQueue);
+        when(consumeRequest.getMessageQueue()).thenReturn(messageQueue);
+        ConsumeOrderlyContext context = new ConsumeOrderlyContext(messageQueue);
+        context.setAutoCommit(false);
+
+        assertTrue(popService.processConsumeResult(msgs, ConsumeOrderlyStatus.COMMIT, context, consumeRequest));
+
+        verify(defaultMQPushConsumerImpl, times(1)).ackAsync(eq(msgs.get(0)), eq(defaultGroup));
+        assertEquals(0, processQueue.getWaiAckMsgCount());
+    }
+
+    @Test
     public void testSuspendChangesInvisibleTimeAndDoesNotAck() throws Exception {
         List<MessageExt> msgs = Collections.singletonList(createMessageExt());
         PopProcessQueue processQueue = new PopProcessQueue();

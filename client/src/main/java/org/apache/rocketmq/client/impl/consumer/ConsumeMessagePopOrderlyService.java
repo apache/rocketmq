@@ -251,8 +251,20 @@ public class ConsumeMessagePopOrderlyService extends AbstractConsumeMessageServi
         // can forget the popped copy, while ROLLBACK and SUSPEND keep it available for redelivery.
         if (ConsumeOrderlyStatus.SUCCESS == status || ConsumeOrderlyStatus.COMMIT == status) {
             this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, topic, msgs.size());
+            // COMMIT is an explicit instruction, SUCCESS only means "consume succeeded" and lets
+            // the client commit on the listener's behalf. A manual-commit listener returns
+            // SUCCESS first and decides between COMMIT and ROLLBACK later, so acking here would
+            // drop the popped copy before it can still be rolled back or redelivered.
+            boolean committable = ConsumeOrderlyStatus.COMMIT == status || context.isAutoCommit();
             for (MessageExt msg : msgs) {
-                ackMessage(msg, consumeRequest);
+                if (committable) {
+                    this.defaultMQPushConsumerImpl.ackAsync(msg, consumerGroup);
+                }
+                consumeRequest.getProcessQueue().ack();
+            }
+            if (!committable) {
+                log.info("manual commit listener returned SUCCESS, keep {} message(s) of {} available for redelivery, group={}",
+                    msgs.size(), topic, consumerGroup);
             }
             return true;
         }
@@ -275,11 +287,6 @@ public class ConsumeMessagePopOrderlyService extends AbstractConsumeMessageServi
         // A failed batch must block later batches of the same ordered queue. Those messages are
         // already invisible on the broker and will be redelivered after their own deadline.
         return !needRetry;
-    }
-
-    private void ackMessage(final MessageExt msg, final ConsumeRequest consumeRequest) {
-        this.defaultMQPushConsumerImpl.ackAsync(msg, consumerGroup);
-        consumeRequest.getProcessQueue().ack();
     }
 
     public ConsumerStatsManager getConsumerStatsManager() {
