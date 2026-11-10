@@ -608,6 +608,51 @@ public class TimerMessageStoreTest {
         storeConfig.setTimerRollWindowSlot(Integer.MAX_VALUE);
     }
 
+    @Test
+    public void testCheckAndReviseMetricsWithEmptyTimerWheel() throws Exception {
+        String topic = "TimerTest_testCheckAndReviseMetricsWithEmptyTimerWheel";
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+        timerMessageStore.load();
+
+        // the timer log has a mapped file, but no slot in the timer wheel is eligible
+        TimerLog timerLog = Mockito.spy(timerMessageStore.getTimerLog());
+        Field timerLogField = TimerMessageStore.class.getDeclaredField("timerLog");
+        timerLogField.setAccessible(true);
+        timerLogField.set(timerMessageStore, timerLog);
+        assertNotNull(timerLog.getMappedFileQueue().getLastMappedFile(0));
+        timerMessageStore.currReadTimeMs = System.currentTimeMillis() / precisionMs * precisionMs;
+        assertEquals(Long.MAX_VALUE, timerMessageStore.getTimerWheel().checkPhyPos(timerMessageStore.currReadTimeMs, 0));
+
+        timerMessageStore.getTimerMetrics().getTopicPair(topic).getCount().set(5);
+        timerMessageStore.checkAndReviseMetrics();
+
+        verify(timerLog, Mockito.never()).getWholeBuffer(Long.MAX_VALUE);
+        assertEquals(0, timerMessageStore.getTimerMetrics().getTimingCount(topic));
+    }
+
+    @Test
+    public void testCheckAndReviseMetricsWithValidSlot() throws Exception {
+        String topic = "TimerTest_testCheckAndReviseMetricsWithValidSlot";
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+        timerMessageStore.load();
+
+        long curr = System.currentTimeMillis() / precisionMs * precisionMs;
+        timerMessageStore.currReadTimeMs = curr;
+        timerMessageStore.currWriteTimeMs = curr;
+        long delayedTime = curr + 2 * precisionMs;
+        for (int i = 0; i < 2; i++) {
+            MessageExtBrokerInner inner = buildMessage(delayedTime, topic, false);
+            MessageAccessor.putProperty(inner, MessageConst.PROPERTY_REAL_TOPIC, topic);
+            assertTrue(timerMessageStore.doEnqueue(i * 100L, 100, delayedTime, inner, false));
+        }
+        assertEquals(0, timerMessageStore.getTimerWheel().checkPhyPos(curr, 0));
+
+        timerMessageStore.getTimerMetrics().getTopicPair(topic).getCount().set(5);
+        timerMessageStore.checkAndReviseMetrics();
+
+        assertEquals(2, timerMessageStore.getTimerMetrics().getTimingCount(topic));
+    }
+
     public ByteBuffer getOneMessage(String topic, int queue, long offset, int timeout) throws Exception {
         int retry = timeout / 100;
         while (retry-- > 0) {
