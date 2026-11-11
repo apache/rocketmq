@@ -1127,6 +1127,11 @@ public class CommitLog implements Swappable {
                         result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
                         if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
                             onCommitLogAppend(msg, result, mappedFile);
+                        } else {
+                            // The message does not fit into the new file either, so nothing was appended.
+                            return CompletableFuture.completedFuture(new PutMessageResult(
+                                AppendMessageStatus.UNKNOWN_ERROR.equals(result.getStatus())
+                                    ? PutMessageStatus.UNKNOWN_ERROR : PutMessageStatus.MESSAGE_ILLEGAL, result));
                         }
                         break;
                     case MESSAGE_SIZE_EXCEEDED:
@@ -1284,6 +1289,12 @@ public class CommitLog implements Swappable {
                             setFileReadMode(mappedFile, LibC.MADV_RANDOM);
                         }
                         result = mappedFile.appendMessages(messageExtBatch, this.appendMessageCallback, putMessageContext);
+                        if (!AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+                            // The batch does not fit into the new file either, so nothing was appended.
+                            return CompletableFuture.completedFuture(new PutMessageResult(
+                                AppendMessageStatus.UNKNOWN_ERROR.equals(result.getStatus())
+                                    ? PutMessageStatus.UNKNOWN_ERROR : PutMessageStatus.MESSAGE_ILLEGAL, result));
+                        }
                         break;
                     case MESSAGE_SIZE_EXCEEDED:
                     case PROPERTIES_SIZE_EXCEEDED:

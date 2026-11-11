@@ -21,6 +21,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.rocketmq.common.message.MessageDecoder.messageProperties2String;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -201,6 +203,31 @@ public class BatchPutMessageTest {
             assertTrue(exist);
         }
 
+    }
+
+    @Test
+    public void testPutBatchLargerThanCommitLogFileIsNotReportedAsSuccess() throws Exception {
+        List<Message> messages = new ArrayList<>();
+        String topic = "batch-larger-than-file-topic";
+        for (int i = 0; i < 4; i++) {
+            Message msg = new Message();
+            msg.setBody(new byte[1024 * 8]);
+            msg.setTopic(topic);
+            msg.setTags("TAG1");
+            messages.add(msg);
+        }
+        MessageExtBatch messageExtBatch = new MessageExtBatch();
+        messageExtBatch.setTopic(topic);
+        messageExtBatch.setQueueId(0);
+        messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
+        messageExtBatch.setBornTimestamp(System.currentTimeMillis());
+        messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
+        messageExtBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
+
+        PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
+
+        assertEquals(AppendMessageStatus.END_OF_FILE, putMessageResult.getAppendMessageResult().getStatus());
+        assertNotEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
     }
 
     private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
