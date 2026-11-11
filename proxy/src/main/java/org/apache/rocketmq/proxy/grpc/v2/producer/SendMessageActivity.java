@@ -224,6 +224,16 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
             userPropertySize += userPropertiesEntry.getValue().getBytes(StandardCharsets.UTF_8).length;
         }
+    }
+
+
+    protected Map<String, String> buildMessageProperty(ProxyContext context, apache.rocketmq.v2.Message message, String producerGroup) {
+        long userPropertySize = 0;
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        org.apache.rocketmq.common.message.Message messageWithHeader = new org.apache.rocketmq.common.message.Message();
+        // set user properties
+        Map<String, String> userProperties = message.getUserPropertiesMap();
+        this.checkUserProperties(userProperties);
         MessageAccessor.setProperties(messageWithHeader, Maps.newHashMap(userProperties));
 
         // set tag
