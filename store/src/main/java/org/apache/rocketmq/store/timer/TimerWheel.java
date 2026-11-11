@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -40,6 +41,7 @@ public class TimerWheel {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     public static final String TIMER_WHEEL_FILE_NAME = "timerwheel";
     public static final int BLANK = -1, IGNORE = -2;
+    private static final int DIRTY_PAGE_BYTES = 4096;
     public final int slotsTotal;
     public final int precisionMs;
     private final String fileName;
@@ -54,6 +56,7 @@ public class TimerWheel {
         }
     };
     private final int wheelLength;
+    private final AtomicIntegerArray dirtyPages;
 
     private long snapOffset;
 
@@ -66,6 +69,10 @@ public class TimerWheel {
         this.fileName = fileName;
         this.wheelLength = this.slotsTotal * 2 * Slot.SIZE;
         this.snapOffset = snapOffset;
+        this.dirtyPages = new AtomicIntegerArray((int) ((wheelLength + (long) DIRTY_PAGE_BYTES - 1) / DIRTY_PAGE_BYTES));
+        for (int page = 0; page < dirtyPages.length(); page++) {
+            dirtyPages.set(page, 1);
+        }
 
         String finalFileName = selectSnapshotByFlag(snapOffset);
         File file = new File(finalFileName);
@@ -133,9 +140,21 @@ public class TimerWheel {
         bf.limit(wheelLength);
         mappedByteBuffer.position(0);
         mappedByteBuffer.limit(wheelLength);
-        for (int i = 0; i < wheelLength; i++) {
-            if (bf.get(i) != mappedByteBuffer.get(i)) {
-                mappedByteBuffer.put(i, bf.get(i));
+        for (int page = 0; page < dirtyPages.length(); page++) {
+            // Clear before copying: a concurrent writer must retain its next-flush mark.
+            if (dirtyPages.getAndSet(page, 0) == 0) {
+                continue;
+            }
+            try {
+                int end = (int) Math.min(wheelLength, (page + 1L) * DIRTY_PAGE_BYTES);
+                for (int i = page * DIRTY_PAGE_BYTES; i < end; i++) {
+                    if (bf.get(i) != mappedByteBuffer.get(i)) {
+                        mappedByteBuffer.put(i, bf.get(i));
+                    }
+                }
+            } catch (Throwable failure) {
+                dirtyPages.set(page, 1);
+                throw failure;
             }
         }
         this.mappedByteBuffer.force();
@@ -286,39 +305,65 @@ public class TimerWheel {
     }
 
     public void putSlot(long timeMs, long firstPos, long lastPos) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
-        // To be compatible with previous version.
-        // The previous version's precision is fixed at 1000ms and it store timeMs / 1000 in slot.
-        localBuffer.get().putLong(timeMs / precisionMs);
-        localBuffer.get().putLong(firstPos);
-        localBuffer.get().putLong(lastPos);
+        try {
+            localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+            // To be compatible with previous version.
+            // The previous version's precision is fixed at 1000ms and it store timeMs / 1000 in slot.
+            localBuffer.get().putLong(timeMs / precisionMs);
+            localBuffer.get().putLong(firstPos);
+            localBuffer.get().putLong(lastPos);
+        } finally {
+            markDirty(timeMs);
+        }
     }
 
     public void putSlot(long timeMs, long firstPos, long lastPos, int num, int magic) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
-        localBuffer.get().putLong(timeMs / precisionMs);
-        localBuffer.get().putLong(firstPos);
-        localBuffer.get().putLong(lastPos);
-        localBuffer.get().putInt(num);
-        localBuffer.get().putInt(magic);
+        try {
+            localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+            localBuffer.get().putLong(timeMs / precisionMs);
+            localBuffer.get().putLong(firstPos);
+            localBuffer.get().putLong(lastPos);
+            localBuffer.get().putInt(num);
+            localBuffer.get().putInt(magic);
+        } finally {
+            markDirty(timeMs);
+        }
     }
 
     public void reviseSlot(long timeMs, long firstPos, long lastPos, boolean force) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        try {
+            localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
 
-        if (timeMs / precisionMs != localBuffer.get().getLong()) {
-            if (force) {
-                putSlot(timeMs, firstPos != IGNORE ? firstPos : lastPos, lastPos);
-            }
-        } else {
-            if (IGNORE != firstPos) {
-                localBuffer.get().putLong(firstPos);
+            if (timeMs / precisionMs != localBuffer.get().getLong()) {
+                if (force) {
+                    putSlot(timeMs, firstPos != IGNORE ? firstPos : lastPos, lastPos);
+                }
             } else {
-                localBuffer.get().getLong();
+                if (IGNORE != firstPos) {
+                    localBuffer.get().putLong(firstPos);
+                } else {
+                    localBuffer.get().getLong();
+                }
+                if (IGNORE != lastPos) {
+                    localBuffer.get().putLong(lastPos);
+                }
             }
-            if (IGNORE != lastPos) {
-                localBuffer.get().putLong(lastPos);
+        } finally {
+            markDirty(timeMs);
+        }
+    }
+
+    private void markDirty(long timeMs) {
+        if (precisionMs <= 0 || slotsTotal <= 0) {
+            for (int page = 0; page < dirtyPages.length(); page++) {
+                dirtyPages.set(page, 1);
             }
+            return;
+        }
+        long slot = timeMs / precisionMs % (slotsTotal * 2);
+        long page = slot * Slot.SIZE / DIRTY_PAGE_BYTES;
+        if (slot >= 0 && page >= 0 && page < dirtyPages.length()) {
+            dirtyPages.set((int) page, 1);
         }
     }
 
