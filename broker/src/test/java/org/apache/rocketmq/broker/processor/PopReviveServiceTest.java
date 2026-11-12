@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson2.JSON;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -58,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -387,6 +390,66 @@ public class PopReviveServiceTest {
         Assert.assertEquals(INVISIBLE_TIME + 10 * 1000L, actualInvisibleTime.get()); // first interval is 10s
         verify(escapeBridge, times(0)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
+    }
+
+    @Test
+    public void testReviveMsgFromCk_getBizMessageExceptional_rewriteCK() throws Throwable {
+        PopCheckPoint ck = buildPopCheckPoint(0, 0, 1);
+        PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
+        reviveObj.map.put("", ck);
+        reviveObj.endTime = System.currentTimeMillis();
+
+        ArgumentCaptor<Long> commitOffsetCaptor = ArgumentCaptor.forClass(Long.class);
+        doNothing().when(consumerOffsetManager).commitOffset(anyString(), anyString(), anyString(), anyInt(),
+            commitOffsetCaptor.capture());
+
+        CompletableFuture<GetMessageResult> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("store read failed"));
+        // Exercise the real bridge; inject the fault only at the MessageStore async boundary.
+        EscapeBridge realEscapeBridge = new EscapeBridge(brokerController);
+        when(brokerController.getEscapeBridge()).thenReturn(realEscapeBridge);
+        when(brokerController.getMessageStoreByBrokerName(ck.getBrokerName())).thenReturn(messageStore);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any()))
+            .thenReturn(failed);
+
+        popReviveService.mergeAndRevive(reviveObj);
+
+        NavigableMap<?, ?> inflight = (NavigableMap<?, ?>) FieldUtils.readField(
+            popReviveService, "inflightReviveRequestMap", true);
+        assertEquals(1, reviveObj.newOffset);
+        assertEquals(1, commitOffsetCaptor.getValue().longValue());
+        assertEquals(0, inflight.size());
+        // An exceptional async read must retain retryability by rewriting the checkpoint.
+        verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class));
+    }
+
+    @Test
+    public void testReviveMsgFromCk_storeFailsAfterOffsetCommit_rewriteCK() throws Throwable {
+        PopCheckPoint ck = buildPopCheckPoint(0, 0, 1);
+        PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
+        reviveObj.map.put("", ck);
+        reviveObj.endTime = System.currentTimeMillis();
+        CompletableFuture<GetMessageResult> readFuture = new CompletableFuture<>();
+        EscapeBridge realEscapeBridge = new EscapeBridge(brokerController);
+        when(brokerController.getEscapeBridge()).thenReturn(realEscapeBridge);
+        when(brokerController.getMessageStoreByBrokerName(ck.getBrokerName())).thenReturn(messageStore);
+        when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any()))
+            .thenReturn(readFuture);
+
+        popReviveService.mergeAndRevive(reviveObj);
+
+        NavigableMap<?, ?> inflight = (NavigableMap<?, ?>) FieldUtils.readField(
+            popReviveService, "inflightReviveRequestMap", true);
+        assertEquals(1, reviveObj.newOffset);
+        assertEquals(1, inflight.size());
+        verify(consumerOffsetManager).commitOffset(PopAckConstants.LOCAL_HOST, PopAckConstants.REVIVE_GROUP,
+            REVIVE_TOPIC, REVIVE_QUEUE_ID, 1);
+        verify(messageStore, times(0)).putMessage(any(MessageExtBrokerInner.class));
+
+        readFuture.completeExceptionally(new RuntimeException("delayed store read failure"));
+
+        assertEquals(0, inflight.size());
+        verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class));
     }
 
     @Test
