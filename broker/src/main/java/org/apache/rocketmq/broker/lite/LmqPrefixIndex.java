@@ -17,7 +17,9 @@
 
 package org.apache.rocketmq.broker.lite;
 
-import java.util.SortedMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -38,6 +40,12 @@ import org.apache.rocketmq.common.lite.LiteUtil;
  *
  * <p>A {@link ReadWriteLock} guards the trie; reads dominate writes by ~10000x in steady state.
  * Empty prefix / parentTopic is rejected to avoid an unintended full-table scan.
+ *
+ * <p>Callbacks are never invoked while the index lock is held: a prefix traversal first copies the
+ * matching keys under the read lock and only then runs the visitor. Holding the read lock across
+ * caller code would block writers ({@link #add(String)} / {@link #remove(String)}) and would
+ * self-deadlock any visitor that transitively mutates the index, because
+ * {@link ReentrantReadWriteLock} cannot upgrade a read lock into a write lock.
  */
 public class LmqPrefixIndex {
 
@@ -72,9 +80,37 @@ public class LmqPrefixIndex {
     }
 
     /**
+    /**
+     * Copy all lmq names that start with the given prefix into a new, independent list.
+     *
+     * <p>The copy is made while holding the read lock, so the lock hold time is proportional to
+     * the number of matching keys and never to the work the caller does with them. Callers can
+     * therefore run arbitrary logic, or even mutate the index, while iterating the result.
+     *
+     * @param lmqPrefix prefix of the lmq names to collect
+     * @return the matching lmq names, never {@code null}
+     */
+    public List<String> snapshotByPrefix(String lmqPrefix) {
+        if (StringUtils.isEmpty(lmqPrefix)) {
+            return Collections.emptyList();
+        }
+        rwLock.readLock().lock();
+        try {
+            return new ArrayList<>(trie.prefixMap(lmqPrefix).keySet());
+        } finally {
+            rwLock.readLock().unlock();
+        }
+    }
+
+    /**
      * Iterate all lmqs whose name starts with the given lmqName prefix.
      * The visitor returns {@code false} to break iteration early.
      * Empty prefix is rejected to avoid a full scan.
+     *
+     * <p>The visitor is caller code that may run for an arbitrarily long time and may itself call
+     * {@link #add(String)} / {@link #remove(String)}; it is therefore always invoked on the
+     * snapshot taken by {@link #snapshotByPrefix(String)} once the index lock has been released.
+     * A visitor that mutates the index then neither blocks other writers nor disturbs this traversal.
      *
      * @return {@code true} if iteration completed; {@code false} on early break or invalid input.
      */
@@ -82,16 +118,10 @@ public class LmqPrefixIndex {
         if (StringUtils.isEmpty(lmqPrefix) || visitor == null) {
             return false;
         }
-        rwLock.readLock().lock();
-        try {
-            SortedMap<String, Boolean> sub = trie.prefixMap(lmqPrefix);
-            for (String lmqName : sub.keySet()) {
-                if (!visitor.apply(lmqName)) {
-                    return false;
-                }
+        for (String lmqName : snapshotByPrefix(lmqPrefix)) {
+            if (!visitor.apply(lmqName)) {
+                return false;
             }
-        } finally {
-            rwLock.readLock().unlock();
         }
         return true;
     }

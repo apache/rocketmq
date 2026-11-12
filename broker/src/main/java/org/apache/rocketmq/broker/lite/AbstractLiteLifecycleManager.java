@@ -136,7 +136,8 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
      * Delegate to {@link #forEachLiteTopicByPrefix} with prefix = LITE_TOPIC_PREFIX + parentTopic + SEPARATOR.
      *
      * @param parentTopic parent topic to filter by
-     * @param function consumer func; caller must NOT add/remove lmqPrefixIndex inside the callback
+     * @param function consumer func; it runs outside the lmqPrefixIndex lock, so the callback may
+     *                 also add or remove lmqPrefixIndex entries (for example through deleteLmq)
      */
     public void forEachLiteTopicByParent(String parentTopic, Function<Triple<String, Long, Long>, Boolean> function) {
         forEachLiteTopicByPrefix(LiteUtil.LITE_TOPIC_PREFIX + parentTopic + LiteUtil.SEPARATOR, function);
@@ -148,18 +149,26 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
      * Entries with maxOffset <= 0 (no messages ever written) are skipped and will NOT be applied.
      * Return true to continue, false to break.
      *
+     * <p>The traversal works on a snapshot of the matching lmq names, taken before the first callback
+     * runs, so both the per entry {@link #getMaxOffsetInQueue(String)} lookup and the caller's function
+     * execute without holding the index lock. Adding to or removing from the index inside the function
+     * is therefore safe and does not change the entries visited by the current pass.
+     *
      * @param prefix lmqName prefix to filter by
-     * @param function consumer func; caller must NOT add/remove lmqPrefixIndex inside the callback
+     * @param function consumer func; it runs outside the lmqPrefixIndex lock
      */
     public void forEachLiteTopicByPrefix(String prefix, Function<Triple<String, Long, Long>, Boolean> function) {
-        lmqPrefixIndex.forEachLmqByPrefix(prefix, lmqName -> {
+        for (String lmqName : lmqPrefixIndex.snapshotByPrefix(prefix)) {
             long maxOffset = getMaxOffsetInQueue(lmqName);
             if (maxOffset <= 0) {
-                return true;
+                // no message ever written for this lmq yet, keep scanning
+                continue;
             }
             Triple<String, Long, Long> triple = Triple.of(lmqName, maxOffset, null);
-            return function.apply(triple);
-        });
+            if (!function.apply(triple)) {
+                break;
+            }
+        }
     }
 
     /**
@@ -221,14 +230,18 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
             }
             long startMs = System.currentTimeMillis();
             updateMetadata(); // necessary
-            // collect-then-delete: forEachLiteTopicByParent and deleteLmq each hold a lock, nesting causes deadlock
-            List<String> toDelete = new ArrayList<>();
+            int[] count = {0};
+            // Deleting inside the visitor is safe: forEachLiteTopicByParent walks a snapshot of the
+            // prefix index and does not hold the index lock while calling back, so the write lock taken
+            // by deleteLmq -> onLmqDelete lands on this thread only after the traversal released it.
+            // Iterating the snapshot also keeps the pass stable: every lmq of the parent topic is still
+            // visited exactly once.
             forEachLiteTopicByParent(parentTopic, triple -> {
-                toDelete.add(triple.getLeft());
+                deleteLmq(parentTopic, triple.getLeft());
+                count[0]++;
                 return true;
             });
-            toDelete.forEach(liteTopic -> deleteLmq(parentTopic, liteTopic));
-            LOGGER.info("clean by parent topic:{}, size:{}, cost:{}ms", parentTopic, toDelete.size(), System.currentTimeMillis() - startMs);
+            LOGGER.info("clean by parent topic:{}, size:{}, cost:{}ms", parentTopic, count[0], System.currentTimeMillis() - startMs);
         } catch (Exception e) {
             LOGGER.error("cleanByParentTopic error", e);
         }
