@@ -31,6 +31,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 public class GetLiteTopicListSubCommand implements SubCommand {
 
     private static final int DEFAULT_MAX_COUNT = 1000;
+    private static final int BROKER_MAX_RETURN_COUNT = 10000;
 
     @Override
     public String commandName() {
@@ -139,8 +140,14 @@ public class GetLiteTopicListSubCommand implements SubCommand {
             );
         }
         if (responseBody.isHasMore()) {
-            System.out.printf("[%s] returned %d lite topics; increase -m to list more.%n",
-                brokerName, responseBody.getTotal());
+            // The broker clamps requests at this limit, so a larger -m cannot retrieve more.
+            if (responseBody.getTotal() >= BROKER_MAX_RETURN_COUNT) {
+                System.out.printf("[%s] returned %d lite topics (broker limit %d); use a narrower -x prefix to list more.%n",
+                    brokerName, responseBody.getTotal(), BROKER_MAX_RETURN_COUNT);
+            } else {
+                System.out.printf("[%s] returned %d lite topics; increase -m to list more.%n",
+                    brokerName, responseBody.getTotal());
+            }
         }
     }
 }
