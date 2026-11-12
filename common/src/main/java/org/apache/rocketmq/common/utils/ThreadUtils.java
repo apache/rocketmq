@@ -164,13 +164,11 @@ public final class ThreadUtils {
     public static void shutdownGracefully(final Thread t, final long millis) {
         if (t == null)
             return;
-        while (t.isAlive()) {
-            try {
-                t.interrupt();
-                t.join(millis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+        t.interrupt();
+        try {
+            t.join(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
