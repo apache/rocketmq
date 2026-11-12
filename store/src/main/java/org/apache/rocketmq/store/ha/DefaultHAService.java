@@ -123,10 +123,8 @@ public class DefaultHAService implements HAService {
 
     @Override
     public void start() throws Exception {
-        if (this.defaultMessageStore.getBrokerConfig().isEnableHaListener()) {
-            this.acceptSocketService.beginAccept();
-            this.acceptSocketService.start();
-        }
+        this.acceptSocketService.beginAccept();
+        this.acceptSocketService.start();
         this.groupTransferService.start();
         this.haConnectionStateNotificationService.start();
         if (haClient != null) {

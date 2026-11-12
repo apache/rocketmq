@@ -45,10 +45,10 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enableFastRemotingServer = true;
 
     /**
-     * Whether to listen for inbound HA connections. Does not disable the outbound HA client or change
-     * replication acknowledgement semantics. Requires a broker restart.
+     * Whether to create the HA service, including its listener, replication client and background threads.
+     * Disable only for ASYNC_MASTER without controller or slave-acting-master mode. Requires a broker restart.
      */
-    private boolean enableHaListener = true;
+    private boolean enableHAService = true;
 
     @ImportantField
     private String brokerIP1 = NetworkUtil.getLocalAddress();
@@ -1096,12 +1096,12 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableFastRemotingServer = enableFastRemotingServer;
     }
 
-    public boolean isEnableHaListener() {
-        return enableHaListener;
+    public boolean isEnableHAService() {
+        return enableHAService;
     }
 
-    public void setEnableHaListener(boolean enableHaListener) {
-        this.enableHaListener = enableHaListener;
+    public void setEnableHAService(boolean enableHAService) {
+        this.enableHAService = enableHAService;
     }
 
     public int getLitePullMessageThreadPoolNums() {
