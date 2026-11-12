@@ -81,5 +81,30 @@ defaultMQPullConsumer.pullBlockIfNotFound(
                     }
 });
 ```
+
+## 四、查看轻量主题列表
+
+`mqadmin getLiteTopicList`（别名 `listLiteTopic`）可以按父 Topic 枚举当前 broker 上已经写入消息的轻量主题，并展示每个轻量主题的位点、最后更新时间、订阅者数量和分片归属。命令支持通过 `-x/--prefix` 按轻量主题名前缀过滤，并通过 `-m/--maxCount` 限制单个 broker 返回的条目数；broker 会将 `maxCount` 限制在内部允许的最大值内。
+
+```bash
+sh bin/mqadmin getLiteTopicList -n 127.0.0.1:9876 -p TopicTest
+```
+
+示例输出如下：
+
+```text
+Lite Topic List: [TopicTest]
+#Broker Name                   #LiteTopic                               #MinOffset     #MaxOffset     #LastUpdate               #Sharding     #SubCount
+broker-a                       order-1                                  0              128            2026-10-18 10:20:30       true          2
+broker-a                       order-2                                  5              64             2026-10-18 10:18:12       true          0
+```
+
+使用前缀过滤并限制返回数量：
+
+```bash
+sh bin/mqadmin getLiteTopicList -n 127.0.0.1:9876 -p TopicTest -x order- -m 20
+```
+
+输出中的 `#MinOffset` 和 `#MaxOffset` 对应轻量主题底层 LMQ 的消息位点范围，`#LastUpdate` 是最后一条消息的存储时间，`#Sharding` 表示当前 LMQ 是否归属于该 broker，`#SubCount` 是订阅该轻量主题的客户端数量。如果某个 broker 返回的结果被 `maxCount` 截断，命令会额外打印 `increase -m to list more` 提示。
 ​
 
