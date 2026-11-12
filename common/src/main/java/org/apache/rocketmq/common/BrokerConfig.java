@@ -18,6 +18,7 @@ package org.apache.rocketmq.common;
 
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.annotation.Sensitive;
 import org.apache.rocketmq.common.config.ConfigManagerVersion;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageRequestMode;
@@ -404,6 +405,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int metricsOtelCardinalityLimit = 50 * 1000;
     private String metricsGrpcExporterTarget = "";
+    @Sensitive
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
