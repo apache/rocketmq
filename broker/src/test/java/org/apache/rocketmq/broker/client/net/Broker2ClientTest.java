@@ -49,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -162,6 +163,18 @@ public class Broker2ClientTest {
         when(consumerGroupInfo.getChannelInfoTable()).thenReturn(new ConcurrentHashMap<>());
         RemotingCommand response = broker2Client.getConsumeStatus(defaultTopic, defaultGroup, "");
         assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
+    }
+
+    @Test
+    public void testGetConsumeStatusGroupNotRegistered() {
+        // A group without any registered consumer on this broker: the group info
+        // itself is absent, which must reach the "No Any Consumer online" branch
+        // instead of throwing NPE before the null check.
+        when(consumerManager.getConsumerGroupInfo("offlineGroup")).thenReturn(null);
+        RemotingCommand response = broker2Client.getConsumeStatus(defaultTopic, "offlineGroup", "");
+        assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
+        assertTrue(response.getRemark().contains("No Any Consumer online"));
+        assertTrue(response.getRemark().contains("offlineGroup"));
     }
     
     @Test
