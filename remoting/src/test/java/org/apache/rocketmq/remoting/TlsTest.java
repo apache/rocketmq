@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting;
 
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
@@ -74,6 +75,7 @@ import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerNeedCl
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerTrustCertPath;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsTestModeEnable;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
@@ -218,9 +220,10 @@ public class TlsTest {
     @Test
     public void disabledServerRejectsSSLClient() throws Exception {
         try {
-            RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
-            failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
-        } catch (RemotingSendRequestException ignore) {
+            remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
+            fail("A TLS client must be rejected by a TLS-disabled server");
+        } catch (RemotingConnectException | RemotingSendRequestException expected) {
+            // The server may close the channel before invokeSync checks whether it is active.
         }
     }
 
