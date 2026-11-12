@@ -60,6 +60,7 @@ public abstract class RebalanceImpl {
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     protected MQClientInstance mQClientFactory;
     private static final int QUERY_ASSIGNMENT_TIMEOUT = 3000;
+    private boolean destroyed;
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
@@ -229,7 +230,11 @@ public abstract class RebalanceImpl {
         return true;
     }
 
-    public boolean doRebalance(final boolean isOrder) {
+    public synchronized boolean doRebalance(final boolean isOrder) {
+        if (destroyed) {
+            return false;
+        }
+
         boolean balanced = true;
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
@@ -780,7 +785,8 @@ public abstract class RebalanceImpl {
         this.mQClientFactory = mQClientFactory;
     }
 
-    public void destroy() {
+    public synchronized void destroy() {
+        destroyed = true;
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();

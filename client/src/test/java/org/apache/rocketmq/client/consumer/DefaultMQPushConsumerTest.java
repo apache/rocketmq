@@ -86,9 +86,13 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
@@ -397,6 +401,61 @@ public class DefaultMQPushConsumerTest {
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         assertThat(messageExts[0]).isNull();
+    }
+
+    @Test(timeout = 30000)
+    public void testShutdownWaitsForInFlightAsyncRebalance() throws Exception {
+        final DefaultMQPushConsumerImpl consumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
+        final CountDownLatch rebalanceStarted = new CountDownLatch(1);
+        final CountDownLatch releaseRebalance = new CountDownLatch(1);
+        doAnswer(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                rebalanceStarted.countDown();
+                releaseRebalance.await(10, TimeUnit.SECONDS);
+                return true;
+            }
+        }).when(rebalanceImpl).clientRebalance(anyString());
+
+        Thread rebalanceThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mQClientFactory.doRebalance();
+            }
+        }, "async-rebalance-for-shutdown-race-test");
+        rebalanceThread.start();
+        assertThat(rebalanceStarted.await(5, TimeUnit.SECONDS)).isTrue();
+
+        Thread shutdownThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                pushConsumer.shutdown();
+            }
+        }, "shutdown-for-rebalance-race-test");
+        shutdownThread.start();
+
+        waitForShutdownToBlock(shutdownThread);
+        releaseRebalance.countDown();
+        rebalanceThread.join(5000L);
+        shutdownThread.join(5000L);
+
+        assertThat(rebalanceThread.isAlive()).isFalse();
+        assertThat(shutdownThread.isAlive()).isFalse();
+
+        clearInvocations(rebalanceImpl);
+        assertThat(consumerImpl.tryRebalance()).isFalse();
+        verify(rebalanceImpl, never()).clientRebalance(anyString());
+    }
+
+    private void waitForShutdownToBlock(Thread shutdownThread) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000L;
+        while (System.currentTimeMillis() < deadline) {
+            if (shutdownThread.getState() == Thread.State.BLOCKED) {
+                return;
+            }
+            Thread.sleep(10L);
+        }
+        assertThat(shutdownThread.getState()).isEqualTo(Thread.State.BLOCKED);
     }
 
     @Test
