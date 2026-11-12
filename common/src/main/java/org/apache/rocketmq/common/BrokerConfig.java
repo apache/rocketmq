@@ -39,6 +39,17 @@ public class BrokerConfig extends BrokerIdentity {
     @ImportantField
     private int listenPort = 6888;
 
+    /**
+     * Whether to create the Fast Remoting server on listenPort - 2. Requires a broker restart.
+     */
+    private boolean enableFastRemotingServer = true;
+
+    /**
+     * Whether to listen for inbound HA connections. Does not disable the outbound HA client or change
+     * replication acknowledgement semantics. Requires a broker restart.
+     */
+    private boolean enableHaListener = true;
+
     @ImportantField
     private String brokerIP1 = NetworkUtil.getLocalAddress();
     private String brokerIP2 = NetworkUtil.getLocalAddress();
@@ -1075,6 +1086,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setListenPort(int listenPort) {
         this.listenPort = listenPort;
+    }
+
+    public boolean isEnableFastRemotingServer() {
+        return enableFastRemotingServer;
+    }
+
+    public void setEnableFastRemotingServer(boolean enableFastRemotingServer) {
+        this.enableFastRemotingServer = enableFastRemotingServer;
+    }
+
+    public boolean isEnableHaListener() {
+        return enableHaListener;
+    }
+
+    public void setEnableHaListener(boolean enableHaListener) {
+        this.enableHaListener = enableHaListener;
     }
 
     public int getLitePullMessageThreadPoolNums() {
