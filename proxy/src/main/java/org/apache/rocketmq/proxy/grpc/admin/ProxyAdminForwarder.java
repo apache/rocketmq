@@ -218,8 +218,10 @@ public class ProxyAdminForwarder implements StartAndShutdown {
         try {
             PeerConnection peer = this.peerConnections.computeIfAbsent(target,
                 key -> createPeerConnection(remoteProxyIp, adminPort));
-            AdminGrpc.AdminStub stub = peer.stub.withInterceptors(
-                MetadataUtils.newAttachHeadersInterceptor(buildOutboundMetadata()));
+            AdminGrpc.AdminStub stub = peer.stub
+                .withDeadlineAfter(ConfigurationManager.getProxyConfig().getGrpcAdminServerForwardTimeoutMillis(),
+                    TimeUnit.MILLISECONDS)
+                .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(buildOutboundMetadata()));
             log.info("forwarding admin call to peer proxy. target:{}, group:{}, clientId:{}",
                 target, group, clientId);
             invocation.accept(stub, responseObserver);
