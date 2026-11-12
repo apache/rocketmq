@@ -18,6 +18,7 @@
 package org.apache.rocketmq.example.simple;
 
 import java.util.List;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -26,28 +27,27 @@ public class RandomAsyncCommit {
     private final ConcurrentHashMap<MessageQueue, CachedQueue> mqCachedTable =
         new ConcurrentHashMap<>();
 
-    public void putMessages(final MessageQueue mq, final List<MessageExt> msgs) {
-        CachedQueue cachedQueue = this.mqCachedTable.get(mq);
-        if (null == cachedQueue) {
-            cachedQueue = new CachedQueue();
-            this.mqCachedTable.put(mq, cachedQueue);
-        }
+    public synchronized void putMessages(final MessageQueue mq, final List<MessageExt> msgs) {
+        CachedQueue cachedQueue = this.mqCachedTable.computeIfAbsent(mq, k -> new CachedQueue());
         for (MessageExt msg : msgs) {
             cachedQueue.getMsgCachedTable().put(msg.getQueueOffset(), msg);
         }
     }
 
-    public void removeMessage(final MessageQueue mq, long offset) {
+    public synchronized void removeMessage(final MessageQueue mq, long offset) {
         CachedQueue cachedQueue = this.mqCachedTable.get(mq);
         if (null != cachedQueue) {
             cachedQueue.getMsgCachedTable().remove(offset);
         }
     }
 
-    public long commitableOffset(final MessageQueue mq) {
+    public synchronized long commitableOffset(final MessageQueue mq) {
         CachedQueue cachedQueue = this.mqCachedTable.get(mq);
         if (null != cachedQueue) {
-            return cachedQueue.getMsgCachedTable().firstKey();
+            TreeMap<Long, MessageExt> table = cachedQueue.getMsgCachedTable();
+            if (!table.isEmpty()) {
+                return table.firstKey();
+            }
         }
 
         return -1;
