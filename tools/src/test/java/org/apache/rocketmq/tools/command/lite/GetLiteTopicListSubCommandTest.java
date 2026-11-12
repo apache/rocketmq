@@ -17,7 +17,10 @@
 
 package org.apache.rocketmq.tools.command.lite;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
@@ -66,6 +69,28 @@ public class GetLiteTopicListSubCommandTest {
         GetLiteTopicListSubCommand.printRow(responseBody, "broker-b");
         GetLiteTopicListSubCommand.printRow(null, "broker-a");
         GetLiteTopicListSubCommand.printRow(new GetLiteTopicListResponseBody(), "broker-a");
+    }
+
+    @Test
+    public void testTruncationHint() {
+        GetLiteTopicListResponseBody responseBody = mockResponseBody();
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            System.setOut(new PrintStream(output));
+            GetLiteTopicListSubCommand.printRow(responseBody, "broker-a");
+            assertTrue(new String(output.toByteArray(), StandardCharsets.UTF_8).contains("increase -m"));
+
+            output.reset();
+            responseBody.setTotal(10000);
+            GetLiteTopicListSubCommand.printRow(responseBody, "broker-a");
+            String hint = new String(output.toByteArray(), StandardCharsets.UTF_8);
+            assertTrue(hint.contains("broker limit 10000"));
+            assertTrue(hint.contains("narrower -x prefix"));
+            assertTrue(!hint.contains("increase -m"));
+        } finally {
+            System.setOut(originalOut);
+        }
     }
 
     @Test
