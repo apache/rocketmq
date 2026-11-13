@@ -220,7 +220,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     protected void initServerBootstrap(ServerBootstrap serverBootstrap) {
         serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
             .channel(useEpoll() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
-            .option(ChannelOption.SO_BACKLOG, 1024)
+            // the accept backlog is configurable (serverSocketBacklog / rocketmq.remoting.socket.backlog),
+            // so it must not be replaced by a literal here
+            .option(ChannelOption.SO_BACKLOG, this.nettyServerConfig.getServerSocketBacklog())
             .option(ChannelOption.SO_REUSEADDR, true)
             .childOption(ChannelOption.SO_KEEPALIVE, false)
             .childOption(ChannelOption.TCP_NODELAY, true)
