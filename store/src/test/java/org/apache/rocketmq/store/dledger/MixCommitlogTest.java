@@ -204,4 +204,55 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             dledgerStore.shutdown();
         }
     }
+
+    @Test
+    public void testDeleteExpiredFilesWithBatchMax() throws Exception {
+        Assume.assumeFalse(MixAll.isMac());
+        String base = createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+        DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
+        Assert.assertTrue(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
+
+        // CleanCommitLogService deletes through the overload with deleteFileBatchMax
+        int deleteFileBatchMax = dledgerStore.getMessageStoreConfig().getDeleteFileBatchMax();
+        Assert.assertEquals(Integer.MAX_VALUE, dLedgerCommitLog.deleteExpiredFile(System.currentTimeMillis(), 0, 0, true, deleteFileBatchMax));
+
+        dledgerStore.getMessageStoreConfig().setCleanFileForciblyEnable(false);
+        Assert.assertEquals(Integer.MAX_VALUE, dLedgerCommitLog.deleteExpiredFile(System.currentTimeMillis(), 0, 0, true, deleteFileBatchMax));
+        Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
+        dledgerStore.shutdown();
+    }
+
+    @Test
+    public void testKeepLastOldCommitlogFileNotExpired() throws Exception {
+        Assume.assumeFalse(MixAll.isMac());
+        String base = createBaseDir();
+        String topic = UUID.randomUUID().toString();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        {
+            DefaultMessageStore originalStore = createMessageStore(base, false);
+            doPutMessages(originalStore, topic, 0, 10, 0);
+            await().atMost(Duration.ofSeconds(10)).until(() -> 10 == originalStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(1, originalStore.getCommitLog().getMappedFileQueue().getMappedFiles().size());
+            originalStore.shutdown();
+        }
+        {
+            DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
+            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
+            int deleteFileBatchMax = dledgerStore.getMessageStoreConfig().getDeleteFileBatchMax();
+            long fileReservedTime = 72 * 3600 * 1000L;
+
+            // The last old commitlog file has not expired, so it is kept and no deletion is reported
+            Assert.assertEquals(0, dLedgerCommitLog.deleteExpiredFile(fileReservedTime, 0, 0, false, deleteFileBatchMax));
+            Assert.assertEquals(1, dLedgerCommitLog.getMappedFileQueue().getMappedFiles().size());
+
+            // Cleaning immediately removes it
+            Assert.assertEquals(1, dLedgerCommitLog.deleteExpiredFile(fileReservedTime, 0, 0, true, deleteFileBatchMax));
+            Assert.assertTrue(dLedgerCommitLog.getMappedFileQueue().getMappedFiles().isEmpty());
+            dledgerStore.shutdown();
+        }
+    }
 }
