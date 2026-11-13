@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.impl.mqclient;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -147,6 +148,26 @@ public class MQClientAPIExt extends MQClientAPIImpl {
             future.completeExceptionally(t);
         }
         return future;
+    }
+
+    /**
+     * Return active broker channels while excluding configured and discovered NameServer channels.
+     */
+    public Set<String> getActiveBrokerAddresses() {
+        List<String> activeChannelAddresses = this.getRemotingClient().getActiveChannelAddresses();
+        Set<String> activeAddresses = activeChannelAddresses == null
+            ? new HashSet<>() : new HashSet<>(activeChannelAddresses);
+        List<String> configuredNameServers = this.getRemotingClient().getNameServerAddressList();
+        if (configuredNameServers != null) {
+            activeAddresses.removeAll(configuredNameServers);
+        }
+        List<String> availableNameServers = this.getRemotingClient().getAvailableNameSrvList();
+        if (availableNameServers != null) {
+            activeAddresses.removeAll(availableNameServers);
+        }
+        activeAddresses.remove(null);
+        activeAddresses.remove("");
+        return activeAddresses;
     }
 
     public CompletableFuture<Integer> sendHeartbeatAsync(
