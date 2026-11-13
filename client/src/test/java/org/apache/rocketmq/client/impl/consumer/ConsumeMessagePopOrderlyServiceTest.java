@@ -46,6 +46,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -204,7 +205,11 @@ public class ConsumeMessagePopOrderlyServiceTest {
 
     @Test
     public void testSendMessageBack() {
-        assertTrue(popService.sendMessageBack(createMessageExt()));
+        MessageExt message = createMessageExt();
+
+        assertTrue(popService.sendMessageBack(message));
+
+        assertNull(message.getProperty(MessageConst.PROPERTY_RETRY_TOPIC));
     }
 
     @Test
