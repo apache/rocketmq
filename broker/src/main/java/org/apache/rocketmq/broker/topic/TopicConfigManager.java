@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.topic;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -768,11 +769,11 @@ public class TopicConfigManager extends ConfigManager {
     private Map<String, String> current(String topic) {
         TopicConfig topicConfig = getTopicConfig(topic);
         if (topicConfig == null) {
-            return new HashMap<>();
+            return Collections.emptyMap();
         } else {
             Map<String, String> attributes = topicConfig.getAttributes();
             if (attributes == null) {
-                return new HashMap<>();
+                return Collections.emptyMap();
             } else {
                 return attributes;
             }
