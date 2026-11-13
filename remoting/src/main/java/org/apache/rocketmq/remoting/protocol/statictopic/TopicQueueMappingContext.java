@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class TopicQueueMappingContext  {
+
     private String topic;
     private Integer globalId;
     private TopicQueueMappingDetail mappingDetail;
