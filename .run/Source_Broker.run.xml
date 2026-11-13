@@ -1,0 +1,29 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Source - Broker" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="org.apache.rocketmq.broker.BrokerStartup" />
+    <module name="rocketmq-broker" />
+    <option name="PROGRAM_PARAMETERS" value="-c &quot;$PROJECT_DIR$/dev/idea/broker.conf&quot;" />
+    <option name="VM_PARAMETERS" value="-Xms128m -Xmx512m -XX:MaxDirectMemorySize=256m -Dfile.encoding=UTF-8 &quot;-Drocketmq.home.dir=$PROJECT_DIR$/distribution&quot; &quot;-Duser.home=$PROJECT_DIR$/devenv/idea/home&quot; &quot;-Drmq.logback.configurationFile=$PROJECT_DIR$/broker/src/main/resources/rmq.broker.logback.xml&quot; --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-exports=java.base/sun.nio.ch=ALL-UNNAMED" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="SHORTEN_COMMAND_LINE" value="ARGS_FILE" />
+    <method v="2">
+      <option name="Maven.BeforeRunTask" enabled="true" file="$PROJECT_DIR$/pom.xml" goal="-pl broker -am -Dmaven.test.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true compile" />
+    </method>
+  </configuration>
+</component>
