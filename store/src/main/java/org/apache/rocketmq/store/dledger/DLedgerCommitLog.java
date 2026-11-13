@@ -222,8 +222,9 @@ public class DLedgerCommitLog extends CommitLog {
                 DLedgerUtils.sleep(1000);
             }
             mappedFileQueue.getMappedFiles().remove(mappedFile);
+            return 1;
         }
-        return 1;
+        return 0;
     }
 
     public SelectMappedBufferResult convertSbr(SelectMmapBufferResult sbr) {
