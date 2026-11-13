@@ -73,6 +73,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
+        if (heartbeatData == null) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("heartbeat request body is null or decode failed");
+            return response;
+        }
         int heartbeatFingerprint = heartbeatData.getHeartbeatFingerprint();
         if (heartbeatFingerprint != 0) {
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
