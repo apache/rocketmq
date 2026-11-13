@@ -78,7 +78,11 @@ public class RouteActivity extends AbstractMessagingActivity {
                 String brokerName = queueData.getBrokerName();
                 Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
                 if (brokerIdMap == null) {
-                    break;
+                    // A queueData whose broker has no BrokerData entry (e.g. the
+                    // broker was just unregistered while the route still carries
+                    // its queueData) only affects its own queues; keep serving
+                    // the remaining brokers instead of returning an empty route.
+                    continue;
                 }
                 for (Broker broker : brokerIdMap.values()) {
                     messageQueueList.addAll(this.genMessageQueueFromQueueData(queueData, request.getTopic(), topicMessageType, broker));
