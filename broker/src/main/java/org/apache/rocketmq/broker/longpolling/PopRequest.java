@@ -92,12 +92,14 @@ public class PopRequest {
     }
 
     public static final Comparator<PopRequest> COMPARATOR = (o1, o2) -> {
-        int ret = (int) (o1.getExpired() - o2.getExpired());
+        // Avoid long-subtraction-cast-to-int overflow (op starts at Long.MIN_VALUE,
+        // expired is a long timestamp) — mirrors the #10579 fix in DefaultElectPolicy.
+        int ret = Long.compare(o1.getExpired(), o2.getExpired());
 
         if (ret != 0) {
             return ret;
         }
-        ret = (int) (o1.op - o2.op);
+        ret = Long.compare(o1.op, o2.op);
         if (ret != 0) {
             return ret;
         }
