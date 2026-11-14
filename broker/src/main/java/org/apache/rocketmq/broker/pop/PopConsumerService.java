@@ -439,11 +439,11 @@ public class PopConsumerService extends ServiceThread {
                         // If the buffer belong retries message, the message needs to be re-encoded.
                         // The buffer should not be re-encoded when popResponseReturnActualRetryTopic
                         // is true or the current topic is not a retry topic.
-                        boolean recode = brokerConfig.isPopResponseReturnActualRetryTopic();
+                        boolean recode = !brokerConfig.isPopResponseReturnActualRetryTopic();
                         if (recode && popConsumerRecord.isRetry()) {
                             result.getGetMessageResultList().set(i, this.recodeRetryMessage(
-                                getMessageResult, popConsumerRecord.getTopicId(),
-                                popConsumerRecord.getQueueId(), result.getPopTime(), invisibleTime));
+                                getMessageResult, topicId,
+                                popConsumerRecord.getOffset(), result.getPopTime(), invisibleTime));
                         }
                     }
                 }
