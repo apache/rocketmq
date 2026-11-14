@@ -1279,6 +1279,38 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     }
 
     @Test
+    public void adminSendMessageKeepsAllSystemPropertyKeysTest() {
+        SendResult sendResult = new SendResult();
+        sendResult.setMsgId("SENT-KEYS");
+        when(messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), anyList(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(sendResult)));
+
+        SimpleObserver<AdminSendMessageResponse> observer = new SimpleObserver<>();
+        service.adminSendMessage(AdminSendMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setBody(ByteString.copyFromUtf8("hello"))
+            .setSystemProperties(SystemProperties.newBuilder()
+                .addKeys("key1")
+                .addKeys("")
+                .addKeys("key2")
+                .addKeys("key3")
+                .build())
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.OK, observer.value.getStatus().getCode());
+
+        @SuppressWarnings("rawtypes")
+        ArgumentCaptor<List> messagesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(messagingProcessor).sendMessage(any(), any(), anyString(), anyInt(), messagesCaptor.capture(),
+            anyLong());
+        Message message = (Message) messagesCaptor.getValue().get(0);
+        // same as the data plane (SendMessageActivity): every non-empty entry of the repeated
+        // system_properties.keys field ends up in the message, empty entries skipped
+        assertEquals("key1 key2 key3", message.getKeys());
+    }
+
+    @Test
     public void adminSendMessageRejectsPastDeliveryTimestampTest() {
         SimpleObserver<AdminSendMessageResponse> observer = new SimpleObserver<>();
         service.adminSendMessage(AdminSendMessageRequest.newBuilder()

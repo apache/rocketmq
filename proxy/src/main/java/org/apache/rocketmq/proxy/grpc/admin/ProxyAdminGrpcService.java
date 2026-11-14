@@ -1410,11 +1410,17 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
             MessageAccessor.putProperty(message, MessageConst.PROPERTY_SHARDING_KEY,
                 systemProperties.getMessageGroup());
         }
+        // system_properties.keys is repeated and the data plane keeps every entry
+        // (SendMessageActivity joins the whole list); keeping only the first one here made an
+        // admin-sent message lose the remaining index keys without any sign to the caller
+        List<String> keys = new ArrayList<>();
         for (String key : systemProperties.getKeysList()) {
             if (!key.isEmpty()) {
-                message.setKeys(key);
-                break;
+                keys.add(key);
             }
+        }
+        if (!keys.isEmpty()) {
+            message.setKeys(keys);
         }
         if (systemProperties.hasTag() && !systemProperties.getTag().isEmpty()) {
             message.setTags(systemProperties.getTag());
