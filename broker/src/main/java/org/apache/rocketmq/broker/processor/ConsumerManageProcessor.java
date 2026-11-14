@@ -322,18 +322,20 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
         } else {
-            long minOffset =
-                this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(),
-                    requestHeader.getQueueId());
-            if (requestHeader.getSetZeroIfNotFound() != null && Boolean.FALSE.equals(requestHeader.getSetZeroIfNotFound())) {
-                response.setCode(ResponseCode.QUERY_NOT_FOUND);
-                response.setRemark("Not found, do not set to zero, maybe this group boot first");
-            } else if (minOffset <= 0
-                && this.brokerController.getMessageStore().checkInMemByConsumeOffset(
-                requestHeader.getTopic(), requestHeader.getQueueId(), 0, 1)) {
-                responseHeader.setOffset(0L);
-                response.setCode(ResponseCode.SUCCESS);
-                response.setRemark(null);
+            if (this.brokerController.getConsumerOffsetManager().hasOffsetRecord(requestHeader.getConsumerGroup(), requestHeader.getTopic())) {
+                long minOffset =
+                    this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(),
+                        requestHeader.getQueueId());
+                if (requestHeader.getSetZeroIfNotFound() != null && Boolean.FALSE.equals(requestHeader.getSetZeroIfNotFound())) {
+                    response.setCode(ResponseCode.QUERY_NOT_FOUND);
+                    response.setRemark("Not found, do not set to zero, maybe this group boot first");
+                } else if (minOffset <= 0
+                    && this.brokerController.getMessageStore().checkInMemByConsumeOffset(
+                    requestHeader.getTopic(), requestHeader.getQueueId(), 0, 1)) {
+                    responseHeader.setOffset(0L);
+                    response.setCode(ResponseCode.SUCCESS);
+                    response.setRemark(null);
+                }
             } else {
                 response.setCode(ResponseCode.QUERY_NOT_FOUND);
                 response.setRemark("Not found, V3_0_6_SNAPSHOT maybe this group consumer boot first");
