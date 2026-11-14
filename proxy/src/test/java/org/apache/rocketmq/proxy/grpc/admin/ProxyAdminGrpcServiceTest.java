@@ -144,6 +144,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -222,6 +223,11 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     }
 
     private void stubClusterInfo(String... addrs) {
+        when(adminService.getBrokerClusterInfo(anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(clusterInfo(addrs)));
+    }
+
+    private static ClusterInfo clusterInfo(String... addrs) {
         Map<String, BrokerData> table = new HashMap<>();
         for (int i = 0; i < addrs.length; i++) {
             HashMap<Long, String> brokerAddrs = new HashMap<>();
@@ -230,8 +236,7 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         }
         ClusterInfo clusterInfo = new ClusterInfo();
         clusterInfo.setBrokerAddrTable(table);
-        when(adminService.getBrokerClusterInfo(anyLong()))
-            .thenReturn(CompletableFuture.completedFuture(clusterInfo));
+        return clusterInfo;
     }
 
     private void stubRoute(boolean forWrite, String... brokerAddrs) throws Exception {
@@ -679,6 +684,30 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     }
 
     @Test
+    public void describeGroupAccumulationRejectsLiteTopicFilterTest() {
+        // stubbed leniently: without the fix the RPC answers from this broker data (the parent
+        // topic's accumulation), while the fix refuses the variant before any broker is asked
+        lenient().when(adminService.getBrokerClusterInfo(anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(clusterInfo(ADDRESS_A)));
+        lenient().when(adminService.getConsumeStats(eq(ADDRESS_A), eq(GROUP), eq(""), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(consumeStats(TOPIC, 100L, 60L, 75L)));
+
+        SimpleObserver<DescribeGroupAccumulationResponse> observer = new SimpleObserver<>();
+        service.describeGroupAccumulation(DescribeGroupAccumulationRequest.newBuilder()
+            .setGroup(resource(GROUP))
+            .addTopics(resource(TOPIC))
+            .setLiteTopic("liteA")
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        // the broker reports lite-topic lag only as a single total, so answering would present the
+        // parent topic's accumulation as the lite-scoped result; the variant is refused instead
+        assertEquals(Code.BAD_REQUEST, observer.value.getStatus().getCode());
+        assertTrue(observer.value.getStatus().getMessage().contains("lite_topic"));
+        verify(adminService, never()).getConsumeStats(anyString(), anyString(), anyString(), anyLong());
+    }
+
+    @Test
     public void describeGroupAccumulationWholeGroupResolvesTopicsTest() {
         stubClusterInfo(ADDRESS_A);
         TopicList topicList = new TopicList();
@@ -763,6 +792,30 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         assertNotNull(observer.value);
         assertEquals(Code.OK, observer.value.getStatus().getCode());
         assertEquals(0, observer.value.getClientInfoCount());
+    }
+
+    @Test
+    public void listConsumerConnectionRejectsLiteTopicFilterTest() {
+        // stubbed leniently: without the fix the RPC answers with this client, while the fix
+        // refuses the variant before any broker is asked
+        lenient().when(adminService.getBrokerClusterInfo(anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(clusterInfo(ADDRESS_A)));
+        lenient().when(adminService.getConsumerConnectionList(eq(ADDRESS_A), eq(GROUP), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(consumerConnection(CLIENT_ID, "192.168.1.5:43210", TOPIC)));
+
+        SimpleObserver<ListConsumerConnectionResponse> observer = new SimpleObserver<>();
+        service.listConsumerConnection(ListConsumerConnectionRequest.newBuilder()
+            .setGroup(resource(GROUP))
+            .setTopic(resource(TOPIC))
+            .setLiteTopic("liteA")
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        // the filter cannot be honored for clients that are not attached to this proxy, so an
+        // unfiltered listing would return clients that never subscribed to the requested lite topic
+        assertEquals(Code.BAD_REQUEST, observer.value.getStatus().getCode());
+        assertTrue(observer.value.getStatus().getMessage().contains("lite"));
+        verify(adminService, never()).getConsumerConnectionList(anyString(), anyString(), anyLong());
     }
 
     // ------------------------------------------------------------------ 8. ResetGroupOffset

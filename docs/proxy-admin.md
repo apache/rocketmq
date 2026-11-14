@@ -212,6 +212,11 @@ are answered with an explicit status or left unset rather than faked:
   `message_key`. The `subscription` / `lite_topic` / pure time-range scan variants
   need a paging cursor the open-source broker does not provide and return
   `BAD_REQUEST`.
+- **DescribeGroupAccumulation / ListConsumerConnection** reject a `lite_topic` /
+  `liteTopic` filter with `BAD_REQUEST`: the broker reports lite-topic lag only as a
+  single total (no inflight/ready split), and per-client lite subscriptions are not
+  available cluster-wide, so the filter cannot be honored — answering would present
+  the parent topic's data as the lite-scoped result.
 - **GetProxyRuntimeStats** leaves `in_tps` / `out_tps` unset: the open-source
   proxy keeps no per-process throughput counter, and reporting 0 would be
   indistinguishable from an idle proxy.
