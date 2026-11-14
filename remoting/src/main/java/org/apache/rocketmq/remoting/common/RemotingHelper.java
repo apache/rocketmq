@@ -369,10 +369,12 @@ public class RemotingHelper {
     }
 
     public static String getRequestCodeDesc(int code) {
-        return REQUEST_CODE_MAP.getOrDefault(code, String.valueOf(code));
+        String desc = REQUEST_CODE_MAP.get(code);
+        return desc != null ? desc : String.valueOf(code);
     }
 
     public static String getResponseCodeDesc(int code) {
-        return RESPONSE_CODE_MAP.getOrDefault(code, String.valueOf(code));
+        String desc = RESPONSE_CODE_MAP.get(code);
+        return desc != null ? desc : String.valueOf(code);
     }
 }
