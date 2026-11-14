@@ -144,7 +144,7 @@ public class DefaultMetadataStore extends ConfigManager implements MetadataStore
         if (metadata == null) {
             return;
         }
-        metadata.setUpdateTimestamp(System.currentTimeMillis());
+        topicMetadata.setUpdateTimestamp(System.currentTimeMillis());
         topicMetadataTable.put(topicMetadata.getTopic(), topicMetadata);
         persist();
     }
