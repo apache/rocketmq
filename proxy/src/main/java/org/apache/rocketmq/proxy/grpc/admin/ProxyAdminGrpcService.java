@@ -56,6 +56,7 @@ import apache.rocketmq.v2.SubscriptionInfo;
 import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.VerifyMessageRequest;
 import apache.rocketmq.v2.VerifyMessageResponse;
+import com.google.common.hash.Hashing;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Timestamps;
 import io.grpc.stub.StreamObserver;
@@ -1432,7 +1433,7 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
             throw new IllegalStateException("no writable queue available");
         }
         if (shardingKey != null && !shardingKey.isEmpty()) {
-            int index = Math.floorMod(shardingKey.hashCode(), queues.size());
+            int index = Hashing.consistentHash(shardingKey.hashCode(), queues.size());
             return queues.get(index);
         }
         return queues.get(ThreadLocalRandom.current().nextInt(queues.size()));

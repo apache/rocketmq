@@ -60,6 +60,7 @@ import apache.rocketmq.v2.SystemProperties;
 import apache.rocketmq.v2.VerifyMessageRequest;
 import apache.rocketmq.v2.VerifyMessageResponse;
 import com.alibaba.fastjson2.JSON;
+import com.google.common.hash.Hashing;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import io.grpc.stub.StreamObserver;
@@ -93,6 +94,7 @@ import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayRequest;
@@ -134,6 +136,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -175,6 +178,7 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
 
     private static final String TOPIC = "topicA";
     private static final String GROUP = "groupA";
+    private static final String MESSAGE_GROUP = "groupA-fifo";
     private static final String CLIENT_ID = "client-1";
     private static final String ADDRESS_A = "127.0.0.1:10911";
     private static final String ADDRESS_B = "127.0.0.2:10911";
@@ -1308,6 +1312,47 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         assertNotNull(observer.value);
         assertEquals(Code.INTERNAL_SERVER_ERROR, observer.value.getStatus().getCode());
         assertTrue(observer.value.getStatus().getMessage().contains("send failed"));
+    }
+
+    @Test
+    public void adminSendMessageRoutesMessageGroupToTheDataPlaneQueueTest() {
+        SendResult sendResult = new SendResult();
+        sendResult.setMsgId("SENT-3");
+        when(messagingProcessor.sendMessage(any(), any(), anyString(), anyInt(), anyList(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(sendResult)));
+
+        SimpleObserver<AdminSendMessageResponse> observer = new SimpleObserver<>();
+        service.adminSendMessage(AdminSendMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setBody(ByteString.copyFromUtf8("hello"))
+            .setSystemProperties(SystemProperties.newBuilder().setMessageGroup(MESSAGE_GROUP).build())
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.OK, observer.value.getStatus().getCode());
+
+        @SuppressWarnings("rawtypes")
+        ArgumentCaptor<QueueSelector> selectorCaptor = ArgumentCaptor.forClass(QueueSelector.class);
+        verify(messagingProcessor).sendMessage(any(), selectorCaptor.capture(), anyString(), anyInt(), anyList(),
+            anyLong());
+
+        List<AddressableMessageQueue> queues = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            queues.add(new AddressableMessageQueue(new MessageQueue(TOPIC, "broker-0", i), ADDRESS_A));
+        }
+        MessageQueueSelector writeSelector = mock(MessageQueueSelector.class);
+        when(writeSelector.getQueues()).thenReturn(queues);
+        MessageQueueView view = mock(MessageQueueView.class);
+        when(view.getWriteSelector()).thenReturn(writeSelector);
+
+        AddressableMessageQueue selected = selectorCaptor.getValue().select(null, view);
+
+        // the data plane (SendMessageActivity) hashes the message group with Guava's consistent hash, so a
+        // message the admin surface sends for the same group has to land on the queue that group's producer
+        // uses; a different mapping splits the group over several queues and breaks its FIFO order
+        int expected = Hashing.consistentHash(MESSAGE_GROUP.hashCode(), queues.size());
+        assertNotEquals(Math.floorMod(MESSAGE_GROUP.hashCode(), queues.size()), expected);
+        assertEquals(queues.get(expected), selected);
     }
 
     // ------------------------------------------------------------------ 14. GetTopicRoute
