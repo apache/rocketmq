@@ -147,6 +147,12 @@ Every broker-facing call goes through the asynchronous `AdminService` gateway an
 is fanned out to all relevant brokers concurrently, so the gRPC executor thread is
 never blocked.
 
+The fan-out policy depends on what the call does: a **read** keeps the answers of
+the brokers that responded and only fails when no broker answered at all, while a
+**mutation** (`ResetGroupOffset`) fails when any hop failed, naming the brokers
+that were not reached — a partially applied mutation must not be reported as a
+success.
+
 ### D5 — Protocol coverage
 
 The connection/subscription listings are cluster-visible and include both

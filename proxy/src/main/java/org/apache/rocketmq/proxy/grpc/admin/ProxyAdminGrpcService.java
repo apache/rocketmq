@@ -272,19 +272,32 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
      */
     private <T> CompletableFuture<Map<String, T>> queryAllBrokers(Collection<String> brokerAddrs,
         BiFunction<String, Long, CompletableFuture<T>> query) {
+        return queryAllBrokers(brokerAddrs, query, false);
+    }
+
+    /**
+     * Same fan-out, with the failure policy spelled out.
+     *
+     * @param requireAllBrokers a mutation cannot be reported as a success while part of it was not
+     *                          applied, so with this flag a single failed hop fails the fan-out and
+     *                          the error names the brokers that did not answer; reads keep the
+     *                          best-effort behavior described above
+     */
+    private <T> CompletableFuture<Map<String, T>> queryAllBrokers(Collection<String> brokerAddrs,
+        BiFunction<String, Long, CompletableFuture<T>> query, boolean requireAllBrokers) {
         if (brokerAddrs == null || brokerAddrs.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.emptyMap());
         }
         long timeout = timeoutMillis();
         Map<String, CompletableFuture<T>> pending = new LinkedHashMap<>();
-        List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
+        Map<String, Throwable> failures = Collections.synchronizedMap(new LinkedHashMap<>());
         for (String brokerAddr : brokerAddrs) {
             CompletableFuture<T> hop = withTimeout(query.apply(brokerAddr, timeout),
                 timeout + BROKER_CALL_DEADLINE_SLACK_MILLIS, "broker call to " + brokerAddr);
             pending.put(brokerAddr, hop
                 .whenComplete((result, throwable) -> {
                     if (throwable != null) {
-                        failures.add(throwable);
+                        failures.put(brokerAddr, throwable);
                     }
                 }));
         }
@@ -303,12 +316,19 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                 return succeeded;
             })
             .thenCompose(succeeded -> {
-                if (succeeded.isEmpty() && !failures.isEmpty()) {
-                    CompletableFuture<Map<String, T>> failed = new CompletableFuture<>();
-                    failed.completeExceptionally(failures.get(0));
-                    return failed;
+                boolean toleratePartialFailure = !requireAllBrokers && !succeeded.isEmpty();
+                if (failures.isEmpty() || toleratePartialFailure) {
+                    return CompletableFuture.completedFuture(succeeded);
                 }
-                return CompletableFuture.completedFuture(succeeded);
+                CompletableFuture<Map<String, T>> failed = new CompletableFuture<>();
+                if (succeeded.isEmpty()) {
+                    // no broker answered: report the real cause rather than a synthesized message
+                    failed.completeExceptionally(failures.values().iterator().next());
+                } else {
+                    failed.completeExceptionally(new IllegalStateException(
+                        "broker call failed for " + failures.keySet()));
+                }
+                return failed;
             });
     }
 
@@ -1086,8 +1106,10 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
             return;
         }
         log.info("resetGroupOffset group={} topic={} timestamp={} brokers={}", group, topic, resetTimestamp, brokerAddrs);
+        // a mutation, so every broker has to be reached: an OK for a reset that only some brokers
+        // applied would leave the rest of the group on the old offsets without telling the caller
         queryAllBrokers(brokerAddrs, (addr, timeout) ->
-                admin().resetOffset(addr, topic, group, resetTimestamp, true, timeout))
+                admin().resetOffset(addr, topic, group, resetTimestamp, true, timeout), true)
             .whenComplete((ignored, throwable) -> {
                 if (throwable != null) {
                     respond(responseObserver, ResetGroupOffsetResponse.newBuilder().setStatus(err(throwable)).build());
