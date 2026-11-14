@@ -64,28 +64,4 @@ public class ClusterProxyRelayService extends AbstractProxyRelayService {
         bridgeToCaller(command, relayFuture);
         return relayFuture;
     }
-
-    /**
-     * Propagates the relay outcome to the in-process caller that attached its future to the
-     * command. Both normal and exceptional completions are forwarded so the caller never has to
-     * fall back on its own timeout.
-     */
-    private static <T> void bridgeToCaller(RemotingCommand command,
-        CompletableFuture<ProxyRelayResult<T>> relayFuture) {
-        if (!(command instanceof ProxyRelayRequest)) {
-            return;
-        }
-        CompletableFuture<ProxyRelayResult<T>> callerFuture =
-            ((ProxyRelayRequest) command).typedResponseFuture();
-        if (callerFuture == null) {
-            return;
-        }
-        relayFuture.whenComplete((relayResult, throwable) -> {
-            if (throwable != null) {
-                callerFuture.completeExceptionally(throwable);
-            } else {
-                callerFuture.complete(relayResult);
-            }
-        });
-    }
 }
