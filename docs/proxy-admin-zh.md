@@ -69,7 +69,7 @@ proxy 实现 `AdminGrpc.AdminImplBase`（全部 16 个 RPC），并把它绑定�
 | 客户端定向 telemetry relay | PrintThreadStackTrace, VerifyMessage, GetConsumerRunningInfo | relay 到持有方 `GrpcClientChannel` 的 telemetry command; 客户端在 peer 上时转发到 peer proxy（D3）|
 | Broker 网关（异步、多 broker fan-out）| DescribeTopicStatus, DescribeGroupAccumulation, ResetGroupOffset, QueryMessage, QueryTimeSpan, GetTopicRoute, DeleteSubscription | proxy 自己的异步 `AdminService` remoting 网关; 每个 broker hop 有独立 deadline，慢/无响应的 broker 不会挂起整个 RPC |
 | Proxy producer 路径 | AdminSendMessage | `MessagingProcessor.sendMessage`（定时 / FIFO 消息通过 system properties 生效）|
-| Proxy 运行时 | ChangeLogLevel | root logger 上重定位的 logback API |
+| Proxy 运行时 | ChangeLogLevel | root logger 与配置已钉住级别的 logger 上重定位的 logback API（组件 logger 自带级别，只改 root 等于无效） |
 
 所有 broker 侧调用都走异步 `AdminService` 网关并并发扇出到所有相关 broker，因此 gRPC 执行线程不会被阻塞。
 
