@@ -98,16 +98,19 @@ public class AuthenticationMetadataManagerTest {
         Assert.assertEquals(user.getPassword(), "test");
         Assert.assertEquals(user.getUserType(), UserType.NORMAL);
 
-        user.setPassword("123");
-        this.authenticationMetadataManager.updateUser(user).join();
+        User cachedUser = user;
+        User update = User.of("test", "123");
+        this.authenticationMetadataManager.updateUser(update).join();
+        Assert.assertEquals("test", cachedUser.getPassword());
         user = this.authenticationMetadataManager.getUser("test").join();
         Assert.assertNotNull(user);
         Assert.assertEquals(user.getUsername(), "test");
         Assert.assertEquals(user.getPassword(), "123");
         Assert.assertEquals(user.getUserType(), UserType.NORMAL);
 
-        user.setUserType(UserType.SUPER);
-        this.authenticationMetadataManager.updateUser(user).join();
+        update = User.of("test", null, UserType.SUPER);
+        this.authenticationMetadataManager.updateUser(update).join();
+        Assert.assertEquals(UserType.NORMAL, user.getUserType());
         user = this.authenticationMetadataManager.getUser("test").join();
         Assert.assertNotNull(user);
         Assert.assertEquals(user.getUsername(), "test");
