@@ -166,8 +166,11 @@ public class PopMessageProcessorTest {
     @Test
     public void testGetInitOffset_retryTopic() throws RemotingCommandException {
         when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        // pin the retry topic version so the pop path does not randomly switch between V1 and V2
+        brokerController.getBrokerConfig().setRetrieveMessageFromPopRetryTopicV1(false);
         String newGroup = group + "-" + System.currentTimeMillis();
-        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, newGroup);
+        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, newGroup,
+            brokerController.getBrokerConfig().isEnableRetryTopicV2());
         long minOffset = 100L;
         when(messageStore.getMinOffsetInQueue(retryTopic, 0)).thenReturn(minOffset);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(retryTopic, new TopicConfig(retryTopic, 1, 1));
