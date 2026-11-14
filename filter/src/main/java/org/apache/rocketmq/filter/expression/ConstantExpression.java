@@ -58,8 +58,8 @@ public class ConstantExpression implements Expression {
         if (value > Double.MAX_VALUE) {
             throw new RuntimeException(text + " is greater than " + Double.MAX_VALUE);
         }
-        if (value < Double.MIN_VALUE) {
-            throw new RuntimeException(text + " is less than " + Double.MIN_VALUE);
+        if (value < -Double.MAX_VALUE) {
+            throw new RuntimeException(text + " is less than " + -Double.MAX_VALUE);
         }
         return new ConstantExpression(value);
     }
