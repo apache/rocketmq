@@ -2,6 +2,12 @@
 
 ## Cluster Setup
 
+### Same-city dual-site deployment considerations
+
+For same-city dual-site deployments, avoid treating the two sites as a simple active-active topology without explicit failure-domain planning. NameServer, Broker, and Controller components should be deployed with clear quorum and failover assumptions so that the cluster can tolerate a single-site failure without creating split-brain or unavailable write paths.
+
+When planning this topology, place replicated Broker groups across independent failure domains, keep NameServer addresses reachable from both sites, and verify that producer and consumer clients are configured with the complete NameServer address list. If automatic failover is required, use a deployment mode that explicitly supports controller-based or replicated high-availability behavior rather than relying only on manual Broker restart or recovery.
+
 ### 1 Single Master mode
 
 This is the simplest, but also the riskiest mode, that makes the entire service unavailable once the broker restarts or goes down. Production environments are not recommended, but it can be used for local testing and development. Here are the steps to build.
