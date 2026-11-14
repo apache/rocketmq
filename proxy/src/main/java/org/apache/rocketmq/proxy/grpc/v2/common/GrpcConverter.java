@@ -28,7 +28,7 @@ import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.MessageType;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SystemProperties;
-import com.google.protobuf.ByteString;
+import com.google.protobuf.UnsafeByteOperations;
 import com.google.protobuf.util.Timestamps;
 import java.net.SocketAddress;
 import java.util.Arrays;
@@ -99,11 +99,15 @@ public class GrpcConverter {
         Resource topic = buildResource(messageExt.getTopic());
 
         return Message.newBuilder()
-            .setTopic(topic)
-            .putAllUserProperties(userProperties)
-            .setSystemProperties(systemProperties)
-            .setBody(ByteString.copyFrom(messageExt.getBody()))
-            .build();
+                .setTopic(topic)
+                .putAllUserProperties(userProperties)
+                .setSystemProperties(systemProperties)
+                // Safety: unsafeWrap() aliases the decoded body byte[].
+                // The decoded body array must not be mutated or reused while the
+                // returned protobuf Message (or any serialized form of it) may still
+                // be referenced.
+                .setBody(UnsafeByteOperations.unsafeWrap(messageExt.getBody()))
+                .build();
     }
 
     protected Map<String, String> buildUserAttributes(MessageExt messageExt) {
