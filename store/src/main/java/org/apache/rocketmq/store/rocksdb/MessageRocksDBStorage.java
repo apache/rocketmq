@@ -31,9 +31,11 @@ import com.google.common.cache.CacheBuilder;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -85,7 +87,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private volatile ColumnFamilyHandle timerCFHandle;
     private volatile ColumnFamilyHandle transCFHandle;
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private ScheduledExecutorService scheduler;
     private static final Cache<String, byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
         .maximumSize(10000)
         .expireAfterWrite(60, TimeUnit.MINUTES)
@@ -116,6 +118,9 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
             this.defaultCFHandle = cfHandles.get(0);
             this.timerCFHandle = cfHandles.get(1);
             this.transCFHandle = cfHandles.get(2);
+            if (scheduler == null || scheduler.isShutdown()) {
+                scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("MessageRocksDBStorageFlushThread_"));
+            }
             scheduler.scheduleAtFixedRate(() -> {
                 try {
                     db.flush(flushOptions, timerCFHandle);
@@ -636,6 +641,9 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     @Override
     public synchronized boolean shutdown() {
         try {
+            if (scheduler != null) {
+                ThreadUtils.shutdownGracefully(scheduler, 5, TimeUnit.SECONDS);
+            }
             boolean result = super.shutdown();
             log.info("shutdown MessageRocksDBStorage result: {}", result);
             return result;

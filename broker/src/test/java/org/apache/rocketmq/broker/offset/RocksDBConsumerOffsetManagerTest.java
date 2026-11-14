@@ -25,14 +25,14 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
@@ -40,7 +40,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class RocksDBConsumerOffsetManagerTest {
 
-    private static final String SKIP_MAC_KEY = "skipMac";
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().assureDeletion().build();
 
     private static final String KEY = "FooBar@FooBarGroup";
 
@@ -51,12 +52,11 @@ public class RocksDBConsumerOffsetManagerTest {
     private BrokerConfig brokerConfig;
 
     @Before
-    public void init() {
-//        System.setProperty(SKIP_MAC_KEY, "false");
-        skipMacIfNecessary();
+    public void init() throws Exception {
         brokerController = Mockito.mock(BrokerController.class);
         brokerConfig = new BrokerConfig();
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(temporaryFolder.newFolder("store").getAbsolutePath());
         Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         Mockito.when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
 
@@ -75,8 +75,6 @@ public class RocksDBConsumerOffsetManagerTest {
     public void destroy() {
         if (consumerOffsetManager != null) {
             consumerOffsetManager.stop();
-            File file = new File(((RocksDBConsumerOffsetManager) consumerOffsetManager).rocksdbConfigFilePath(null, false));
-            UtilAll.deleteFile(file);
         }
     }
 
@@ -329,8 +327,4 @@ public class RocksDBConsumerOffsetManagerTest {
         Assert.assertEquals(10, consumerOffsetManager.getDataVersion().getCounter().get());
     }
 
-    private static void skipMacIfNecessary() {
-        boolean skipMac = Boolean.parseBoolean(System.getProperty(SKIP_MAC_KEY, "true"));
-        Assume.assumeFalse(MixAll.isMac() && skipMac);
-    }
 }

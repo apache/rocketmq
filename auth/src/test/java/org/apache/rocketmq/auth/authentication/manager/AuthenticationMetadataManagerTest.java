@@ -24,7 +24,6 @@ import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
-import org.apache.rocketmq.common.MixAll;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,9 +36,6 @@ public class AuthenticationMetadataManagerTest {
 
     @Before
     public void setUp() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
         this.authConfig = AuthTestHelper.createDefaultConfig();
         this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
         this.clearAllUsers();
@@ -47,18 +43,12 @@ public class AuthenticationMetadataManagerTest {
 
     @After
     public void tearDown() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
         this.clearAllUsers();
         this.authenticationMetadataManager.shutdown();
     }
 
     @Test
     public void createUser() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
         user = this.authenticationMetadataManager.getUser("test").join();
@@ -87,9 +77,6 @@ public class AuthenticationMetadataManagerTest {
 
     @Test
     public void updateUser() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
         user = this.authenticationMetadataManager.getUser("test").join();
@@ -126,9 +113,6 @@ public class AuthenticationMetadataManagerTest {
 
     @Test
     public void deleteUser() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
         user = this.authenticationMetadataManager.getUser("test").join();
@@ -142,9 +126,6 @@ public class AuthenticationMetadataManagerTest {
 
     @Test
     public void getUser() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
         user = this.authenticationMetadataManager.getUser("test").join();
@@ -159,9 +140,6 @@ public class AuthenticationMetadataManagerTest {
 
     @Test
     public void listUser() {
-        if (MixAll.isMac()) {
-            return;
-        }
         List<User> users = this.authenticationMetadataManager.listUser(null).join();
         Assert.assertTrue(CollectionUtils.isEmpty(users));
 
