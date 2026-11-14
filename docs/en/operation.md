@@ -1380,7 +1380,7 @@ In some cases, consumer need reset offset to a day or two before, if Master Brok
 
 #### 3.5 Performance tuning
 
-A spin lock is recommended for asynchronous disk flush, a reentrant lock is recommended for synchronous disk flush, configuration item is `useReentrantLockWhenPutMessage`, default is false; Enable `TransientStorePoolEnable` is recommended when use asynchronous disk flush; Recommend to close `transferMsgByHeap` to improve fetch efficiency; Set a little larger `sendMessageThreadPoolNums`, when use synchronous disk flush.
+A spin lock is recommended for asynchronous disk flush, a reentrant lock is recommended for synchronous disk flush, configuration item is `useReentrantLockWhenPutMessage`, default is true; Enable `TransientStorePoolEnable` is recommended when use asynchronous disk flush; Recommend to close `transferMsgByHeap` to improve fetch efficiency; Set a little larger `sendMessageThreadPoolNums`, when use synchronous disk flush.
 
 #### 3.6 The meaning and difference between msgId and offsetMsgId in RocketMQ
 
