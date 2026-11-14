@@ -250,7 +250,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                     msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                                 if (escapeFailCnt < MAX_RETRY_TIMES_FOR_ESCAPE) {
                                     escapeFailCnt++;
-                                    Thread.sleep(100L * (2 ^ escapeFailCnt));
+                                    Thread.sleep(100L * (1L << escapeFailCnt));
                                 } else {
                                     escapeFailCnt = 0;
                                     newOffset = i + 1;
