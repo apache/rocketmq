@@ -119,7 +119,7 @@ public class ClientMetadata {
             Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap =  mapEntry.getValue();
             ConcurrentMap<MessageQueue, TopicQueueMappingInfo> mqEndPoints = new ConcurrentHashMap<>();
             List<Map.Entry<String, TopicQueueMappingInfo>> mappingInfos = new ArrayList<>(topicQueueMappingInfoMap.entrySet());
-            mappingInfos.sort((o1, o2) -> (int) (o2.getValue().getEpoch() - o1.getValue().getEpoch()));
+            mappingInfos.sort((o1, o2) -> Long.compare(o2.getValue().getEpoch(), o1.getValue().getEpoch()));
             int maxTotalNums = 0;
             long maxTotalNumOfEpoch = -1;
             for (Map.Entry<String, TopicQueueMappingInfo> entry : mappingInfos) {

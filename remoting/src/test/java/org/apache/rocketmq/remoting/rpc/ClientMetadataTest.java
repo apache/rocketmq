@@ -20,6 +20,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -119,5 +120,28 @@ public class ClientMetadataTest {
 
         ConcurrentMap<MessageQueue, String> actual = ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
         assertEquals(1, actual.size());
+    }
+
+    @Test
+    public void testTopicRouteData2EndpointsChoosesLatestEpochWithoutOverflow() {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new HashMap<>();
+        mappingInfos.put("latest", buildMappingInfo("latest", Long.MAX_VALUE));
+        mappingInfos.put("stale", buildMappingInfo("stale", 0));
+        topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
+
+        ConcurrentMap<MessageQueue, String> actual =
+            ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
+        MessageQueue messageQueue = new MessageQueue(
+            defaultTopic, TopicQueueMappingUtils.getMockBrokerName("scope"), 0);
+
+        assertEquals("latest", actual.get(messageQueue));
+    }
+
+    private TopicQueueMappingInfo buildMappingInfo(String brokerName, long epoch) {
+        TopicQueueMappingInfo info = new TopicQueueMappingInfo(defaultTopic, 1, brokerName, epoch);
+        info.setScope("scope");
+        info.getCurrIdMap().put(0, 0);
+        return info;
     }
 }
