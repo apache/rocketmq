@@ -303,7 +303,7 @@ public class ControllerMetricsManager {
         if (StringUtils.isNotBlank(labels)) {
             List<String> labelList = Splitter.on(',').omitEmptyStrings().splitToList(labels);
             for (String label : labelList) {
-                String[] pair = label.split(":");
+                String[] pair = label.split(":", 2);
                 if (pair.length != 2) {
                     logger.warn("metrics label is not valid: {}", label);
                     continue;
@@ -338,7 +338,7 @@ public class ControllerMetricsManager {
                 Map<String, String> headerMap = new HashMap<>();
                 List<String> headerList = Splitter.on(',').omitEmptyStrings().splitToList(headers);
                 for (String header : headerList) {
-                    String[] pair = header.split(":");
+                    String[] pair = header.split(":", 2);
                     if (pair.length != 2) {
                         logger.warn("metricsGrpcExporterHeader is not valid: {}", headers);
                         continue;
