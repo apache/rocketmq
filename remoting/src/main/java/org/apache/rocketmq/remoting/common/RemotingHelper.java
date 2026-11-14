@@ -302,7 +302,7 @@ public class RemotingHelper {
         int ipAddr = ipToInt(ip);
         String[] cidrArr = cidr.split("/");
         int netId = Integer.parseInt(cidrArr[1]);
-        int mask = 0xFFFFFFFF << (32 - netId);
+        int mask = netId == 0 ? 0 : 0xFFFFFFFF << (32 - netId);
         int cidrIpAddr = ipToInt(cidrArr[0]);
 
         return (ipAddr & mask) == (cidrIpAddr & mask);
