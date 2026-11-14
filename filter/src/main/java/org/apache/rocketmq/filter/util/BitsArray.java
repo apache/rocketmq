@@ -59,8 +59,8 @@ public class BitsArray implements Cloneable {
             throw new IllegalArgumentException("Bit is less than 1.");
         }
 
-        if (bitLength < bytes.length * Byte.SIZE) {
-            throw new IllegalArgumentException("BitLength is less than bytes.length() * " + Byte.SIZE);
+        if (bitLength > (long) bytes.length * Byte.SIZE) {
+            throw new IllegalArgumentException("BitLength is greater than bytes.length() * " + Byte.SIZE);
         }
 
         this.bytes = new byte[bytes.length];
