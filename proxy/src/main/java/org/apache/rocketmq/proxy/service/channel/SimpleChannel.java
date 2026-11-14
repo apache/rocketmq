@@ -88,12 +88,16 @@ public class SimpleChannel extends AbstractChannel {
             return null;
         }
 
-        String[] segments = address.split(":");
-        if (2 == segments.length) {
-            return new InetSocketAddress(segments[0], Integer.parseInt(segments[1]));
+        int split = address.lastIndexOf(":");
+        if (split < 0) {
+            return null;
         }
-
-        return null;
+        String host = address.substring(0, split);
+        String port = address.substring(split + 1);
+        if (host.startsWith("[") && host.endsWith("]")) {
+            host = host.substring(1, host.length() - 1);
+        }
+        return new InetSocketAddress(host, Integer.parseInt(port));
     }
 
     @Override
