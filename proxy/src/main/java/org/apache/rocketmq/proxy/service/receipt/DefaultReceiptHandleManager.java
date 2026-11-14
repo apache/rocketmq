@@ -128,6 +128,12 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             public void shutdown() throws Exception {
                 scheduledExecutorService.shutdown();
                 clearAllHandle();
+                if (renewalWorkerService != null) {
+                    renewalWorkerService.shutdown();
+                }
+                if (returnHandleGroupWorkerService != null) {
+                    returnHandleGroupWorkerService.shutdown();
+                }
             }
         });
     }
