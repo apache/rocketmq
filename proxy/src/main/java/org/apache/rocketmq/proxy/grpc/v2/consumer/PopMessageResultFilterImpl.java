@@ -27,7 +27,9 @@ public class PopMessageResultFilterImpl implements PopMessageResultFilter {
     private final int maxAttempts;
 
     public PopMessageResultFilterImpl(int maxAttempts) {
-        this.maxAttempts = maxAttempts;
+        // a client that leaves the backoff policy unset (proto3 default 0) must
+        // still get at least one delivery attempt before messages go to the DLQ
+        this.maxAttempts = Math.max(1, maxAttempts);
     }
 
     @Override
