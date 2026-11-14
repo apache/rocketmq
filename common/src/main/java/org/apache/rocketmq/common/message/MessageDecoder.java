@@ -44,6 +44,9 @@ public class MessageDecoder {
     public final static int MESSAGE_PHYSIC_OFFSET_POSITION = 28;
     public final static int MESSAGE_STORE_TIMESTAMP_POSITION = 56;
 
+    // Pre-encoded constant to avoid per-message getBytes() allocation in createCrc32()
+    private static final byte[] PROPERTY_CRC32_BYTES = MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8);
+
     // Set message magic code v2 if topic length > 127
     public final static int MESSAGE_MAGIC_CODE = -626843481;
     public final static int MESSAGE_MAGIC_CODE_V2 = -626843477;
@@ -154,7 +157,7 @@ public class MessageDecoder {
     }
 
     public static void createCrc32(final ByteBuffer input, int crc32) {
-        input.put(MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8));
+        input.put(PROPERTY_CRC32_BYTES);
         input.put((byte) NAME_VALUE_SEPARATOR);
         for (int i = 0; i < 10; i++) {
             byte b = '0';
@@ -168,7 +171,7 @@ public class MessageDecoder {
     }
 
     public static void createCrc32(final ByteBuf input, int crc32) {
-        input.writeBytes(MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8));
+        input.writeBytes(PROPERTY_CRC32_BYTES);
         input.writeByte((byte) NAME_VALUE_SEPARATOR);
         for (int i = 0; i < 10; i++) {
             byte b = '0';
