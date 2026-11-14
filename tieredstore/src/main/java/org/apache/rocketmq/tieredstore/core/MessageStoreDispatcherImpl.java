@@ -261,10 +261,10 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             List<DispatchRequest> dispatchRequestList = new ArrayList<>();
             for (; offset < targetOffset; offset++) {
                 cqUnit = consumeQueue.get(offset);
-                bufferSize += cqUnit.getSize();
-                if (bufferSize >= groupCommitSize) {
+                if (bufferSize > 0 && bufferSize + cqUnit.getSize() >= groupCommitSize) {
                     break;
                 }
+                bufferSize += cqUnit.getSize();
                 message = defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
                 appendingBufferList.add(message);
 
