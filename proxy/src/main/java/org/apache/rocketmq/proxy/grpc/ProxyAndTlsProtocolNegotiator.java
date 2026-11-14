@@ -53,6 +53,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -63,7 +64,9 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.config.TlsDomainConfig;
 import org.apache.rocketmq.proxy.grpc.constant.AttributeKeys;
+import org.apache.rocketmq.proxy.service.cert.TlsSniManager;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
@@ -79,10 +82,11 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
     private static volatile SslContext sslContext;
+    private static volatile TlsSniManager tlsSniManager;
 
     public ProxyAndTlsProtocolNegotiator() {
         try {
-            loadSslContext();
+            initSniManager();
             log.info("SslContext created for proxy server");
         } catch (IOException | CertificateException e) {
             log.error("SslContext init error", e);
@@ -102,6 +106,24 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
     @Override
     public void close() {
+    }
+
+    private static void initSniManager() throws CertificateException, IOException {
+        loadSslContext();
+
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        Map<String, TlsDomainConfig> domainConfigs = proxyConfig.getTlsDomainConfigs();
+        if (domainConfigs != null && !domainConfigs.isEmpty()) {
+            TlsSniManager manager = new TlsSniManager();
+            manager.setDefaultSslContext(sslContext);
+
+            for (Map.Entry<String, TlsDomainConfig> entry : domainConfigs.entrySet()) {
+                SslContext domainCtx = buildDomainSslContext(entry.getValue());
+                manager.putDomainSslContext(entry.getKey(), domainCtx);
+            }
+            tlsSniManager = manager;
+            log.info("SNI manager initialized with {} domain configs", domainConfigs.size());
+        }
     }
 
     public static void loadSslContext() throws CertificateException, IOException {
@@ -140,15 +162,10 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         }
         SslContext oldSslContext = sslContext;
         sslContext = newSslContext;
+        if (tlsSniManager != null) {
+            tlsSniManager.setDefaultSslContext(newSslContext);
+        }
         if (oldSslContext != null) {
-            // Release the old SslContext to free native memory (OpenSSL provider only).
-            // ReferenceCountUtil.release() is a no-op for JDK SslContext since it does not
-            // implement ReferenceCounted.
-            // Note: there is a theoretical race where an event-loop thread could read the old
-            // sslContext (volatile) and call newHandler() after release. In practice this is
-            // negligible because cert reload is very infrequent and the window is nanoseconds.
-            // Worst case: the single new connection gets an IllegalReferenceCountException and
-            // the client retries successfully — no pod crash or service disruption.
             try {
                 ReferenceCountUtil.release(oldSslContext);
                 log.info("Old SslContext released for proxy server");
@@ -156,6 +173,51 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 log.warn("Failed to release old SslContext for proxy server", e);
             }
         }
+    }
+
+    public static void reloadDomainSslContext(String pattern) {
+        if (tlsSniManager == null) {
+            return;
+        }
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        Map<String, TlsDomainConfig> domainConfigs = proxyConfig.getTlsDomainConfigs();
+        if (domainConfigs == null) {
+            return;
+        }
+        TlsDomainConfig config = domainConfigs.get(pattern);
+        if (config == null) {
+            log.warn("Domain config not found for pattern: {}", pattern);
+            return;
+        }
+        try {
+            SslContext newCtx = buildDomainSslContext(config);
+            tlsSniManager.reloadDomain(pattern, newCtx);
+            log.info("Reloaded domain SslContext for pattern: {}", pattern);
+        } catch (Exception e) {
+            log.error("Failed to reload domain SslContext for pattern: {}", pattern, e);
+        }
+    }
+
+    static SslContext buildDomainSslContext(TlsDomainConfig config) throws CertificateException, IOException {
+        SslProvider provider;
+        if (OpenSsl.isAvailable()) {
+            provider = SslProvider.OPENSSL;
+        } else {
+            provider = SslProvider.JDK;
+        }
+        try (InputStream keyInput = Files.newInputStream(Paths.get(config.getKeyPath()));
+             InputStream certInput = Files.newInputStream(Paths.get(config.getCertPath()))) {
+            return GrpcSslContexts.forServer(certInput, keyInput,
+                    StringUtils.isNotBlank(config.getKeyPassword()) ? config.getKeyPassword() : null)
+                .sslProvider(provider)
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .clientAuth(ClientAuth.NONE)
+                .build();
+        }
+    }
+
+    static boolean isSniEnabled() {
+        return tlsSniManager != null && tlsSniManager.hasDomainConfigs();
     }
 
     private class ProxyAndTlsProtocolHandler extends ByteToMessageDecoder {
@@ -278,8 +340,12 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         private final ChannelHandler plaintext;
 
         public TlsModeHandler(GrpcHttp2ConnectionHandler grpcHandler) {
-            this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
-                .newHandler(grpcHandler);
+            if (isSniEnabled()) {
+                this.ssl = new GrpcSniHandler(grpcHandler);
+            } else {
+                this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
+                    .newHandler(grpcHandler);
+            }
             this.plaintext = InternalProtocolNegotiators.serverPlaintext()
                 .newHandler(grpcHandler);
         }
@@ -318,6 +384,23 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             } else {
                 super.userEventTriggered(ctx, evt);
             }
+        }
+    }
+
+    private class GrpcSniHandler extends io.grpc.netty.shaded.io.netty.handler.ssl.SniHandler {
+        private final GrpcHttp2ConnectionHandler grpcHandler;
+
+        GrpcSniHandler(GrpcHttp2ConnectionHandler grpcHandler) {
+            super(tlsSniManager.asMapping());
+            this.grpcHandler = grpcHandler;
+        }
+
+        @Override
+        protected void replaceHandler(ChannelHandlerContext ctx, String hostname,
+                                      SslContext selectedContext) throws Exception {
+            ChannelHandler grpcTlsHandler = InternalProtocolNegotiators.serverTls(selectedContext)
+                .newHandler(grpcHandler);
+            ctx.pipeline().replace(this, null, grpcTlsHandler);
         }
     }
 }
