@@ -224,11 +224,16 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
         remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, pullMessageActivity, this.pullMessageExecutor);
         remotingServer.registerProcessor(RequestCode.LITE_PULL_MESSAGE, pullMessageActivity, this.pullMessageExecutor);
-        remotingServer.registerProcessor(RequestCode.POP_MESSAGE, pullMessageActivity, this.pullMessageExecutor);
+        // POP and its acknowledgment are not pull requests: the pull activity decodes a
+        // PullMessageRequestHeader (a POP request carries a PopMessageRequestHeader), and the
+        // consumer manager activity has no case for the ack codes, so it returns no response at all
+        // and the requester only fails by its own timeout while the ack is never applied
+        remotingServer.registerProcessor(RequestCode.POP_MESSAGE, popMessageActivity, this.pullMessageExecutor);
+        remotingServer.registerProcessor(RequestCode.ACK_MESSAGE, ackMessageActivity, this.updateOffsetExecutor);
+        remotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, changeInvisibleTimeActivity,
+            this.updateOffsetExecutor);
 
         remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManagerActivity, this.updateOffsetExecutor);
-        remotingServer.registerProcessor(RequestCode.ACK_MESSAGE, consumerManagerActivity, this.updateOffsetExecutor);
-        remotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, consumerManagerActivity, this.updateOffsetExecutor);
         remotingServer.registerProcessor(RequestCode.GET_CONSUMER_CONNECTION_LIST, consumerManagerActivity, this.updateOffsetExecutor);
 
         remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManagerActivity, this.defaultExecutor);
