@@ -84,8 +84,9 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
                 if (oldAcl == null) {
                     return this.getAuthorizationMetadataProvider().createAcl(acl);
                 }
-                oldAcl.updatePolicy(acl.getPolicies());
-                return this.getAuthorizationMetadataProvider().updateAcl(oldAcl);
+                Acl newAcl = oldAcl.deepCopy();
+                newAcl.updatePolicy(acl.getPolicies());
+                return this.getAuthorizationMetadataProvider().updateAcl(newAcl);
             });
 
         } catch (Exception e) {
@@ -117,8 +118,9 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
                 if (oldAcl == null) {
                     return this.getAuthorizationMetadataProvider().createAcl(acl);
                 }
-                oldAcl.updatePolicy(acl.getPolicies());
-                return this.getAuthorizationMetadataProvider().updateAcl(oldAcl);
+                Acl newAcl = oldAcl.deepCopy();
+                newAcl.updatePolicy(acl.getPolicies());
+                return this.getAuthorizationMetadataProvider().updateAcl(newAcl);
             });
 
         } catch (Exception e) {
@@ -160,13 +162,15 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
                 }
                 return oldAcl;
             }).thenCompose(oldAcl -> {
-                if (resource != null) {
-                    oldAcl.deletePolicy(finalPolicyType, resource);
-                }
-                if (resource == null || CollectionUtils.isEmpty(oldAcl.getPolicies())) {
+                if (resource == null) {
                     return this.getAuthorizationMetadataProvider().deleteAcl(subject);
                 }
-                return this.getAuthorizationMetadataProvider().updateAcl(oldAcl);
+                Acl newAcl = oldAcl.deepCopy();
+                newAcl.deletePolicy(finalPolicyType, resource);
+                if (CollectionUtils.isEmpty(newAcl.getPolicies())) {
+                    return this.getAuthorizationMetadataProvider().deleteAcl(subject);
+                }
+                return this.getAuthorizationMetadataProvider().updateAcl(newAcl);
             });
 
         } catch (Exception e) {
