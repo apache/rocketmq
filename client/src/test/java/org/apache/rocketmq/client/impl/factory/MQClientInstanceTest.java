@@ -252,6 +252,18 @@ public class MQClientInstanceTest {
     }
 
     @Test
+    public void testTopicRouteData2TopicPublishInfoWithMalformedOrderTopicConf() {
+        TopicRouteData topicRouteData = createTopicRouteData();
+        // segments without "brokerName:queueNum" shape or with a non-numeric
+        // count must be skipped instead of aborting the whole conversion
+        topicRouteData.setOrderTopicConf("127.0.0.1:2;malformed;broker-b:notANumber;127.0.0.2:1");
+        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
+        assertFalse(actual.isHaveTopicRouterInfo());
+        assertTrue(actual.isOrderTopic());
+        assertEquals(3, actual.getMessageQueueList().size());
+    }
+
+    @Test
     public void testTopicRouteData2TopicPublishInfoWithTopicQueueMappingByBroker() {
         TopicRouteData topicRouteData = createTopicRouteData();
         topicRouteData.setTopicQueueMappingByBroker(Collections.singletonMap(topic, new TopicQueueMappingInfo()));

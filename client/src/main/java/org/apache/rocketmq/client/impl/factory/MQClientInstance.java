@@ -266,7 +266,18 @@ public class MQClientInstance {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
                 String[] item = broker.split(":");
-                int nums = Integer.parseInt(item[1]);
+                int nums;
+                try {
+                    nums = Integer.parseInt(item[1]);
+                } catch (RuntimeException e) {
+                    // orderTopicConf is a manually configured string stored on
+                    // the nameserver; a segment without the "brokerName:queueNum"
+                    // shape or with a non-numeric count must only drop its own
+                    // queues, not abort the whole route conversion with a raw
+                    // runtime exception escaping updateTopicRouteInfoFromNameServer.
+                    log.warn("skip malformed orderTopicConf segment, topic={}, segment={}", topic, broker);
+                    continue;
+                }
                 for (int i = 0; i < nums; i++) {
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
                     info.getMessageQueueList().add(mq);
