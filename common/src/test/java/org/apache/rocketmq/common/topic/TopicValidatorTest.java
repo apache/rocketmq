@@ -61,6 +61,35 @@ public class TopicValidatorTest {
     }
 
     @Test
+    public void testTopicValidator_V2RetryTopicPass() {
+        // KeyBuilder.buildPopRetryTopicV2() uses '+' as the separator between cid and topic.
+        TopicValidator.ValidateResult res = TopicValidator.validateTopic("%RETRY%GID_test+normal_topic");
+        assertThat(res.isValid()).isTrue();
+        assertThat(res.getRemark()).isEmpty();
+    }
+
+    @Test
+    public void testTopicValidator_V2RetryTopicRejectMalformed() {
+        // multiple '+' separators
+        assertThat(TopicValidator.validateTopic("%RETRY%GID_test+normal+topic").isValid()).isFalse();
+        // empty group
+        assertThat(TopicValidator.validateTopic("%RETRY%+normal_topic").isValid()).isFalse();
+        // empty topic
+        assertThat(TopicValidator.validateTopic("%RETRY%GID_test+").isValid()).isFalse();
+    }
+
+    @Test
+    public void testTopicValidator_PlusRejectedInOrdinaryTopic() {
+        assertThat(TopicValidator.validateTopic("normal+topic").isValid()).isFalse();
+        assertThat(TopicValidator.validateTopic("+normal_topic").isValid()).isFalse();
+    }
+
+    @Test
+    public void testGroupValidator_PlusRejected() {
+        assertThat(TopicValidator.validateGroup("GID+test").isValid()).isFalse();
+    }
+
+    @Test
     public void testGroupValidator_Pass() {
         TopicValidator.ValidateResult res = TopicValidator.validateGroup("TestGroup");
         assertThat(res.isValid()).isTrue();
