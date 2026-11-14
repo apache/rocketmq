@@ -17,6 +17,7 @@
 package org.apache.rocketmq.container;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -143,6 +144,10 @@ public class BrokerContainerStartup {
         messageStoreConfig.setHaListenPort(brokerConfig.getListenPort() + 1);
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
+
+        authConfig.setConfigName(brokerConfig.getBrokerName());
+        authConfig.setClusterName(brokerConfig.getBrokerClusterName());
+        authConfig.setAuthConfigPath(messageStoreConfig.getStorePathRootDir() + File.separator + "config");
 
         if (!brokerConfig.isEnableControllerMode()) {
             switch (messageStoreConfig.getBrokerRole()) {
