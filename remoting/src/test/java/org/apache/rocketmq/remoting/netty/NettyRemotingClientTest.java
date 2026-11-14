@@ -22,6 +22,10 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.local.LocalChannel;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -66,6 +70,26 @@ public class NettyRemotingClientTest {
     private NettyRemotingClient remotingClient = new NettyRemotingClient(new NettyClientConfig());
     @Mock
     private RPCHook rpcHookMock;
+
+    @Test
+    public void testUpdateNameServerAddressListAcceptsReadOnlyList() {
+        List<String> addresses = Collections.unmodifiableList(Arrays.asList("127.0.0.1:9876", "127.0.0.2:9876"));
+
+        remotingClient.updateNameServerAddressList(addresses);
+
+        assertThat(remotingClient.getNameServerAddressList()).containsExactlyInAnyOrderElementsOf(addresses);
+    }
+
+    @Test
+    public void testUpdateNameServerAddressListCopiesInput() {
+        List<String> addresses = new ArrayList<>(Arrays.asList("127.0.0.1:9876", "127.0.0.2:9876"));
+
+        remotingClient.updateNameServerAddressList(addresses);
+        addresses.clear();
+
+        assertThat(remotingClient.getNameServerAddressList())
+            .containsExactlyInAnyOrder("127.0.0.1:9876", "127.0.0.2:9876");
+    }
 
     @Test
     public void testStartWithoutChannelEventListener() throws Exception {
