@@ -1110,8 +1110,13 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
             return;
         }
         int maxNums = request.getMaxMessageNums() > 0 ? request.getMaxMessageNums() : DEFAULT_MAX_MESSAGE_NUMS;
-        long begin = request.hasBeginTimestamp() ? TimeUnit.SECONDS.toMillis(request.getBeginTimestamp().getSeconds()) : 0L;
-        long end = request.hasEndTimestamp() ? TimeUnit.SECONDS.toMillis(request.getEndTimestamp().getSeconds())
+        long begin = request.hasBeginTimestamp()
+            ? TimeUnit.SECONDS.toMillis(request.getBeginTimestamp().getSeconds())
+                + TimeUnit.NANOSECONDS.toMillis(request.getBeginTimestamp().getNanos())
+            : 0L;
+        long end = request.hasEndTimestamp()
+            ? TimeUnit.SECONDS.toMillis(request.getEndTimestamp().getSeconds())
+                + TimeUnit.NANOSECONDS.toMillis(request.getEndTimestamp().getNanos())
             : Long.MAX_VALUE;
 
         List<String> brokerAddrs;
