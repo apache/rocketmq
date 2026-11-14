@@ -39,11 +39,11 @@ public class ResetMasterFlushOffsetSubCommand implements SubCommand {
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("b", "brokerAddr", true, "which broker to reset");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         opt = new Option("o", "offset", true, "the offset to reset at");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         return options;

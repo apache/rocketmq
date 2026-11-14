@@ -60,6 +60,10 @@ public class ConsumerSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("i", "clientId", true, "The consumer's client id");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
