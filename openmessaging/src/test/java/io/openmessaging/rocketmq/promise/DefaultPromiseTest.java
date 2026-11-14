@@ -20,6 +20,13 @@ import io.openmessaging.Future;
 import io.openmessaging.FutureListener;
 import io.openmessaging.Promise;
 import io.openmessaging.exception.OMSRuntimeException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,6 +57,84 @@ public class DefaultPromiseTest {
     public void testGet() throws Exception {
         promise.set("Done");
         assertThat(promise.get()).isEqualTo("Done");
+    }
+
+    @Test
+    public void testGetWaitsForCompletion() throws Exception {
+        CountDownLatch getStarted = new CountDownLatch(1);
+        FutureTask<String> getTask = new FutureTask<>(() -> {
+            getStarted.countDown();
+            return promise.get();
+        });
+        Thread getThread = new Thread(getTask, "DefaultPromiseTestGetThread");
+        getThread.setDaemon(true);
+        getThread.start();
+
+        assertThat(getStarted.await(5, TimeUnit.SECONDS)).isTrue();
+        try {
+            getTask.get(200, TimeUnit.MILLISECONDS);
+            failBecauseExceptionWasNotThrown(TimeoutException.class);
+        } catch (TimeoutException expected) {
+            assertThat(expected).isNotNull();
+        }
+
+        promise.set("Done");
+        assertThat(getTask.get(5, TimeUnit.SECONDS)).isEqualTo("Done");
+    }
+
+    @Test
+    public void testGetPropagatesFailure() {
+        IllegalStateException failure = new IllegalStateException("Test failure");
+        promise.setFailure(failure);
+
+        try {
+            promise.get();
+            failBecauseExceptionWasNotThrown(OMSRuntimeException.class);
+        } catch (OMSRuntimeException e) {
+            assertThat(e.getCause()).isEqualTo(failure);
+        }
+    }
+
+    @Test
+    public void testGetDoesNotNotifyListenerAgain() {
+        AtomicInteger notificationCount = new AtomicInteger();
+        promise.addListener(future -> notificationCount.incrementAndGet());
+
+        promise.set("Done");
+        assertThat(promise.get()).isEqualTo("Done");
+        assertThat(notificationCount.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void testGetRestoresInterruptStatus() throws Exception {
+        CountDownLatch getStarted = new CountDownLatch(1);
+        AtomicBoolean interrupted = new AtomicBoolean();
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Thread getThread = new Thread(() -> {
+            getStarted.countDown();
+            try {
+                promise.get();
+            } catch (OMSRuntimeException e) {
+                failure.set(e.getCause());
+                interrupted.set(Thread.currentThread().isInterrupted());
+            }
+        }, "DefaultPromiseTestInterruptThread");
+        getThread.start();
+
+        assertThat(getStarted.await(5, TimeUnit.SECONDS)).isTrue();
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
+        while (getThread.getState() != Thread.State.WAITING && System.currentTimeMillis() < deadline) {
+            Thread.yield();
+        }
+        assertThat(getThread.getState()).isEqualTo(Thread.State.WAITING);
+
+        getThread.interrupt();
+        getThread.join(TimeUnit.SECONDS.toMillis(5));
+
+        assertThat(getThread.isAlive()).isFalse();
+        assertThat(promise.isCancelled()).isTrue();
+        assertThat(failure.get()).isInstanceOf(InterruptedException.class);
+        assertThat(interrupted.get()).isTrue();
     }
 
     @Test
