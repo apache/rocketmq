@@ -23,21 +23,14 @@ public class MQVersion {
     private static final Version[] VERSION_VALUES = Version.values();
 
     public static String getVersionDesc(int value) {
-        Version[] versions = VERSION_VALUES;
-        int length = versions.length;
-        if (value >= length) {
-            return versions[length - 1].name();
-        }
-        return versions[value].name();
+        return value2Version(value).name();
     }
 
     public static Version value2Version(int value) {
-        Version[] versions = VERSION_VALUES;
-        int length = versions.length;
-        if (value >= length) {
-            return versions[length - 1];
+        if (value < 0) {
+            return VERSION_VALUES[0];
         }
-        return versions[value];
+        return VERSION_VALUES[Math.min(value, VERSION_VALUES.length - 1)];
     }
 
     public enum Version {
