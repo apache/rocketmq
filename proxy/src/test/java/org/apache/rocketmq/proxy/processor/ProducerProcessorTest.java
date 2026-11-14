@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -53,6 +54,7 @@ import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -186,6 +188,21 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         assertEquals(MixAll.getRetryTopic(CONSUMER_GROUP), requestHeader.getTopic());
         assertEquals(1, requestHeader.getReconsumeTimes().intValue());
         assertEquals(16, requestHeader.getMaxReconsumeTimes().intValue());
+    }
+
+    @Test
+    public void testBuildSendMessageRequestHeaderWithMalformedRetryCounters() {
+        Message message = createMessageExt(MixAll.getRetryTopic(CONSUMER_GROUP), "tag", 0, 0);
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_RECONSUME_TIME, "not-a-number");
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_MAX_RECONSUME_TIMES, "also-invalid");
+
+        SendMessageRequestHeader requestHeader = producerProcessor.buildSendMessageRequestHeader(
+            Collections.singletonList(message), PRODUCER_GROUP, 0, 0);
+
+        assertEquals(0, requestHeader.getReconsumeTimes().intValue());
+        assertNull(requestHeader.getMaxReconsumeTimes());
+        assertNull(MessageAccessor.getReconsumeTime(message));
+        assertNull(MessageAccessor.getMaxReconsumeTimes(message));
     }
 
     @Test
