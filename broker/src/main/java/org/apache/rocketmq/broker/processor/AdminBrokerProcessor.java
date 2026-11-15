@@ -653,6 +653,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         try {
             // Valid topics
+            List<TopicConfig> needUpdateTopicConfigList = new ArrayList<>(topicConfigList.size());
             for (TopicConfig topicConfig : topicConfigList) {
                 String topic = topicConfig.getTopicName();
                 TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
@@ -681,18 +682,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
                     LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
                         topic, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    response.setCode(ResponseCode.SUCCESS);
-                    return response;
+                    continue;
                 }
+                needUpdateTopicConfigList.add(topicConfig);
             }
 
-            this.brokerController.getTopicConfigManager().updateTopicConfigList(topicConfigList);
-            if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
-                for (TopicConfig topicConfig : topicConfigList) {
-                    this.brokerController.registerSingleTopicAll(topicConfig);
+            if (!needUpdateTopicConfigList.isEmpty()) {
+                this.brokerController.getTopicConfigManager().updateTopicConfigList(needUpdateTopicConfigList);
+                if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
+                    for (TopicConfig topicConfig : needUpdateTopicConfigList) {
+                        this.brokerController.registerSingleTopicAll(topicConfig);
+                    }
+                } else {
+                    this.brokerController.registerIncrementBrokerData(needUpdateTopicConfigList, this.brokerController.getTopicConfigManager().getDataVersion());
                 }
-            } else {
-                this.brokerController.registerIncrementBrokerData(topicConfigList, this.brokerController.getTopicConfigManager().getDataVersion());
             }
             response.setCode(ResponseCode.SUCCESS);
         } catch (Exception e) {
