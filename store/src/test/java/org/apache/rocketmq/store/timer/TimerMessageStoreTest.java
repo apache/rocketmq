@@ -608,6 +608,83 @@ public class TimerMessageStoreTest {
         storeConfig.setTimerRollWindowSlot(Integer.MAX_VALUE);
     }
 
+    @Test
+    public void snapshotFlushAndRecoverTest() throws Exception {
+        storeConfig.setTimerWheelSnapshotFlush(true);
+        storeConfig.setTimerWheelSnapshotIntervalMs(0);
+        storeConfig.setTimerFlushIntervalMs(100);
+        final String topic = "TimerTest_snapshotFlushAndRecover";
+
+        String base = StoreTestUtils.createBaseDir();
+        final TimerMessageStore first = createTimerMessageStore(base, false);
+        first.load();
+        first.start(true);
+
+        final int shortNum = 300;
+        final int longNum = 10;
+        long curr = System.currentTimeMillis() / precisionMs * precisionMs;
+        final long longDeliverMs = curr + 60000 - precisionMs;
+        for (int i = 0; i < shortNum + longNum; i++) {
+            MessageExtBrokerInner inner = buildMessage(curr + (i < shortNum ? 5000 : 60000), topic, false);
+            transformTimerMessage(first, inner);
+            assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(inner).getPutMessageStatus());
+        }
+        await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> first.getCommitQueueOffset() == shortNum + longNum);
+
+        // A snapshot must cover every enqueued record; the checkpoint keeps the pre-flush
+        // position so it never runs ahead of the snapshot flag (rollback-safe ordering).
+        String wheelPath = TimerMessageStore.getTimerWheelPath(storeConfig.getStorePathRootDir());
+        await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> {
+            long flag = TimerWheel.getMaxSnapshotFlag(wheelPath);
+            return flag >= first.getTimerLog().getMappedFileQueue().getMaxWrotePosition()
+                && first.getTimerCheckpoint().getLastTimerLogFlushPos() <= flag;
+        });
+        first.shutdown();
+
+        final TimerMessageStore second = createTimerMessageStore(base, false);
+        assertTrue(second.load());
+        assertEquals(shortNum + longNum, second.getQueueOffset());
+        assertEquals(second.getCommitQueueOffset(), second.getQueueOffset());
+        assertEquals(first.getCommitReadTimeMs(), second.getCommitReadTimeMs());
+        assertEquals(longNum, second.getTimerWheel().getNum(longDeliverMs));
+        second.start(true);
+
+        await().atMost(30000, TimeUnit.MILLISECONDS).until(() -> {
+            ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(topic, 0);
+            return cq != null && cq.getMaxOffsetInQueue() >= shortNum;
+        });
+        for (int i = 0; i < shortNum; i++) {
+            assertThat(getOneMessage(topic, 0, i, 2000)).isNotNull();
+        }
+        assertEquals(longNum, second.getTimerWheel().getNum(longDeliverMs));
+        second.shutdown();
+    }
+
+    @Test
+    public void snapshotRollMessageTest() throws Exception {
+        storeConfig.setTimerWheelSnapshotFlush(true);
+        storeConfig.setTimerWheelSnapshotIntervalMs(0);
+        storeConfig.setTimerFlushIntervalMs(100);
+        storeConfig.setTimerRollWindowSlot(2);
+        String topic = "TimerTest_snapshotRollMessage";
+
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null, false);
+        timerMessageStore.load();
+        timerMessageStore.start(true);
+
+        long curr = System.currentTimeMillis() / precisionMs * precisionMs;
+        long delayMs = curr + 4 * precisionMs;
+        MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
+        transformTimerMessage(timerMessageStore, inner);
+        assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(inner).getPutMessageStatus());
+
+        ByteBuffer msgBuff = getOneMessage(topic, 0, 0, 5000);
+        assertNotNull(msgBuff);
+        MessageExt msgExt = MessageDecoder.decode(msgBuff);
+        assertNotNull(msgExt);
+        assertEquals(1, Integer.valueOf(msgExt.getProperty(MessageConst.PROPERTY_TIMER_ROLL_TIMES)).intValue());
+    }
+
     public ByteBuffer getOneMessage(String topic, int queue, long offset, int timeout) throws Exception {
         int retry = timeout / 100;
         while (retry-- > 0) {

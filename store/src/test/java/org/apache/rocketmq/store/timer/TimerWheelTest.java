@@ -142,6 +142,53 @@ public class TimerWheelTest {
         TimerWheel tmpWheel = new TimerWheel(baseDir, slotsTotal + 1, precisionMs);
     }
 
+    @Test
+    public void copyForSnapshotIsolationTest() throws Exception {
+        long delayedTime = defaultDelay + precisionMs;
+        timerWheel.putSlot(delayedTime, 1, 2, 3, 4);
+        timerWheel.copyForSnapshot();
+
+        timerWheel.putSlot(delayedTime, 5, 6, 7, 8);
+        timerWheel.putSlot(delayedTime + precisionMs, 9, 10, 11, 12);
+        timerWheel.backup(12345);
+
+        TimerWheel snapWheel = new TimerWheel(baseDir, slotsTotal, precisionMs, 12345);
+        Slot slot = snapWheel.getSlot(delayedTime);
+        assertEquals(delayedTime, slot.timeMs);
+        assertEquals(1, slot.firstPos);
+        assertEquals(2, slot.lastPos);
+        assertEquals(3, slot.num);
+        assertEquals(4, slot.magic);
+        assertEquals(-1, snapWheel.getSlot(delayedTime + precisionMs).timeMs);
+        snapWheel.shutdown();
+    }
+
+    @Test
+    public void segmentedBackupRoundTripTest() throws Exception {
+        int bigSlots = 40000;
+        String bigFileName = baseDir + "_big";
+        TimerWheel bigWheel = new TimerWheel(bigFileName, bigSlots, precisionMs);
+        for (int i = 0; i < bigSlots; i++) {
+            bigWheel.putSlot(defaultDelay + (long) i * precisionMs, i, i + 1, i + 2, i + 3);
+        }
+        bigWheel.copyForSnapshot();
+        bigWheel.backup(67890);
+
+        assertEquals((long) bigSlots * 2 * Slot.SIZE, new java.io.File(bigFileName + ".67890").length());
+        TimerWheel snapWheel = new TimerWheel(bigFileName, bigSlots, precisionMs, 67890);
+        for (int i = 0; i < bigSlots; i++) {
+            Slot slot = snapWheel.getRawSlot(defaultDelay + (long) i * precisionMs);
+            assertEquals(i, slot.firstPos);
+            assertEquals(i + 1, slot.lastPos);
+            assertEquals(i + 2, slot.num);
+            assertEquals(i + 3, slot.magic);
+        }
+        snapWheel.shutdown();
+        bigWheel.shutdown();
+        StoreTestUtils.deleteFile(bigFileName);
+        StoreTestUtils.deleteFile(bigFileName + ".67890");
+    }
+
     @After
     public void shutdown() {
         if (null != timerWheel) {

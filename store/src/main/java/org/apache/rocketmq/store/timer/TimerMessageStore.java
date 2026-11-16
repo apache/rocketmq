@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.RunningFlags;
@@ -1477,6 +1478,17 @@ public class TimerMessageStore {
         }
 
         protected void putMessageToTimerWheel(TimerRequest req) {
+            // Lock here so every enqueue entry, including subclass overrides, is serialized against the snapshot copy.
+            if (storeConfig.isTimerWheelSnapshotFlush()) {
+                synchronized (lockWhenFlush) {
+                    doPutMessageToTimerWheel(req);
+                }
+            } else {
+                doPutMessageToTimerWheel(req);
+            }
+        }
+
+        private void doPutMessageToTimerWheel(TimerRequest req) {
             try {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
                 StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
@@ -1515,13 +1527,7 @@ public class TimerMessageStore {
                 CountDownLatch latch = new CountDownLatch(trs.size());
                 for (TimerRequest req : trs) {
                     req.setLatch(latch);
-                    if (storeConfig.isTimerWheelSnapshotFlush()) {
-                        synchronized (lockWhenFlush) {
-                            this.putMessageToTimerWheel(req);
-                        }
-                    } else {
-                        this.putMessageToTimerWheel(req);
-                    }
+                    this.putMessageToTimerWheel(req);
                 }
                 checkDequeueLatch(latch, -1);
                 boolean allSuccess = trs.stream().allMatch(TimerRequest::isSucc);
@@ -1851,17 +1857,38 @@ public class TimerMessageStore {
         long start = System.currentTimeMillis();
         long lastSnapshotTime = System.currentTimeMillis();
 
+        // Snapshot mode: freeze the wheel under the enqueue lock, then run all I/O unlocked.
+        // The timerlog must be durable up to the copy's end (snapshotPos) before the snapshot
+        // is written; the checkpoint keeps the pre-flush position so rollback replay stays covered.
         public void flush() throws IOException {
             if (storeConfig.isTimerWheelSnapshotFlush()) {
-                synchronized (lockWhenFlush) {
-                    prepareTimerCheckPoint();
-                    timerLog.getMappedFileQueue().flush(0);
-                    if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
-                        lastSnapshotTime = System.currentTimeMillis();
-                        timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
+                MappedFileQueue logQueue = timerLog.getMappedFileQueue();
+                prepareTimerCheckPoint();
+                long snapshotPos = -1;
+                if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
+                    synchronized (lockWhenFlush) {
+                        timerWheel.copyForSnapshot();
+                        snapshotPos = logQueue.getMaxWrotePosition();
                     }
-                    timerCheckpoint.flush();
                 }
+                logQueue.flush(0);
+                if (snapshotPos >= 0) {
+                    while (logQueue.getFlushedWhere() < snapshotPos) {
+                        long flushedWhere = logQueue.getFlushedWhere();
+                        logQueue.flush(0);
+                        if (logQueue.getFlushedWhere() == flushedWhere) {
+                            LOGGER.error("Timer snapshot skipped, timerlog flush stalled at {} behind {}",
+                                flushedWhere, snapshotPos);
+                            snapshotPos = -1;
+                            break;
+                        }
+                    }
+                }
+                if (snapshotPos >= 0) {
+                    lastSnapshotTime = System.currentTimeMillis();
+                    timerWheel.backup(snapshotPos);
+                }
+                timerCheckpoint.flush();
             } else {
                 prepareTimerCheckPoint();
                 timerLog.getMappedFileQueue().flush(0);

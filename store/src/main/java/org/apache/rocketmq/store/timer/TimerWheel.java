@@ -40,6 +40,7 @@ public class TimerWheel {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     public static final String TIMER_WHEEL_FILE_NAME = "timerwheel";
     public static final int BLANK = -1, IGNORE = -2;
+    private static final int BACKUP_SEGMENT_BYTES = 1024 * 1024;
     public final int slotsTotal;
     public final int precisionMs;
     private final String fileName;
@@ -56,6 +57,8 @@ public class TimerWheel {
     private final int wheelLength;
 
     private long snapOffset;
+
+    private ByteBuffer snapshotBuffer;
 
     public TimerWheel(String fileName, int slotsTotal, int precisionMs) throws IOException {
         this(fileName, slotsTotal, precisionMs, -1);
@@ -115,6 +118,7 @@ public class TimerWheel {
         // unmap mappedByteBuffer
         UtilAll.cleanBuffer(this.mappedByteBuffer);
         UtilAll.cleanBuffer(this.byteBuffer);
+        UtilAll.cleanBuffer(this.snapshotBuffer);
         localBuffer.remove();
 
         try {
@@ -142,18 +146,36 @@ public class TimerWheel {
     }
 
     /**
+     * Freeze the live wheel into the snapshot buffer. The caller must hold the same lock
+     * that serializes enqueue (TimerMessageStore#lockWhenFlush), so the copy sees consistent
+     * slot fields; afterwards the buffer is immutable until the next copy and all snapshot
+     * I/O can run outside the lock.
+     */
+    public void copyForSnapshot() {
+        if (snapshotBuffer == null) {
+            snapshotBuffer = ByteBuffer.allocateDirect(wheelLength);
+        }
+        ByteBuffer bf = localBuffer.get();
+        bf.position(0);
+        bf.limit(wheelLength);
+        snapshotBuffer.clear();
+        snapshotBuffer.put(bf);
+        snapshotBuffer.flip();
+    }
+
+    /**
      * Perform backup operation.
      * <p>
-     * Select snapshot file based on the provided flag, write current buffer content to a temporary file,
-     * then rename the temporary file to the formal snapshot file. If rename fails, delete the temporary file.
+     * Write the frozen snapshot buffer (see {@link #copyForSnapshot()}) to a temporary file in
+     * 1 MiB segments, forcing after each segment to bound the writeback burst, then rename the
+     * temporary file to the formal snapshot file. If rename fails, delete the temporary file.
      * Finally clean up expired snapshot files.
      *
      * @param flushWhere Flag used to select snapshot file.
      * @throws IOException If I/O error occurs during backup process.
      */
     public void backup(long flushWhere) throws IOException {
-        // Get current local buffer and position it to the beginning
-        ByteBuffer bf = localBuffer.get();
+        ByteBuffer bf = snapshotBuffer;
         bf.position(0);
         bf.limit(wheelLength);
 
@@ -166,7 +188,14 @@ public class TimerWheel {
         Files.deleteIfExists(tmpFile.toPath());
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(tmpFile, "rw")) {
             try (FileChannel fileChannel = randomAccessFile.getChannel()) {
-                fileChannel.write(bf);
+                while (bf.hasRemaining()) {
+                    bf.limit(Math.min(bf.position() + BACKUP_SEGMENT_BYTES, wheelLength));
+                    while (bf.hasRemaining()) {
+                        fileChannel.write(bf);
+                    }
+                    fileChannel.force(false);
+                    bf.limit(wheelLength);
+                }
                 fileChannel.force(true);
             }
         }
