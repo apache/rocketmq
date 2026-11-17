@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -235,6 +237,9 @@ public class LocalMessageService implements MessageService {
                 case ResponseCode.PULL_NOT_FOUND:
                     popStatus = PopStatus.POLLING_NOT_FOUND;
                     break;
+                case ResponseCode.SYSTEM_BUSY:
+                    // keep the code as the cluster mode does, so the client backs off and retries
+                    throw new CompletionException(new MQBrokerException(r.getCode(), r.getRemark()));
                 default:
                     throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, r.getRemark());
             }
