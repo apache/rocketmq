@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.compression;
 
+import java.util.Locale;
+
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.junit.Test;
 
@@ -37,6 +39,18 @@ public class CompressionTypeTest {
         assertEquals(CompressionType.ZSTD, CompressionType.of("ZSTD"));
         assertEquals(CompressionType.ZLIB, CompressionType.of("ZLIB"));
         assertThrows(RuntimeException.class, () -> CompressionType.of("UNKNOWN"));
+    }
+
+    @Test
+    public void testCompressionTypeOfIsLocaleIndependent() {
+        Locale previous = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("tr", "TR"));
+            assertEquals(CompressionType.ZLIB, CompressionType.of("zlib"));
+            assertEquals(CompressionType.ZLIB, CompressionType.of("Zlib"));
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 
     @Test
