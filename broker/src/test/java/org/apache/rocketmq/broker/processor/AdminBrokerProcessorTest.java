@@ -508,6 +508,39 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateTopicListRejectsDuplicateTopics() throws RemotingCommandException {
+        TopicConfig initialTopic = new TopicConfig("TEST_DUP_TOPIC", 4, 4);
+        RemotingCommand initRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        initRequest.setBody(new CreateTopicListRequestBody(Collections.singletonList(initialTopic)).encode());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, initRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        TopicConfig updateTo8 = new TopicConfig("TEST_DUP_TOPIC", 8, 8);
+        TopicConfig newOther = new TopicConfig("TEST_DUP_OTHER", 8, 8);
+        TopicConfig restoreTo4 = new TopicConfig("TEST_DUP_TOPIC", 4, 4);
+        RemotingCommand conflictingRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        conflictingRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(updateTo8, newOther, restoreTo4)).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, conflictingRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo("The topic[TEST_DUP_TOPIC] is duplicated in topic list.");
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getReadQueueNums()).isEqualTo(4);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getWriteQueueNums()).isEqualTo(4);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_OTHER")).isNull();
+
+        RemotingCommand unchangedDupRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        unchangedDupRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(restoreTo4, new TopicConfig("TEST_DUP_TOPIC", 4, 4))).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, unchangedDupRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo("The topic[TEST_DUP_TOPIC] is duplicated in topic list.");
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getReadQueueNums()).isEqualTo(4);
+
+        verify(brokerController, times(1)).registerIncrementBrokerData(anyList(), any());
+        verify(brokerController, never()).registerSingleTopicAll(any(TopicConfig.class));
+    }
+
+    @Test
     public void testDeleteTopicInRocksdb() throws Exception {
         if (notToBeExecuted()) {
             return;

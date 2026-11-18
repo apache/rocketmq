@@ -653,6 +653,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         try {
             // Valid topics
+            Set<String> topicNameSet = new HashSet<>(topicConfigList.size());
             List<TopicConfig> needUpdateTopicConfigList = new ArrayList<>(topicConfigList.size());
             for (TopicConfig topicConfig : topicConfigList) {
                 String topic = topicConfig.getTopicName();
@@ -660,6 +661,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (!result.isValid()) {
                     response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark(result.getRemark());
+                    return response;
+                }
+                if (!topicNameSet.add(topic)) {
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
+                    response.setRemark("The topic[" + topic + "] is duplicated in topic list.");
                     return response;
                 }
                 if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
