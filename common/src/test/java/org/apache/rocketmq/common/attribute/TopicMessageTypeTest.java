@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.attribute;
 
 import com.google.common.collect.Sets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -93,6 +94,24 @@ public class TopicMessageTypeTest {
             String expected = type.getValue().toLowerCase();
             String actual = type.getMetricsValue();
             assertEquals(expected, actual);
+        }
+    }
+
+    @Test
+    public void testGetMetricsValueUnderTurkishLocale() {
+        Locale defaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals("unspecified", TopicMessageType.UNSPECIFIED.getMetricsValue());
+            assertEquals("normal", TopicMessageType.NORMAL.getMetricsValue());
+            assertEquals("fifo", TopicMessageType.FIFO.getMetricsValue());
+            assertEquals("delay", TopicMessageType.DELAY.getMetricsValue());
+            assertEquals("transaction", TopicMessageType.TRANSACTION.getMetricsValue());
+            assertEquals("priority", TopicMessageType.PRIORITY.getMetricsValue());
+            assertEquals("lite", TopicMessageType.LITE.getMetricsValue());
+            assertEquals("mixed", TopicMessageType.MIXED.getMetricsValue());
+        } finally {
+            Locale.setDefault(defaultLocale);
         }
     }
 
