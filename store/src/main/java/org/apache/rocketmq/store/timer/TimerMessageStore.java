@@ -1340,6 +1340,9 @@ public class TimerMessageStore {
         boolean hasError = false;
         try {
             while (true) {
+                if (currOffsetPy == Long.MAX_VALUE) {
+                    break;
+                }
                 SelectMappedBufferResult timeSbr = timerLog.getWholeBuffer(currOffsetPy);
                 if (timeSbr == null) {
                     break;

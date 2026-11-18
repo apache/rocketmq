@@ -34,12 +34,17 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 public class TimerWheel {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     public static final String TIMER_WHEEL_FILE_NAME = "timerwheel";
     public static final int BLANK = -1, IGNORE = -2;
+    private static final int PAGE_SIZE = 4096;
+    private static final int PAGE_CLEAN = 0;
+    private static final int PAGE_DIRTY = 1;
+    private static final int PAGE_CLAIMED = 2;
     public final int slotsTotal;
     public final int precisionMs;
     private final String fileName;
@@ -54,6 +59,8 @@ public class TimerWheel {
         }
     };
     private final int wheelLength;
+    private final int pageCount;
+    private final AtomicIntegerArray dirtyPages;
 
     private long snapOffset;
 
@@ -65,6 +72,8 @@ public class TimerWheel {
         this.precisionMs = precisionMs;
         this.fileName = fileName;
         this.wheelLength = this.slotsTotal * 2 * Slot.SIZE;
+        this.pageCount = (this.wheelLength + PAGE_SIZE - 1) / PAGE_SIZE;
+        this.dirtyPages = new AtomicIntegerArray(this.pageCount);
         this.snapOffset = snapOffset;
 
         String finalFileName = selectSnapshotByFlag(snapOffset);
@@ -133,9 +142,30 @@ public class TimerWheel {
         bf.limit(wheelLength);
         mappedByteBuffer.position(0);
         mappedByteBuffer.limit(wheelLength);
-        for (int i = 0; i < wheelLength; i++) {
-            if (bf.get(i) != mappedByteBuffer.get(i)) {
-                mappedByteBuffer.put(i, bf.get(i));
+        for (int page = 0; page < pageCount; page++) {
+            // Claim: only process dirty pages
+            if (!dirtyPages.compareAndSet(page, PAGE_DIRTY, PAGE_CLAIMED)) {
+                continue;
+            }
+            boolean completed = false;
+            try {
+                int offset = page * PAGE_SIZE;
+                int limit = Math.min(offset + PAGE_SIZE, wheelLength);
+                for (int i = offset; i < limit; i++) {
+                    if (bf.get(i) != mappedByteBuffer.get(i)) {
+                        mappedByteBuffer.put(i, bf.get(i));
+                    }
+                }
+                completed = true;
+            } finally {
+                if (completed) {
+                    // Clear from claimed to clean. If a writer marked dirty during processing,
+                    // CAS fails and page stays dirty for next flush.
+                    dirtyPages.compareAndSet(page, PAGE_CLAIMED, PAGE_CLEAN);
+                } else {
+                    // Exception during copy - restore to dirty for retry
+                    dirtyPages.compareAndSet(page, PAGE_CLAIMED, PAGE_DIRTY);
+                }
             }
         }
         this.mappedByteBuffer.force();
@@ -285,40 +315,58 @@ public class TimerWheel {
         return (int) (timeMs / precisionMs % (slotsTotal * 2));
     }
 
+    private void markPageDirty(int offset) {
+        int pageIndex = offset / PAGE_SIZE;
+        if (pageIndex >= 0 && pageIndex < pageCount) {
+            dirtyPages.set(pageIndex, PAGE_DIRTY);
+        }
+    }
+
     public void putSlot(long timeMs, long firstPos, long lastPos) {
         localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
-        // To be compatible with previous version.
-        // The previous version's precision is fixed at 1000ms and it store timeMs / 1000 in slot.
-        localBuffer.get().putLong(timeMs / precisionMs);
-        localBuffer.get().putLong(firstPos);
-        localBuffer.get().putLong(lastPos);
+        try {
+            // To be compatible with previous version.
+            // The previous version's precision is fixed at 1000ms and it store timeMs / 1000 in slot.
+            localBuffer.get().putLong(timeMs / precisionMs);
+            localBuffer.get().putLong(firstPos);
+            localBuffer.get().putLong(lastPos);
+        } finally {
+            markPageDirty(getSlotIndex(timeMs) * Slot.SIZE);
+        }
     }
 
     public void putSlot(long timeMs, long firstPos, long lastPos, int num, int magic) {
         localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
-        localBuffer.get().putLong(timeMs / precisionMs);
-        localBuffer.get().putLong(firstPos);
-        localBuffer.get().putLong(lastPos);
-        localBuffer.get().putInt(num);
-        localBuffer.get().putInt(magic);
+        try {
+            localBuffer.get().putLong(timeMs / precisionMs);
+            localBuffer.get().putLong(firstPos);
+            localBuffer.get().putLong(lastPos);
+            localBuffer.get().putInt(num);
+            localBuffer.get().putInt(magic);
+        } finally {
+            markPageDirty(getSlotIndex(timeMs) * Slot.SIZE);
+        }
     }
 
     public void reviseSlot(long timeMs, long firstPos, long lastPos, boolean force) {
         localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
-
-        if (timeMs / precisionMs != localBuffer.get().getLong()) {
-            if (force) {
-                putSlot(timeMs, firstPos != IGNORE ? firstPos : lastPos, lastPos);
-            }
-        } else {
-            if (IGNORE != firstPos) {
-                localBuffer.get().putLong(firstPos);
+        try {
+            if (timeMs / precisionMs != localBuffer.get().getLong()) {
+                if (force) {
+                    putSlot(timeMs, firstPos != IGNORE ? firstPos : lastPos, lastPos);
+                }
             } else {
-                localBuffer.get().getLong();
+                if (IGNORE != firstPos) {
+                    localBuffer.get().putLong(firstPos);
+                } else {
+                    localBuffer.get().getLong();
+                }
+                if (IGNORE != lastPos) {
+                    localBuffer.get().putLong(lastPos);
+                }
             }
-            if (IGNORE != lastPos) {
-                localBuffer.get().putLong(lastPos);
-            }
+        } finally {
+            markPageDirty(getSlotIndex(timeMs) * Slot.SIZE);
         }
     }
 
