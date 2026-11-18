@@ -238,7 +238,7 @@ public class BitsArray implements Cloneable {
             int j = Byte.SIZE - 1;
             if (i == this.bytes.length - 1 && this.bitLength % Byte.SIZE > 0) {
                 // not full byte
-                j = this.bitLength % Byte.SIZE;
+                j = this.bitLength % Byte.SIZE - 1;
             }
 
             for (; j >= 0; j--) {
