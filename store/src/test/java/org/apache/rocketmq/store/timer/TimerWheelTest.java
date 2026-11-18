@@ -192,41 +192,65 @@ public class TimerWheelTest {
 
     @Test
     public void promoteToBaseRoundTripTest() throws Exception {
+        // snapshot-mode wheel on a dedicated path holds no handle on base, so the atomic
+        // replace also succeeds on Windows, where a mmap-held base cannot be replaced
+        String dir = StoreTestUtils.createBaseDir();
+        assertTrue(new File(dir).mkdirs());
+        String wheelPath = dir + File.separator + TimerWheel.TIMER_WHEEL_FILE_NAME;
+        TimerWheel wheel = new TimerWheel(wheelPath, slotsTotal, precisionMs, -1, true);
         long delayedTime = defaultDelay + precisionMs;
-        timerWheel.putSlot(delayedTime, 1, 2, 3, 4);
-        timerWheel.copyForSnapshot();
-        timerWheel.backup(100);
-        assertTrue(new File(baseDir + ".100").exists());
+        wheel.putSlot(delayedTime, 1, 2, 3, 4);
+        wheel.copyForSnapshot();
+        wheel.backup(100);
+        assertTrue(new File(wheelPath + ".100").exists());
 
-        timerWheel.promoteToBase(100);
-        assertFalse(new File(baseDir + ".100").exists());
-        assertFalse(new File(baseDir + ".100.tmp").exists());
+        wheel.promoteToBase(100);
+        assertFalse(new File(wheelPath + ".100").exists());
+        assertFalse(new File(wheelPath + ".100.tmp").exists());
 
         // base now holds the snapshot content; read it via the non-snapshot (mmap) constructor
-        TimerWheel baseWheel = new TimerWheel(baseDir, slotsTotal, precisionMs);
+        TimerWheel baseWheel = new TimerWheel(wheelPath, slotsTotal, precisionMs);
         Slot slot = baseWheel.getSlot(delayedTime);
         assertEquals(1, slot.firstPos);
         assertEquals(2, slot.lastPos);
         assertEquals(3, slot.num);
         assertEquals(4, slot.magic);
         baseWheel.shutdown();
+        wheel.shutdown();
+        StoreTestUtils.deleteFile(dir);
     }
 
     @Test
     public void promoteToBaseReplacesOldBaseTest() throws Exception {
-        timerWheel.putSlot(defaultDelay + precisionMs, 1, 1, 1, 1);
-        timerWheel.flush();
-        timerWheel.putSlot(defaultDelay + precisionMs, 9, 9, 9, 9);
-        timerWheel.copyForSnapshot();
-        timerWheel.backup(200);
-        timerWheel.promoteToBase(200);
+        String dir = StoreTestUtils.createBaseDir();
+        assertTrue(new File(dir).mkdirs());
+        String wheelPath = dir + File.separator + TimerWheel.TIMER_WHEEL_FILE_NAME;
+        TimerWheel wheel = new TimerWheel(wheelPath, slotsTotal, precisionMs, -1, true);
+        long delayedTime = defaultDelay + precisionMs;
 
-        assertEquals((long) slotsTotal * 2 * Slot.SIZE, new File(baseDir).length());
-        TimerWheel baseWheel = new TimerWheel(baseDir, slotsTotal, precisionMs);
-        Slot slot = baseWheel.getSlot(defaultDelay + precisionMs);
+        // first promote lays down an old base
+        wheel.putSlot(delayedTime, 1, 1, 1, 1);
+        wheel.copyForSnapshot();
+        wheel.backup(100);
+        wheel.promoteToBase(100);
+        assertTrue(new File(wheelPath).exists());
+        assertEquals((long) slotsTotal * 2 * Slot.SIZE, new File(wheelPath).length());
+
+        // second promote must REPLACE the existing base, not skip or fail
+        wheel.putSlot(delayedTime, 9, 9, 9, 9);
+        wheel.copyForSnapshot();
+        wheel.backup(200);
+        wheel.promoteToBase(200);
+        assertFalse(new File(wheelPath + ".200").exists());
+        assertEquals((long) slotsTotal * 2 * Slot.SIZE, new File(wheelPath).length());
+
+        TimerWheel baseWheel = new TimerWheel(wheelPath, slotsTotal, precisionMs);
+        Slot slot = baseWheel.getSlot(delayedTime);
         assertEquals(9, slot.firstPos);
         assertEquals(9, slot.num);
         baseWheel.shutdown();
+        wheel.shutdown();
+        StoreTestUtils.deleteFile(dir);
     }
 
     @Test
