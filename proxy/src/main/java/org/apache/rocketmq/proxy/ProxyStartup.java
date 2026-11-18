@@ -42,6 +42,7 @@ import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminAuthInterceptor;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminForwarder;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminMetricsInterceptor;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -127,9 +128,11 @@ public class ProxyStartup {
                 GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
                     .addService(adminService)
                     // authentication has to see the channel id HeaderInterceptor derives from the
-                    // transport, so it is ordered after the standard pipeline rather than appended
+                    // transport, so it is ordered after the standard pipeline rather than appended;
+                    // metrics is registered last so it runs before auth and counts rejected calls
                     .configInterceptor(new ProxyAdminAuthInterceptor(
-                        ConfigurationManager.getAuthConfig(), messagingProcessor))
+                        ConfigurationManager.getAuthConfig(), messagingProcessor),
+                        new ProxyAdminMetricsInterceptor())
                     .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                     .build();
                 PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminGrpcServer);
