@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.utils;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.apache.rocketmq.common.utils.NetworkUtil.validCommonInet6Address;
@@ -37,6 +38,24 @@ public class IPAddressUtilsTest {
         String ipv6Address = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
         String ipv6Cidr = "2001:0db8:85a3::/48";
         assert IPAddressUtils.isIPInRange(ipv6Address, ipv6Cidr);
+
+        // Cross-family CIDR must not match
+        Assert.assertFalse(IPAddressUtils.isIPInRange("192.168.1.10", "::/64"));
+        Assert.assertFalse(IPAddressUtils.isIPInRange("0.0.0.1", "::1/128"));
+        Assert.assertFalse(IPAddressUtils.isIPInRange("::1", "0.0.0.0/0"));
+
+        // Prefix length boundaries and invalid prefix lengths
+        Assert.assertTrue(IPAddressUtils.isIPInRange("192.168.1.10", "0.0.0.0/0"));
+        Assert.assertTrue(IPAddressUtils.isIPInRange("192.168.1.10", "192.168.1.10/32"));
+        Assert.assertTrue(IPAddressUtils.isIPInRange("::1", "::1/128"));
+        Assert.assertFalse(IPAddressUtils.isIPInRange("192.168.1.10", "192.168.1.0/33"));
+        Assert.assertFalse(IPAddressUtils.isIPInRange("192.168.1.10", "192.168.1.0/-1"));
+        Assert.assertFalse(IPAddressUtils.isIPInRange("::1", "::/129"));
+
+        // Blank or null inputs
+        Assert.assertFalse(IPAddressUtils.isIPInRange(null, null));
+        Assert.assertFalse(IPAddressUtils.isIPInRange("", "192.168.1.0/24"));
+        Assert.assertFalse(IPAddressUtils.isIPInRange("192.168.1.10", ""));
     }
 
     @Test
