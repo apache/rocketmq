@@ -89,6 +89,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -711,6 +712,52 @@ public class DefaultMQAdminExtImplTest {
         when(mqClientAPIImpl.getSystemTopicListFromBroker(anyString(), anyLong())).thenReturn(topicList);
         TopicConfigSerializeWrapper actual = defaultMQAdminExtImpl.getUserTopicConfig("brokerAddr", false, timeoutMillis);
         assertEquals(1, actual.getTopicConfigTable().size());
+    }
+
+    @Test
+    public void testDeleteTopicInBrokerList() throws Exception {
+        List<String> topicList = Arrays.asList("topicA", "topicB");
+        doNothing().when(mqClientAPIImpl).deleteTopicInBrokerList(anyString(), anyList(), anyLong());
+
+        defaultMQAdminExtImpl.deleteTopicInBrokerList(defaultBrokerAddr, topicList, timeoutMillis);
+
+        // the whole list has to reach the client api in one call, together with the configured timeout
+        verify(mqClientAPIImpl, times(1)).deleteTopicInBrokerList(defaultBrokerAddr, topicList, timeoutMillis);
+    }
+
+    @Test
+    public void testDeleteTopicInBrokerListException() throws Exception {
+        List<String> topicList = Arrays.asList("topicA", "topicB");
+        doThrow(new MQClientException(ResponseCode.SYSTEM_ERROR, "Test Exception"))
+            .when(mqClientAPIImpl).deleteTopicInBrokerList(anyString(), anyList(), anyLong());
+
+        assertThrows(MQClientException.class,
+            () -> defaultMQAdminExtImpl.deleteTopicInBrokerList(defaultBrokerAddr, topicList, timeoutMillis));
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListWithRemoveOffset() throws Exception {
+        List<String> groupNameList = Arrays.asList("groupA", "groupB");
+        doNothing().when(mqClientAPIImpl)
+            .deleteSubscriptionGroupList(anyString(), anyList(), anyBoolean(), anyLong());
+
+        defaultMQAdminExtImpl.deleteSubscriptionGroupList(defaultBrokerAddr, groupNameList, true, timeoutMillis);
+
+        // broker address, group list, removeOffset flag and timeout are all forwarded unchanged
+        verify(mqClientAPIImpl, times(1))
+            .deleteSubscriptionGroupList(defaultBrokerAddr, groupNameList, true, timeoutMillis);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListWithoutRemoveOffset() throws Exception {
+        List<String> groupNameList = Arrays.asList("groupA", "groupB");
+        doNothing().when(mqClientAPIImpl)
+            .deleteSubscriptionGroupList(anyString(), anyList(), anyBoolean(), anyLong());
+
+        defaultMQAdminExtImpl.deleteSubscriptionGroupList(defaultBrokerAddr, groupNameList, false, timeoutMillis);
+
+        verify(mqClientAPIImpl, times(1))
+            .deleteSubscriptionGroupList(defaultBrokerAddr, groupNameList, false, timeoutMillis);
     }
 
     @Test

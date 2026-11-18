@@ -46,6 +46,13 @@ public abstract class ServerResponseMocker {
 
     private int listenPort;
 
+    /**
+     * The last request the mock server received. Tests use it to assert which request code was sent
+     * and to decode the request body, which is the only way to check that a command really talks to
+     * the broker with the expected payload.
+     */
+    private volatile RemotingCommand lastRequestCommand;
+
     private final NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 
     @Before
@@ -68,6 +75,10 @@ public abstract class ServerResponseMocker {
 
     public int listenPort() {
         return listenPort;
+    }
+
+    public RemotingCommand getLastRequestCommand() {
+        return lastRequestCommand;
     }
 
     protected abstract byte[] getBody();
@@ -118,6 +129,7 @@ public abstract class ServerResponseMocker {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
+            lastRequestCommand = msg;
             String remark = "mock data";
             final RemotingCommand response =
                     RemotingCommand.createResponseCommand(RemotingSysResponseCode.SUCCESS, remark);
