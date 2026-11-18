@@ -13,7 +13,7 @@ jobs:
   calculate-coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - name: Set up JDK 8
