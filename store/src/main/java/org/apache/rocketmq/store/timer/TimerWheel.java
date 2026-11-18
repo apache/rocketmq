@@ -40,6 +40,7 @@ public class TimerWheel {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     public static final String TIMER_WHEEL_FILE_NAME = "timerwheel";
     public static final int BLANK = -1, IGNORE = -2;
+    private static final int BACKUP_SEGMENT_BYTES = 1024 * 1024;
     public final int slotsTotal;
     public final int precisionMs;
     private final String fileName;
@@ -57,15 +58,23 @@ public class TimerWheel {
 
     private long snapOffset;
 
+    private final boolean snapshotMode;
+
+    private ByteBuffer snapshotBuffer;
+
     public TimerWheel(String fileName, int slotsTotal, int precisionMs) throws IOException {
-        this(fileName, slotsTotal, precisionMs, -1);
+        this(fileName, slotsTotal, precisionMs, -1, false);
     }
     public TimerWheel(String fileName, int slotsTotal, int precisionMs, long snapOffset) throws IOException {
+        this(fileName, slotsTotal, precisionMs, snapOffset, snapOffset >= 0);
+    }
+    public TimerWheel(String fileName, int slotsTotal, int precisionMs, long snapOffset, boolean snapshotMode) throws IOException {
         this.slotsTotal = slotsTotal;
         this.precisionMs = precisionMs;
         this.fileName = fileName;
         this.wheelLength = this.slotsTotal * 2 * Slot.SIZE;
         this.snapOffset = snapOffset;
+        this.snapshotMode = snapshotMode;
 
         String finalFileName = selectSnapshotByFlag(snapOffset);
         File file = new File(finalFileName);
@@ -79,7 +88,8 @@ public class TimerWheel {
                     randomAccessFile.length(), wheelLength));
             }
             randomAccessFile.setLength(wheelLength);
-            if (snapOffset < 0) {
+            // snapshot mode: promoteToBase swaps the base inode, so it must never be mmap'd here.
+            if (!snapshotMode) {
                 fileChannel = randomAccessFile.getChannel();
                 mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, wheelLength);
                 assert wheelLength == mappedByteBuffer.remaining();
@@ -115,6 +125,7 @@ public class TimerWheel {
         // unmap mappedByteBuffer
         UtilAll.cleanBuffer(this.mappedByteBuffer);
         UtilAll.cleanBuffer(this.byteBuffer);
+        UtilAll.cleanBuffer(this.snapshotBuffer);
         localBuffer.remove();
 
         try {
@@ -141,44 +152,61 @@ public class TimerWheel {
         this.mappedByteBuffer.force();
     }
 
-    /**
-     * Perform backup operation.
-     * <p>
-     * Select snapshot file based on the provided flag, write current buffer content to a temporary file,
-     * then rename the temporary file to the formal snapshot file. If rename fails, delete the temporary file.
-     * Finally clean up expired snapshot files.
-     *
-     * @param flushWhere Flag used to select snapshot file.
-     * @throws IOException If I/O error occurs during backup process.
-     */
-    public void backup(long flushWhere) throws IOException {
-        // Get current local buffer and position it to the beginning
+    /** Caller holds lockWhenFlush; the frozen buffer stays immutable until the next copy. */
+    public void copyForSnapshot() {
+        if (snapshotBuffer == null) {
+            snapshotBuffer = ByteBuffer.allocateDirect(wheelLength);
+        }
         ByteBuffer bf = localBuffer.get();
         bf.position(0);
         bf.limit(wheelLength);
+        snapshotBuffer.clear();
+        snapshotBuffer.put(bf);
+        snapshotBuffer.flip();
+    }
 
-        // Select snapshot file name based on flag
+    /** 1 MiB segments + force bound the writeback burst; tmp + atomic rename keep the snapshot complete. */
+    public void backup(long flushWhere) throws IOException {
+        ByteBuffer bf = snapshotBuffer;
+        bf.position(0);
+        bf.limit(wheelLength);
+
         String fileName = selectSnapshotByFlag(flushWhere);
         File bakFile = new File(fileName);
-        // Create or open temporary file for snapshot, ready for writing
         File tmpFile = new File(fileName + ".tmp");
-        // Delete if exists first
         Files.deleteIfExists(tmpFile.toPath());
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(tmpFile, "rw")) {
             try (FileChannel fileChannel = randomAccessFile.getChannel()) {
-                fileChannel.write(bf);
+                while (bf.hasRemaining()) {
+                    bf.limit(Math.min(bf.position() + BACKUP_SEGMENT_BYTES, wheelLength));
+                    while (bf.hasRemaining()) {
+                        fileChannel.write(bf);
+                    }
+                    fileChannel.force(false);
+                    bf.limit(wheelLength);
+                }
                 fileChannel.force(true);
             }
         }
 
         if (tmpFile.exists()) {
-            // atomic move
             Files.move(tmpFile.toPath(), bakFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
-
-            // sync the directory, ensure that the bak file is visible
             MixAll.fsyncDirectory(Paths.get(bakFile.getParent()));
         }
-        cleanExpiredSnapshot(); // Clean up expired snapshot files
+        cleanExpiredSnapshot();
+    }
+
+    /** CP == offset must be durable before this; REPLACE_EXISTING without delete avoids a base-absent window. */
+    public void promoteToBase(long offset) throws IOException {
+        File snapshot = new File(selectSnapshotByFlag(offset));
+        if (!snapshot.exists()) {
+            return;
+        }
+        File base = new File(this.fileName);
+        Files.move(snapshot.toPath(), base.toPath(),
+            StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        MixAll.fsyncDirectory(Paths.get(base.getParent()));
+        cleanAllSnapshots();
     }
 
     /**
@@ -225,6 +253,23 @@ public class TimerWheel {
         // Delete all files except the first two
         for (int i = 2; i < snapshotFiles.size(); i++) {
             UtilAll.deleteFile(snapshotFiles.get(i).file);
+        }
+    }
+
+    private void cleanAllSnapshots() {
+        File dir = new File(this.fileName).getParentFile();
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            String fileName = file.getName();
+            if (fileName.startsWith(TIMER_WHEEL_FILE_NAME + ".")) {
+                long flag = UtilAll.asLong(fileName.substring(TIMER_WHEEL_FILE_NAME.length() + 1), -1);
+                if (flag >= 0) {
+                    UtilAll.deleteFile(file);
+                }
+            }
         }
     }
 
