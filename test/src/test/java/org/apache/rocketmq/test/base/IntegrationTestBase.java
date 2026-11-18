@@ -19,6 +19,7 @@ package org.apache.rocketmq.test.base;
 
 import com.google.common.truth.Truth;
 import java.io.File;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -211,7 +212,7 @@ public class IntegrationTestBase {
             startAndShutdown.appendStartAndShutdown(application);
 
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
-                    ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
+                    new InetSocketAddress(ConfigurationManager.getProxyConfig().getGrpcServerPort()), tlsCertificateManager)
                 .addService(application)
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
