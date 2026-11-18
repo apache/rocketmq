@@ -185,7 +185,7 @@ public class PopLiteMessageProcessorEventLossTest {
             }
             return real;
         }).when(popLiteMessageProcessor).popLiteTopic(anyString(), anyString(), anyString(), anyString(),
-            anyLong(), anyLong(), anyLong(), anyString(), any());
+            anyLong(), anyLong(), anyLong(), anyString(), any(), anyString(), anyLong());
     }
 
     @AfterClass
@@ -277,7 +277,7 @@ public class PopLiteMessageProcessorEventLossTest {
             LAST_POP_READS.clear();
         }
         popLiteMessageProcessor.popByClientId(CLIENT_HOST, PARENT_TOPIC, GROUP, CLIENT_ID,
-            popTime, INVISIBLE, MAX_NUM, UUID.randomUUID().toString());
+            popTime, INVISIBLE, MAX_NUM, UUID.randomUUID().toString(), System.nanoTime());
         synchronized (LAST_POP_READS) {
             Map<String, List<Long>> copy = new HashMap<>();
             for (Map.Entry<String, List<Long>> e : LAST_POP_READS.entrySet()) {

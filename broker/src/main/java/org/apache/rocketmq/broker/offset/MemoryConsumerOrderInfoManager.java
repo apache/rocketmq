@@ -20,7 +20,9 @@ package org.apache.rocketmq.broker.offset;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.pop.orderly.QueueLevelConsumerManager;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.IntStream;
 
 /**
  * Memory-based Consumer Order Information Manager for Lite Topics
@@ -68,6 +70,31 @@ public class MemoryConsumerOrderInfoManager extends QueueLevelConsumerManager {
         orderInfo.setOffsetNextVisibleTime(null);
         orderInfo.setInvisibleTime(visibilityTimeout - orderInfo.getPopTime());
         updateLockFreeTimestamp(topic, group, queueId, orderInfo);
+    }
+
+    public boolean isPopTimeMatched(String topic, String group, int queueId, long popTime) {
+        ConcurrentHashMap<Integer, OrderInfo> queues = getTable().get(buildKey(topic, group));
+        OrderInfo orderInfo = queues == null ? null : queues.get(queueId);
+        return orderInfo != null && popTime > 0 && popTime == orderInfo.getPopTime();
+    }
+
+    /**
+     * Release the unacked lease of an attempt whose response was lost, without committing offset. The negative pop
+     * time invalidates its receipt handles: a renewal gets NO_MESSAGE, an ack gets success without committing offset.
+     */
+    public boolean releaseQueue(String topic, String group, int queueId, String attemptId) {
+        ConcurrentHashMap<Integer, OrderInfo> orderInfoMap = this.getTable().get(buildKey(topic, group));
+        OrderInfo orderInfo = orderInfoMap == null ? null : orderInfoMap.get(queueId);
+        if (null == orderInfo || null == orderInfo.getOffsetList()
+            || !Objects.equals(attemptId, orderInfo.getAttemptId()) || orderInfo.getPopTime() <= 0
+            || IntStream.range(0, orderInfo.getOffsetList().size()).noneMatch(orderInfo::isNotAck)) {
+            return false;
+        }
+        orderInfo.setPopTime(-orderInfo.getPopTime());
+        orderInfo.setInvisibleTime(1L);
+        orderInfo.setOffsetNextVisibleTime(null);
+        updateLockFreeTimestamp(topic, group, queueId, orderInfo);
+        return true;
     }
 
     @Override
