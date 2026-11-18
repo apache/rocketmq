@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.RunningFlags;
@@ -164,6 +165,11 @@ public class TimerMessageStore {
 
     private final Object lockWhenFlush = new Object();
 
+    // captured at construction; mode switches require a restart, hot updates must not mismatch mmap state.
+    private final boolean timerWheelSnapshotMode;
+    // base content end; CP is pinned to it between snapshots so base + CP stay paired on recovery.
+    private volatile long lastPromotedOffset;
+
     public TimerMessageStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerCheckpoint timerCheckpoint, TimerMetrics timerMetrics,
         final BrokerStatsManager brokerStatsManager) throws IOException {
@@ -178,15 +184,16 @@ public class TimerMessageStore {
         this.slotsTotal = TIMER_WHEEL_TTL_DAY * DAY_SECS;
 
         String timerWheelPath = getTimerWheelPath(storeConfig.getStorePathRootDir());
+        this.timerWheelSnapshotMode = storeConfig.isTimerWheelSnapshotFlush();
         long snapOffset = -1;
-        if (storeConfig.isTimerWheelSnapshotFlush()) {
+        if (this.timerWheelSnapshotMode) {
             snapOffset = TimerWheel.getMaxSnapshotFlag(timerWheelPath);
             if (snapOffset > 0) {
                 // correct recover offset
                 timerCheckpoint.setLastTimerLogFlushPos(snapOffset);
                 LOGGER.info("found timerWheel snapshot offset {}", snapOffset);
             } else {
-                LOGGER.info("not found timerWheel snapshot", snapOffset);
+                LOGGER.info("not found timerWheel snapshot, recover from base + checkpoint", snapOffset);
             }
         }
 
@@ -196,11 +203,12 @@ public class TimerMessageStore {
         }
 
         this.timerWheel = new TimerWheel(
-            timerWheelPath, this.slotsTotal, precisionMs, snapOffset);
+            timerWheelPath, this.slotsTotal, precisionMs, snapOffset, this.timerWheelSnapshotMode);
         this.timerLog = new TimerLog(getTimerLogPath(storeConfig.getStorePathRootDir()), timerLogFileSize,
             runningFlags, storeConfig.isWriteWithoutMmap());
         this.timerMetrics = timerMetrics;
         this.timerCheckpoint = timerCheckpoint;
+        this.lastPromotedOffset = timerCheckpoint.getLastTimerLogFlushPos();
         this.lastBrokerRole = storeConfig.getBrokerRole();
 
         if (messageStore instanceof DefaultMessageStore) {
@@ -590,6 +598,10 @@ public class TimerMessageStore {
         }
 
         if (timerCheckpoint != null) {
+            // pin CP to the base end so base + CP stay paired on recovery.
+            if (timerWheelSnapshotMode) {
+                timerCheckpoint.setLastTimerLogFlushPos(lastPromotedOffset);
+            }
             timerCheckpoint.shutdown();
         }
 
@@ -1478,6 +1490,17 @@ public class TimerMessageStore {
         }
 
         protected void putMessageToTimerWheel(TimerRequest req) {
+            // same lock as the snapshot copy so enqueue (incl. subclass overrides) sees consistent slots.
+            if (timerWheelSnapshotMode) {
+                synchronized (lockWhenFlush) {
+                    doPutMessageToTimerWheel(req);
+                }
+            } else {
+                doPutMessageToTimerWheel(req);
+            }
+        }
+
+        private void doPutMessageToTimerWheel(TimerRequest req) {
             try {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
                 StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
@@ -1516,13 +1539,7 @@ public class TimerMessageStore {
                 CountDownLatch latch = new CountDownLatch(trs.size());
                 for (TimerRequest req : trs) {
                     req.setLatch(latch);
-                    if (storeConfig.isTimerWheelSnapshotFlush()) {
-                        synchronized (lockWhenFlush) {
-                            this.putMessageToTimerWheel(req);
-                        }
-                    } else {
-                        this.putMessageToTimerWheel(req);
-                    }
+                    this.putMessageToTimerWheel(req);
                 }
                 checkDequeueLatch(latch, -1);
                 boolean allSuccess = trs.stream().allMatch(TimerRequest::isSucc);
@@ -1853,14 +1870,40 @@ public class TimerMessageStore {
         long lastSnapshotTime = System.currentTimeMillis();
 
         public void flush() throws IOException {
-            if (storeConfig.isTimerWheelSnapshotFlush()) {
-                synchronized (lockWhenFlush) {
-                    prepareTimerCheckPoint();
-                    timerLog.getMappedFileQueue().flush(0);
-                    if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
-                        lastSnapshotTime = System.currentTimeMillis();
-                        timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
+            if (timerWheelSnapshotMode) {
+                MappedFileQueue logQueue = timerLog.getMappedFileQueue();
+                prepareTimerCheckPoint();
+                long snapshotPos = -1;
+                if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
+                    synchronized (lockWhenFlush) {
+                        timerWheel.copyForSnapshot();
+                        snapshotPos = logQueue.getMaxWrotePosition();
                     }
+                }
+                logQueue.flush(0);
+                if (snapshotPos >= 0) {
+                    while (logQueue.getFlushedWhere() < snapshotPos) {
+                        long flushedWhere = logQueue.getFlushedWhere();
+                        logQueue.flush(0);
+                        if (logQueue.getFlushedWhere() == flushedWhere) {
+                            LOGGER.error("Timer snapshot skipped, timerlog flush stalled at {} behind {}",
+                                flushedWhere, snapshotPos);
+                            snapshotPos = -1;
+                            break;
+                        }
+                    }
+                }
+                if (snapshotPos >= 0) {
+                    lastSnapshotTime = System.currentTimeMillis();
+                    timerWheel.backup(snapshotPos);
+                    // CP before promote keeps the swapped base end recoverable; pending snapshot covers pre-promote crashes.
+                    timerCheckpoint.setLastTimerLogFlushPos(snapshotPos);
+                    timerCheckpoint.flush();
+                    timerWheel.promoteToBase(snapshotPos);
+                    lastPromotedOffset = snapshotPos;
+                } else {
+                    // no snapshot this cycle: pin CP to the base end.
+                    timerCheckpoint.setLastTimerLogFlushPos(lastPromotedOffset);
                     timerCheckpoint.flush();
                 }
             } else {

@@ -20,9 +20,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TimerWheelTest {
 
@@ -140,6 +143,131 @@ public class TimerWheelTest {
     public void testRecoveryFixedTTL() throws Exception {
         timerWheel.flush();
         TimerWheel tmpWheel = new TimerWheel(baseDir, slotsTotal + 1, precisionMs);
+    }
+
+    @Test
+    public void copyForSnapshotIsolationTest() throws Exception {
+        long delayedTime = defaultDelay + precisionMs;
+        timerWheel.putSlot(delayedTime, 1, 2, 3, 4);
+        timerWheel.copyForSnapshot();
+        // writes after the freeze must not leak into the snapshot
+        timerWheel.putSlot(delayedTime, 5, 6, 7, 8);
+        timerWheel.putSlot(delayedTime + precisionMs, 9, 10, 11, 12);
+        timerWheel.backup(12345);
+
+        TimerWheel snapWheel = new TimerWheel(baseDir, slotsTotal, precisionMs, 12345);
+        Slot slot = snapWheel.getSlot(delayedTime);
+        assertEquals(1, slot.firstPos);
+        assertEquals(2, slot.lastPos);
+        assertEquals(3, slot.num);
+        assertEquals(4, slot.magic);
+        assertEquals(-1, snapWheel.getSlot(delayedTime + precisionMs).timeMs);
+        snapWheel.shutdown();
+    }
+
+    @Test
+    public void segmentedBackupRoundTripTest() throws Exception {
+        int bigSlots = 40000;
+        String bigFileName = baseDir + "_big";
+        TimerWheel bigWheel = new TimerWheel(bigFileName, bigSlots, precisionMs);
+        for (int i = 0; i < bigSlots; i++) {
+            bigWheel.putSlot(defaultDelay + (long) i * precisionMs, i, i + 1, i + 2, i + 3);
+        }
+        bigWheel.copyForSnapshot();
+        bigWheel.backup(67890);
+        assertEquals((long) bigSlots * 2 * Slot.SIZE, new File(bigFileName + ".67890").length());
+        TimerWheel snapWheel = new TimerWheel(bigFileName, bigSlots, precisionMs, 67890);
+        for (int i = 0; i < bigSlots; i++) {
+            Slot slot = snapWheel.getRawSlot(defaultDelay + (long) i * precisionMs);
+            assertEquals(i, slot.firstPos);
+            assertEquals(i + 1, slot.lastPos);
+            assertEquals(i + 2, slot.num);
+            assertEquals(i + 3, slot.magic);
+        }
+        snapWheel.shutdown();
+        bigWheel.shutdown();
+        StoreTestUtils.deleteFile(bigFileName);
+        StoreTestUtils.deleteFile(bigFileName + ".67890");
+    }
+
+    @Test
+    public void promoteToBaseRoundTripTest() throws Exception {
+        long delayedTime = defaultDelay + precisionMs;
+        timerWheel.putSlot(delayedTime, 1, 2, 3, 4);
+        timerWheel.copyForSnapshot();
+        timerWheel.backup(100);
+        assertTrue(new File(baseDir + ".100").exists());
+
+        timerWheel.promoteToBase(100);
+        assertFalse(new File(baseDir + ".100").exists());
+        assertFalse(new File(baseDir + ".100.tmp").exists());
+
+        // base now holds the snapshot content; read it via the non-snapshot (mmap) constructor
+        TimerWheel baseWheel = new TimerWheel(baseDir, slotsTotal, precisionMs);
+        Slot slot = baseWheel.getSlot(delayedTime);
+        assertEquals(1, slot.firstPos);
+        assertEquals(2, slot.lastPos);
+        assertEquals(3, slot.num);
+        assertEquals(4, slot.magic);
+        baseWheel.shutdown();
+    }
+
+    @Test
+    public void promoteToBaseReplacesOldBaseTest() throws Exception {
+        timerWheel.putSlot(defaultDelay + precisionMs, 1, 1, 1, 1);
+        timerWheel.flush();
+        timerWheel.putSlot(defaultDelay + precisionMs, 9, 9, 9, 9);
+        timerWheel.copyForSnapshot();
+        timerWheel.backup(200);
+        timerWheel.promoteToBase(200);
+
+        assertEquals((long) slotsTotal * 2 * Slot.SIZE, new File(baseDir).length());
+        TimerWheel baseWheel = new TimerWheel(baseDir, slotsTotal, precisionMs);
+        Slot slot = baseWheel.getSlot(defaultDelay + precisionMs);
+        assertEquals(9, slot.firstPos);
+        assertEquals(9, slot.num);
+        baseWheel.shutdown();
+    }
+
+    @Test
+    public void snapshotModeNoMmapTest() throws Exception {
+        String path = baseDir + "_snap";
+        // snapshot mode with no snapshot yet loads the base file but must not mmap it
+        TimerWheel snapWheel = new TimerWheel(path, slotsTotal, precisionMs, -1, true);
+        snapWheel.putSlot(defaultDelay + precisionMs, 1, 2, 3, 4);
+        snapWheel.flush(); // no-op in snapshot mode
+
+        TimerWheel baseReader = new TimerWheel(path, slotsTotal, precisionMs);
+        assertEquals(-1, baseReader.getSlot(defaultDelay + precisionMs).timeMs);
+        baseReader.shutdown();
+        // the in-memory wheel still holds the slot
+        assertEquals(3, snapWheel.getNum(defaultDelay + precisionMs));
+        snapWheel.shutdown();
+        StoreTestUtils.deleteFile(path);
+    }
+
+    @Test
+    public void promoteCleansLegacySnapshotsTest() throws Exception {
+        String dir = StoreTestUtils.createBaseDir();
+        assertTrue(new File(dir).mkdirs());
+        String wheelPath = dir + File.separator + TimerWheel.TIMER_WHEEL_FILE_NAME;
+        TimerWheel wheel = new TimerWheel(wheelPath, slotsTotal, precisionMs, -1, true);
+        wheel.putSlot(defaultDelay + precisionMs, 1, 2, 3, 4);
+        wheel.copyForSnapshot();
+        wheel.backup(100);
+        wheel.backup(200);
+        assertEquals(200, TimerWheel.getMaxSnapshotFlag(wheelPath));
+
+        wheel.promoteToBase(200);
+        assertEquals(-1, TimerWheel.getMaxSnapshotFlag(wheelPath));
+        assertFalse(new File(wheelPath + ".100").exists());
+        assertFalse(new File(wheelPath + ".200").exists());
+
+        TimerWheel baseReader = new TimerWheel(wheelPath, slotsTotal, precisionMs);
+        assertEquals(3, baseReader.getSlot(defaultDelay + precisionMs).num);
+        baseReader.shutdown();
+        wheel.shutdown();
+        StoreTestUtils.deleteFile(dir);
     }
 
     @After

@@ -112,6 +112,8 @@ public class TimerEngineSwitchVerifyTest {
         storeConfig.setTimerPrecisionMs(precisionMs);
         storeConfig.setAppendTopicForTimerDeleteKey(false);
         storeConfig.setTimerMetricSmallThreshold(1000000);
+        // These tests target engine-switch metrics correction, not wheel persistence; use the non-snapshot path.
+        storeConfig.setTimerWheelSnapshotFlush(false);
 
         messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerFixTest", false),
                 new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
