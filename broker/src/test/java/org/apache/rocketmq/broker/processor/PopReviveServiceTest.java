@@ -57,6 +57,7 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -85,6 +86,21 @@ public class PopReviveServiceTest {
     private static final String TOPIC = "topic";
     private static final SocketAddress STORE_HOST = NetworkUtil.string2SocketAddress("127.0.0.1:8080");
     private static final Long INVISIBLE_TIME = 1000L;
+
+    @Test
+    public void testConsumeReviveObjSortsOffsetsBeyondIntegerRange() {
+        PopCheckPoint earlier = buildPopCheckPoint(0, 0, 0);
+        PopCheckPoint later = buildPopCheckPoint(1, 0, (long) Integer.MAX_VALUE + 2);
+        PopReviveService.ConsumeReviveObj consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        consumeReviveObj.map = new LinkedHashMap<>();
+        consumeReviveObj.map.put("later", later);
+        consumeReviveObj.map.put("earlier", earlier);
+
+        List<PopCheckPoint> result = consumeReviveObj.genSortList();
+
+        assertEquals(earlier, result.get(0));
+        assertEquals(later, result.get(1));
+    }
 
     @Mock
     private MessageStore messageStore;
