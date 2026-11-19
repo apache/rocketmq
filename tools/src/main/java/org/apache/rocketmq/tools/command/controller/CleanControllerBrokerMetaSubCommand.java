@@ -83,7 +83,7 @@ public class CleanControllerBrokerMetaSubCommand implements SubCommand {
         if (commandLine.hasOption('b')) {
             brokerControllerIdsToClean = commandLine.getOptionValue('b').trim();
             try {
-                Arrays.stream(brokerControllerIdsToClean.split(";")).map(idStr -> Long.parseLong(idStr));
+                Arrays.stream(brokerControllerIdsToClean.split(";")).forEach(idStr -> Long.parseLong(idStr));
             } catch (NumberFormatException numberFormatException) {
                 throw new IllegalArgumentException("please set the option <brokerControllerIdsToClean> according to the format", numberFormatException);
             }
