@@ -44,7 +44,7 @@ public class AttributeParser {
             String key;
             String value;
             if (kv.contains(ATTR_KEY_VALUE_EQUAL_SIGN)) {
-                String[] splits = kv.split(ATTR_KEY_VALUE_EQUAL_SIGN);
+                String[] splits = kv.split(ATTR_KEY_VALUE_EQUAL_SIGN, 2);
                 key = splits[0];
                 value = splits[1];
                 if (!key.contains(ATTR_ADD_PLUS_SIGN)) {
