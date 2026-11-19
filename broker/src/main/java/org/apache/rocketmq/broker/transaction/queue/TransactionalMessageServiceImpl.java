@@ -293,7 +293,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         }
                         List<MessageExt> opMsg = pullResult == null ? null : pullResult.getMsgFoundList();
                         boolean isNeedCheck = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime
-                            || opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
+                            || opMsg != null && !opMsg.isEmpty() && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
                             || valueOfCurrentMinusBorn <= -1;
 
                         if (isNeedCheck) {
