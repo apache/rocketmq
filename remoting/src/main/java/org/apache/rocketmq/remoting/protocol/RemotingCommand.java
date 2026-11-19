@@ -190,13 +190,21 @@ public class RemotingCommand {
 
     public static RemotingCommand decode(final ByteBuf byteBuffer) throws RemotingCommandException {
         int length = byteBuffer.readableBytes();
+        if (length < Integer.BYTES) {
+            throw new RemotingCommandException("decode error, incomplete header length marker");
+        }
         int oriHeaderLen = byteBuffer.readInt();
         int headerLength = getHeaderLength(oriHeaderLen);
         if (headerLength > length - 4) {
             throw new RemotingCommandException("decode error, bad header length: " + headerLength);
         }
 
-        RemotingCommand cmd = headerDecode(byteBuffer, headerLength, getProtocolType(oriHeaderLen));
+        SerializeType type = getProtocolType(oriHeaderLen);
+        if (type == null) {
+            throw new RemotingCommandException("decode error, unknown serialization type: "
+                + ((oriHeaderLen >>> 24) & 0xFF));
+        }
+        RemotingCommand cmd = headerDecode(byteBuffer, headerLength, type);
 
         int bodyLength = length - 4 - headerLength;
         byte[] bodyData = null;

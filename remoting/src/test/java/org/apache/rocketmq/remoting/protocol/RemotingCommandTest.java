@@ -28,8 +28,25 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class RemotingCommandTest {
+    @Test
+    public void testDecodeRejectsTruncatedHeaderMarker() {
+        for (int length = 0; length < Integer.BYTES; length++) {
+            byte[] frame = new byte[length];
+            assertThatThrownBy(() -> RemotingCommand.decode(frame))
+                .isInstanceOf(RemotingCommandException.class);
+        }
+    }
+
+    @Test
+    public void testDecodeRejectsUnknownSerializationType() {
+        byte[] frame = ByteBuffer.allocate(Integer.BYTES).putInt(127 << 24).array();
+        assertThatThrownBy(() -> RemotingCommand.decode(frame))
+            .isInstanceOf(RemotingCommandException.class);
+    }
+
     @Test
     public void testMarkProtocolType_JSONProtocolType() {
         int source = 261;
