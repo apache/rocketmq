@@ -18,12 +18,14 @@
 package org.apache.rocketmq.broker;
 
 import java.io.File;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -181,5 +183,21 @@ public class BrokerControllerTest {
         // Test setting null ConfigContext
         brokerController.setConfigContext(null);
         assertThat(brokerController.getConfigContext()).isNull();
+    }
+
+    @Test
+    public void testFileReservedTimeWithTrailingWhitespaceIsPreserved() {
+        Properties properties = new Properties();
+        properties.setProperty("fileReservedTime", "168 ");
+        MixAll.properties2Object(properties, messageStoreConfig);
+
+        BrokerController brokerController = new BrokerController(
+            brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig);
+        brokerController.getConfiguration().registerConfig(properties);
+
+        Properties allConfigs = MixAll.string2Properties(brokerController.getConfiguration().getAllConfigsFormatString());
+
+        assertThat(messageStoreConfig.getFileReservedTime()).isEqualTo(168);
+        assertThat(allConfigs.getProperty("fileReservedTime")).isEqualTo("168");
     }
 }
