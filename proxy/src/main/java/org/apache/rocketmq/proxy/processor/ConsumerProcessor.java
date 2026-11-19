@@ -62,6 +62,7 @@ import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
@@ -558,6 +559,23 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setTopic(addressableMessageQueue.getTopic());
             requestHeader.setQueueId(addressableMessageQueue.getQueueId());
             future = serviceManager.getMessageService().getMinOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Long> searchOffset(ProxyContext ctx, MessageQueue messageQueue, long timestamp,
+        long timeoutMillis) {
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
+                .buildAddressableMessageQueue(ctx, messageQueue);
+            SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+            requestHeader.setTopic(addressableMessageQueue.getTopic());
+            requestHeader.setQueueId(addressableMessageQueue.getQueueId());
+            requestHeader.setTimestamp(timestamp);
+            future = serviceManager.getMessageService().searchOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
