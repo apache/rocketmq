@@ -51,6 +51,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -195,8 +197,7 @@ public class ClusterTestRequestProcessorTest {
 
     public RouteInfoManager mockRouteInfoManager() {
         RouteInfoManager routeInfoManager = mock(RouteInfoManager.class);
-        TopicRouteData topicRouteData = mock(TopicRouteData.class);
-        when(routeInfoManager.pickupTopicRouteData(any())).thenReturn(topicRouteData);
+        when(routeInfoManager.pickupTopicRouteDataEncoded(anyString(), isNull(), anyBoolean())).thenReturn(new byte[0]);
         return routeInfoManager;
     }
 

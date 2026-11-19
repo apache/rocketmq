@@ -27,9 +27,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
@@ -69,6 +71,9 @@ public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final TopicRouteDataCache topicRouteDataCache;
+    // All increments are protected by the existing route write lock.
+    private final AtomicLong routeDataRevision = new AtomicLong();
     private final Map<String/* topic */, Map<String, QueueData>> topicQueueTable;
     private final Map<String/* brokerName */, BrokerData> brokerAddrTable;
     private final Map<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
@@ -90,6 +95,7 @@ public class RouteInfoManager {
         this.topicQueueMappingInfoTable = new ConcurrentHashMap<>(1024);
         this.unRegisterService = new BatchUnregistrationService(this, namesrvConfig);
         this.namesrvConfig = namesrvConfig;
+        this.topicRouteDataCache = new TopicRouteDataCache(namesrvConfig.getRouteInfoCacheMaxBytes());
         this.namesrvController = namesrvController;
     }
 
@@ -131,7 +137,10 @@ public class RouteInfoManager {
                         log.warn("Register topic contains illegal broker, {}, {}", topic, queueData);
                         return;
                     }
-                    queueDataMap.put(queueData.getBrokerName(), queueData);
+                    QueueData previous = queueDataMap.put(queueData.getBrokerName(), queueData);
+                    if (!queueData.equals(previous)) {
+                        routeDataRevision.incrementAndGet();
+                    }
                 }
                 log.info("Topic route already exist.{}, {}", topic, this.topicQueueTable.get(topic));
             } else {
@@ -146,6 +155,7 @@ public class RouteInfoManager {
                 }
 
                 this.topicQueueTable.put(topic, queueDataMap);
+                routeDataRevision.incrementAndGet();
                 log.info("Register topic route:{}, {}", topic, queueDatas);
             }
         } catch (Exception e) {
@@ -158,7 +168,9 @@ public class RouteInfoManager {
     public void deleteTopic(final String topic) {
         try {
             this.lock.writeLock().lockInterruptibly();
-            this.topicQueueTable.remove(topic);
+            if (this.topicQueueTable.remove(topic) != null) {
+                routeDataRevision.incrementAndGet();
+            }
         } catch (Exception e) {
             log.error("deleteTopic Exception", e);
         } finally {
@@ -180,6 +192,7 @@ public class RouteInfoManager {
                 for (String brokerName : brokerNames) {
                     final QueueData removedQD = queueDataMap.remove(brokerName);
                     if (removedQD != null) {
+                        routeDataRevision.incrementAndGet();
                         log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, topic, removedQD);
                     }
                 }
@@ -250,10 +263,15 @@ public class RouteInfoManager {
                 registerFirst = true;
                 brokerData = new BrokerData(clusterName, brokerName, new HashMap<>());
                 this.brokerAddrTable.put(brokerName, brokerData);
+                routeDataRevision.incrementAndGet();
             }
 
             boolean isOldVersionBroker = enableActingMaster == null;
-            brokerData.setEnableActingMaster(!isOldVersionBroker && enableActingMaster);
+            boolean actingMaster = !isOldVersionBroker && enableActingMaster;
+            if (brokerData.isEnableActingMaster() != actingMaster || !Objects.equals(brokerData.getZoneName(), zoneName)) {
+                routeDataRevision.incrementAndGet();
+            }
+            brokerData.setEnableActingMaster(actingMaster);
             brokerData.setZoneName(zoneName);
 
             Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
@@ -270,7 +288,9 @@ public class RouteInfoManager {
 
             //Switch slave to master: first remove <1, IP:PORT> in namesrv, then add <0, IP:PORT>
             //The same IP:PORT must only have one record in brokerAddrTable
-            brokerAddrsMap.entrySet().removeIf(item -> null != brokerAddr && brokerAddr.equals(item.getValue()) && brokerId != item.getKey());
+            if (brokerAddrsMap.entrySet().removeIf(item -> null != brokerAddr && brokerAddr.equals(item.getValue()) && brokerId != item.getKey())) {
+                routeDataRevision.incrementAndGet();
+            }
 
             //If Local brokerId stateVersion bigger than the registering one,
             String oldBrokerAddr = brokerAddrsMap.get(brokerId);
@@ -298,6 +318,9 @@ public class RouteInfoManager {
             }
 
             String oldAddr = brokerAddrsMap.put(brokerId, brokerAddr);
+            if (!Objects.equals(oldAddr, brokerAddr)) {
+                routeDataRevision.incrementAndGet();
+            }
             registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
             boolean isMaster = MixAll.MASTER_ID == brokerId;
@@ -325,6 +348,7 @@ public class RouteInfoManager {
                             Map<String, QueueData> queueDataMap = topicQueueTable.get(toDeleteTopic);
                             final QueueData removedQD = queueDataMap.remove(brokerName);
                             if (removedQD != null) {
+                                routeDataRevision.incrementAndGet();
                                 log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, toDeleteTopic, removedQD);
                             }
 
@@ -357,7 +381,11 @@ public class RouteInfoManager {
                             }
                             //Note asset brokerName equal entry.getValue().getBname()
                             //here use the mappingDetail.bname
-                            topicQueueMappingInfoTable.get(entry.getKey()).put(entry.getValue().getBname(), entry.getValue());
+                            TopicQueueMappingInfo previous = topicQueueMappingInfoTable.get(entry.getKey())
+                                .put(entry.getValue().getBname(), entry.getValue());
+                            if (!entry.getValue().equals(previous)) {
+                                routeDataRevision.incrementAndGet();
+                            }
                         }
                     }
                 }
@@ -377,9 +405,14 @@ public class RouteInfoManager {
 
             if (filterServerList != null) {
                 if (filterServerList.isEmpty()) {
-                    this.filterServerTable.remove(brokerAddrInfo);
+                    if (this.filterServerTable.remove(brokerAddrInfo) != null) {
+                        routeDataRevision.incrementAndGet();
+                    }
                 } else {
-                    this.filterServerTable.put(brokerAddrInfo, filterServerList);
+                    List<String> previous = this.filterServerTable.put(brokerAddrInfo, filterServerList);
+                    if (!filterServerList.equals(previous)) {
+                        routeDataRevision.incrementAndGet();
+                    }
                 }
             }
 
@@ -487,15 +520,18 @@ public class RouteInfoManager {
             queueDataMap = new HashMap<>();
             queueDataMap.put(brokerName, queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataMap);
+            routeDataRevision.incrementAndGet();
             log.info("new topic registered, {} {}", topicConfig.getTopicName(), queueData);
         } else {
             final QueueData existedQD = queueDataMap.get(brokerName);
             if (existedQD == null) {
                 queueDataMap.put(brokerName, queueData);
+                routeDataRevision.incrementAndGet();
             } else if (!existedQD.equals(queueData)) {
                 log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), existedQD,
                     queueData);
                 queueDataMap.put(brokerName, queueData);
+                routeDataRevision.incrementAndGet();
             }
         }
     }
@@ -548,6 +584,9 @@ public class RouteInfoManager {
                     perm = PermName.PERM_READ | PermName.PERM_WRITE;
                     break;
             }
+            if (qd.getPerm() != perm) {
+                routeDataRevision.incrementAndGet();
+            }
             qd.setPerm(perm);
             topicCnt++;
         }
@@ -588,7 +627,9 @@ public class RouteInfoManager {
                     brokerAddrInfo
                 );
 
-                this.filterServerTable.remove(brokerAddrInfo);
+                if (this.filterServerTable.remove(brokerAddrInfo) != null) {
+                    routeDataRevision.incrementAndGet();
+                }
 
                 boolean removeBrokerName = false;
                 boolean isMinBrokerIdChanged = false;
@@ -599,6 +640,9 @@ public class RouteInfoManager {
                         isMinBrokerIdChanged = true;
                     }
                     boolean removed = brokerData.getBrokerAddrs().entrySet().removeIf(item -> item.getValue().equals(brokerAddr));
+                    if (removed) {
+                        routeDataRevision.incrementAndGet();
+                    }
                     log.info("unregisterBroker, remove addr from brokerAddrTable {}, {}",
                         removed ? "OK" : "Failed",
                         brokerAddrInfo
@@ -660,6 +704,7 @@ public class RouteInfoManager {
             for (final String brokerName : removedBroker) {
                 final QueueData removedQD = queueDataMap.remove(brokerName);
                 if (removedQD != null) {
+                    routeDataRevision.incrementAndGet();
                     log.debug("removeTopicByBrokerName, remove one broker's topic {} {}", topic, removedQD);
                 }
             }
@@ -676,7 +721,10 @@ public class RouteInfoManager {
                     if (this.brokerAddrTable.get(brokerName).isEnableActingMaster()) {
                         // Master has been unregistered, wipe the write perm
                         if (isNoMasterExists(brokerName)) {
-                            queueData.setPerm(queueData.getPerm() & (~PermName.PERM_WRITE));
+                            if (PermName.isWriteable(queueData.getPerm())) {
+                                queueData.setPerm(queueData.getPerm() & (~PermName.PERM_WRITE));
+                                routeDataRevision.incrementAndGet();
+                            }
                         }
                     }
                 }
@@ -697,6 +745,71 @@ public class RouteInfoManager {
         return Collections.min(brokerData.getBrokerAddrs().keySet()) > 0;
     }
 
+    /**
+     * Returns a shared, read-only encoded response. Unchanged broker registrations
+     * and heartbeats retain cached bodies. Encoding never holds the route lock.
+     */
+    public byte[] pickupTopicRouteDataEncoded(String topic, String orderTopicConf, boolean standardJson) {
+        if (!topicRouteDataCache.isEnabled()) {
+            TopicRouteData route = pickupTopicRouteData(topic);
+            if (route == null) {
+                return null;
+            }
+            route.setOrderTopicConf(orderTopicConf);
+            return TopicRouteDataCache.encode(route, standardJson);
+        }
+
+        long revision = routeDataRevision.get();
+        boolean actingMaster = namesrvConfig.isSupportActingMaster();
+        byte[] cached = topicRouteDataCache.get(topic, revision, actingMaster, orderTopicConf, standardJson);
+        if (cached != null) {
+            return cached;
+        }
+
+        TopicRouteData route;
+        this.lock.readLock().lock();
+        try {
+            revision = routeDataRevision.get();
+            actingMaster = namesrvConfig.isSupportActingMaster();
+            route = pickupTopicRouteData(topic);
+            if (route == null) {
+                return null;
+            }
+            // Detach mutable queue and mapping data before releasing the read lock.
+            // BrokerData is already copied. Filter-server entries may be null.
+            List<QueueData> queueDatas = new ArrayList<>(route.getQueueDatas().size());
+            for (QueueData queueData : route.getQueueDatas()) {
+                queueDatas.add(new QueueData(queueData));
+            }
+            route.setQueueDatas(queueDatas);
+            route.getFilterServerTable().replaceAll((address, servers) -> servers == null ? null : new ArrayList<>(servers));
+            if (route.getTopicQueueMappingByBroker() != null) {
+                Map<String, TopicQueueMappingInfo> mappings = new HashMap<>();
+                for (Entry<String, TopicQueueMappingInfo> entry : route.getTopicQueueMappingByBroker().entrySet()) {
+                    TopicQueueMappingInfo source = entry.getValue();
+                    TopicQueueMappingInfo copy = new TopicQueueMappingInfo(source.getTopic(), source.getTotalQueues(),
+                        source.getBname(), source.getEpoch());
+                    copy.setScope(source.getScope());
+                    copy.setDirty(source.isDirty());
+                    copy.setCurrIdMap(new ConcurrentHashMap<>(source.getCurrIdMap()));
+                    mappings.put(entry.getKey(), copy);
+                }
+                route.setTopicQueueMappingByBroker(mappings);
+            }
+        } finally {
+            this.lock.readLock().unlock();
+        }
+        route.setOrderTopicConf(orderTopicConf);
+        byte[] body = TopicRouteDataCache.encode(route, standardJson);
+        // A fill racing a mutation may be returned to its caller, but cannot be reused
+        // by a request that observes the completed mutation's newer revision.
+        if (revision == routeDataRevision.get()) {
+            topicRouteDataCache.put(topic, revision, actingMaster, route,
+                standardJson ? null : body, standardJson ? body : null);
+        }
+        return body;
+    }
+
     public TopicRouteData pickupTopicRouteData(final String topic) {
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
@@ -707,8 +820,10 @@ public class RouteInfoManager {
         HashMap<String, List<String>> filterServerMap = new HashMap<>();
         topicRouteData.setFilterServerTable(filterServerMap);
 
+        boolean locked = false;
         try {
             this.lock.readLock().lockInterruptibly();
+            locked = true;
             Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topic);
             if (queueDataMap != null) {
                 topicRouteData.setQueueDatas(new ArrayList<>(queueDataMap.values()));
@@ -737,9 +852,14 @@ public class RouteInfoManager {
                 }
             }
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             log.error("pickupTopicRouteData Exception", e);
         } finally {
-            this.lock.readLock().unlock();
+            if (locked) {
+                this.lock.readLock().unlock();
+            }
         }
 
         log.debug("pickupTopicRouteData {} {}", topic, topicRouteData);
