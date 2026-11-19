@@ -421,6 +421,66 @@ public class EscapeBridgeTest {
         return result;
     }
 
+    @Test
+    public void testAsyncPutMessageWhenTopicPublishInfoIsNull() {
+        when(brokerController.peekMasterBroker()).thenReturn(null);
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(null);
+
+        messageExtBrokerInner = new MessageExtBrokerInner();
+        messageExtBrokerInner.setTopic(TEST_TOPIC);
+        messageExtBrokerInner.setBody("test".getBytes(StandardCharsets.UTF_8));
+
+        CompletableFuture<PutMessageResult> future = escapeBridge.asyncPutMessage(messageExtBrokerInner);
+        PutMessageResult result = future.join();
+        Assert.assertNotNull(result);
+        Assert.assertEquals(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, result.getPutMessageStatus());
+    }
+
+    @Test
+    public void testAsyncPutMessageWhenTopicPublishInfoNotOk() {
+        when(brokerController.peekMasterBroker()).thenReturn(null);
+        TopicPublishInfo emptyInfo = new TopicPublishInfo();
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(emptyInfo);
+
+        messageExtBrokerInner = new MessageExtBrokerInner();
+        messageExtBrokerInner.setTopic(TEST_TOPIC);
+        messageExtBrokerInner.setBody("test".getBytes(StandardCharsets.UTF_8));
+
+        CompletableFuture<PutMessageResult> future = escapeBridge.asyncPutMessage(messageExtBrokerInner);
+        PutMessageResult result = future.join();
+        Assert.assertNotNull(result);
+        Assert.assertEquals(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, result.getPutMessageStatus());
+    }
+
+    @Test
+    public void testAsyncRemotePutMessageToSpecificQueueWhenTopicPublishInfoIsNull() {
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(null);
+
+        messageExtBrokerInner = new MessageExtBrokerInner();
+        messageExtBrokerInner.setTopic(TEST_TOPIC);
+        messageExtBrokerInner.setBody("test".getBytes(StandardCharsets.UTF_8));
+
+        CompletableFuture<PutMessageResult> future = escapeBridge.asyncRemotePutMessageToSpecificQueue(messageExtBrokerInner);
+        PutMessageResult result = future.join();
+        Assert.assertNotNull(result);
+        Assert.assertEquals(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, result.getPutMessageStatus());
+    }
+
+    @Test
+    public void testAsyncRemotePutMessageToSpecificQueueWhenTopicPublishInfoNotOk() {
+        TopicPublishInfo emptyInfo = new TopicPublishInfo();
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(emptyInfo);
+
+        messageExtBrokerInner = new MessageExtBrokerInner();
+        messageExtBrokerInner.setTopic(TEST_TOPIC);
+        messageExtBrokerInner.setBody("test".getBytes(StandardCharsets.UTF_8));
+
+        CompletableFuture<PutMessageResult> future = escapeBridge.asyncRemotePutMessageToSpecificQueue(messageExtBrokerInner);
+        PutMessageResult result = future.join();
+        Assert.assertNotNull(result);
+        Assert.assertEquals(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, result.getPutMessageStatus());
+    }
+
     private TopicPublishInfo mockTopicPublishInfo(String... brokerNames) {
         TopicPublishInfo topicPublishInfo = new TopicPublishInfo();
         for (String brokerName : brokerNames) {
