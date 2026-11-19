@@ -54,11 +54,11 @@ public class LocalProxyRelayServiceTest {
     @Before
     public void setUp() {
         localProxyRelayService = new LocalProxyRelayService(brokerControllerMock, transactionService);
-        Mockito.when(brokerControllerMock.getRemotingServer()).thenReturn(nettyRemotingServerMock);
     }
 
     @Test
     public void testProcessGetConsumerRunningInfo() {
+        Mockito.when(brokerControllerMock.getRemotingServer()).thenReturn(nettyRemotingServerMock);
         ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
         runningInfo.setJstack("jstack");
         String remark = "ok";
@@ -81,6 +81,7 @@ public class LocalProxyRelayServiceTest {
 
     @Test
     public void testProcessConsumeMessageDirectly() {
+        Mockito.when(brokerControllerMock.getRemotingServer()).thenReturn(nettyRemotingServerMock);
         ConsumeMessageDirectlyResultRequestHeader requestHeader = new ConsumeMessageDirectlyResultRequestHeader();
         String remark = "ok";
         int opaque = 123;
@@ -98,5 +99,61 @@ public class LocalProxyRelayServiceTest {
         assertThat(remotingCommand1.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(remotingCommand1.getRemark()).isEqualTo(remark);
         assertThat(remotingCommand1.getBody()).isEqualTo(result.encode());
+    }
+
+    @Test
+    public void testProcessGetConsumerRunningInfoBridgesInProcessCaller() {
+        ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+        runningInfo.setJstack("jstack");
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> callerFuture = new CompletableFuture<>();
+        RemotingCommand relayRequest = ProxyRelayRequest.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO,
+            new GetConsumerRunningInfoRequestHeader(), callerFuture);
+
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> relayFuture =
+            localProxyRelayService.processGetConsumerRunningInfo(ProxyContext.create(), relayRequest,
+                new GetConsumerRunningInfoRequestHeader());
+
+        // the client answers through the channel, which completes the future it registered
+        ProxyRelayResult<ConsumerRunningInfo> relayResult =
+            new ProxyRelayResult<>(ResponseCode.SUCCESS, "ok", runningInfo);
+        relayFuture.complete(relayResult);
+
+        assertThat(callerFuture.isDone()).isTrue();
+        assertThat(callerFuture.getNow(null)).isSameAs(relayResult);
+    }
+
+    @Test
+    public void testProcessGetConsumerRunningInfoPropagatesRelayFailureToInProcessCaller() {
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> callerFuture = new CompletableFuture<>();
+        RemotingCommand relayRequest = ProxyRelayRequest.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO,
+            new GetConsumerRunningInfoRequestHeader(), callerFuture);
+
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> relayFuture =
+            localProxyRelayService.processGetConsumerRunningInfo(ProxyContext.create(), relayRequest,
+                new GetConsumerRunningInfoRequestHeader());
+
+        relayFuture.completeExceptionally(new IllegalStateException("relay failed"));
+
+        assertThat(callerFuture.isCompletedExceptionally()).isTrue();
+    }
+
+    @Test
+    public void testProcessConsumeMessageDirectlyBridgesInProcessCaller() {
+        ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
+        result.setConsumeResult(CMResult.CR_SUCCESS);
+        CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> callerFuture = new CompletableFuture<>();
+        RemotingCommand relayRequest = ProxyRelayRequest.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY,
+            new ConsumeMessageDirectlyResultRequestHeader(), callerFuture);
+
+        CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> relayFuture =
+            localProxyRelayService.processConsumeMessageDirectly(ProxyContext.create(), relayRequest,
+                new ConsumeMessageDirectlyResultRequestHeader());
+
+        ProxyRelayResult<ConsumeMessageDirectlyResult> relayResult =
+            new ProxyRelayResult<>(ResponseCode.SUCCESS, "ok", result);
+        relayFuture.complete(relayResult);
+
+        assertThat(callerFuture.isDone()).isTrue();
+        assertThat(callerFuture.getNow(null)).isSameAs(relayResult);
     }
 }

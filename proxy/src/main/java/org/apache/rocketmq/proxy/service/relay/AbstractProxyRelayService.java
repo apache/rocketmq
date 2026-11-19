@@ -37,6 +37,33 @@ public abstract class AbstractProxyRelayService implements ProxyRelayService {
         this.transactionService = transactionService;
     }
 
+    /**
+     * Propagates the relay outcome to the in-process caller that attached its future to the
+     * command. Both normal and exceptional completions are forwarded so the caller never has to
+     * fall back on its own timeout.
+     *
+     * <p>A plain {@link RemotingCommand} (not a {@link ProxyRelayRequest}) has no in-process
+     * waiter, so this is a no-op for it.
+     */
+    protected static <T> void bridgeToCaller(RemotingCommand command,
+        CompletableFuture<ProxyRelayResult<T>> relayFuture) {
+        if (!(command instanceof ProxyRelayRequest)) {
+            return;
+        }
+        CompletableFuture<ProxyRelayResult<T>> callerFuture =
+            ((ProxyRelayRequest) command).typedResponseFuture();
+        if (callerFuture == null) {
+            return;
+        }
+        relayFuture.whenComplete((relayResult, throwable) -> {
+            if (throwable != null) {
+                callerFuture.completeExceptionally(throwable);
+            } else {
+                callerFuture.complete(relayResult);
+            }
+        });
+    }
+
     @Override
     public RelayData<TransactionData, Void> processCheckTransactionState(ProxyContext context,
         RemotingCommand command, CheckTransactionStateRequestHeader header, MessageExt messageExt) {
