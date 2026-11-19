@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -62,6 +63,58 @@ public class TraceDataEncoderTest {
         List<TraceContext> contexts = TraceDataEncoder.decoderFromTraceDataString(traceData);
         Assert.assertEquals(contexts.size(), 1);
         Assert.assertEquals(contexts.get(0).getTraceType(), TraceType.Pub);
+    }
+
+    @Test
+    public void testDecoderSkipsTruncatedRecordsAndKeepsFollowingTrace() {
+        String separator = String.valueOf(TraceConstants.CONTENT_SPLITOR);
+        String fieldSeparator = String.valueOf(TraceConstants.FIELD_SPLITOR);
+        for (TraceType type : new TraceType[] {TraceType.Pub, TraceType.SubBefore, TraceType.SubAfter,
+            TraceType.EndTransaction, TraceType.Recall}) {
+            String truncated = type.name() + separator + "1" + fieldSeparator;
+            List<TraceContext> decoded = TraceDataEncoder.decoderFromTraceDataString(truncated + traceData);
+
+            assertThat(decoded).as("truncated %s record", type).hasSize(1);
+            assertThat(decoded.get(0).getTraceType()).isEqualTo(TraceType.Pub);
+            assertThat(decoded.get(0).getTraceBeans().get(0).getTopic()).isEqualTo("topic-test");
+        }
+    }
+
+    @Test
+    public void testDecoderKeepsLegacyPublishTraceWithoutOptionalStatus() {
+        String separator = String.valueOf(TraceConstants.CONTENT_SPLITOR);
+        String[] fields = traceData.substring(0, traceData.length() - 1).split(separator);
+        String legacy = String.join(separator, Arrays.copyOf(fields, 12)) + TraceConstants.FIELD_SPLITOR;
+
+        List<TraceContext> decoded = TraceDataEncoder.decoderFromTraceDataString(legacy);
+
+        assertThat(decoded).hasSize(1);
+        assertThat(decoded.get(0).getTraceBeans().get(0).getTopic()).isEqualTo("topic-test");
+    }
+
+    @Test
+    public void testDecoderSkipsRecordCutOffAtNumericField() {
+        String separator = String.valueOf(TraceConstants.CONTENT_SPLITOR);
+        String[] fields = traceData.substring(0, traceData.length() - 1).split(separator);
+        String truncated = String.join(separator, Arrays.copyOf(fields, 11))
+            + separator + TraceConstants.FIELD_SPLITOR;
+
+        List<TraceContext> decoded = TraceDataEncoder.decoderFromTraceDataString(truncated + traceData);
+
+        assertThat(decoded).hasSize(1);
+        assertThat(decoded.get(0).getTraceBeans().get(0).getTopic()).isEqualTo("topic-test");
+    }
+
+    @Test
+    public void testDecoderKeepsSubBeforeTraceWithEmptyKeys() {
+        String separator = String.valueOf(TraceConstants.CONTENT_SPLITOR);
+        String record = String.join(separator, "SubBefore", "1", "region", "group", "request", "message", "0", "")
+            + TraceConstants.FIELD_SPLITOR;
+
+        List<TraceContext> decoded = TraceDataEncoder.decoderFromTraceDataString(record);
+
+        assertThat(decoded).hasSize(1);
+        assertThat(decoded.get(0).getTraceBeans().get(0).getKeys()).isEmpty();
     }
 
     @Test
