@@ -74,15 +74,15 @@
     </logger>
 
     <logger name="RocketmqCommon" additivity="false" level="INFO">
-        <appender-ref ref="RocketmqBrokerAppender"/>
+        <appender-ref ref="RocketmqToolsAppender"/>
     </logger>
 
     <logger name="RocketmqStore" additivity="false" level="INFO">
-        <appender-ref ref="RocketmqBrokerAppender"/>
+        <appender-ref ref="RocketmqToolsAppender"/>
     </logger>
 
     <logger name="RocketmqRemoting" additivity="false" level="INFO">
-        <appender-ref ref="RocketmqBrokerAppender"/>
+        <appender-ref ref="RocketmqToolsAppender"/>
     </logger>
 
     <root level="INFO">
