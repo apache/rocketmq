@@ -24,7 +24,6 @@ import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
@@ -205,7 +204,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                                     .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
                                     .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                                     .build();
-                                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                                remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributes);
                                 if (!future.isSuccess()) {
                                     LOG.error("Fail to transfer messages from page cache to {}", channel.remoteAddress(), future.cause());
                                 }
