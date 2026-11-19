@@ -27,7 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager;
 import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
@@ -57,10 +59,12 @@ import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicListResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteClientInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteGroupInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetParentTopicInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.TriggerLiteDispatchRequestHeader;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -75,9 +79,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_WILDCARD_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -374,6 +382,198 @@ public class LiteManagerProcessorTest {
         assertEquals(maxOffset, topicOffset.getMaxOffset());
         assertEquals(lastUpdateTimestamp, topicOffset.getLastUpdateTimestamp());
         assertTrue(body.isShardingToBroker());
+    }
+
+    @Test
+    public void testGetLiteTopicList_ParentTopicNotExist() throws RemotingCommandException {
+        RemotingCommand request = buildGetLiteTopicListRequest("missing_parent", null, 10);
+        when(topicConfigManager.selectTopicConfig("missing_parent")).thenReturn(null);
+
+        RemotingCommand response = processor.getLiteTopicList(ctx, request);
+
+        assertEquals(ResponseCode.TOPIC_NOT_EXIST, response.getCode());
+        assertTrue(response.getRemark().contains("missing_parent"));
+    }
+
+    @Test
+    public void testGetLiteTopicList_NonLiteParentTopic() throws RemotingCommandException {
+        RemotingCommand request = buildGetLiteTopicListRequest("normal_topic", null, 10);
+        TopicConfig topicConfig = new TopicConfig("normal_topic");
+        topicConfig.setTopicMessageType(TopicMessageType.NORMAL);
+        when(topicConfigManager.selectTopicConfig("normal_topic")).thenReturn(topicConfig);
+
+        RemotingCommand response = processor.getLiteTopicList(ctx, request);
+
+        assertEquals(ResponseCode.INVALID_PARAMETER, response.getCode());
+        assertTrue(response.getRemark().contains("normal_topic"));
+    }
+
+    @Test
+    public void testGetLiteTopicList_MultipleTopicsWithOffsetsAndSubscribers() throws RemotingCommandException {
+        String parentTopic = "parent_topic";
+        String firstLmq = LiteUtil.toLmqName(parentTopic, "order-1");
+        String secondLmq = LiteUtil.toLmqName(parentTopic, "order-2");
+        TopicConfig topicConfig = new TopicConfig(parentTopic);
+        topicConfig.setTopicMessageType(TopicMessageType.LITE);
+        when(topicConfigManager.selectTopicConfig(parentTopic)).thenReturn(topicConfig);
+        mockLiteTopics(parentTopic, Triple.of(firstLmq, 100L, null), Triple.of(secondLmq, 20L, null));
+
+        when(messageStore.getMinOffsetInQueue(firstLmq, 0)).thenReturn(5L);
+        when(messageStore.getMinOffsetInQueue(secondLmq, 0)).thenReturn(2L);
+        when(messageStore.getMessageStoreTimeStamp(firstLmq, 0, 99L)).thenReturn(1000L);
+        when(messageStore.getMessageStoreTimeStamp(secondLmq, 0, 19L)).thenReturn(2000L);
+
+        Map<String, List<ClientGroup>> firstSubscribers = new HashMap<>();
+        firstSubscribers.put("group-a", Collections.singletonList(new ClientGroup("client-a", "group-a")));
+        Map<String, List<ClientGroup>> secondSubscribers = new HashMap<>();
+        secondSubscribers.put("group-b", Collections.singletonList(new ClientGroup("client-b", "group-b")));
+        secondSubscribers.put("group-c", Collections.singletonList(new ClientGroup("client-c", "group-c")));
+        when(liteSubscriptionRegistry.getAllSubscribers(null, firstLmq)).thenReturn(firstSubscribers);
+        when(liteSubscriptionRegistry.getAllSubscribers(null, secondLmq)).thenReturn(secondSubscribers);
+
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setBrokerName("broker-a");
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+        when(liteSharding.shardingByLmqName(parentTopic, firstLmq)).thenReturn("broker-a");
+        when(liteSharding.shardingByLmqName(parentTopic, secondLmq)).thenReturn("broker-b");
+
+        RemotingCommand response = processor.getLiteTopicList(ctx,
+            buildGetLiteTopicListRequest(parentTopic, null, 10));
+
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        GetLiteTopicListResponseBody body =
+            GetLiteTopicListResponseBody.decode(response.getBody(), GetLiteTopicListResponseBody.class);
+        assertEquals(parentTopic, body.getParentTopic());
+        assertEquals(2, body.getTotal());
+        assertFalse(body.isHasMore());
+        assertEquals(2, body.getLiteTopicList().size());
+
+        GetLiteTopicListResponseBody.LiteTopicInfo first = body.getLiteTopicList().get(0);
+        assertEquals("order-1", first.getLiteTopic());
+        assertEquals(5L, first.getMinOffset());
+        assertEquals(100L, first.getMaxOffset());
+        assertEquals(1000L, first.getLastUpdateTimestamp());
+        assertEquals(1, first.getSubscriberCount());
+        assertTrue(first.isShardingToBroker());
+
+        GetLiteTopicListResponseBody.LiteTopicInfo second = body.getLiteTopicList().get(1);
+        assertEquals("order-2", second.getLiteTopic());
+        assertEquals(2L, second.getMinOffset());
+        assertEquals(20L, second.getMaxOffset());
+        assertEquals(2000L, second.getLastUpdateTimestamp());
+        assertEquals(2, second.getSubscriberCount());
+        assertFalse(second.isShardingToBroker());
+    }
+
+    @Test
+    public void testGetLiteTopicList_PrefixFiltering() throws RemotingCommandException {
+        String parentTopic = "parent_topic";
+        String orderLmq = LiteUtil.toLmqName(parentTopic, "order-1");
+        String paymentLmq = LiteUtil.toLmqName(parentTopic, "payment-1");
+        TopicConfig topicConfig = new TopicConfig(parentTopic);
+        topicConfig.setTopicMessageType(TopicMessageType.LITE);
+        when(topicConfigManager.selectTopicConfig(parentTopic)).thenReturn(topicConfig);
+        mockLiteTopics(parentTopic, Triple.of(orderLmq, 10L, null), Triple.of(paymentLmq, 10L, null));
+
+        when(messageStore.getMinOffsetInQueue(orderLmq, 0)).thenReturn(0L);
+        when(messageStore.getMessageStoreTimeStamp(orderLmq, 0, 9L)).thenReturn(1000L);
+        when(liteSubscriptionRegistry.getAllSubscribers(null, orderLmq)).thenReturn(Collections.emptyMap());
+
+        RemotingCommand response = processor.getLiteTopicList(ctx,
+            buildGetLiteTopicListRequest(parentTopic, "order-", 10));
+
+        GetLiteTopicListResponseBody body =
+            GetLiteTopicListResponseBody.decode(response.getBody(), GetLiteTopicListResponseBody.class);
+        assertEquals(1, body.getTotal());
+        assertEquals(1, body.getLiteTopicList().size());
+        assertEquals("order-1", body.getLiteTopicList().get(0).getLiteTopic());
+        verify(messageStore, never()).getMinOffsetInQueue(paymentLmq, 0);
+    }
+
+    @Test
+    public void testGetLiteTopicList_MaxCountTruncation() throws RemotingCommandException {
+        String parentTopic = "parent_topic";
+        String firstLmq = LiteUtil.toLmqName(parentTopic, "topic-1");
+        String secondLmq = LiteUtil.toLmqName(parentTopic, "topic-2");
+        String thirdLmq = LiteUtil.toLmqName(parentTopic, "topic-3");
+        TopicConfig topicConfig = new TopicConfig(parentTopic);
+        topicConfig.setTopicMessageType(TopicMessageType.LITE);
+        when(topicConfigManager.selectTopicConfig(parentTopic)).thenReturn(topicConfig);
+        mockLiteTopics(parentTopic, Triple.of(firstLmq, 10L, null), Triple.of(secondLmq, 10L, null),
+            Triple.of(thirdLmq, 10L, null));
+
+        when(messageStore.getMinOffsetInQueue(firstLmq, 0)).thenReturn(0L);
+        when(messageStore.getMinOffsetInQueue(secondLmq, 0)).thenReturn(0L);
+        when(messageStore.getMessageStoreTimeStamp(firstLmq, 0, 9L)).thenReturn(1000L);
+        when(messageStore.getMessageStoreTimeStamp(secondLmq, 0, 9L)).thenReturn(2000L);
+        when(liteSubscriptionRegistry.getAllSubscribers(null, firstLmq)).thenReturn(Collections.emptyMap());
+        when(liteSubscriptionRegistry.getAllSubscribers(null, secondLmq)).thenReturn(Collections.emptyMap());
+
+        RemotingCommand response = processor.getLiteTopicList(ctx,
+            buildGetLiteTopicListRequest(parentTopic, null, 2));
+
+        GetLiteTopicListResponseBody body =
+            GetLiteTopicListResponseBody.decode(response.getBody(), GetLiteTopicListResponseBody.class);
+        assertEquals(2, body.getTotal());
+        assertTrue(body.isHasMore());
+        assertEquals(2, body.getLiteTopicList().size());
+        assertEquals("topic-1", body.getLiteTopicList().get(0).getLiteTopic());
+        assertEquals("topic-2", body.getLiteTopicList().get(1).getLiteTopic());
+        verify(messageStore, never()).getMinOffsetInQueue(thirdLmq, 0);
+    }
+
+    @Test
+    public void testGetLiteTopicList_ExactLimitAndLargeMaxCount() throws RemotingCommandException {
+        String parentTopic = "parent_topic";
+        String firstLmq = LiteUtil.toLmqName(parentTopic, "topic-1");
+        String secondLmq = LiteUtil.toLmqName(parentTopic, "topic-2");
+        TopicConfig topicConfig = new TopicConfig(parentTopic);
+        topicConfig.setTopicMessageType(TopicMessageType.LITE);
+        when(topicConfigManager.selectTopicConfig(parentTopic)).thenReturn(topicConfig);
+        mockLiteTopics(parentTopic, Triple.of(firstLmq, 10L, null), Triple.of(secondLmq, 10L, null));
+
+        when(messageStore.getMinOffsetInQueue(firstLmq, 0)).thenReturn(0L);
+        when(messageStore.getMinOffsetInQueue(secondLmq, 0)).thenReturn(0L);
+        when(messageStore.getMessageStoreTimeStamp(firstLmq, 0, 9L)).thenReturn(1000L);
+        when(messageStore.getMessageStoreTimeStamp(secondLmq, 0, 9L)).thenReturn(2000L);
+        when(liteSubscriptionRegistry.getAllSubscribers(null, firstLmq)).thenReturn(Collections.emptyMap());
+        when(liteSubscriptionRegistry.getAllSubscribers(null, secondLmq)).thenReturn(Collections.emptyMap());
+
+        RemotingCommand response = processor.getLiteTopicList(ctx,
+            buildGetLiteTopicListRequest(parentTopic, null, 2));
+        GetLiteTopicListResponseBody body =
+            GetLiteTopicListResponseBody.decode(response.getBody(), GetLiteTopicListResponseBody.class);
+        assertEquals(2, body.getTotal());
+        assertFalse(body.isHasMore());
+
+        // A maxCount above the broker limit must neither overflow nor report a false truncation.
+        response = processor.getLiteTopicList(ctx,
+            buildGetLiteTopicListRequest(parentTopic, null, Integer.MAX_VALUE));
+        body = GetLiteTopicListResponseBody.decode(response.getBody(), GetLiteTopicListResponseBody.class);
+        assertEquals(2, body.getTotal());
+        assertFalse(body.isHasMore());
+    }
+
+    private RemotingCommand buildGetLiteTopicListRequest(String parentTopic, String prefix, int maxCount) {
+        GetLiteTopicListRequestHeader requestHeader = new GetLiteTopicListRequestHeader();
+        requestHeader.setParentTopic(parentTopic);
+        requestHeader.setPrefix(prefix);
+        requestHeader.setMaxCount(maxCount);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_LITE_TOPIC_LIST, requestHeader);
+        request.makeCustomHeaderToNet();
+        return request;
+    }
+
+    private void mockLiteTopics(String parentTopic, Triple<String, Long, Long>... topics) {
+        doAnswer(invocation -> {
+            Function<Triple<String, Long, Long>, Boolean> function = invocation.getArgument(1);
+            for (Triple<String, Long, Long> topic : topics) {
+                if (!function.apply(topic)) {
+                    break;
+                }
+            }
+            return null;
+        }).when(liteLifecycleManager).forEachLiteTopicByParent(eq(parentTopic), any());
     }
 
     @Test
