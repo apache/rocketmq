@@ -326,11 +326,12 @@ public class MQAdminImpl {
     public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, boolean isUniqKey, String indexType, String lastKey) throws MQClientException,
         InterruptedException {
         boolean isLmq = MixAll.isLmq(topic);
+        boolean isSysWheelTimer = topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer");
 
         String routeTopic = topic;
         // if topic is lmq ,then use clusterName as lmq parent topic
         // Use clusterName or lmq parent topic to get topic route for lmq or rmq_sys_wheel_timer
-        if (!StringUtils.isEmpty(topic) && (isLmq || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
+        if (!StringUtils.isEmpty(topic) && (isLmq || isSysWheelTimer)
             && !StringUtils.isEmpty(clusterName)) {
             routeTopic = clusterName;
         }
@@ -344,7 +345,7 @@ public class MQAdminImpl {
         if (topicRouteData != null) {
             List<String> brokerAddrs = new LinkedList<>();
             for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-                if (!isLmq && clusterName != null && !clusterName.isEmpty()
+                if (!isLmq && !isSysWheelTimer && clusterName != null && !clusterName.isEmpty()
                     && !clusterName.equals(brokerData.getCluster())) {
                     continue;
                 }
