@@ -765,6 +765,12 @@ public abstract class NettyRemotingAbstract {
     class NettyEventExecutor extends ServiceThread {
         private final LinkedBlockingQueue<NettyEvent> eventQueue = new LinkedBlockingQueue<>();
 
+        /**
+         * Sentinel used to unblock {@link #eventQueue} on shutdown. It carries no channel event and
+         * is skipped by the dispatch loop.
+         */
+        private final NettyEvent wakeupEvent = new NettyEvent(null, null, null);
+
         public void putNettyEvent(final NettyEvent event) {
             int currentSize = this.eventQueue.size();
             int maxSize = 10000;
@@ -776,6 +782,16 @@ public abstract class NettyRemotingAbstract {
         }
 
         @Override
+        public void wakeup() {
+            super.wakeup();
+            // This service blocks in eventQueue.poll(...) instead of waitForRunning, so the unpark
+            // done by super.wakeup() cannot release it and shutdown would wait for the poll timeout
+            // to expire. Offer a sentinel to make the poll return at once, letting the loop observe
+            // the stopped flag immediately.
+            this.eventQueue.offer(this.wakeupEvent);
+        }
+
+        @Override
         public void run() {
             log.info(this.getServiceName() + " service started");
 
@@ -784,7 +800,7 @@ public abstract class NettyRemotingAbstract {
             while (!this.isStopped()) {
                 try {
                     NettyEvent event = this.eventQueue.poll(3000, TimeUnit.MILLISECONDS);
-                    if (event != null && listener != null) {
+                    if (event != null && event != this.wakeupEvent && listener != null) {
                         switch (event.getType()) {
                             case IDLE:
                                 listener.onChannelIdle(event.getRemoteAddr(), event.getChannel());
