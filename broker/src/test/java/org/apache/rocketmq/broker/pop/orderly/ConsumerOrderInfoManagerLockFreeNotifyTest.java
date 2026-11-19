@@ -18,12 +18,13 @@
 package org.apache.rocketmq.broker.pop.orderly;
 
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.assertj.core.util.Lists;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
@@ -44,7 +45,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
 
     private long popTime;
     private QueueLevelConsumerManager consumerOrderInfoManager;
-    private AtomicBoolean notified;
+    private AtomicLong notifiedAt;
 
     private final BrokerConfig brokerConfig = new BrokerConfig();
     private final PopMessageProcessor popMessageProcessor = mock(PopMessageProcessor.class);
@@ -52,17 +53,22 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
 
     @Before
     public void before() throws ConsumeQueueException {
-        notified = new AtomicBoolean(false);
+        notifiedAt = new AtomicLong(-1);
         brokerConfig.setEnableNotifyAfterPopOrderLockRelease(true);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getPopMessageProcessor()).thenReturn(popMessageProcessor);
         doAnswer((Answer<Void>) mock -> {
-            notified.set(true);
+            notifiedAt.compareAndSet(-1, System.currentTimeMillis());
             return null;
         }).when(popMessageProcessor).notifyLongPollingRequestIfNeed(anyString(), anyString(), anyInt());
 
         consumerOrderInfoManager = new QueueLevelConsumerManager(brokerController);
         popTime = System.currentTimeMillis();
+    }
+
+    @After
+    public void after() {
+        consumerOrderInfoManager.shutdown();
     }
 
     @Test
@@ -78,8 +84,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
             Lists.newArrayList(1L),
             new StringBuilder()
         );
-        await().atLeast(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(4)).until(notified::get);
-        assertTrue(consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
+        awaitNotification(popTime + 3000, Duration.ofSeconds(4));
     }
 
     @Test
@@ -102,8 +107,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
             1,
             popTime
         );
-        await().atMost(Duration.ofSeconds(1)).until(notified::get);
-        assertTrue(consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
+        awaitNotification(popTime, Duration.ofSeconds(1));
     }
 
     @Test
@@ -127,8 +131,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
             popTime,
             popTime + 5000
         );
-        await().atLeast(Duration.ofSeconds(4)).atMost(Duration.ofSeconds(6)).until(notified::get);
-        assertTrue(consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
+        awaitNotification(popTime + 5000, Duration.ofSeconds(6));
     }
 
     @Test
@@ -152,8 +155,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
             popTime,
             popTime + 1000
         );
-        await().atLeast(Duration.ofMillis(500)).atMost(Duration.ofSeconds(2)).until(notified::get);
-        assertTrue(consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
+        awaitNotification(popTime + 1000, Duration.ofSeconds(2));
     }
 
     @Test
@@ -174,7 +176,13 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
         String encodedData = savedConsumerOrderInfoManager.encode();
 
         consumerOrderInfoManager.decode(encodedData);
-        await().atLeast(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(4)).until(notified::get);
-        assertTrue(consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
+        awaitNotification(recoverPopTime + 3000, Duration.ofSeconds(4));
+    }
+
+    private void awaitNotification(long visibleAt, Duration timeout) {
+        // The visibility deadline starts at POP time, before setup/serialization and the await call.
+        await().atMost(timeout).until(() -> notifiedAt.get() >= 0
+            && consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
+        assertTrue("Notification must not precede the visibility deadline", notifiedAt.get() >= visibleAt);
     }
 }

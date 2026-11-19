@@ -55,6 +55,7 @@ import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ConfigLogUtils;
 import org.apache.rocketmq.common.utils.IOTinyUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -332,7 +333,7 @@ public class MixAll {
                     }
 
                     if (logger != null) {
-                        logger.info(name + "=" + value);
+                        logger.info(name + "=" + ConfigLogUtils.getValueForLog(object, name, value));
                     }
                 }
             }
