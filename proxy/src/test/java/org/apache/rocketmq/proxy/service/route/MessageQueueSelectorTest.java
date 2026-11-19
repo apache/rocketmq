@@ -17,8 +17,10 @@
 
 package org.apache.rocketmq.proxy.service.route;
 
+import java.util.Arrays;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -80,5 +82,37 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
         messageQueueSelector.selectOne(false);
         messageQueueSelector.selectOne(false);
         assertEquals(queue, messageQueueSelector.selectOne(false));
+    }
+
+    @Test
+    public void testReadMessageQueueSkipsMissingBrokerData() {
+        queueData.setPerm(PermName.PERM_READ);
+        queueData.setReadQueueNums(3);
+        QueueData missingBrokerQueueData = new QueueData();
+        missingBrokerQueueData.setBrokerName("missing-broker");
+        missingBrokerQueueData.setPerm(PermName.PERM_READ);
+        missingBrokerQueueData.setReadQueueNums(2);
+        topicRouteData.setQueueDatas(Arrays.asList(queueData, missingBrokerQueueData));
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(
+            new TopicRouteWrapper(topicRouteData, TOPIC), true);
+
+        assertEquals(3, messageQueueSelector.getQueues().size());
+        assertTrue(messageQueueSelector.getQueues().stream()
+            .allMatch(messageQueue -> BROKER_NAME.equals(messageQueue.getBrokerName())));
+    }
+
+    @Test
+    public void testOrderMessageQueueSkipsMissingBrokerData() {
+        queueData.setPerm(PermName.PERM_WRITE);
+        queueData.setWriteQueueNums(3);
+        topicRouteData.setOrderTopicConf(BROKER_NAME + ":3;missing-broker:2");
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(
+            new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertEquals(3, messageQueueSelector.getQueues().size());
+        assertTrue(messageQueueSelector.getQueues().stream()
+            .allMatch(messageQueue -> BROKER_NAME.equals(messageQueue.getBrokerName())));
     }
 }
