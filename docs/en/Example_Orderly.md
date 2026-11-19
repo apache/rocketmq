@@ -7,7 +7,7 @@ The following demonstrates ordered messages by ensuring order of create, pay, se
 ## 1 produce ordered messages
 
 ```java
-package org.apache.rocketmq.example.order2
+package org.apache.rocketmq.example.order2;
 
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
