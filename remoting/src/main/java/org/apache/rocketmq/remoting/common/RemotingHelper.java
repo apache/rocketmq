@@ -320,10 +320,10 @@ public class RemotingHelper {
             sc.socket().setSoLinger(false, -1);
             sc.socket().setTcpNoDelay(true);
             if (NettySystemConfig.socketSndbufSize > 0) {
-                sc.socket().setReceiveBufferSize(NettySystemConfig.socketSndbufSize);
+                sc.socket().setSendBufferSize(NettySystemConfig.socketSndbufSize);
             }
             if (NettySystemConfig.socketRcvbufSize > 0) {
-                sc.socket().setSendBufferSize(NettySystemConfig.socketRcvbufSize);
+                sc.socket().setReceiveBufferSize(NettySystemConfig.socketRcvbufSize);
             }
             sc.socket().connect(remote, timeoutMillis);
             sc.configureBlocking(false);
