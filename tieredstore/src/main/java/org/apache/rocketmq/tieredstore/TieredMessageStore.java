@@ -326,6 +326,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         if (minOffsetInTieredStore < 0) {
             return minOffsetInNextStore;
         }
+        if (minOffsetInNextStore < 0) {
+            return minOffsetInTieredStore;
+        }
         return Math.min(minOffsetInNextStore, minOffsetInTieredStore);
     }
 
