@@ -26,6 +26,7 @@ import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -47,12 +48,12 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
             validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
             validateInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
 
-            ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
+            ReceiptHandle receiptHandle = ProxyUtils.decodeReceiptHandle(request.getReceiptHandle());
             String group = request.getGroup().getName();
 
             MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, request.getMessageId(), receiptHandle.getReceiptHandle());
             if (messageReceiptHandle != null) {
-                receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
+                receiptHandle = ProxyUtils.decodeReceiptHandle(messageReceiptHandle.getReceiptHandleStr());
             }
             return this.messagingProcessor.changeInvisibleTime(
                 ctx,
