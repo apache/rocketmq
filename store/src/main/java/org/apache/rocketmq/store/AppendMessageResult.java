@@ -84,6 +84,18 @@ public class AppendMessageResult {
         this.msgNum = msgNum;
     }
 
+    public AppendMessageResult(AppendMessageStatus status, long wroteOffset, int wroteBytes, String msgId,
+            long storeTimestamp, long logicsOffset, long pagecacheRT, int msgNum) {
+        this.status = status;
+        this.wroteOffset = wroteOffset;
+        this.wroteBytes = wroteBytes;
+        this.msgId = msgId;
+        this.storeTimestamp = storeTimestamp;
+        this.logicsOffset = logicsOffset;
+        this.pagecacheRT = pagecacheRT;
+        this.msgNum = msgNum;
+    }
+
     public long getPagecacheRT() {
         return pagecacheRT;
     }
