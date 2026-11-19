@@ -38,6 +38,8 @@ public class BrokerConfigTest {
         brokerConfig.setBrokerClusterName("DefaultCluster");
         brokerConfig.setMsgTraceTopicName("RMQ_SYS_TRACE_TOPIC4");
         brokerConfig.setAutoDeleteUnusedStats(true);
+        brokerConfig.setUseSeparateRetryQueueForPriorityTopic(true);
+
         assertThat(brokerConfig.getBrokerClusterName()).isEqualTo("DefaultCluster");
         assertThat(brokerConfig.getNamesrvAddr()).isEqualTo("127.0.0.1:9876");
         assertThat(brokerConfig.getMsgTraceTopicName()).isEqualTo("RMQ_SYS_TRACE_TOPIC4");
@@ -45,5 +47,12 @@ public class BrokerConfigTest {
         assertThat(brokerConfig.getBrokerName()).isEqualTo("broker-a");
         assertThat(brokerConfig.isAutoCreateTopicEnable()).isEqualTo(false);
         assertThat(brokerConfig.isAutoDeleteUnusedStats()).isEqualTo(true);
+        assertThat(brokerConfig.isUseSeparateRetryQueueForPriorityTopic()).isEqualTo(true);
+    }
+
+    @Test
+    public void testPriorityTopicRetryQueueConfigDefaultValue() {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        assertThat(brokerConfig.isUseSeparateRetryQueueForPriorityTopic()).isFalse();
     }
 }
