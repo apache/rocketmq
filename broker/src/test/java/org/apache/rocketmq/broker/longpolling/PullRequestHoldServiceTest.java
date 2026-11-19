@@ -120,4 +120,33 @@ public class PullRequestHoldServiceTest {
         Assertions.assertThatCode(() -> pullRequestHoldService.notifyMasterOnline()).doesNotThrowAnyException();
     }
 
+    @Test
+    public void notifyMasterOnlineTestWakesTheBucketsLeftAfterAConcurrentArrivalDrainedOneTest() {
+        PullRequestHoldService holdService = new PullRequestHoldService(brokerController);
+
+        // A message arrival drains the very bucket the master-online sweep has just checked, so the
+        // sweep's own drain finds an empty list and gets null back. RacyBucket reproduces that
+        // interleaving deterministically: it drains itself the moment it is asked whether it still
+        // holds requests, and reports that it did, exactly as the sweep observed it.
+        ManyPullRequest racyBucket = new ManyPullRequest() {
+            @Override
+            public synchronized boolean isEmpty() {
+                cloneListAndClear();
+                return false;
+            }
+        };
+        racyBucket.addPullRequest(pullRequest);
+        holdService.pullRequestTable.put("RACY_TOPIC@0", racyBucket);
+
+        holdService.suspendPullRequest(TEST_TOPIC, DEFAULT_QUEUE_ID, pullRequest);
+        ManyPullRequest untouchedBucket = holdService.pullRequestTable.get(TEST_TOPIC + "@0");
+        Assertions.assertThat(untouchedBucket.isEmpty()).isFalse();
+
+        Assertions.assertThatCode(holdService::notifyMasterOnline).doesNotThrowAnyException();
+
+        // the held requests of the other queues must still be woken: the sweep may only skip the
+        // bucket that lost the race, not abandon the rest of the table
+        Assertions.assertThat(untouchedBucket.isEmpty()).isTrue();
+    }
+
 }
