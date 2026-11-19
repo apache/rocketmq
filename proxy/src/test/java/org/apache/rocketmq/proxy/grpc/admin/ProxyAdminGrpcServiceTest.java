@@ -453,6 +453,26 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     }
 
     @Test
+    public void listSubscriptionReportsLiteSelectiveMessageModelTest() {
+        stubClusterInfo(ADDRESS_A);
+        ConsumerConnection connection = consumerConnection(CLIENT_ID, "192.168.1.5:43210", TOPIC);
+        // consumers that selectively subscribe to lite topics are not plain clustering consumers
+        connection.setMessageModel(MessageModel.LITE_SELECTIVE);
+        when(adminService.getConsumerConnectionList(eq(ADDRESS_A), eq(GROUP), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(connection));
+
+        SimpleObserver<ListSubscriptionResponse> observer = new SimpleObserver<>();
+        service.listSubscription(ListSubscriptionRequest.newBuilder()
+            .setGroup(resource(GROUP)).build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.OK, observer.value.getStatus().getCode());
+        assertEquals(1, observer.value.getSubscriptionInfoCount());
+        assertEquals(apache.rocketmq.v2.MessageModel.LITE_SELECTIVE,
+            observer.value.getSubscriptionInfo(0).getMessageModel());
+    }
+
+    @Test
     public void listSubscriptionReturnsBrokerSideSubscriptionsTest() {
         stubClusterInfo(ADDRESS_A);
         ConsumerConnection connection = consumerConnection(CLIENT_ID, "192.168.1.5:43210", TOPIC);
