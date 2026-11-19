@@ -965,7 +965,7 @@ public class CompactionLog {
 
         private int indexOf(byte[] hash, int tryNum) {
             int index = readInt(hash, Math.min(tryNum, hashSize - 4)) + Math.max(0, tryNum - hashSize + 4);
-            int entry = Math.abs(index) % capacity;
+            int entry = Math.floorMod(index, capacity);
             return entry * entrySize;
         }
 

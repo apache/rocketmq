@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.kv;
 
+import java.security.MessageDigest;
 import org.apache.rocketmq.store.kv.CompactionLog.OffsetMap;
 import org.junit.Test;
 
@@ -49,5 +50,51 @@ public class OffsetMapTest {
         assertNotEquals(offsetMap.get("55"), 56);
         assertEquals(offsetMap.getLastOffset(), 99);
         assertThrows(IllegalArgumentException.class, () -> offsetMap.put(String.valueOf(100), 100));
+    }
+
+    @Test
+    public void testMinimumHashValue() throws Exception {
+        OffsetMap offsetMap = new OffsetMap(0, new MinimumHashDigest());
+
+        offsetMap.put("key", 7);
+
+        assertEquals(7, offsetMap.get("key"));
+    }
+
+    private static class MinimumHashDigest extends MessageDigest {
+        private MinimumHashDigest() {
+            super("minimum-hash");
+        }
+
+        @Override
+        protected int engineGetDigestLength() {
+            return 16;
+        }
+
+        @Override
+        protected void engineUpdate(byte input) {
+        }
+
+        @Override
+        protected void engineUpdate(byte[] input, int offset, int len) {
+        }
+
+        @Override
+        protected byte[] engineDigest() {
+            byte[] digest = new byte[16];
+            digest[0] = Byte.MIN_VALUE;
+            return digest;
+        }
+
+        @Override
+        protected int engineDigest(byte[] buf, int offset, int len) {
+            byte[] digest = engineDigest();
+            System.arraycopy(digest, 0, buf, offset, digest.length);
+            return digest.length;
+        }
+
+        @Override
+        protected void engineReset() {
+        }
     }
 }
