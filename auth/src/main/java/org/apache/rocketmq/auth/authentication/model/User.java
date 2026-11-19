@@ -52,6 +52,18 @@ public class User implements Subject {
         return user;
     }
 
+    /**
+     * Returns an independent copy of this user so that callers cannot mutate the cached instance.
+     */
+    public User deepCopy() {
+        User user = new User();
+        user.setUsername(this.username);
+        user.setPassword(this.password);
+        user.setUserType(this.userType);
+        user.setUserStatus(this.userStatus);
+        return user;
+    }
+
     @Override
     public String getSubjectKey() {
         return this.getSubjectType().getName() + CommonConstants.COLON + this.username;

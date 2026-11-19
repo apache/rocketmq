@@ -121,16 +121,17 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
                 if (old == null) {
                     throw new AuthenticationException("The user is not exist");
                 }
+                User newUser = old.deepCopy();
                 if (StringUtils.isNotBlank(user.getPassword())) {
-                    old.setPassword(user.getPassword());
+                    newUser.setPassword(user.getPassword());
                 }
                 if (user.getUserType() != null) {
-                    old.setUserType(user.getUserType());
+                    newUser.setUserType(user.getUserType());
                 }
                 if (user.getUserStatus() != null) {
-                    old.setUserStatus(user.getUserStatus());
+                    newUser.setUserStatus(user.getUserStatus());
                 }
-                return this.getAuthenticationMetadataProvider().updateUser(old);
+                return this.getAuthenticationMetadataProvider().updateUser(newUser);
             });
         } catch (Exception e) {
             this.handleException(e, result);
