@@ -968,6 +968,29 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
+    public void testPutMessageLargerThanCommitLogFileIsNotReportedAsSuccess() throws Exception {
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setMappedFileSizeCommitLog(1024 * 8);
+        storeConfig.setMappedFileSizeConsumeQueue(1024 * 4);
+        storeConfig.setMaxHashSlotNum(100);
+        storeConfig.setMaxIndexNum(100 * 10);
+        MessageStore smallFileStore = buildMessageStore(storeConfig, null);
+        try {
+            assertTrue(smallFileStore.load());
+            smallFileStore.start();
+
+            // the message does not fit into an empty commit log file either, so it cannot be appended at all
+            MessageExtBrokerInner msg = buildMessage(new byte[1024 * 16], messageTopic);
+            PutMessageResult result = smallFileStore.putMessage(msg);
+
+            assertEquals(AppendMessageStatus.END_OF_FILE, result.getAppendMessageResult().getStatus());
+            Assert.assertNotEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
+        } finally {
+            shutdownAndDeleteStore(smallFileStore);
+        }
+    }
+
+    @Test
     public void testDynamicMaxMessageSize() {
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         MessageStoreConfig messageStoreConfig = ((DefaultMessageStore) messageStore).getMessageStoreConfig();
