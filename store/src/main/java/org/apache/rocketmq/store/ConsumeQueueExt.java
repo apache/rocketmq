@@ -39,6 +39,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
  */
 public class ConsumeQueueExt {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final long TRUNCATE_ALL_RETRY_INTERVAL_MILLIS = 1000;
 
     private final MappedFileQueue mappedFileQueue;
     private final String topic;
@@ -47,6 +48,8 @@ public class ConsumeQueueExt {
     private final String storePath;
     private final int mappedFileSize;
     private ByteBuffer tempContainer;
+    private volatile boolean truncateAllPending;
+    private volatile long nextTruncateAllRetryTimestamp;
 
     public static final int END_BLANK_DATA_LENGTH = 4;
 
@@ -228,6 +231,10 @@ public class ConsumeQueueExt {
      * @return success: < 0: fail: >=0
      */
     public long put(final CqExtUnit cqExtUnit) {
+        if (this.truncateAllPending && !retryTruncateAllIfDue()) {
+            return 1;
+        }
+
         final int retryTimes = 3;
         try {
             int size = cqExtUnit.calcUnitSize();
@@ -275,6 +282,16 @@ public class ConsumeQueueExt {
         }
 
         return 1;
+    }
+
+    private synchronized boolean retryTruncateAllIfDue() {
+        if (!this.truncateAllPending) {
+            return true;
+        }
+        if (System.currentTimeMillis() < this.nextTruncateAllRetryTimestamp) {
+            return false;
+        }
+        return truncateAll();
     }
 
     protected void fullFillToEnd(final MappedFile mappedFile, final int wrotePosition) {
@@ -403,6 +420,38 @@ public class ConsumeQueueExt {
         final long realOffset = unDecorate(maxAddress);
 
         this.mappedFileQueue.truncateDirtyFiles(realOffset + cqExtUnit.getSize());
+    }
+
+    /**
+     * Delete all consume queue extension data when no consume queue entry retains an extension address.
+     */
+    public synchronized boolean truncateAll() {
+        log.info("Truncate all consume queue ext data.");
+        this.truncateAllPending = true;
+        this.nextTruncateAllRetryTimestamp = Long.MAX_VALUE;
+        List<MappedFile> deletedFiles = new ArrayList<>();
+        for (MappedFile mappedFile : new ArrayList<>(this.mappedFileQueue.getMappedFiles())) {
+            boolean destroyed = mappedFile.destroy(1000 * 3);
+            boolean fileExists = new File(mappedFile.getFileName()).exists();
+            if (destroyed && !fileExists) {
+                deletedFiles.add(mappedFile);
+            } else {
+                log.warn("Consume queue ext file remains after truncating all data, file={}, destroyed={}",
+                    mappedFile.getFileName(), destroyed);
+            }
+        }
+        this.mappedFileQueue.deleteExpiredFile(deletedFiles);
+        if (!this.mappedFileQueue.getMappedFiles().isEmpty()) {
+            this.nextTruncateAllRetryTimestamp =
+                System.currentTimeMillis() + TRUNCATE_ALL_RETRY_INTERVAL_MILLIS;
+            return false;
+        }
+
+        this.mappedFileQueue.setFlushedWhere(0);
+        this.mappedFileQueue.setCommittedWhere(0);
+        this.nextTruncateAllRetryTimestamp = 0;
+        this.truncateAllPending = false;
+        return true;
     }
 
     /**
