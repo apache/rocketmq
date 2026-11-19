@@ -19,7 +19,11 @@ package org.apache.rocketmq.auth.migration;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
 import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.auth.authorization.enums.Decision;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
+import org.apache.rocketmq.auth.authorization.model.Acl;
+import org.apache.rocketmq.auth.authorization.model.Policy;
+import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.migration.v1.PlainPermissionManager;
 import org.apache.rocketmq.auth.migration.v1.AclConfig;
@@ -27,6 +31,7 @@ import org.apache.rocketmq.auth.migration.v1.PlainAccessConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -35,6 +40,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -120,6 +126,38 @@ public class AuthMigratorTest {
             verify(authorizationMetadataManager, never()).createAcl(any());
         } catch (final RuntimeException ex) {
             assertEquals("Test Exception", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void testMigrateUnrecognizedPermDoesNotAuthorizeTheResource() {
+        PlainAccessConfig accessConfig = createPlainAccessConfig();
+        List<String> topicPerms = new ArrayList<>();
+        topicPerms.add("topicA=ANY");
+        when(accessConfig.getTopicPerms()).thenReturn(topicPerms);
+        when(accessConfig.getDefaultTopicPerm()).thenReturn(null);
+
+        AclConfig aclConfig = mock(AclConfig.class);
+        List<PlainAccessConfig> accessConfigs = new ArrayList<>();
+        accessConfigs.add(accessConfig);
+        when(aclConfig.getPlainAccessConfigs()).thenReturn(accessConfigs);
+        when(plainPermissionManager.getAllAclConfig()).thenReturn(aclConfig);
+        when(authenticationMetadataManager.getUser(anyString()))
+            .thenReturn(CompletableFuture.completedFuture(null));
+        when(authenticationMetadataManager.createUser(any()))
+            .thenReturn(CompletableFuture.completedFuture(null));
+
+        authMigrator.migrate();
+
+        ArgumentCaptor<Acl> aclCaptor = ArgumentCaptor.forClass(Acl.class);
+        verify(authorizationMetadataManager, times(1)).createAcl(aclCaptor.capture());
+        List<Policy> policies = aclCaptor.getValue().getPolicies();
+        assertFalse(policies.isEmpty());
+        for (Policy policy : policies) {
+            for (PolicyEntry entry : policy.getEntries()) {
+                assertEquals("an unrecognized v1 permission must not authorize anything",
+                    Decision.DENY, entry.getDecision());
+            }
         }
     }
 

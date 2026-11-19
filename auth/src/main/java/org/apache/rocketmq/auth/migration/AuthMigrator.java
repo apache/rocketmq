@@ -191,10 +191,12 @@ public class AuthMigrator {
     }
 
     private Decision parseDecision(String str) {
-        if (StringUtils.isBlank(str)) {
-            return Decision.DENY;
+        String perm = StringUtils.trim(str);
+        if (AclConstants.PUB.equals(perm) || AclConstants.SUB.equals(perm)
+            || AclConstants.PUB_SUB.equals(perm) || AclConstants.SUB_PUB.equals(perm)) {
+            return Decision.ALLOW;
         }
-        return StringUtils.equals(str, AclConstants.DENY) ? Decision.DENY : Decision.ALLOW;
+        return Decision.DENY;
     }
 
     private List<Action> parseActions(String str) {
