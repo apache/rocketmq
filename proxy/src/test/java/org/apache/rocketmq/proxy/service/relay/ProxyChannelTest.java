@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.relay;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -25,6 +26,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -43,9 +45,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -159,5 +164,57 @@ public class ProxyChannelTest {
         assertTrue(channel.writeAndFlush(checkTransactionRequest).isSuccess());
         assertTrue(channel.writeAndFlush(consumerRunningInfoRequest).isSuccess());
         assertTrue(channel.writeAndFlush(consumeMessageDirectlyResult).isSuccess());
+    }
+
+    @Test
+    public void testWriteAndFlushUnsupportedRemotingCommandCompletesWithFailure() {
+        MockProxyChannel channel = new MockProxyChannel(this.proxyRelayService, null,
+            "127.0.0.2:8888", "127.0.0.1:10911") {
+            @Override
+            protected CompletableFuture<Void> processOtherMessage(Object msg) {
+                throw new AssertionError("unexpected other message");
+            }
+
+            @Override
+            protected CompletableFuture<Void> processCheckTransaction(CheckTransactionStateRequestHeader header,
+                MessageExt messageExt, TransactionData transactionData,
+                CompletableFuture<ProxyRelayResult<Void>> responseFuture) {
+                throw new AssertionError("unexpected transaction check");
+            }
+
+            @Override
+            protected CompletableFuture<Void> processNotifyUnsubscribeLite(
+                NotifyUnsubscribeLiteRequestHeader header) {
+                throw new AssertionError("unexpected unsubscribe notification");
+            }
+
+            @Override
+            protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
+                GetConsumerRunningInfoRequestHeader header,
+                CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture) {
+                throw new AssertionError("unexpected consumer running info request");
+            }
+
+            @Override
+            protected CompletableFuture<Void> processConsumeMessageDirectly(RemotingCommand command,
+                ConsumeMessageDirectlyResultRequestHeader header, MessageExt messageExt,
+                CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture) {
+                throw new AssertionError("unexpected direct consumption request");
+            }
+        };
+
+        int unsupportedCode = Integer.MAX_VALUE;
+        RemotingCommand unsupportedCommand = RemotingCommand.createRequestCommand(unsupportedCode, null);
+        ChannelFuture future = channel.writeAndFlush(unsupportedCommand);
+
+        assertTrue("unsupported command future should be completed", future.isDone());
+        assertFalse("unsupported command future should fail", future.isSuccess());
+        assertNotNull("unsupported command failure should have a cause", future.cause());
+        Throwable failure = ExceptionUtils.getRealException(future.cause());
+        assertTrue("unsupported command should fail with UnsupportedOperationException",
+            failure instanceof UnsupportedOperationException);
+        assertTrue("failure should identify the unsupported command code",
+            failure.getMessage().contains(String.valueOf(unsupportedCode)));
+        verifyNoInteractions(proxyRelayService);
     }
 }
