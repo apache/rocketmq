@@ -36,17 +36,34 @@ public abstract class AbstractStartAndShutdown implements StartAndShutdown {
 
     @Override
     public void shutdown() throws Exception {
-        int index = startAndShutdownList.size() - 1;
-        for (; index >= 0; index--) {
-            startAndShutdownList.get(index).shutdown();
-        }
+        shutdownTargets(false);
     }
 
     @Override
     public void preShutdown() throws Exception {
+        shutdownTargets(true);
+    }
+
+    private void shutdownTargets(boolean preShutdown) throws Exception {
+        Exception failure = null;
         int index = startAndShutdownList.size() - 1;
         for (; index >= 0; index--) {
-            startAndShutdownList.get(index).preShutdown();
+            try {
+                if (preShutdown) {
+                    startAndShutdownList.get(index).preShutdown();
+                } else {
+                    startAndShutdownList.get(index).shutdown();
+                }
+            } catch (Exception e) {
+                if (failure == null) {
+                    failure = e;
+                } else if (failure != e) {
+                    failure.addSuppressed(e);
+                }
+            }
+        }
+        if (failure != null) {
+            throw failure;
         }
     }
 
