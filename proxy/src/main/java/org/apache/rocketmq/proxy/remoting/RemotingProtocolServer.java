@@ -260,6 +260,9 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.updateOffsetExecutor.shutdown();
         this.topicRouteExecutor.shutdown();
         this.defaultExecutor.shutdown();
+        // The constructor schedules the expired-request cleanup on this executor; leaving it running
+        // keeps a non-daemon thread (and its 100ms task) alive after the server has shut down.
+        this.timerExecutor.shutdown();
     }
 
     @Override
