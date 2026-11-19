@@ -211,7 +211,9 @@ are answered with an explicit status or left unset rather than faked:
 - **QueryMessage** supports lookup by `message_id` (unique-key index) and
   `message_key`. The `subscription` / `lite_topic` / pure time-range scan variants
   need a paging cursor the open-source broker does not provide and return
-  `BAD_REQUEST`.
+  `BAD_REQUEST`; for the same reason a `page_num` past the first page and any
+  `scroll_id` are refused, `page_size` is honored as a cap on the result, and the
+  response never carries a `scroll_id`.
 - **GetProxyRuntimeStats** leaves `in_tps` / `out_tps` unset: the open-source
   proxy keeps no per-process throughput counter, and reporting 0 would be
   indistinguishable from an idle proxy.
