@@ -41,7 +41,6 @@ public class DLedgerMultiPathTest extends MessageStoreTestBase {
 
     @Test
     public void multiDirsStorageTest() throws Exception {
-        Assume.assumeFalse(MixAll.isMac());
         Assume.assumeFalse(MixAll.isWindows());
         String base = createBaseDir();
         String topic = UUID.randomUUID().toString();

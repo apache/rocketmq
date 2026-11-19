@@ -305,9 +305,6 @@ public class AdminBrokerProcessorTest {
 
     @After
     public void destroy() {
-        if (notToBeExecuted()) {
-            return;
-        }
         if (brokerController.getSubscriptionGroupManager() != null) {
             brokerController.getSubscriptionGroupManager().stop();
         }
@@ -320,18 +317,12 @@ public class AdminBrokerProcessorTest {
     }
 
     private void initRocksdbTopicManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         RocksDBTopicConfigManager rocksDBTopicConfigManager = new RocksDBTopicConfigManager(brokerController);
         brokerController.setTopicConfigManager(rocksDBTopicConfigManager);
         rocksDBTopicConfigManager.load();
     }
 
     private void initRocksdbSubscriptionManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         RocksDBSubscriptionGroupManager rocksDBSubscriptionGroupManager = new RocksDBSubscriptionGroupManager(brokerController);
         brokerController.setSubscriptionGroupManager(rocksDBSubscriptionGroupManager);
         rocksDBSubscriptionGroupManager.load();
@@ -384,9 +375,6 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testUpdateAndCreateTopicInRocksdb() throws Exception {
-        if (notToBeExecuted()) {
-            return;
-        }
         initRocksdbTopicManager();
         testUpdateAndCreateTopic();
     }
@@ -467,9 +455,6 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testDeleteTopicInRocksdb() throws Exception {
-        if (notToBeExecuted()) {
-            return;
-        }
         initRocksdbTopicManager();
         testDeleteTopic();
     }
@@ -729,9 +714,6 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetAllTopicConfigInRocksdb() throws Exception {
-        if (notToBeExecuted()) {
-            return;
-        }
         initRocksdbTopicManager();
         testGetAllTopicConfig();
     }
@@ -1257,9 +1239,6 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetTopicConfigInRocksdb() throws Exception {
-        if (notToBeExecuted()) {
-            return;
-        }
         initRocksdbTopicManager();
         testGetTopicConfig();
     }
@@ -2158,9 +2137,6 @@ public class AdminBrokerProcessorTest {
         return request;
     }
 
-    private boolean notToBeExecuted() {
-        return MixAll.isMac();
-    }
 
     private void fillTopicConfigTable(int num) {
         for (int i = num - 1; i >= 0; i--) {

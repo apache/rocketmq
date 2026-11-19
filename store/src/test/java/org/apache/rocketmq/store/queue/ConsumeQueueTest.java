@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -217,9 +216,6 @@ public class ConsumeQueueTest extends QueueTestBase {
 
     @Test
     public void testEstimateRocksdbMessageCountInEmptyConsumeQueue() {
-        if (notExecuted()) {
-            return;
-        }
         DefaultMessageStore messageStore = null;
         try {
             messageStore = genRocksdbMessageStore();
@@ -266,9 +262,6 @@ public class ConsumeQueueTest extends QueueTestBase {
 
     @Test
     public void testEstimateRocksdbMessageCount() {
-        if (notExecuted()) {
-            return;
-        }
         DefaultMessageStore messageStore = null;
         try {
             messageStore = genRocksdbMessageStore();
@@ -330,9 +323,6 @@ public class ConsumeQueueTest extends QueueTestBase {
 
     @Test
     public void testEstimateRocksdbMessageCountSample() {
-        if (notExecuted()) {
-            return;
-        }
         DefaultMessageStore messageStore = null;
         try {
             messageStore = genRocksdbMessageStore();
@@ -386,7 +376,4 @@ public class ConsumeQueueTest extends QueueTestBase {
         }
     }
 
-    private boolean notExecuted() {
-        return MixAll.isMac();
-    }
 }

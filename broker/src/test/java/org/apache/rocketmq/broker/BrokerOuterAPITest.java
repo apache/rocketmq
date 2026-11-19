@@ -137,9 +137,6 @@ public class BrokerOuterAPITest {
 
     @Test
     public void test_needRegister_timeout() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
         init();
         brokerOuterAPI.start();
 

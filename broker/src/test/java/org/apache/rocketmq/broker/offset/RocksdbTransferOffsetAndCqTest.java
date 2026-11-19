@@ -18,9 +18,7 @@
 package org.apache.rocketmq.broker.offset;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +27,6 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
@@ -43,9 +40,12 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -55,8 +55,8 @@ import org.rocksdb.RocksDBException;
 @RunWith(MockitoJUnitRunner.class)
 public class RocksdbTransferOffsetAndCqTest {
 
-    private final String basePath = Paths.get(System.getProperty("user.home"),
-        "unit-test-store", UUID.randomUUID().toString().substring(0, 16).toUpperCase()).toString();
+    @Rule
+    public TemporaryFolder temporaryFolder = TemporaryFolder.builder().assureDeletion().build();
 
     private final String topic = "topic";
     private final String group = "group";
@@ -69,23 +69,23 @@ public class RocksdbTransferOffsetAndCqTest {
 
     private DefaultMessageStore defaultMessageStore;
 
+    private BrokerStatsManager brokerStatsManager;
+
     @Mock
     private BrokerController brokerController;
 
     @Before
     public void init() throws IOException {
-        if (notToBeExecuted()) {
-            return;
-        }
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setConsumerOffsetUpdateVersionStep(10);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setStorePathRootDir(basePath);
+        messageStoreConfig.setStorePathRootDir(temporaryFolder.newFolder("store").getAbsolutePath());
         messageStoreConfig.setRocksdbCQDoubleWriteEnable(true);
         Mockito.lenient().when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         Mockito.lenient().when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
 
-        defaultMessageStore = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("for-test", true), null,
+        brokerStatsManager = new BrokerStatsManager("for-test", true);
+        defaultMessageStore = new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null,
             brokerConfig, new ConcurrentHashMap<>());
         defaultMessageStore.loadCheckPoint();
 
@@ -95,11 +95,31 @@ public class RocksdbTransferOffsetAndCqTest {
         rocksdbConsumerOffsetManager = new RocksDBConsumerOffsetManager(brokerController);
     }
 
+    @After
+    public void destroy() {
+        try {
+            if (rocksdbConsumerOffsetManager != null) {
+                rocksdbConsumerOffsetManager.stop();
+            }
+        } finally {
+            try {
+                if (defaultMessageStore != null) {
+                    try {
+                        defaultMessageStore.shutdown();
+                    } finally {
+                        defaultMessageStore.destroy();
+                    }
+                }
+            } finally {
+                if (brokerStatsManager != null) {
+                    brokerStatsManager.shutdown();
+                }
+            }
+        }
+    }
+
     @Test
     public void testTransferOffset() {
-        if (notToBeExecuted()) {
-            return;
-        }
 
         for (int i = 0; i < 200; i++) {
             consumerOffsetManager.commitOffset(clientHost, group, topic, queueId, i);
@@ -134,9 +154,6 @@ public class RocksdbTransferOffsetAndCqTest {
 
     @Test
     public void testRocksdbCqWrite() throws RocksDBException {
-        if (notToBeExecuted()) {
-            return;
-        }
         long startTimestamp = System.currentTimeMillis();
 
         ConsumeQueueStoreInterface combineConsumeQueueStore = defaultMessageStore.getQueueStore();
@@ -168,12 +185,5 @@ public class RocksdbTransferOffsetAndCqTest {
         Assert.assertEquals(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue(), result.getCheckStatus());
     }
 
-//    /**
-//     * No need to skip macOS platform.
-//     * @return true if some platform is NOT a good fit for this test case.
-//     */
-    private boolean notToBeExecuted() {
-        return MixAll.isMac();
-    }
 
 }

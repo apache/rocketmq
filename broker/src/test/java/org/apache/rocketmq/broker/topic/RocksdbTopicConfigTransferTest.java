@@ -20,7 +20,6 @@ package org.apache.rocketmq.broker.topic;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -62,9 +61,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Before
     public void init() {
-        if (notToBeExecuted()) {
-            return;
-        }
         BrokerConfig brokerConfig = new BrokerConfig();
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -76,9 +72,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @After
     public void destroy() {
-        if (notToBeExecuted()) {
-            return;
-        }
         Path pathToBeDeleted = Paths.get(basePath);
         try {
             Files.walk(pathToBeDeleted)
@@ -114,9 +107,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Test
     public void theFirstTimeLoadJsonTopicConfigManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         initJsonTopicConfigManager();
         DataVersion dataVersion = jsonTopicConfigManager.getDataVersion();
         Assert.assertNotNull(dataVersion);
@@ -127,9 +117,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Test
     public void theFirstTimeLoadRocksdbTopicConfigManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         initRocksdbTopicConfigManager();
         DataVersion dataVersion = rocksdbTopicConfigManager.getDataVersion();
         Assert.assertNotNull(dataVersion);
@@ -141,9 +128,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Test
     public void addTopicLoadJsonTopicConfigManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         initJsonTopicConfigManager();
         String topicName = "testAddTopicConfig-" + System.currentTimeMillis();
 
@@ -169,9 +153,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Test
     public void addTopicLoadRocksdbTopicConfigManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         initRocksdbTopicConfigManager();
         String topicName = "testAddTopicConfig-" + System.currentTimeMillis();
 
@@ -196,9 +177,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Test
     public void theSecondTimeLoadJsonTopicConfigManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         addTopicLoadJsonTopicConfigManager();
         jsonTopicConfigManager.stop();
         jsonTopicConfigManager = new TopicConfigManager(brokerController);
@@ -212,9 +190,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Test
     public void theSecondTimeLoadRocksdbTopicConfigManager() {
-        if (notToBeExecuted()) {
-            return;
-        }
         addTopicLoadRocksdbTopicConfigManager();
         rocksdbTopicConfigManager.stop();
         rocksdbTopicConfigManager = null;
@@ -229,9 +204,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @Test
     public void jsonUpgradeToRocksdb() {
-        if (notToBeExecuted()) {
-            return;
-        }
         addTopicLoadJsonTopicConfigManager();
         initRocksdbTopicConfigManager();
         DataVersion dataVersion = rocksdbTopicConfigManager.getDataVersion();
@@ -252,8 +224,5 @@ public class RocksdbTopicConfigTransferTest {
     }
 
 
-    private boolean notToBeExecuted() {
-        return MixAll.isMac();
-    }
 
 }

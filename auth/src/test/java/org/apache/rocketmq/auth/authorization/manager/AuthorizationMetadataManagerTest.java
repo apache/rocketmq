@@ -32,7 +32,6 @@ import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
-import org.apache.rocketmq.common.MixAll;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -48,9 +47,6 @@ public class AuthorizationMetadataManagerTest {
 
     @Before
     public void setUp() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
         this.authConfig = AuthTestHelper.createDefaultConfig();
         this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
         this.authorizationMetadataManager = AuthorizationFactory.getMetadataManager(this.authConfig);
@@ -60,9 +56,6 @@ public class AuthorizationMetadataManagerTest {
 
     @After
     public void tearDown() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
         this.clearAllAcls();
         this.clearAllUsers();
         this.authenticationMetadataManager.shutdown();
@@ -71,9 +64,6 @@ public class AuthorizationMetadataManagerTest {
 
     @Test
     public void createAcl() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
@@ -111,9 +101,6 @@ public class AuthorizationMetadataManagerTest {
 
     @Test
     public void updateAcl() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
@@ -147,9 +134,6 @@ public class AuthorizationMetadataManagerTest {
 
     @Test
     public void deleteAcl() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
@@ -182,9 +166,6 @@ public class AuthorizationMetadataManagerTest {
 
     @Test
     public void getAcl() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
@@ -205,9 +186,6 @@ public class AuthorizationMetadataManagerTest {
 
     @Test
     public void testGetAclWithNullSubject() {
-        if (MixAll.isMac()) {
-            return;
-        }
         AuthorizationException authorizationException = Assert.assertThrows(AuthorizationException.class, () -> {
             try {
                 this.authorizationMetadataManager.getAcl(null).join();
@@ -220,9 +198,6 @@ public class AuthorizationMetadataManagerTest {
 
     @Test
     public void listAcl() {
-        if (MixAll.isMac()) {
-            return;
-        }
         User user1 = User.of("test-1", "test-1");
         this.authenticationMetadataManager.createUser(user1).join();
         User user2 = User.of("test-2", "test-2");
