@@ -58,6 +58,22 @@ public class MessageReceiptHandle {
         this.liteTopic = liteTopic;
     }
 
+    MessageReceiptHandle(MessageReceiptHandle source) {
+        this.group = source.group;
+        this.topic = source.topic;
+        this.queueId = source.queueId;
+        this.messageId = source.messageId;
+        this.queueOffset = source.queueOffset;
+        this.originalReceiptHandleStr = source.originalReceiptHandleStr;
+        this.originalReceiptHandle = source.originalReceiptHandle;
+        this.reconsumeTimes = source.reconsumeTimes;
+        this.consumeTimestamp = source.consumeTimestamp;
+        this.liteTopic = source.liteTopic;
+        this.receiptHandleStr = source.receiptHandleStr;
+        this.renewRetryTimes.set(source.renewRetryTimes.get());
+        this.renewTimes.set(source.renewTimes.get());
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

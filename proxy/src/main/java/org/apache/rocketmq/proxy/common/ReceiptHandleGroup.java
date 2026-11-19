@@ -25,22 +25,28 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class ReceiptHandleGroup {
-    protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final int LOCK_EXPIRATION_MULTIPLIER = 3;
+    private final LongSupplier nanoTime;
 
     // The messages having the same messageId will be deduplicated based on the parameters of broker, queueId, and offset
     protected final Map<String /* msgID */, Map<HandleKey, HandleData>> receiptHandleMap = new ConcurrentHashMap<>();
+
+    public ReceiptHandleGroup() {
+        this(System::nanoTime);
+    }
+
+    ReceiptHandleGroup(LongSupplier nanoTime) {
+        this.nanoTime = nanoTime;
+    }
 
     public static class HandleKey {
         private final String originalHandle;
@@ -101,51 +107,83 @@ public class ReceiptHandleGroup {
         }
     }
 
+    private static final class PendingComputation {
+        private final long startTimeNanos;
+
+        PendingComputation(long startTimeNanos) {
+            this.startTimeNanos = startTimeNanos;
+        }
+    }
+
     public static class HandleData {
         private final Semaphore semaphore = new Semaphore(1);
-        private final AtomicLong lastLockTimeMs = new AtomicLong(-1L);
+        private final LongSupplier nanoTime;
+        // Guarded by this. Only a computation has an owner that can be invalidated.
+        private PendingComputation pendingComputation;
         private volatile boolean needRemove = false;
         private volatile MessageReceiptHandle messageReceiptHandle;
 
-        public HandleData(MessageReceiptHandle messageReceiptHandle) {
+        private HandleData(MessageReceiptHandle messageReceiptHandle, LongSupplier nanoTime) {
             this.messageReceiptHandle = messageReceiptHandle;
+            this.nanoTime = nanoTime;
         }
 
-        public Long lock(long timeoutMs) {
+        private boolean lock(long timeoutMs) {
             try {
-                boolean result = this.semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS);
-                long currentTimeMs = System.currentTimeMillis();
-                if (result) {
-                    this.lastLockTimeMs.set(currentTimeMs);
-                    return currentTimeMs;
-                } else {
-                    // if the lock is expired, can be acquired again
-                    long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
-                    if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
-                        synchronized (this) {
-                            if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
-                                log.warn("HandleData lock expired, acquire lock success and reset lock time. " +
-                                    "MessageReceiptHandle={}, lockTime={}", messageReceiptHandle, currentTimeMs);
-                                this.lastLockTimeMs.set(currentTimeMs);
-                                return currentTimeMs;
-                            }
-                        }
-                    }
+                if (this.semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS)) {
+                    return true;
                 }
-                return null;
+                // Use the configured timeout for expiry even when renewal passes zero to avoid waiting.
+                return reclaimExpiredComputation() && this.semaphore.tryAcquire(0, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
-                return null;
+                Thread.currentThread().interrupt();
+                return false;
             }
         }
 
-        public void unlock(long lockTimeMs) {
-            // if the lock is expired, we don't need to unlock it
-            if (System.currentTimeMillis() - lockTimeMs > ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 2) {
-                log.warn("HandleData lock expired, unlock fail. MessageReceiptHandle={}, lockTime={}, now={}",
-                    messageReceiptHandle, lockTimeMs, System.currentTimeMillis());
-                return;
-            }
+        private void unlock() {
             this.semaphore.release();
+        }
+
+        private synchronized boolean reclaimExpiredComputation() {
+            if (pendingComputation == null) {
+                return false;
+            }
+            long elapsedNanos = nanoTime.getAsLong() - pendingComputation.startTimeNanos;
+            long timeoutNanos = TimeUnit.MILLISECONDS.toNanos(ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup());
+            if (elapsedNanos / LOCK_EXPIRATION_MULTIPLIER <= timeoutNanos) {
+                return false;
+            }
+            // Completion checks the same token under this monitor before publishing or releasing.
+            pendingComputation = null;
+            unlock();
+            return true;
+        }
+
+        private synchronized PendingComputation beginComputation() {
+            pendingComputation = new PendingComputation(nanoTime.getAsLong());
+            return pendingComputation;
+        }
+
+        private synchronized boolean completeComputation(PendingComputation owner,
+            MessageReceiptHandle result, Throwable error) {
+            if (pendingComputation != owner) {
+                return false;
+            }
+            try {
+                if (error != null) {
+                    return false;
+                }
+                if (result == null) {
+                    needRemove = true;
+                    return true;
+                }
+                messageReceiptHandle = result;
+                return false;
+            } finally {
+                pendingComputation = null;
+                unlock();
+            }
         }
 
         public MessageReceiptHandle getMessageReceiptHandle() {
@@ -178,19 +216,18 @@ public class ReceiptHandleGroup {
             msgID, msgIDKey -> new ConcurrentHashMap<>());
         handleMap.compute(new HandleKey(value.getOriginalReceiptHandle()), (handleKey, handleData) -> {
             if (handleData == null || handleData.needRemove) {
-                return new HandleData(value);
+                return new HandleData(value, nanoTime);
             }
-            Long lockTimeMs = handleData.lock(timeout);
-            if (lockTimeMs == null) {
+            if (!handleData.lock(timeout)) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to put handle failed");
             }
             try {
                 if (handleData.needRemove) {
-                    return new HandleData(value);
+                    return new HandleData(value, nanoTime);
                 }
                 handleData.messageReceiptHandle = value;
             } finally {
-                handleData.unlock(lockTimeMs);
+                handleData.unlock();
             }
             return handleData;
         });
@@ -220,8 +257,7 @@ public class ReceiptHandleGroup {
         long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
         AtomicReference<MessageReceiptHandle> res = new AtomicReference<>();
         handleMap.computeIfPresent(new HandleKey(handle), (handleKey, handleData) -> {
-            Long lockTimeMs = handleData.lock(timeout);
-            if (lockTimeMs == null) {
+            if (!handleData.lock(timeout)) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to get handle failed");
             }
             try {
@@ -230,7 +266,7 @@ public class ReceiptHandleGroup {
                 }
                 res.set(handleData.messageReceiptHandle);
             } finally {
-                handleData.unlock(lockTimeMs);
+                handleData.unlock();
             }
             return handleData;
         });
@@ -245,8 +281,7 @@ public class ReceiptHandleGroup {
         long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
         AtomicReference<MessageReceiptHandle> res = new AtomicReference<>();
         handleMap.computeIfPresent(new HandleKey(handle), (handleKey, handleData) -> {
-            Long lockTimeMs = handleData.lock(timeout);
-            if (lockTimeMs == null) {
+            if (!handleData.lock(timeout)) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to remove and get handle failed");
             }
             try {
@@ -256,7 +291,7 @@ public class ReceiptHandleGroup {
                 }
                 return null;
             } finally {
-                handleData.unlock(lockTimeMs);
+                handleData.unlock();
             }
         });
         removeHandleMapKeyIfNeed(msgID);
@@ -278,6 +313,9 @@ public class ReceiptHandleGroup {
         return null;
     }
 
+    /**
+     * Computes on a detached handle and publishes the result only while the computation owns the permit.
+     */
     public void computeIfPresent(String msgID, String handle,
         Function<MessageReceiptHandle, CompletableFuture<MessageReceiptHandle>> function) {
         long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
@@ -291,29 +329,36 @@ public class ReceiptHandleGroup {
             return;
         }
         handleMap.computeIfPresent(new HandleKey(handle), (handleKey, handleData) -> {
-            Long lockTimeMs = handleData.lock(lockTimeout);
-            if (lockTimeMs == null) {
+            if (!handleData.lock(lockTimeout)) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to compute failed");
             }
-            CompletableFuture<MessageReceiptHandle> future = function.apply(handleData.messageReceiptHandle);
-            future.whenComplete((messageReceiptHandle, throwable) -> {
-                try {
-                    if (throwable != null) {
-                        return;
+            if (handleData.needRemove) {
+                // A completed removal can still be waiting to unlink this entry from the map.
+                handleData.unlock();
+                return null;
+            }
+            CompletableFuture<MessageReceiptHandle> future;
+            try {
+                // A late renewal can mutate its copy, but not the live handle after ownership changes.
+                future = function.apply(new MessageReceiptHandle(handleData.messageReceiptHandle));
+            } catch (RuntimeException | Error e) {
+                handleData.unlock();
+                throw e;
+            }
+            // Only publish a reclaimable owner once the synchronous part of the computation has returned.
+            PendingComputation owner = handleData.beginComputation();
+            try {
+                future.whenComplete((result, error) -> {
+                    if (handleData.completeComputation(owner, result, error)) {
+                        handleMap.remove(handleKey, handleData);
+                        removeHandleMapKeyIfNeed(msgID);
                     }
-                    if (messageReceiptHandle == null) {
-                        handleData.needRemove = true;
-                    } else {
-                        handleData.messageReceiptHandle = messageReceiptHandle;
-                    }
-                } finally {
-                    handleData.unlock(lockTimeMs);
-                }
-                if (handleData.needRemove) {
-                    handleMap.remove(handleKey, handleData);
-                }
-                removeHandleMapKeyIfNeed(msgID);
-            });
+                });
+            } catch (RuntimeException | Error e) {
+                // Registration can fail before the completion handler has taken responsibility for the permit.
+                handleData.completeComputation(owner, null, e);
+                throw e;
+            }
             return handleData;
         });
     }
