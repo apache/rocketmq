@@ -34,6 +34,7 @@ import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -146,15 +147,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
         String labels = proxyConfig.getMetricsLabel();
         if (StringUtils.isNotBlank(labels)) {
-            List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(labels);
-            for (String item : kvPairs) {
-                String[] split = item.split(":");
-                if (split.length != 2) {
-                    log.warn("metricsLabel is not valid: {}", labels);
-                    continue;
-                }
-                LABEL_MAP.put(split[0], split[1]);
-            }
+            LABEL_MAP.putAll(parseKeyValuePairs("metricsLabel", labels));
         }
         if (proxyConfig.isMetricsInDelta()) {
             LABEL_MAP.put(LABEL_AGGREGATION, AGGREGATION_DELTA);
@@ -185,16 +178,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
             String headers = proxyConfig.getMetricsGrpcExporterHeader();
             if (StringUtils.isNotBlank(headers)) {
-                Map<String, String> headerMap = new HashMap<>();
-                List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(headers);
-                for (String item : kvPairs) {
-                    String[] split = item.split(":");
-                    if (split.length != 2) {
-                        log.warn("metricsGrpcExporterHeader is not valid: {}", headers);
-                        continue;
-                    }
-                    headerMap.put(split[0], split[1]);
-                }
+                Map<String, String> headerMap = parseKeyValuePairs("metricsGrpcExporterHeader", headers);
                 headerMap.forEach(metricExporterBuilder::addHeader);
             }
 
@@ -236,6 +220,23 @@ public class ProxyMetricsManager implements StartAndShutdown {
             .getMeter(OPEN_TELEMETRY_METER_NAME);
 
         initMetrics(proxyMeter, null);
+    }
+
+    static Map<String, String> parseKeyValuePairs(String configName, String config) {
+        Map<String, String> result = new LinkedHashMap<>();
+        List<String> kvPairs = Splitter.on(',').omitEmptyStrings().splitToList(config);
+        for (int i = 0; i < kvPairs.size(); i++) {
+            String item = kvPairs.get(i);
+            int separatorIndex = item.indexOf(':');
+            if (separatorIndex < 0 || StringUtils.isBlank(item.substring(0, separatorIndex))) {
+                log.warn("{} contains an invalid entry at position {}", configName, i);
+                continue;
+            }
+            String key = item.substring(0, separatorIndex).trim();
+            String value = item.substring(separatorIndex + 1).trim();
+            result.put(key, value);
+        }
+        return result;
     }
 
     @Override
