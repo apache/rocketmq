@@ -159,6 +159,12 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<AckResult> batchAckMessage(ProxyContext ctx, List<ReceiptHandleMessage> handleList,
         String consumerGroup,
         String topic, long timeoutMillis) {
+        if (handleList == null || handleList.isEmpty()) {
+            CompletableFuture<AckResult> failedFuture = new CompletableFuture<>();
+            failedFuture.completeExceptionally(new ProxyException(
+                ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "Receipt handle list must not be empty"));
+            return failedFuture;
+        }
         List<String> extraInfoList = handleList.stream().map(message -> message.getReceiptHandle().getReceiptHandle()).collect(Collectors.toList());
         return this.mqClientAPIFactory.getClient().batchAckMessageAsync(
             this.resolveBrokerAddrInReceiptHandle(ctx, handleList.get(0).getReceiptHandle()),
