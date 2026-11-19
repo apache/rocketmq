@@ -69,6 +69,18 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     @Override
+    public boolean hasOffsetRecord(final String group, final String topic) {
+        if (!MixAll.isLmq(group)) {
+            return super.hasOffsetRecord(group, topic);
+        }
+        // topic@group
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+
+        Long offset = lmqOffsetTable.get(key);
+        return offset != null;
+    }
+
+    @Override
     public void commitOffset(final String clientHost, final String group, final String topic, final int queueId,
         final long offset) {
         if (!MixAll.isLmq(group)) {

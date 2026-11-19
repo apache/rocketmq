@@ -258,6 +258,20 @@ public class ConsumerOffsetManager extends ConfigManager {
         return -1L;
     }
 
+    public boolean hasOffsetRecord(final String group, final String topic) {
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+
+        if (this.brokerController.getBrokerConfig().isUseServerSideResetOffset()) {
+            Map<Integer, Long> reset = resetOffsetTable.get(key);
+            if (reset != null) {
+                return true;
+            }
+        }
+
+        ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
+        return map != null;
+    }
+
     /**
      * Query pull offset in pullOffsetTable
      * @param group Consumer group
