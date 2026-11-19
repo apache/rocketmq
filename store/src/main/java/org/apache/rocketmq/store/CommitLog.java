@@ -22,6 +22,7 @@ import com.sun.jna.Pointer;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -927,6 +928,75 @@ public class CommitLog implements Swappable {
         if (this.confirmOffset > phyOffset) {
             this.setConfirmOffset(phyOffset);
         }
+    }
+
+    void persistTruncateMarker(long phyOffset) {
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(phyOffset, false);
+        if (mappedFile == null) {
+            throw new IllegalStateException("Cannot find mapped file when persisting truncate marker, offset="
+                + phyOffset);
+        }
+
+        int relativeOffset = (int) (phyOffset - mappedFile.getFileFromOffset());
+        if (relativeOffset < 0 || relativeOffset + 2 * Integer.BYTES > mappedFile.getFileSize()) {
+            throw new IllegalStateException("Invalid truncate marker position, offset=" + phyOffset
+                + ", file=" + mappedFile.getFileName() + ", relativeOffset=" + relativeOffset);
+        }
+
+        if (!mappedFile.hold()) {
+            throw new IllegalStateException("Cannot hold mapped file when persisting truncate marker, offset="
+                + phyOffset + ", file=" + mappedFile.getFileName());
+        }
+
+        try {
+            MappedByteBuffer mappedByteBuffer = mappedFile.getMappedByteBuffer();
+            validateTruncateMarkerPosition(mappedByteBuffer, mappedFile, phyOffset, relativeOffset);
+            // An invalid zero header makes recovery stop here instead of rolling to the next mapped file.
+            // Do not use appendMessage because persisting the marker must not change the logical wrote position.
+            mappedByteBuffer.putLong(relativeOffset, 0L);
+            mappedByteBuffer.force();
+            log.info("Persisted CommitLog truncate marker, offset={}, file={}, relativeOffset={}",
+                phyOffset, mappedFile.getFileName(), relativeOffset);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Failed to persist CommitLog truncate marker, offset=" + phyOffset
+                + ", file=" + mappedFile.getFileName(), e);
+        } finally {
+            mappedFile.release();
+        }
+    }
+
+    private void validateTruncateMarkerPosition(ByteBuffer buffer, MappedFile mappedFile, long phyOffset,
+        int relativeOffset) {
+        int currentPosition = 0;
+        while (currentPosition < relativeOffset) {
+            if (currentPosition + 2 * Integer.BYTES > relativeOffset) {
+                throw invalidTruncateMarkerPosition(mappedFile, phyOffset, relativeOffset, currentPosition);
+            }
+
+            int totalSize = buffer.getInt(currentPosition);
+            int magicCode = buffer.getInt(currentPosition + Integer.BYTES);
+            boolean invalidMagicCode = magicCode != MessageDecoder.MESSAGE_MAGIC_CODE
+                && magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2;
+            if (invalidMagicCode
+                || totalSize <= MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION + Long.BYTES
+                || (long) currentPosition + totalSize > relativeOffset
+                || buffer.getLong(currentPosition + MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION)
+                != mappedFile.getFileFromOffset() + currentPosition) {
+                throw invalidTruncateMarkerPosition(mappedFile, phyOffset, relativeOffset, currentPosition);
+            }
+            currentPosition += totalSize;
+        }
+
+        if (currentPosition != relativeOffset) {
+            throw invalidTruncateMarkerPosition(mappedFile, phyOffset, relativeOffset, currentPosition);
+        }
+    }
+
+    private IllegalStateException invalidTruncateMarkerPosition(MappedFile mappedFile, long phyOffset,
+        int relativeOffset, int currentPosition) {
+        return new IllegalStateException("Truncate marker offset is not a CommitLog message boundary, offset="
+            + phyOffset + ", file=" + mappedFile.getFileName() + ", relativeOffset=" + relativeOffset
+            + ", validationPosition=" + currentPosition);
     }
 
     protected void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile) {
