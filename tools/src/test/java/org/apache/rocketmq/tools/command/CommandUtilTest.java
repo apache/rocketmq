@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -99,6 +100,14 @@ public class CommandUtilTest {
     public void testFetchMasterAddrByClusterName() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         Set<String> result = CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExtImpl, "default-cluster");
         assertThat(result.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void testFetchBrokerNameByAddrThrowsCorrectExceptionWhenNothingFound() {
+        assertThatThrownBy(() -> CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExtImpl, "127.0.0.2:10911"))
+                .isInstanceOf(Exception.class)
+                .hasMessageContaining("Make sure the specified clusterName exists or the name server connected to is correct.");
+
     }
 
     @Test
