@@ -84,6 +84,26 @@ public class AuthConfig implements Cloneable {
         }
     }
 
+    /**
+     * Validates this configuration.
+     *
+     * <p>Currently enforces that authorization can only be enabled together with
+     * authentication: the Remoting authorization pipeline derives the caller identity from
+     * the client-supplied {@code AccessKey}, which is only trustworthy after the request has
+     * been authenticated. Enabling authorization without authentication would let a client
+     * impersonate any known user (including a SUPER user) simply by claiming its AccessKey.
+     *
+     * @throws IllegalArgumentException if authorization is enabled while authentication is disabled
+     */
+    public void validate() {
+        if (this.authorizationEnabled && !this.authenticationEnabled) {
+            throw new IllegalArgumentException(
+                "authorizationEnabled cannot be enabled without authenticationEnabled: "
+                    + "the Remoting authorization pipeline derives the caller identity from the "
+                    + "client-supplied AccessKey, which would allow identity spoofing.");
+        }
+    }
+
     public boolean isAuthenticationRequired(String rpcCode) {
         return authenticationEnabled && !contains(authenticationWhitelist, rpcCode);
     }
