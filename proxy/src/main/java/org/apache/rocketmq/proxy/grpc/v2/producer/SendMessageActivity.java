@@ -242,8 +242,10 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             messageWithHeader.setKeys(keysList);
         }
 
-        if (userPropertySize > config.getMaxUserPropertySize()) {
-            throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "the total size of user property is too large, max is " + config.getMaxUserPropertySize());
+        // a non-positive limit means "no limit" for this option, like the other size limits checked above
+        int maxUserPropertySize = config.getMaxUserPropertySize();
+        if (maxUserPropertySize > 0 && userPropertySize > maxUserPropertySize) {
+            throw new GrpcProxyException(Code.MESSAGE_PROPERTIES_TOO_LARGE, "the total size of user property is too large, max is " + maxUserPropertySize);
         }
 
         // set message id
