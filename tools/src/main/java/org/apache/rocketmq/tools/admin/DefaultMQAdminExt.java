@@ -431,6 +431,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void deleteConsumerOffset(String addr, String consumerGroup, String topic)
+        throws RemotingException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.deleteConsumerOffset(addr, consumerGroup, topic);
+    }
+
+    @Override
     public void createAndUpdateKvConfig(String namespace, String key,
         String value) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException {
