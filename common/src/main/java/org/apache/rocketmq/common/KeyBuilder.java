@@ -42,14 +42,15 @@ public class KeyBuilder {
     }
 
     public static String parseNormalTopic(String topic, String cid) {
-        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_SEPARATOR_V2)) {
-                return topic.substring((MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_SEPARATOR_V2).length());
-            }
-            return topic.substring((MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_SEPARATOR_V1).length());
-        } else {
-            return topic;
+        String retryPrefixV2 = MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_SEPARATOR_V2;
+        if (topic.startsWith(retryPrefixV2)) {
+            return topic.substring(retryPrefixV2.length());
         }
+        String retryPrefixV1 = MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_SEPARATOR_V1;
+        if (topic.startsWith(retryPrefixV1)) {
+            return topic.substring(retryPrefixV1.length());
+        }
+        return topic;
     }
 
     public static String parseNormalTopic(String retryTopic) {
