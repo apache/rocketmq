@@ -961,6 +961,20 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateBrokerConfigRejectsReviveQueueNum() throws RemotingCommandException {
+        int originalReviveQueueNum = brokerController.getBrokerConfig().getReviveQueueNum();
+        Properties properties = new Properties();
+        properties.setProperty("reviveQueueNum", String.valueOf(originalReviveQueueNum + 1));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
+        request.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(brokerController.getBrokerConfig().getReviveQueueNum()).isEqualTo(originalReviveQueueNum);
+    }
+
+    @Test
     public void testSearchOffsetByTimestamp() throws Exception {
         messageStore = mock(MessageStore.class);
         when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class))).thenReturn(Long.MIN_VALUE);
