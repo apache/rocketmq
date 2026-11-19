@@ -42,25 +42,25 @@ public class ExtraInfoUtil {
         return extraInfo.split(MessageConst.KEY_SEPARATOR);
     }
 
-    public static Long getCkQueueOffset(String[] extraInfoStrs) {
+    public static long getCkQueueOffset(String[] extraInfoStrs) {
         if (extraInfoStrs == null || extraInfoStrs.length < 1) {
             throw new IllegalArgumentException("getCkQueueOffset fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Long.valueOf(extraInfoStrs[0]);
+        return Long.parseLong(extraInfoStrs[0]);
     }
 
-    public static Long getPopTime(String[] extraInfoStrs) {
+    public static long getPopTime(String[] extraInfoStrs) {
         if (extraInfoStrs == null || extraInfoStrs.length < 2) {
             throw new IllegalArgumentException("getPopTime fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Long.valueOf(extraInfoStrs[1]);
+        return Long.parseLong(extraInfoStrs[1]);
     }
 
-    public static Long getInvisibleTime(String[] extraInfoStrs) {
+    public static long getInvisibleTime(String[] extraInfoStrs) {
         if (extraInfoStrs == null || extraInfoStrs.length < 3) {
             throw new IllegalArgumentException("getInvisibleTime fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
-        return Long.valueOf(extraInfoStrs[2]);
+        return Long.parseLong(extraInfoStrs[2]);
     }
 
     public static int getReviveQid(String[] extraInfoStrs) {
@@ -216,18 +216,27 @@ public class ExtraInfoUtil {
         }
 
         for (String one : array) {
-            String[] split = one.split(MessageConst.KEY_SEPARATOR);
-            if (split.length != 3) {
-                throw new IllegalArgumentException("parse msgOffsetMap error, " + msgOffsetMap);
+            long separators = locateEntrySeparators(one);
+            if (separators < 0) {
+                throw new IllegalArgumentException("parse msgOffsetInfo error, " + msgOffsetInfo);
             }
-            String key = split[0] + "@" + split[1];
+            int sep1 = (int) (separators >>> 32);
+            int sep2 = (int) separators;
+            String key = buildEntryKey(one, sep1, sep2);
             if (msgOffsetMap.containsKey(key)) {
-                throw new IllegalArgumentException("parse msgOffsetMap error, duplicate, " + msgOffsetMap);
+                throw new IllegalArgumentException("parse msgOffsetInfo error, duplicate, " + msgOffsetInfo);
             }
-            msgOffsetMap.put(key, new ArrayList<>(8));
-            String[] msgOffsets = split[2].split(",");
-            for (String msgOffset : msgOffsets) {
-                msgOffsetMap.get(key).add(Long.valueOf(msgOffset));
+            List<Long> msgOffsets = new ArrayList<>(8);
+            msgOffsetMap.put(key, msgOffsets);
+            int start = sep2 + 1;
+            while (start < one.length()) {
+                int comma = one.indexOf(',', start);
+                int end = comma < 0 ? one.length() : comma;
+                msgOffsets.add(Long.valueOf(one.substring(start, end)));
+                if (comma < 0) {
+                    break;
+                }
+                start = comma + 1;
             }
         }
 
@@ -247,15 +256,17 @@ public class ExtraInfoUtil {
         }
 
         for (String one : array) {
-            String[] split = one.split(MessageConst.KEY_SEPARATOR);
-            if (split.length != 3) {
+            long separators = locateEntrySeparators(one);
+            if (separators < 0) {
                 throw new IllegalArgumentException("parse startOffsetInfo error, " + startOffsetInfo);
             }
-            String key = split[0] + "@" + split[1];
+            int sep1 = (int) (separators >>> 32);
+            int sep2 = (int) separators;
+            String key = buildEntryKey(one, sep1, sep2);
             if (startOffsetMap.containsKey(key)) {
                 throw new IllegalArgumentException("parse startOffsetInfo error, duplicate, " + startOffsetInfo);
             }
-            startOffsetMap.put(key, Long.valueOf(split[2]));
+            startOffsetMap.put(key, Long.valueOf(one.substring(sep2 + 1)));
         }
 
         return startOffsetMap;
@@ -274,18 +285,46 @@ public class ExtraInfoUtil {
         }
 
         for (String one : array) {
-            String[] split = one.split(MessageConst.KEY_SEPARATOR);
-            if (split.length != 3) {
+            long separators = locateEntrySeparators(one);
+            if (separators < 0) {
                 throw new IllegalArgumentException("parse orderCountInfo error, " + orderCountInfo);
             }
-            String key = split[0] + "@" + split[1];
+            int sep1 = (int) (separators >>> 32);
+            int sep2 = (int) separators;
+            String key = buildEntryKey(one, sep1, sep2);
             if (startOffsetMap.containsKey(key)) {
                 throw new IllegalArgumentException("parse orderCountInfo error, duplicate, " + orderCountInfo);
             }
-            startOffsetMap.put(key, Integer.valueOf(split[2]));
+            startOffsetMap.put(key, Integer.valueOf(one.substring(sep2 + 1)));
         }
 
         return startOffsetMap;
+    }
+
+    /**
+     * Locates the two {@link MessageConst#KEY_SEPARATOR} positions of an entry laid out as
+     * {@code retryFlag queueId value}, packed as {@code (sep1 << 32) | sep2}. Returns a negative
+     * value when the entry does not have exactly three non-empty fields. This is stricter than
+     * the previous split-based validation, which half-accepted entries with empty fields or
+     * trailing separators; such corrupt entries are now rejected with the same
+     * {@code IllegalArgumentException} the callers already throw for other malformed shapes.
+     */
+    private static long locateEntrySeparators(String one) {
+        int sep1 = one.indexOf(MessageConst.KEY_SEPARATOR);
+        if (sep1 <= 0) {
+            return -1;
+        }
+        int sep2 = one.indexOf(MessageConst.KEY_SEPARATOR, sep1 + 1);
+        if (sep2 <= sep1 + 1 || sep2 >= one.length() - 1
+            || one.indexOf(MessageConst.KEY_SEPARATOR, sep2 + 1) >= 0) {
+            return -1;
+        }
+        return ((long) sep1 << 32) | sep2;
+    }
+
+    private static String buildEntryKey(String one, int sep1, int sep2) {
+        return new StringBuilder(sep2 + 1)
+            .append(one, 0, sep1).append('@').append(one, sep1 + 1, sep2).toString();
     }
 
     public static List<Integer> parseLiteOrderCountInfo(String orderCountInfo, int msgCount) {

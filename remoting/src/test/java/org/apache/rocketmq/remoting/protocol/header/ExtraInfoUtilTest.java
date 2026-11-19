@@ -16,10 +16,15 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 public class ExtraInfoUtilTest {
 
@@ -42,5 +47,51 @@ public class ExtraInfoUtilTest {
 
         assertEquals(queueIdCount, orderCountInfo.get(queueIdKey));
         assertEquals(queueOffsetCount, orderCountInfo.get(queueOffsetKey));
+    }
+
+    @Test
+    public void testStartOffsetInfoRoundTrip() {
+        String retryTopic = KeyBuilder.buildPopRetryTopicV2("TOPIC", "GROUP");
+        StringBuilder sb = new StringBuilder();
+        ExtraInfoUtil.buildStartOffsetInfo(sb, "TOPIC", 0, 100L);
+        ExtraInfoUtil.buildStartOffsetInfo(sb, retryTopic, 1, 200L);
+
+        Map<String, Long> map = ExtraInfoUtil.parseStartOffsetInfo(sb.toString());
+        assertEquals(Long.valueOf(100L), map.get(ExtraInfoUtil.getStartOffsetInfoMapKey("TOPIC", 0)));
+        assertEquals(Long.valueOf(200L), map.get(ExtraInfoUtil.getStartOffsetInfoMapKey(retryTopic, 1)));
+    }
+
+    @Test
+    public void testMsgOffsetInfoRoundTrip() {
+        StringBuilder sb = new StringBuilder();
+        ExtraInfoUtil.buildMsgOffsetInfo(sb, "TOPIC", 0, Arrays.asList(1L, 2L, 3L));
+        ExtraInfoUtil.buildMsgOffsetInfo(sb, "TOPIC", 1, Collections.singletonList(9L));
+
+        Map<String, List<Long>> map = ExtraInfoUtil.parseMsgOffsetInfo(sb.toString());
+        assertEquals(Arrays.asList(1L, 2L, 3L), map.get(ExtraInfoUtil.getStartOffsetInfoMapKey("TOPIC", 0)));
+        assertEquals(Collections.singletonList(9L), map.get(ExtraInfoUtil.getStartOffsetInfoMapKey("TOPIC", 1)));
+    }
+
+    @Test
+    public void testExtraInfoGetters() {
+        String extraInfo = ExtraInfoUtil.buildExtraInfo(100L, 1690000000000L, 60000L, 3, "TOPIC", "broker-a", 2, 101L);
+        String[] parts = ExtraInfoUtil.split(extraInfo);
+
+        assertEquals(100L, ExtraInfoUtil.getCkQueueOffset(parts));
+        assertEquals(1690000000000L, ExtraInfoUtil.getPopTime(parts));
+        assertEquals(60000L, ExtraInfoUtil.getInvisibleTime(parts));
+        assertEquals(3, ExtraInfoUtil.getReviveQid(parts));
+        assertEquals("broker-a", ExtraInfoUtil.getBrokerName(parts));
+        assertEquals(2, ExtraInfoUtil.getQueueId(parts));
+        assertEquals(101L, ExtraInfoUtil.getQueueOffset(parts));
+    }
+
+    @Test
+    public void testParseMalformedEntriesThrow() {
+        for (String bad : new String[] {"0 1", "0 1 2 3", " 0 1", "0  1", "0 1 "}) {
+            assertThrows(IllegalArgumentException.class, () -> ExtraInfoUtil.parseStartOffsetInfo(bad));
+            assertThrows(IllegalArgumentException.class, () -> ExtraInfoUtil.parseOrderCountInfo(bad));
+            assertThrows(IllegalArgumentException.class, () -> ExtraInfoUtil.parseMsgOffsetInfo(bad));
+        }
     }
 }
