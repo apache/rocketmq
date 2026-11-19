@@ -641,8 +641,8 @@ public class ConsumeQueue implements ConsumeQueueInterface {
             }
 
             try {
-                // No valid consume entries
-                if (result.getSize() == 0) {
+                // No valid consume entries or incomplete record
+                if (result.getSize() < ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                     log.debug("ConsumeQueue[topic={}, queue-id={}] contains no valid entries", topic, queueId);
                     return;
                 }
