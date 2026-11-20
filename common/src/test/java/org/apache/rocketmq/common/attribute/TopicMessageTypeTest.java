@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.attribute;
 
 import com.google.common.collect.Sets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -90,9 +91,30 @@ public class TopicMessageTypeTest {
     @Test
     public void testGetMetricsValue() {
         for (TopicMessageType type : TopicMessageType.values()) {
-            String expected = type.getValue().toLowerCase();
+            String expected = type.getValue().toLowerCase(Locale.ROOT);
             String actual = type.getMetricsValue();
             assertEquals(expected, actual);
+        }
+    }
+
+    @Test
+    public void testGetMetricsValueIsLocaleIndependent() {
+        // Metric labels must not change with the JVM default locale. Under a
+        // Turkish locale, String.toLowerCase() maps 'I' to dotless 'i', which
+        // would corrupt labels such as PRIORITY, FIFO and TRANSACTION.
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("tr", "TR"));
+            assertEquals("unspecified", TopicMessageType.UNSPECIFIED.getMetricsValue());
+            assertEquals("normal", TopicMessageType.NORMAL.getMetricsValue());
+            assertEquals("fifo", TopicMessageType.FIFO.getMetricsValue());
+            assertEquals("delay", TopicMessageType.DELAY.getMetricsValue());
+            assertEquals("transaction", TopicMessageType.TRANSACTION.getMetricsValue());
+            assertEquals("priority", TopicMessageType.PRIORITY.getMetricsValue());
+            assertEquals("lite", TopicMessageType.LITE.getMetricsValue());
+            assertEquals("mixed", TopicMessageType.MIXED.getMetricsValue());
+        } finally {
+            Locale.setDefault(original);
         }
     }
 
