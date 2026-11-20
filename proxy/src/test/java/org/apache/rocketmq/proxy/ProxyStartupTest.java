@@ -141,7 +141,8 @@ public class ProxyStartupTest {
     @Test
     public void testParseAndInitCommandLineArgument() throws Exception {
         Path configFilePath = Files.createTempFile("testParseAndInitCommandLineArgument", ".json");
-        String configData = "{}";
+        String configData = "{\"grpcServerBindAddress\":\"127.0.0.1\","
+            + "\"grpcAdminServerBindAddress\":\"::1\"}";
         Files.write(configFilePath, configData.getBytes(StandardCharsets.UTF_8));
 
         String brokerConfigPath = "brokerConfigPath";
@@ -166,6 +167,8 @@ public class ProxyStartupTest {
         assertEquals(brokerConfigPath, config.getBrokerConfigPath());
         assertEquals(proxyMode, config.getProxyMode());
         assertEquals(namesrvAddr, config.getNamesrvAddr());
+        assertEquals("127.0.0.1", config.getGrpcServerBindAddress());
+        assertEquals("::1", config.getGrpcAdminServerBindAddress());
     }
 
     @Test

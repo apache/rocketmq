@@ -236,6 +236,11 @@ public class DefaultMessageStore implements MessageStore {
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
         final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
+        if (!brokerConfig.isEnableHAService()
+            && (messageStoreConfig.getBrokerRole() != BrokerRole.ASYNC_MASTER
+                || brokerConfig.isEnableControllerMode() || brokerConfig.isEnableSlaveActingMaster())) {
+            throw new IllegalArgumentException("Disabling HA service requires ASYNC_MASTER without controller or slave-acting-master mode");
+        }
         stateMachine = new MessageStoreStateMachine(LOGGER);
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
@@ -429,7 +434,7 @@ public class DefaultMessageStore implements MessageStore {
      */
     @Override
     public void start() throws Exception {
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
+        if (this.haService != null) {
             this.haService.init(this);
         }
 
@@ -2043,6 +2048,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void initializeHAService() {
+        if (!brokerConfig.isEnableHAService()) {
+            return;
+        }
         if (!this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             if (brokerConfig.isEnableControllerMode()) {
                 this.haService = new AutoSwitchHAService();

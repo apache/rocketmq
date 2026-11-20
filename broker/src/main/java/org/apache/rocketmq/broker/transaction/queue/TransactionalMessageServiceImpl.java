@@ -399,7 +399,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                     msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX),
                                     msgExt.getQueueOffset(), msgExt.getCommitLogOffset());
                             listener.resolveHalfMsg(msgExt);
-                        } else { // fetch more opMessages and sleep if needed
+                        } else {
+                            // fetch more opMessages and sleep if needed
                             nextOpOffset = pullResult != null ? pullResult.getNextBeginOffset() : nextOpOffset;
                             pullResult = fillOpRemoveMap(removeMap, opQueue, nextOpOffset,
                                     halfOffset, opMsgMap, doneOpOffset);
@@ -590,7 +591,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             return putImmunityMsgBackToHalfQueue(msgExt);
         } else {
             long prepareQueueOffset = getLong(prepareQueueOffsetStr);
-            if (-1 == prepareQueueOffset) { // illegal offset
+            if (-1 == prepareQueueOffset) {
                 return false;
             } else {
                 Long tmpOpOffset;
@@ -907,11 +908,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             boolean overSize = false;
             for (Map.Entry<Integer, MessageQueueOpContext> entry : deleteContext.entrySet()) {
                 MessageQueueOpContext mqContext = entry.getValue();
-                // skip: no data or wait for the interval
-                if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0 ||
-                        // wait for the interval
-                        mqContext.getTotalSize().get() < maxSize &&
-                                startTime - mqContext.getLastWriteTimestamp() < interval) {
+                //no msg in contextQueue
+                if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0) {
+                    // wait for the interval
+                    continue;
+                }
+
+                if (mqContext.getTotalSize().get() < maxSize &&
+                    startTime - mqContext.getLastWriteTimestamp() < interval) {
                     firstTimestamp = Math.min(firstTimestamp, mqContext.getLastWriteTimestamp());
                     continue;
                 }

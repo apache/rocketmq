@@ -54,6 +54,7 @@ import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
+import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -101,7 +102,8 @@ public class ProxyStartup {
             // admin server can reuse the SAME GrpcChannelManager / GrpcClientSettingsManager
             // that the data plane uses to track online clients.
             GrpcMessagingApplication dataPlaneApplication = createServiceProcessor(messagingProcessor);
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
+            GrpcServer grpcServer = createGrpcServerBuilder(executor,
+                    ConfigurationManager.getProxyConfig().getGrpcServerBindAddress(),
                     ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
                 .addService(dataPlaneApplication)
                 .addService(ChannelzService.newInstance(100))
@@ -134,7 +136,8 @@ public class ProxyStartup {
                     sharedSettingsManager,
                     adminForwarder);
                 PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminService);
-                GrpcServer adminGrpcServer = GrpcServerBuilder.newBuilder(executor, adminPort, tlsCertificateManager)
+                GrpcServer adminGrpcServer = createGrpcServerBuilder(executor,
+                        ConfigurationManager.getProxyConfig().getGrpcAdminServerBindAddress(), adminPort, tlsCertificateManager)
                     .addService(adminService)
                     // authentication has to see the channel id HeaderInterceptor derives from the
                     // transport, so it is ordered after the standard pipeline rather than appended
@@ -169,6 +172,13 @@ public class ProxyStartup {
 
         System.out.printf("%s%n", new Date() + " rocketmq-proxy startup successfully");
         log.info(new Date() + " rocketmq-proxy startup successfully");
+    }
+
+    protected static GrpcServerBuilder createGrpcServerBuilder(ThreadPoolExecutor executor, String bindAddress,
+        int port, TlsCertificateManager tlsCertificateManager) {
+        InetSocketAddress address = StringUtils.isBlank(bindAddress)
+            ? new InetSocketAddress(port) : new InetSocketAddress(bindAddress.trim(), port);
+        return GrpcServerBuilder.newBuilder(executor, address, tlsCertificateManager);
     }
 
     protected static void initConfiguration(CommandLineArgument commandLineArgument) throws Exception {

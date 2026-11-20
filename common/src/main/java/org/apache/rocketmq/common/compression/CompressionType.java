@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.common.compression;
 
+import java.util.Locale;
+
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public enum CompressionType {
@@ -49,7 +51,7 @@ public enum CompressionType {
     }
 
     public static CompressionType of(String name) {
-        switch (name.trim().toUpperCase()) {
+        switch (name.trim().toUpperCase(Locale.ROOT)) {
             case "LZ4":
                 return CompressionType.LZ4;
             case "ZSTD":

@@ -89,6 +89,8 @@ public class ProxyConfig implements ConfigFile {
      * gRPC
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
+    /** Local bind address for the data-plane gRPC server. Blank retains wildcard binding. */
+    private String grpcServerBindAddress = "";
     private Integer grpcServerPort = 8081;
 
     /**
@@ -97,6 +99,8 @@ public class ProxyConfig implements ConfigFile {
      * traffic) in addition to the data-plane gRPC server.
      */
     private Integer grpcAdminServerPort = 8088;
+    /** Local bind address for the Admin gRPC server, independent of the data-plane address. */
+    private String grpcAdminServerBindAddress = "";
     /**
      * global kill switch for the Proxy Admin surface. When false the
      * admin gRPC server is not started at all, regardless of {@link #grpcAdminServerPort}.
@@ -538,6 +542,22 @@ public class ProxyConfig implements ConfigFile {
 
     public void setProxyMode(String proxyMode) {
         this.proxyMode = proxyMode;
+    }
+
+    public String getGrpcServerBindAddress() {
+        return grpcServerBindAddress;
+    }
+
+    public void setGrpcServerBindAddress(String grpcServerBindAddress) {
+        this.grpcServerBindAddress = grpcServerBindAddress;
+    }
+
+    public String getGrpcAdminServerBindAddress() {
+        return grpcAdminServerBindAddress;
+    }
+
+    public void setGrpcAdminServerBindAddress(String grpcAdminServerBindAddress) {
+        this.grpcAdminServerBindAddress = grpcAdminServerBindAddress;
     }
 
     public Integer getGrpcServerPort() {
