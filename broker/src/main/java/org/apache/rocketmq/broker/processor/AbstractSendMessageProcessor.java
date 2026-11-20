@@ -89,6 +89,31 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         this.consumeMessageHookList = consumeMessageHookList;
     }
 
+    /**
+     * Handle a CONSUMER_SEND_MSG_BACK request: re-deliver a message to Retry Topic of DLQ
+     *
+     * <p>The message is routed to one of two destinations based on its reconsume state:
+     * <ul>
+     *   <li><b>Retry topic</b> ({@code %RETRY% + group})
+     *       when the reconsume times are still under {@code retryMaxTimes},
+     *       the message is re-published with an increased delay level
+     *   </li>
+     *   <li><b>DLQ</b> ({@code %DLQ% + group})
+     *       when the reconsume times exceed {@code retryMaxTimes}
+     *       or {@code delayLevel < 0}, the message is moved to the dead-letter queue
+     *   </li>
+     * </ul>
+     *
+     * <p>The request is always forwarded to the master broker (a slave acting
+     * as a send-back receiver delegates to its master). After the message is
+     * stored, the {@link ConsumeMessageHook} (if any) is executed with a
+     * {@code SEND_BACK} / {@code SEND_BACK_TO_DLQ} commercial stat.
+     *
+     * @param ctx     the channel handler context of the requesting consumer
+     * @param request the CONSUMER_SEND_MSG_BACK remoting command
+     * @return the response command carrying the result code
+     * @throws RemotingCommandException if the request header cannot be decoded
+     */
     protected RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);

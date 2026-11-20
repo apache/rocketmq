@@ -574,6 +574,22 @@ public class MixAll {
         return false;
     }
 
+    /**
+     * Whether the topic name permits LMQ multi-dispatch. Reserved system
+     * topics are excluded so that LMQ paths are never mixed with internal
+     * topics.
+     *
+     * <p>Excluded prefixes/names:
+     * <ul>
+     *   <li>{@code %RETRY%} — retry topics, managed by the consume retry
+     *   flow</li>
+     *   <li>{@code %DLQ%} — dead-letter topics</li>
+     *   <li>{@code rmq_sys_} — internal system topics</li>
+     *   <li>{@code SCHEDULE_TOPIC_XXXX} — the legacy delay/schedule topic
+     *   (matched by exact name since it predates the {@code rmq_sys_}
+     *   prefix)</li>
+     * </ul>
+     */
     public static boolean topicAllowsLMQ(String topic) {
         return !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
             && !topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)

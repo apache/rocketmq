@@ -106,6 +106,7 @@ public class MessageExtBrokerInner extends MessageExt {
         this.encodeCompleted = encodeCompleted;
     }
 
+    // has multi-dispatch property and not system topic
     public boolean needDispatchLMQ() {
         return StringUtils.isNoneBlank(getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))
             && MixAll.topicAllowsLMQ(getTopic());

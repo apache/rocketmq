@@ -19,11 +19,25 @@ package org.apache.rocketmq.broker.transaction.queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Write buffer for transaction OP (operation) queue offsets.
+ *
+ * <p>In the transaction message flow, commit/rollback operations produce OP
+ * records that are written to the {@code RMQ_SYS_TRANS_OP_HALF_TOPIC}.
+ * Instead of writing each OP individually, offsets are buffered here and
+ * flushed in batches to reduce I/O.
+ *
+ * <p>The {@link #contextQueue} holds batched offset strings, while
+ * {@link #totalSize} tracks the accumulated count and
+ * {@link #lastWriteTimestamp} controls flush timing.
+ */
 public class MessageQueueOpContext {
     private AtomicInteger totalSize = new AtomicInteger(0);
     private volatile long lastWriteTimestamp;
+    // offset1, offset2, offsetN, ...
     private LinkedBlockingQueue<String> contextQueue;
 
+    // queueLength is 20000, hard coded.
     public MessageQueueOpContext(long timestamp, int queueLength) {
         this.lastWriteTimestamp = timestamp;
         contextQueue = new LinkedBlockingQueue<String>(queueLength);

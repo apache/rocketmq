@@ -74,6 +74,30 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESUL
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_PROCESS_REQUEST_FAILED;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_WRITE_CHANNEL_FAILED;
 
+/**
+ * Base class shared by {@link NettyRemotingClient} and {@link NettyRemotingServer},
+ * implementing the request/response plumbing common to both ends of a RocketMQ
+ * RPC connection.
+ *
+ * <p>A single {@link RemotingCommand} message is used in both directions: an
+ * inbound command is dispatched by {@link #processMessageReceived} as either a
+ * <em>request</em> (routed to a registered {@link NettyRequestProcessor} via
+ * {@link #processorTable}) or a <em>response</em> (matched to its pending
+ * {@link ResponseFuture} via the {@code opaque} id stored in
+ * {@link #responseTable}).
+ *
+ * <p>Three invocation styles are provided on top of that plumbing:
+ * <ul>
+ *   <li>sync — {@link #invokeSyncImpl}, blocks on a {@link CompletableFuture};</li>
+ *   <li>async — {@link #invoke0}, registers a callback and returns immediately;</li>
+ *   <li>one-way — {@link #invokeOnewayImpl}, fire-and-forget with no response.</li>
+ * </ul>
+ *
+ * <p>In-flight requests are bounded by two fair {@link Semaphore}s
+ * ({@link #semaphoreOneway}, {@link #semaphoreAsync}) to protect memory from
+ * unbounded pending requests, and expired requests are reaped by
+ * {@link #scanResponseTable}.
+ */
 public abstract class NettyRemotingAbstract {
 
     /**

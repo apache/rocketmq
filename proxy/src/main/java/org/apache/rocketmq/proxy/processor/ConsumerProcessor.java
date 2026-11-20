@@ -180,7 +180,6 @@ public class ConsumerProcessor extends AbstractProcessor {
         if (PopStatus.FOUND.equals(popResult.getPopStatus()) &&
             !CollectionUtils.isEmpty(popResult.getMsgFoundList()) &&
             popMessageResultFilter != null) {
-
             List<MessageExt> messageExtList = new ArrayList<>();
             for (MessageExt messageExt : popResult.getMsgFoundList()) {
                 try {
