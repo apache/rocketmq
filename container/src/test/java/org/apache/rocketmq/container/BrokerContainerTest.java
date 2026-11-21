@@ -48,6 +48,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.anyInt;
@@ -76,6 +77,28 @@ public class BrokerContainerTest {
         assertThat(brokerController.initialize()).isTrue();
         brokerController.start();
         brokerController.shutdown();
+    }
+
+    @Test
+    public void testRejectsEphemeralBrokerPort() {
+        BrokerContainer brokerContainer = new BrokerContainer(
+            new BrokerContainerConfig(),
+            new NettyServerConfig(),
+            new NettyClientConfig());
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setListenPort(0);
+
+        try {
+            assertThatThrownBy(() -> brokerContainer.addBroker(new ConfigContext.Builder()
+                .brokerConfig(brokerConfig)
+                .messageStoreConfig(new MessageStoreConfig())
+                .build()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("listenPort must be greater than 0 for brokers in a container");
+            assertThat(brokerContainer.getMasterBrokers()).isEmpty();
+        } finally {
+            brokerContainer.shutdown();
+        }
     }
 
     @Test

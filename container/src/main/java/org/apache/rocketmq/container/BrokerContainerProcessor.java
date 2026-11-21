@@ -122,6 +122,14 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         MixAll.properties2Object(brokerProperties, messageStoreConfig);
         MixAll.properties2Object(brokerProperties, authConfig);
 
+        // Reject invalid ports before deriving HA settings or attempting to register a broker.
+        // Otherwise port 0 is converted into an ephemeral listener while the route still uses 0.
+        if (!BrokerContainer.isValidListenPort(brokerConfig.getListenPort())) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(BrokerContainer.INVALID_LISTEN_PORT_MESSAGE);
+            return response;
+        }
+
         messageStoreConfig.setHaListenPort(brokerConfig.getListenPort() + 1);
         brokerConfig.setBrokerConfigPath(configPath);
 
