@@ -70,7 +70,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
         String destGroup = commandLine.getOptionValue("d").trim();
         String topic = commandLine.getOptionValue("t").trim();
 
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = createAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName("admin-" + Long.toString(System.currentTimeMillis()));
 
         try {
@@ -80,6 +80,9 @@ public class CloneGroupOffsetCommand implements SubCommand {
             if (!mqs.isEmpty()) {
                 TopicRouteData topicRoute = defaultMQAdminExt.examineTopicRouteInfo(topic);
                 for (MessageQueue mq : mqs) {
+                    if (!topic.equals(mq.getTopic())) {
+                        continue;
+                    }
                     String addr = null;
                     for (BrokerData brokerData : topicRoute.getBrokerDatas()) {
                         if (brokerData.getBrokerName().equals(mq.getBrokerName())) {
@@ -100,5 +103,9 @@ public class CloneGroupOffsetCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+    DefaultMQAdminExt createAdminExt(RPCHook rpcHook) {
+        return new DefaultMQAdminExt(rpcHook);
     }
 }
