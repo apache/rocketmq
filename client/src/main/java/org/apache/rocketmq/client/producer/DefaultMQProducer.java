@@ -771,6 +771,30 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         }
     }
 
+    /**
+     * Sends one auto-batch message as a shared {@link ProduceAccumulator} batch and returns this message's own result.
+     * The batch belongs to the accumulator rather than to this caller, so interrupting this thread must not fail the
+     * other messages in the same batch. The interrupt status is restored when the call returns.
+     */
+    SendResult sendBatchDirect(Message msg, MessageQueue mq)
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        boolean interrupted = false;
+        try {
+            try {
+                return sendDirect(msg, mq, null);
+            } catch (InterruptedException e) {
+                // the batch send was interrupted before it completed, so send it again once instead of failing the
+                // messages of the other callers in the same batch
+                interrupted = true;
+            }
+            return sendDirect(msg, mq, null);
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
     public SendResult sendByAccumulator(Message msg, MessageQueue mq,
         SendCallback sendCallback) throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
         // check whether it can batch

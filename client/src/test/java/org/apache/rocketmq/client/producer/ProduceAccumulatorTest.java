@@ -425,4 +425,58 @@ public class ProduceAccumulatorTest {
         assertThat(producer.sendTimes.get()).isEqualTo(1);
         assertThat(sender.get()).isSameAs(callers.get(0));
     }
+
+    @Test
+    public void testSyncSend_batchSendIsNotAbortedByCallerInterrupt() throws Exception {
+        CountDownLatch sendStarted = new CountDownLatch(1);
+        AtomicInteger attempts = new AtomicInteger();
+        FakeProducer producer = new FakeProducer((msg, mq) -> {
+            if (attempts.incrementAndGet() == 1) {
+                // interrupted while the shared batch is in flight
+                sendStarted.countDown();
+                Thread.sleep(5000);
+            }
+            return FakeProducer.ok();
+        });
+        accumulator.batchMaxDelayMs(200);
+        AtomicReference<Object> triggerOutcome = new AtomicReference<>();
+        AtomicReference<Object> otherOutcome = new AtomicReference<>();
+        AtomicReference<Boolean> triggerInterrupted = new AtomicReference<>();
+        AtomicReference<Thread> trigger = new AtomicReference<>();
+        Message triggerMessage = reserved("trigger");
+        Message joinerMessage = reserved("joiner");
+
+        Thread joiner = new Thread(() -> {
+            try {
+                otherOutcome.set(accumulator.send(joinerMessage, null, producer));
+            } catch (Throwable t) {
+                otherOutcome.set(t);
+            }
+        });
+        Thread caller = new Thread(() -> {
+            try {
+                triggerOutcome.set(accumulator.send(triggerMessage, null, producer));
+            } catch (Throwable t) {
+                triggerOutcome.set(t);
+            }
+            triggerInterrupted.set(Thread.currentThread().isInterrupted());
+        });
+        trigger.set(caller);
+        caller.start();
+        Thread.sleep(20);
+        joiner.start();
+        assertThat(sendStarted.await(3, TimeUnit.SECONDS)).isTrue();
+
+        caller.interrupt();
+        caller.join(5000);
+        joiner.join(5000);
+
+        assertThat(caller.isAlive()).isFalse();
+        assertThat(joiner.isAlive()).isFalse();
+        // this caller's interrupt must not fail the message that joined the same batch
+        assertThat(otherOutcome.get()).isInstanceOf(SendResult.class);
+        assertThat(triggerOutcome.get()).isInstanceOf(SendResult.class);
+        assertThat(triggerInterrupted.get()).isTrue();
+        assertThat(accumulator.getCurrentlyHoldSize()).isZero();
+    }
 }

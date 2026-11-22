@@ -342,8 +342,6 @@ public class ProduceAccumulator {
                 closed = true;
                 batches.remove(aggregateKey, this);
             }
-            // the batch carries other callers' messages, so the triggering caller's interrupt must not abort it
-            boolean interrupted = Thread.interrupted();
             try {
                 if (defaultMQProducer == null) {
                     throw new IllegalArgumentException("defaultMQProducer is null, can not send message");
@@ -351,14 +349,11 @@ public class ProduceAccumulator {
                 if (asyncSend) {
                     defaultMQProducer.sendDirect(batch(), aggregateKey.mq, completing(sent));
                 } else {
-                    sent.complete(defaultMQProducer.sendDirect(batch(), aggregateKey.mq, null));
+                    // the batch carries other callers' messages, so this caller's interrupt must not fail it
+                    sent.complete(defaultMQProducer.sendBatchDirect(batch(), aggregateKey.mq));
                 }
             } catch (Throwable e) {
                 sent.completeExceptionally(e);
-            } finally {
-                if (interrupted) {
-                    Thread.currentThread().interrupt();
-                }
             }
         }
 
