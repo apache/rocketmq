@@ -95,6 +95,10 @@ public class BrokerContainerTest {
                 .build()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("listenPort must be greater than 0 for brokers in a container");
+            assertThatThrownBy(() -> brokerContainer.addMasterBroker(brokerConfig,
+                new MessageStoreConfig(), null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("listenPort must be greater than 0 for brokers in a container");
             assertThat(brokerContainer.getMasterBrokers()).isEmpty();
         } finally {
             brokerContainer.shutdown();
