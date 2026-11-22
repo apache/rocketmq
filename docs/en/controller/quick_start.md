@@ -12,8 +12,11 @@ For detailed guidelines on new cluster deployment and old cluster upgrades, plea
 
 ## Compile RocketMQ source code
 
+The build generates protocol classes from the `rocketmq-apis` submodule. If you already cloned the repository, run
+`git submodule update --init --recursive` from its root before running Maven.
+
 ```shell
-$ git clone https://github.com/apache/rocketmq.git
+$ git clone --recurse-submodules https://github.com/apache/rocketmq.git
 
 $ cd rocketmq
 
