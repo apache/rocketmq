@@ -16,11 +16,22 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -72,6 +83,89 @@ public class PrintMessageByQueueCommandTest {
         // The largest possible gap between two long counters must still order correctly.
         Assert.assertTrue(overInt.compareTo(max) > 0);
         Assert.assertTrue(max.compareTo(overInt) < 0);
+    }
+
+    @Test
+    public void testTagScanContinuesAfterUnmatchedBatch() throws Exception {
+        MessageExt matched = new MessageExt();
+        matched.setTags("TagA");
+        ScriptedConsumer consumer = new ScriptedConsumer(
+            new PullResult(PullStatus.NO_MATCHED_MSG, 32, 0, 33, Collections.emptyList()),
+            new PullResult(PullStatus.FOUND, 33, 0, 33, Collections.singletonList(matched)));
+
+        String output = runTagScan(consumer);
+
+        Assert.assertEquals(Arrays.asList(0L, 32L), consumer.requestedOffsets);
+        Assert.assertTrue(output.replaceAll("\\s+", " ").contains("Tag: TagA Count: 1"));
+    }
+
+    @Test
+    public void testTagScanStopsWhenUnmatchedBatchDoesNotAdvance() throws Exception {
+        ScriptedConsumer consumer = new ScriptedConsumer(
+            new PullResult(PullStatus.NO_MATCHED_MSG, 0, 0, 33, Collections.emptyList()));
+
+        runTagScan(consumer);
+
+        Assert.assertEquals(Collections.singletonList(0L), consumer.requestedOffsets);
+    }
+
+    private static String runTagScan(ScriptedConsumer consumer) throws Exception {
+        PrintMessageByQueueCommand command = new PrintMessageByQueueCommand() {
+            @Override
+            DefaultMQPullConsumer createConsumer(RPCHook rpcHook) {
+                return consumer;
+            }
+        };
+        Options options = command.buildCommandlineOptions(new Options());
+        CommandLine arguments = new DefaultParser().parse(options,
+            new String[] {"-t", "TestTopic", "-a", "broker-a", "-i", "0", "-s", "TagA", "-f", "true"});
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        PrintStream original = System.out;
+        try (PrintStream captured = new PrintStream(output, true, "UTF-8")) {
+            System.setOut(captured);
+            command.execute(arguments, options, null);
+        } finally {
+            System.setOut(original);
+        }
+        return output.toString("UTF-8");
+    }
+
+    private static class ScriptedConsumer extends DefaultMQPullConsumer {
+        private final PullResult[] results;
+        private final List<Long> requestedOffsets = new ArrayList<>();
+
+        ScriptedConsumer(PullResult... results) {
+            this.results = results;
+        }
+
+        @Override
+        public void start() {
+            // The responses are scripted, so no client connection is needed.
+        }
+
+        @Override
+        public void shutdown() {
+            // No client connection was opened.
+        }
+
+        @Override
+        public long minOffset(MessageQueue queue) {
+            return 0;
+        }
+
+        @Override
+        public long maxOffset(MessageQueue queue) {
+            return 33;
+        }
+
+        @Override
+        public PullResult pull(MessageQueue queue, String expression, long offset, int maxNums) {
+            Assert.assertEquals("TagA", expression);
+            int resultIndex = requestedOffsets.size();
+            requestedOffsets.add(offset);
+            Assert.assertTrue("Unexpected pull at offset " + offset, resultIndex < results.length);
+            return results[resultIndex];
+        }
     }
 
     private static PrintMessageByQueueCommand.TagCountBean newTagCountBean(String tag, long count) {
