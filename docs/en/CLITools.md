@@ -873,7 +873,8 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-s</td>
-  <td class=xl68 width=87 style='width:65pt'>Resets the offset corresponding to this timestamp in a format see -h, if you want to reset to maxOffset, the value is 'now'.</td>
+  <td class=xl68 width=87 style='width:65pt'>Timestamp to look up. Use Unix epoch milliseconds, the date format shown by
+  <code>-h</code>, or <code>now</code> to use the current time.</td>
  </tr>
  <tr height=188 style='height:141.0pt'>
   <td height=188 class=xl67 width=87 style='height:141.0pt;width:65pt'>-f</td>
@@ -886,6 +887,21 @@ Before introducing the mqadmin management tool, the following points need to be 
 </table>
 
 
+
+### Verify a consumer offset reset
+
+Use a dedicated test consumer group that has already consumed messages from the topic.
+Timestamp 0 is the Unix epoch. In this example it precedes the retained messages.
+Compare the per-queue consumer offsets before and after the reset.
+
+```sh
+sh bin/mqadmin consumerProgress -n localhost:9876 -g ReplayTestGroup
+sh bin/mqadmin resetOffsetByTime -n localhost:9876 -g ReplayTestGroup -t ReplayTestTopic -s 0
+sh bin/mqadmin consumerProgress -n localhost:9876 -g ReplayTestGroup
+```
+
+Check the returned consumer offset for each queue. The earliest retained offset can
+be greater than zero. Resetting offsets can cause messages to be processed again.
 
 ## 5 Consumer and Consumer Group related command instructions
 
