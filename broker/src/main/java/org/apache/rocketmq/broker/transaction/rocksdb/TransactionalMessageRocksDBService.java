@@ -144,9 +144,13 @@ public class TransactionalMessageRocksDBService {
                     }
                     MessageExt msgExt = transMessageRocksDBStore.getMessage(halfRecord.getOffsetPy(), halfRecord.getSizePy());
                     if (null == msgExt) {
-                        log.error("TransactionalMessageRocksDBService checkTransRecordsStatus, msgExt is null, offsetPy: {}, sizePy: {}", halfRecord.getOffsetPy(), halfRecord.getSizePy());
-                        halfRecord.setDelete(true);
-                        updateList.add(halfRecord);
+                        if (isInvalidHalfRecord(halfRecord) || isExpiredHalfRecord(halfRecord)) {
+                            log.error("TransactionalMessageRocksDBService checkTransRecordsStatus, msgExt is null and the record is invalid or expired, will delete it, offsetPy: {}, sizePy: {}", halfRecord.getOffsetPy(), halfRecord.getSizePy());
+                            halfRecord.setDelete(true);
+                            updateList.add(halfRecord);
+                        } else {
+                            log.warn("TransactionalMessageRocksDBService checkTransRecordsStatus, msgExt is null, keep record for next check, offsetPy: {}, sizePy: {}", halfRecord.getOffsetPy(), halfRecord.getSizePy());
+                        }
                         continue;
                     }
                     if (!isImmunityTimeExpired(msgExt)) {
@@ -169,6 +173,16 @@ public class TransactionalMessageRocksDBService {
         } catch (Exception e) {
             log.error("TransactionalMessageRocksDBService checkTransRecordsStatus error: {}", e.getMessage());
         }
+    }
+
+    private boolean isInvalidHalfRecord(TransRocksDBRecord halfRecord) {
+        return halfRecord.getOffsetPy() < 0L
+            || halfRecord.getSizePy() <= 0
+            || halfRecord.getSizePy() > messageStore.getMessageStoreConfig().getMaxMessageSize();
+    }
+
+    private boolean isExpiredHalfRecord(TransRocksDBRecord halfRecord) {
+        return halfRecord.getOffsetPy() < messageStore.getMinPhyOffset();
     }
 
     private boolean isImmunityTimeExpired(MessageExt msgExt) {
