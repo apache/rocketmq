@@ -188,10 +188,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -463,6 +465,79 @@ public class AdminBrokerProcessorTest {
         brokerController.getBrokerConfig().setEnableMixedMessageType(true);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testUpdateAndCreateTopicListWithUnchangedTopics() throws RemotingCommandException {
+        RemotingCommand request = buildCreateTopicListRequest(Arrays.asList("TEST_BATCH_TOPIC_1", "TEST_BATCH_TOPIC_2"));
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(brokerController, times(1)).registerIncrementBrokerData(anyList(), any());
+
+        TopicConfig unchangedTopic = new TopicConfig("TEST_BATCH_TOPIC_1", 8, 8);
+        TopicConfig updatedTopic = new TopicConfig("TEST_BATCH_TOPIC_2", 16, 16);
+        TopicConfig newTopic = new TopicConfig("TEST_BATCH_TOPIC_3", 8, 8);
+        RemotingCommand mixedRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        mixedRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(unchangedTopic, updatedTopic, newTopic)).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, mixedRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_BATCH_TOPIC_2").getReadQueueNums()).isEqualTo(16);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_BATCH_TOPIC_3")).isNotNull();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TopicConfig>> registeredCaptor = ArgumentCaptor.forClass(List.class);
+        verify(brokerController, times(2)).registerIncrementBrokerData(registeredCaptor.capture(), any());
+        assertThat(registeredCaptor.getAllValues().get(1)).extracting(TopicConfig::getTopicName)
+            .containsExactly("TEST_BATCH_TOPIC_2", "TEST_BATCH_TOPIC_3");
+
+        doNothing().when(brokerController).registerSingleTopicAll(any(TopicConfig.class));
+        brokerController.getBrokerConfig().setEnableSingleTopicRegister(true);
+        TopicConfig singleRegNewTopic = new TopicConfig("TEST_BATCH_TOPIC_4", 8, 8);
+        RemotingCommand singleRegRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        singleRegRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(unchangedTopic, singleRegNewTopic)).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, singleRegRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_BATCH_TOPIC_4")).isNotNull();
+        verify(brokerController, times(1)).registerSingleTopicAll(any(TopicConfig.class));
+        verify(brokerController, times(1)).registerSingleTopicAll(eq(singleRegNewTopic));
+    }
+
+    @Test
+    public void testUpdateAndCreateTopicListRejectsDuplicateTopics() throws RemotingCommandException {
+        TopicConfig initialTopic = new TopicConfig("TEST_DUP_TOPIC", 4, 4);
+        RemotingCommand initRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        initRequest.setBody(new CreateTopicListRequestBody(Collections.singletonList(initialTopic)).encode());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, initRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        TopicConfig updateTo8 = new TopicConfig("TEST_DUP_TOPIC", 8, 8);
+        TopicConfig newOther = new TopicConfig("TEST_DUP_OTHER", 8, 8);
+        TopicConfig restoreTo4 = new TopicConfig("TEST_DUP_TOPIC", 4, 4);
+        RemotingCommand conflictingRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        conflictingRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(updateTo8, newOther, restoreTo4)).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, conflictingRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo("The topic[TEST_DUP_TOPIC] is duplicated in topic list.");
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getReadQueueNums()).isEqualTo(4);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getWriteQueueNums()).isEqualTo(4);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_OTHER")).isNull();
+
+        RemotingCommand unchangedDupRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        unchangedDupRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(restoreTo4, new TopicConfig("TEST_DUP_TOPIC", 4, 4))).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, unchangedDupRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo("The topic[TEST_DUP_TOPIC] is duplicated in topic list.");
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getReadQueueNums()).isEqualTo(4);
+
+        verify(brokerController, times(1)).registerIncrementBrokerData(anyList(), any());
+        verify(brokerController, never()).registerSingleTopicAll(any(TopicConfig.class));
     }
 
     @Test
