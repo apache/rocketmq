@@ -302,7 +302,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
                 TopicStatsTable tst = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
-                topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                topicStatsTable.merge(tst);
             }
         }
 
@@ -337,8 +337,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                 String addr = bd.selectBrokerAddr();
                                 if (addr != null) {
                                     TopicStatsTable tst = mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
-                                    topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
-                                    topicStatsTable.setTopicPutTps(topicStatsTable.getTopicPutTps() + tst.getTopicPutTps());
+                                    topicStatsTable.merge(tst);
                                 }
                             } catch (Exception e) {
                                 logger.error("getTopicStatsInfo error. topic={}", topic, e);
