@@ -17,13 +17,19 @@
 package org.apache.rocketmq.controller.impl;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -204,6 +210,8 @@ public class DefaultBrokerHeartbeatManagerTest {
             }
         };
         try {
+            localManager.onBrokerHeartbeat("cluster1", "broker1", "127.0.0.1:7000", 0L, 5000L, oldChannel,
+                1, 1L, -1L, 0);
             putBrokerLiveInfo(localManager, identity, seededInfo);
             final AtomicReference<Throwable> scanError = new AtomicReference<>();
             Thread scanThread = new Thread(() -> {
@@ -330,64 +338,49 @@ public class DefaultBrokerHeartbeatManagerTest {
             inactiveCount.incrementAndGet();
             inactiveLatch.countDown();
         });
-        final CountDownLatch scannerReadOldChannelB = new CountDownLatch(1);
+        final CountDownLatch scannerReadExpiredA = new CountDownLatch(1);
         final CountDownLatch allowScannerProceed = new CountDownLatch(1);
         final AtomicBoolean pauseScannerOnce = new AtomicBoolean(false);
-        final BrokerIdentityInfo identityB = new BrokerIdentityInfo("cluster1", "brokerB", 0L);
-        final BrokerLiveInfo seededB = new BrokerLiveInfo("brokerB", "127.0.0.1:7001", 0L,
-            System.currentTimeMillis(), 10000L, oldChannelB, 1, 1L, 0) {
+        final BrokerIdentityInfo identityA = new BrokerIdentityInfo("cluster1", "brokerA", 0L);
+        final BrokerLiveInfo seededA = new BrokerLiveInfo("brokerA", "127.0.0.1:7000", 0L,
+            System.currentTimeMillis() - 10000L, 5000L, sharedChannel, 1, 1L, 0) {
             @Override
-            public Channel getChannel() {
-                Channel current = super.getChannel();
+            public long getLastUpdateTimestamp() {
+                long captured = super.getLastUpdateTimestamp();
                 if ("rmq-scan-shared-rebind-1".equals(Thread.currentThread().getName())
                     && pauseScannerOnce.compareAndSet(false, true)) {
-                    scannerReadOldChannelB.countDown();
+                    scannerReadExpiredA.countDown();
                     try {
                         assertTrue("Timed out waiting for sibling brokerB rebind during scan",
                             allowScannerProceed.await(5, TimeUnit.SECONDS));
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        throw new IllegalStateException("Interrupted while pausing isChannelInUse", e);
+                        throw new IllegalStateException("Interrupted while pausing expiry scan", e);
                     }
                 }
-                return current;
+                return captured;
             }
         };
 
-        final EmbeddedChannel sharedChannel2 = new EmbeddedChannel();
-        final EmbeddedChannel oldChannelD = new EmbeddedChannel();
-        final CountDownLatch enteredWriteLockCheck = new CountDownLatch(1);
-        final CountDownLatch allowCloseUnusedChannel = new CountDownLatch(1);
-        final AtomicInteger scanChannelReadsD = new AtomicInteger(0);
-        final BrokerIdentityInfo identityD = new BrokerIdentityInfo("cluster1", "brokerD", 0L);
-        final BrokerLiveInfo seededD = new BrokerLiveInfo("brokerD", "127.0.0.1:7003", 0L,
-            System.currentTimeMillis(), 10000L, oldChannelD, 1, 1L, 0) {
+        final AtomicReference<Runnable> completeCloseRef = new AtomicReference<>();
+        final EmbeddedChannel sharedChannel2 = new EmbeddedChannel(new ChannelOutboundHandlerAdapter() {
             @Override
-            public Channel getChannel() {
-                Channel current = super.getChannel();
-                if ("rmq-scan-shared-rebind-2".equals(Thread.currentThread().getName())
-                    && scanChannelReadsD.incrementAndGet() == 2) {
-                    enteredWriteLockCheck.countDown();
-                    try {
-                        assertTrue("Timed out waiting to close unused sharedChannel2",
-                            allowCloseUnusedChannel.await(5, TimeUnit.SECONDS));
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IllegalStateException("Interrupted inside writeLock channel check", e);
-                    }
+            public void close(ChannelHandlerContext ctx, ChannelPromise promise) {
+                if (completeCloseRef.compareAndSet(null, () -> ctx.close(promise))) {
+                    return;
                 }
-                return current;
+                ctx.close(promise);
             }
-        };
+        });
+        final EmbeddedChannel oldChannelD = new EmbeddedChannel();
 
         Thread scanThread1 = null;
-        Thread scanThread2 = null;
-        Thread rebindThreadD = null;
         try {
-            localManager.onBrokerHeartbeat("cluster1", "brokerA", "127.0.0.1:7000", 0L, 40L, sharedChannel,
+            localManager.onBrokerHeartbeat("cluster1", "brokerA", "127.0.0.1:7000", 0L, 5000L, sharedChannel,
                 1, 1L, -1L, 0);
-            putBrokerLiveInfo(localManager, identityB, seededB);
-            Thread.sleep(80L);
+            putBrokerLiveInfo(localManager, identityA, seededA);
+            localManager.onBrokerHeartbeat("cluster1", "brokerB", "127.0.0.1:7001", 0L, 10000L, oldChannelB,
+                1, 1L, -1L, 0);
 
             final AtomicReference<Throwable> scanErr1 = new AtomicReference<>();
             scanThread1 = new Thread(() -> {
@@ -399,12 +392,8 @@ public class DefaultBrokerHeartbeatManagerTest {
             }, "rmq-scan-shared-rebind-1");
             scanThread1.start();
 
-            long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-            while (scanThread1.isAlive() && System.nanoTime() < deadlineNanos) {
-                if (scannerReadOldChannelB.await(10, TimeUnit.MILLISECONDS)) {
-                    break;
-                }
-            }
+            assertTrue("Scanner did not capture expired brokerA timestamp in time",
+                scannerReadExpiredA.await(5, TimeUnit.SECONDS));
             localManager.onBrokerHeartbeat("cluster1", "brokerB", "127.0.0.1:7001", 0L, 10000L, sharedChannel,
                 1, 2L, 1L, 0);
             allowScannerProceed.countDown();
@@ -416,8 +405,6 @@ public class DefaultBrokerHeartbeatManagerTest {
 
             assertTrue("Shared channel rebound by sibling brokerB during scan must remain active",
                 sharedChannel.isActive());
-            assertEquals("Expiry scan must have paused on sibling channel check",
-                0L, scannerReadOldChannelB.getCount());
             assertNull("Expired brokerA must be removed",
                 localManager.getBrokerLiveInfo("cluster1", "brokerA", 0L));
             final BrokerLiveInfo liveB = localManager.getBrokerLiveInfo("cluster1", "brokerB", 0L);
@@ -429,55 +416,27 @@ public class DefaultBrokerHeartbeatManagerTest {
                 inactiveLatch.await(3, TimeUnit.SECONDS));
             assertEquals(1, inactiveCount.get());
             assertEquals("brokerA", lastInactiveBroker.get());
+            assertReverseIndexMatchesLiveTable(localManager);
 
-            // Once scanner enters writeLock to close an unused channel, a concurrent rebind attempt
-            // onto that condemned channel must block until close completes and then reject the closed channel.
+            // Reverse order: scanner removes the last owner and atomically installs a closing token
+            // while async close is still in flight; sibling brokerD's rebind attempt must return
+            // without blocking, reject sharedChannel2, and preserve oldChannelD.
             localManager.onBrokerHeartbeat("cluster1", "brokerC", "127.0.0.1:7002", 0L, 40L, sharedChannel2,
                 1, 1L, -1L, 0);
-            putBrokerLiveInfo(localManager, identityD, seededD);
+            localManager.onBrokerHeartbeat("cluster1", "brokerD", "127.0.0.1:7003", 0L, 10000L, oldChannelD,
+                1, 1L, -1L, 0);
             Thread.sleep(80L);
 
-            final AtomicReference<Throwable> scanErr2 = new AtomicReference<>();
-            scanThread2 = new Thread(() -> {
-                try {
-                    localManager.scanNotActiveBroker();
-                } catch (Throwable t) {
-                    scanErr2.set(t);
-                }
-            }, "rmq-scan-shared-rebind-2");
-            scanThread2.start();
-            assertTrue("Scanner must recheck channel usage under writeLock",
-                enteredWriteLockCheck.await(2, TimeUnit.SECONDS));
+            localManager.scanNotActiveBroker();
+            assertNull(localManager.getBrokerLiveInfo("cluster1", "brokerC", 0L));
+            assertNotNull("Outbound handler must hold async close of sharedChannel2", completeCloseRef.get());
+            assertTrue(sharedChannel2.isActive());
 
-            final CountDownLatch rebindStarted = new CountDownLatch(1);
-            final CountDownLatch rebindFinished = new CountDownLatch(1);
-            final AtomicReference<Throwable> rebindErr = new AtomicReference<>();
-            rebindThreadD = new Thread(() -> {
-                rebindStarted.countDown();
-                try {
-                    localManager.onBrokerHeartbeat("cluster1", "brokerD", "127.0.0.1:7003", 0L, 10000L,
-                        sharedChannel2, 1, 2L, 1L, 0);
-                } catch (Throwable t) {
-                    rebindErr.set(t);
-                } finally {
-                    rebindFinished.countDown();
-                }
-            }, "rmq-rebind-during-close");
-            rebindThreadD.start();
-            assertTrue(rebindStarted.await(2, TimeUnit.SECONDS));
-            assertFalse("Rebind must block on readLock while scanner holds writeLock",
-                rebindFinished.await(50, TimeUnit.MILLISECONDS));
-
-            allowCloseUnusedChannel.countDown();
-            scanThread2.join(5000);
-            rebindThreadD.join(5000);
-            assertFalse(scanThread2.isAlive());
-            assertFalse(rebindThreadD.isAlive());
-            if (scanErr2.get() != null) {
-                throw new AssertionError("Scanner thread 2 failed", scanErr2.get());
-            }
-            if (rebindErr.get() != null) {
-                throw new AssertionError("Rebind thread D failed", rebindErr.get());
+            localManager.onBrokerHeartbeat("cluster1", "brokerD", "127.0.0.1:7003", 0L, 10000L, sharedChannel2,
+                1, 2L, 1L, 0);
+            Runnable finishClose2 = completeCloseRef.getAndSet(null);
+            if (finishClose2 != null) {
+                finishClose2.run();
             }
 
             assertFalse("Unused sharedChannel2 must be closed by scanner", sharedChannel2.isActive());
@@ -487,17 +446,15 @@ public class DefaultBrokerHeartbeatManagerTest {
                 oldChannelD, liveD.getChannel());
             assertTrue(oldChannelD.isActive());
             assertTrue(localManager.isBrokerActive("cluster1", "brokerD", 0L));
+            assertReverseIndexMatchesLiveTable(localManager);
         } finally {
             allowScannerProceed.countDown();
-            allowCloseUnusedChannel.countDown();
+            Runnable finish = completeCloseRef.getAndSet(null);
+            if (finish != null) {
+                finish.run();
+            }
             if (scanThread1 != null) {
                 scanThread1.join(2000);
-            }
-            if (scanThread2 != null) {
-                scanThread2.join(2000);
-            }
-            if (rebindThreadD != null) {
-                rebindThreadD.join(2000);
             }
             sharedChannel.finishAndReleaseAll();
             oldChannelB.finishAndReleaseAll();
@@ -535,17 +492,27 @@ public class DefaultBrokerHeartbeatManagerTest {
         };
         final EmbeddedChannel oldChannelB = new EmbeddedChannel();
 
-        final AtomicBoolean failNextClose = new AtomicBoolean(true);
+        final AtomicInteger remainingFailures = new AtomicInteger(4);
+        final AtomicBoolean countCloseFutureLookups = new AtomicBoolean(false);
+        final AtomicInteger closeFutureLookups = new AtomicInteger(0);
         final EmbeddedChannel flakyCloseChannel = new EmbeddedChannel(new ChannelOutboundHandlerAdapter() {
             @Override
             public void close(ChannelHandlerContext ctx, ChannelPromise promise) {
-                if (failNextClose.compareAndSet(true, false)) {
+                if (remainingFailures.getAndDecrement() > 0) {
                     promise.setFailure(new IllegalStateException("simulated close failure"));
                     return;
                 }
                 ctx.close(promise);
             }
-        });
+        }) {
+            @Override
+            public ChannelFuture closeFuture() {
+                if (countCloseFutureLookups.get()) {
+                    closeFutureLookups.incrementAndGet();
+                }
+                return super.closeFuture();
+            }
+        };
 
         Thread lateHbThread = null;
         try {
@@ -593,30 +560,45 @@ public class DefaultBrokerHeartbeatManagerTest {
             assertSame("Healthy brokerB must remain bound to oldChannelB", oldChannelB, liveB.getChannel());
             assertTrue(oldChannelB.isActive());
             assertTrue(localManager.isBrokerActive("cluster1", "brokerB", 0L));
+            assertReverseIndexMatchesLiveTable(localManager);
 
-            localManager.onBrokerHeartbeat("cluster1", "brokerE", "127.0.0.1:7004", 0L, 40L, flakyCloseChannel,
-                1, 1L, -1L, 0);
-            Thread.sleep(80L);
-            localManager.scanNotActiveBroker();
+            // Simulate four consecutive close failures: each failure must revoke its closing token
+            // without attaching lifecycle closeFuture listeners, allowing immediate heartbeat recovery.
+            for (int attempt = 1; attempt <= 4; attempt++) {
+                localManager.onBrokerHeartbeat("cluster1", "brokerE", "127.0.0.1:7004", 0L, 30L, flakyCloseChannel,
+                    1, (long) attempt, (long) attempt - 1L, 0);
+                Thread.sleep(60L);
+                countCloseFutureLookups.set(true);
+                try {
+                    localManager.scanNotActiveBroker();
+                } finally {
+                    countCloseFutureLookups.set(false);
+                }
 
-            assertNull(localManager.getBrokerLiveInfo("cluster1", "brokerE", 0L));
-            assertTrue("Channel must remain active when close request fails", flakyCloseChannel.isActive());
-            assertFalse("closeFuture must remain incomplete when close request fails",
-                flakyCloseChannel.closeFuture().isDone());
+                assertNull(localManager.getBrokerLiveInfo("cluster1", "brokerE", 0L));
+                assertTrue("Channel must remain active when close request fails", flakyCloseChannel.isActive());
+                assertFalse("closeFuture must remain incomplete when close request fails",
+                    flakyCloseChannel.closeFuture().isDone());
+                assertReverseIndexMatchesLiveTable(localManager);
 
-            localManager.onBrokerHeartbeat("cluster1", "brokerE", "127.0.0.1:7004", 0L, 40L, flakyCloseChannel,
-                1, 2L, 1L, 0);
-            final BrokerLiveInfo recoveredE = localManager.getBrokerLiveInfo("cluster1", "brokerE", 0L);
-            assertNotNull("Failed close on still-active channel must clear closing mark so heartbeats recover",
-                recoveredE);
-            assertSame(flakyCloseChannel, recoveredE.getChannel());
-            assertTrue(localManager.isBrokerActive("cluster1", "brokerE", 0L));
+                localManager.onBrokerHeartbeat("cluster1", "brokerE", "127.0.0.1:7004", 0L, 30L, flakyCloseChannel,
+                    1, (long) attempt + 10L, (long) attempt, 0);
+                final BrokerLiveInfo recoveredE = localManager.getBrokerLiveInfo("cluster1", "brokerE", 0L);
+                assertNotNull("Failed close on still-active channel must clear closing mark so heartbeats recover",
+                    recoveredE);
+                assertSame(flakyCloseChannel, recoveredE.getChannel());
+                assertTrue(localManager.isBrokerActive("cluster1", "brokerE", 0L));
+                assertReverseIndexMatchesLiveTable(localManager);
+            }
+            assertEquals("Failed close attempts must not attach closeFuture listeners",
+                0, closeFutureLookups.get());
 
-            Thread.sleep(80L);
+            Thread.sleep(60L);
             localManager.scanNotActiveBroker();
             assertNull(localManager.getBrokerLiveInfo("cluster1", "brokerE", 0L));
             assertFalse("Subsequent expiry scan must close channel once transient failure clears",
                 flakyCloseChannel.isActive());
+            assertReverseIndexMatchesLiveTable(localManager);
         } finally {
             Runnable finish = completeCloseRef.getAndSet(null);
             if (finish != null) {
@@ -628,6 +610,169 @@ public class DefaultBrokerHeartbeatManagerTest {
             sharedChannel.finishAndReleaseAll();
             oldChannelB.finishAndReleaseAll();
             flakyCloseChannel.finishAndReleaseAll();
+            localManager.shutdown();
+        }
+    }
+
+    @Test
+    public void testReverseChannelIndexConsistencyOnSwapPartialRebindAndBatchExpiry() throws Exception {
+        final DefaultBrokerHeartbeatManager localManager = new DefaultBrokerHeartbeatManager(new ControllerConfig());
+        localManager.initialize();
+        final EmbeddedChannel sharedCh1 = new EmbeddedChannel();
+        final EmbeddedChannel sharedCh2 = new EmbeddedChannel();
+        final EmbeddedChannel migratedCh = new EmbeddedChannel();
+        final EmbeddedChannel swapChX = new EmbeddedChannel();
+        final EmbeddedChannel swapChY = new EmbeddedChannel();
+        final EmbeddedChannel healthyCh = new EmbeddedChannel();
+        final List<EmbeddedChannel> batchExpiredChannels = new ArrayList<>();
+        final AtomicInteger inactiveCount = new AtomicInteger(0);
+        final Set<String> inactiveBrokers = new HashSet<>();
+        final AtomicReference<CountDownLatch> inactiveLatchRef = new AtomicReference<>(new CountDownLatch(2));
+        localManager.registerBrokerLifecycleListener((clusterName, brokerName, brokerId) -> {
+            synchronized (inactiveBrokers) {
+                inactiveBrokers.add(brokerName);
+            }
+            inactiveCount.incrementAndGet();
+            inactiveLatchRef.get().countDown();
+        });
+        try {
+            // 1. Closing a shared channel evicts every broker bound to it and notifies each once.
+            localManager.onBrokerHeartbeat("cluster1", "shared1", "127.0.0.1:7101", 0L, 10000L, sharedCh1,
+                1, 1L, -1L, 0);
+            localManager.onBrokerHeartbeat("cluster1", "shared2", "127.0.0.1:7102", 0L, 10000L, sharedCh1,
+                1, 1L, -1L, 0);
+            sharedCh1.close().syncUninterruptibly();
+            localManager.onBrokerChannelClose(sharedCh1);
+
+            assertNull("Closing a shared channel must evict all brokers bound to it",
+                localManager.getBrokerLiveInfo("cluster1", "shared1", 0L));
+            assertNull("Closing a shared channel must evict all brokers bound to it",
+                localManager.getBrokerLiveInfo("cluster1", "shared2", 0L));
+            assertTrue(inactiveLatchRef.get().await(3, TimeUnit.SECONDS));
+            assertEquals(2, inactiveCount.get());
+            assertReverseIndexMatchesLiveTable(localManager);
+
+            // 2. When one broker migrates off a shared channel, closing the old channel evicts only the remaining one.
+            inactiveCount.set(0);
+            synchronized (inactiveBrokers) {
+                inactiveBrokers.clear();
+            }
+            inactiveLatchRef.set(new CountDownLatch(1));
+            localManager.onBrokerHeartbeat("cluster1", "brokerKeep", "127.0.0.1:7103", 0L, 10000L, sharedCh2,
+                1, 1L, -1L, 0);
+            localManager.onBrokerHeartbeat("cluster1", "brokerDrop", "127.0.0.1:7104", 0L, 10000L, sharedCh2,
+                1, 1L, -1L, 0);
+            localManager.onBrokerHeartbeat("cluster1", "brokerKeep", "127.0.0.1:7103", 0L, 10000L, migratedCh,
+                1, 2L, 1L, 0);
+            sharedCh2.close().syncUninterruptibly();
+            localManager.onBrokerChannelClose(sharedCh2);
+
+            assertNull("Remaining brokerDrop on closed sharedCh2 must be evicted",
+                localManager.getBrokerLiveInfo("cluster1", "brokerDrop", 0L));
+            final BrokerLiveInfo kept = localManager.getBrokerLiveInfo("cluster1", "brokerKeep", 0L);
+            assertNotNull("Migrated brokerKeep must survive close of sharedCh2", kept);
+            assertSame(migratedCh, kept.getChannel());
+            assertTrue(inactiveLatchRef.get().await(3, TimeUnit.SECONDS));
+            Thread.sleep(50L);
+            assertEquals(1, inactiveCount.get());
+            synchronized (inactiveBrokers) {
+                assertTrue(inactiveBrokers.contains("brokerDrop"));
+                assertFalse(inactiveBrokers.contains("brokerKeep"));
+            }
+            assertReverseIndexMatchesLiveTable(localManager);
+
+            // 3. Concurrent opposite-direction channel swaps X<->Y must neither deadlock nor drift index state.
+            localManager.onBrokerHeartbeat("cluster1", "swap1", "127.0.0.1:7105", 0L, 10000L, swapChX,
+                1, 1L, -1L, 0);
+            localManager.onBrokerHeartbeat("cluster1", "swap2", "127.0.0.1:7106", 0L, 10000L, swapChY,
+                1, 1L, -1L, 0);
+            for (int round = 0; round < 200; round++) {
+                final Channel target1 = round % 2 == 0 ? swapChY : swapChX;
+                final Channel target2 = round % 2 == 0 ? swapChX : swapChY;
+                final CountDownLatch start = new CountDownLatch(1);
+                final CountDownLatch done = new CountDownLatch(2);
+                final int currentRound = round;
+                Thread t1 = new Thread(() -> {
+                    awaitStart(start, currentRound);
+                    localManager.onBrokerHeartbeat("cluster1", "swap1", "127.0.0.1:7105", 0L, 10000L, target1,
+                        1, (long) currentRound + 2L, (long) currentRound + 1L, 0);
+                    done.countDown();
+                });
+                Thread t2 = new Thread(() -> {
+                    awaitStart(start, currentRound);
+                    localManager.onBrokerHeartbeat("cluster1", "swap2", "127.0.0.1:7106", 0L, 10000L, target2,
+                        1, (long) currentRound + 2L, (long) currentRound + 1L, 0);
+                    done.countDown();
+                });
+                t1.start();
+                t2.start();
+                start.countDown();
+                assertTrue("Swap round " + round + " did not finish", done.await(5, TimeUnit.SECONDS));
+                t1.join(2000);
+                t2.join(2000);
+            }
+            assertReverseIndexMatchesLiveTable(localManager);
+
+            // 4. Batch expiry of 32 distinct channels must not scan healthy broker entries via getChannel().
+            final AtomicInteger healthyChannelReads = new AtomicInteger(0);
+            final BrokerIdentityInfo healthyId = new BrokerIdentityInfo("cluster1", "healthySpy", 0L);
+            localManager.onBrokerHeartbeat("cluster1", "healthySpy", "127.0.0.1:7107", 0L, 60000L, healthyCh,
+                1, 1L, -1L, 0);
+            final BrokerLiveInfo healthySpy = new BrokerLiveInfo("healthySpy", "127.0.0.1:7107", 0L,
+                System.currentTimeMillis(), 60000L, healthyCh, 1, 1L, 0) {
+                @Override
+                public Channel getChannel() {
+                    if ("rmq-batch-expiry-scan".equals(Thread.currentThread().getName())) {
+                        healthyChannelReads.incrementAndGet();
+                    }
+                    return super.getChannel();
+                }
+            };
+            putBrokerLiveInfo(localManager, healthyId, healthySpy);
+
+            final int batchSize = 32;
+            for (int i = 0; i < batchSize; i++) {
+                EmbeddedChannel ch = new EmbeddedChannel();
+                batchExpiredChannels.add(ch);
+                localManager.onBrokerHeartbeat("cluster1", "batchExp-" + i, "127.0.0.1:" + (7200 + i), 0L, 30L, ch,
+                    1, 1L, -1L, 0);
+            }
+            Thread.sleep(70L);
+
+            final AtomicReference<Throwable> batchErr = new AtomicReference<>();
+            Thread batchScanThread = new Thread(() -> {
+                try {
+                    localManager.scanNotActiveBroker();
+                } catch (Throwable t) {
+                    batchErr.set(t);
+                }
+            }, "rmq-batch-expiry-scan");
+            batchScanThread.start();
+            batchScanThread.join(5000);
+            assertFalse(batchScanThread.isAlive());
+            if (batchErr.get() != null) {
+                throw new AssertionError("Batch expiry scan failed", batchErr.get());
+            }
+
+            assertEquals("Batch expiry of distinct channels must not scan healthy broker channels",
+                0, healthyChannelReads.get());
+            for (int i = 0; i < batchSize; i++) {
+                assertNull(localManager.getBrokerLiveInfo("cluster1", "batchExp-" + i, 0L));
+                assertFalse(batchExpiredChannels.get(i).isActive());
+            }
+            assertNotNull(localManager.getBrokerLiveInfo("cluster1", "healthySpy", 0L));
+            assertTrue(healthyCh.isActive());
+            assertReverseIndexMatchesLiveTable(localManager);
+        } finally {
+            sharedCh1.finishAndReleaseAll();
+            sharedCh2.finishAndReleaseAll();
+            migratedCh.finishAndReleaseAll();
+            swapChX.finishAndReleaseAll();
+            swapChY.finishAndReleaseAll();
+            healthyCh.finishAndReleaseAll();
+            for (EmbeddedChannel ch : batchExpiredChannels) {
+                ch.finishAndReleaseAll();
+            }
             localManager.shutdown();
         }
     }
@@ -975,6 +1120,43 @@ public class DefaultBrokerHeartbeatManagerTest {
         field.setAccessible(true);
         Map<BrokerIdentityInfo, BrokerLiveInfo> table = (Map<BrokerIdentityInfo, BrokerLiveInfo>) field.get(manager);
         table.put(identity, liveInfo);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void assertReverseIndexMatchesLiveTable(DefaultBrokerHeartbeatManager manager) throws Exception {
+        Field liveField = DefaultBrokerHeartbeatManager.class.getDeclaredField("brokerLiveTable");
+        liveField.setAccessible(true);
+        Map<BrokerIdentityInfo, BrokerLiveInfo> liveTable =
+            (Map<BrokerIdentityInfo, BrokerLiveInfo>) liveField.get(manager);
+
+        Field reverseField;
+        try {
+            reverseField = DefaultBrokerHeartbeatManager.class.getDeclaredField("channelBrokerTable");
+        } catch (NoSuchFieldException ignored) {
+            return;
+        }
+        reverseField.setAccessible(true);
+        Map<Channel, Object> reverseTable = (Map<Channel, Object>) reverseField.get(manager);
+
+        Map<Channel, Set<BrokerIdentityInfo>> expected = new HashMap<>();
+        for (Map.Entry<BrokerIdentityInfo, BrokerLiveInfo> entry : liveTable.entrySet()) {
+            Channel channel = entry.getValue().getChannel();
+            if (channel != null) {
+                expected.computeIfAbsent(channel, k -> new HashSet<>()).add(entry.getKey());
+            }
+        }
+
+        assertEquals("Reverse channel index must match exact set of active bound channels",
+            expected.keySet(), reverseTable.keySet());
+        for (Map.Entry<Channel, Object> entry : reverseTable.entrySet()) {
+            Field identitiesField = entry.getValue().getClass().getDeclaredField("brokerIdentities");
+            identitiesField.setAccessible(true);
+            Set<BrokerIdentityInfo> actualIdentities = (Set<BrokerIdentityInfo>) identitiesField.get(entry.getValue());
+            assertNotNull("Reverse index must not retain a closing token at rest", actualIdentities);
+            assertFalse("Reverse index must not retain an empty identity set", actualIdentities.isEmpty());
+            assertEquals("Reverse index identities must match brokerLiveTable for channel " + entry.getKey(),
+                expected.get(entry.getKey()), actualIdentities);
+        }
     }
 
     private static void shutdownControllerManagerClient(ControllerManager controllerManager) throws Exception {

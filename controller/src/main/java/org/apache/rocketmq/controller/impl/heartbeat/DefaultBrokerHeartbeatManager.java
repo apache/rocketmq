@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -33,8 +34,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -54,8 +53,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private final ControllerConfig controllerConfig;
     private final Map<BrokerIdentityInfo/* brokerIdentity*/, BrokerLiveInfo> brokerLiveTable;
     private final List<BrokerLifecycleListener> brokerLifecycleListeners;
-    private final ConcurrentMap<Channel, Object> closingChannels = new ConcurrentHashMap<>();
-    private final ReadWriteLock channelLifecycleLock = new ReentrantReadWriteLock();
+    // Reverse index from channel to active broker identities or a unique per-close closing token.
+    // Lock order is strictly brokerLiveTable[identity] -> channelBrokerTable[channel], never nested across channels.
+    private final ConcurrentMap<Channel, ChannelState> channelBrokerTable = new ConcurrentHashMap<>();
 
     public DefaultBrokerHeartbeatManager(final ControllerConfig controllerConfig) {
         this.controllerConfig = controllerConfig;
@@ -72,7 +72,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     public void shutdown() {
         this.scheduledService.shutdown();
         this.executor.shutdown();
-        this.closingChannels.clear();
+        this.channelBrokerTable.clear();
     }
 
     @Override
@@ -95,13 +95,16 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 final AtomicReference<BrokerLiveInfo> expiredRef = new AtomicReference<>();
                 final AtomicReference<Channel> expiredChannelRef = new AtomicReference<>();
                 final AtomicLong expiredTimeoutRef = new AtomicLong();
+                final AtomicReference<ChannelState> closingTokenRef = new AtomicReference<>();
                 this.brokerLiveTable.computeIfPresent(identity, (key, current) -> {
                     long currentLast = current.getLastUpdateTimestamp();
                     long currentTimeout = current.getHeartbeatTimeoutMillis();
                     if (System.currentTimeMillis() - currentLast > currentTimeout) {
                         expiredRef.set(current);
-                        expiredChannelRef.set(current.getChannel());
+                        final Channel currentChannel = current.getChannel();
+                        expiredChannelRef.set(currentChannel);
                         expiredTimeoutRef.set(currentTimeout);
+                        closingTokenRef.set(unbindChannel(currentChannel, key, true));
                         return null;
                     }
                     return current;
@@ -111,7 +114,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                     final Channel channel = expiredChannelRef.get();
                     final String brokerName = expired.getBrokerName();
                     final long brokerId = expired.getBrokerId();
-                    closeChannelIfUnused(channel);
+                    closeExpiredChannel(channel, closingTokenRef.get());
                     this.executor.submit(() ->
                         notifyBrokerInActive(identity.getClusterName(), brokerName, brokerId));
                     log.warn("The broker channel {} expired, brokerInfo {}, expired {}ms",
@@ -123,38 +126,72 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         }
     }
 
-    private void closeChannelIfUnused(Channel channel) {
-        if (channel == null || isChannelInUse(channel)) {
+    private boolean bindChannel(Channel channel, BrokerIdentityInfo identity) {
+        final AtomicBoolean bound = new AtomicBoolean(false);
+        this.channelBrokerTable.compute(channel, (ch, state) -> {
+            if (state != null && state.isClosing() || !ch.isActive()) {
+                return state;
+            }
+            final ChannelState next = state == null ? ChannelState.active() : state;
+            next.add(identity);
+            bound.set(true);
+            return next;
+        });
+        return bound.get();
+    }
+
+    private ChannelState unbindChannel(Channel channel, BrokerIdentityInfo identity, boolean closeIfLast) {
+        if (channel == null) {
+            return null;
+        }
+        final AtomicReference<ChannelState> closingTokenRef = new AtomicReference<>();
+        this.channelBrokerTable.computeIfPresent(channel, (ch, state) -> {
+            if (state.isClosing()) {
+                return state;
+            }
+            state.remove(identity);
+            if (state.isEmpty()) {
+                if (closeIfLast) {
+                    final ChannelState token = ChannelState.closing();
+                    closingTokenRef.set(token);
+                    return token;
+                }
+                return null;
+            }
+            return state;
+        });
+        return closingTokenRef.get();
+    }
+
+    private void closeExpiredChannel(Channel channel, ChannelState closeToken) {
+        if (channel == null || closeToken == null) {
             return;
         }
-        this.channelLifecycleLock.writeLock().lock();
+        boolean closeListenerAttached = false;
         try {
-            if (!isChannelInUse(channel)) {
-                final Object closeToken = new Object();
-                this.closingChannels.put(channel, closeToken);
-                final ChannelFuture closeFuture = channel.closeFuture();
-                if (closeFuture != null) {
-                    closeFuture.addListener(future -> this.closingChannels.remove(channel, closeToken));
-                }
-                boolean closeListenerAttached = false;
-                try {
-                    final ChannelFuture opFuture = closeChannel(channel);
-                    if (opFuture != null) {
-                        closeListenerAttached = true;
-                        opFuture.addListener((ChannelFutureListener) future -> {
-                            if (!future.isSuccess() || closeFuture == null || !channel.isActive()) {
-                                this.closingChannels.remove(channel, closeToken);
-                            }
-                        });
+            final ChannelFuture opFuture = closeChannel(channel);
+            if (opFuture != null) {
+                closeListenerAttached = true;
+                opFuture.addListener((ChannelFutureListener) future -> {
+                    if (!future.isSuccess() || !channel.isActive()) {
+                        this.channelBrokerTable.remove(channel, closeToken);
+                        return;
                     }
-                } finally {
-                    if (!closeListenerAttached || !channel.isActive()) {
-                        this.closingChannels.remove(channel, closeToken);
+                    final ChannelFuture closeFuture = channel.closeFuture();
+                    if (closeFuture != null) {
+                        closeFuture.addListener(cf -> this.channelBrokerTable.remove(channel, closeToken));
+                        if (closeFuture.isDone() || !channel.isActive()) {
+                            this.channelBrokerTable.remove(channel, closeToken);
+                        }
+                    } else {
+                        this.channelBrokerTable.remove(channel, closeToken);
                     }
-                }
+                });
             }
         } finally {
-            this.channelLifecycleLock.writeLock().unlock();
+            if (!closeListenerAttached) {
+                this.channelBrokerTable.remove(channel, closeToken);
+            }
         }
     }
 
@@ -169,17 +206,9 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         return closeFuture;
     }
 
-    private boolean isChannelInUse(Channel channel) {
-        for (BrokerLiveInfo liveInfo : this.brokerLiveTable.values()) {
-            if (liveInfo.getChannel() == channel) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean isChannelClosingOrInactive(Channel channel) {
-        return this.closingChannels.containsKey(channel) || !channel.isActive();
+        final ChannelState state = this.channelBrokerTable.get(channel);
+        return state != null && state.isClosing() || !channel.isActive();
     }
 
     private void notifyBrokerInActive(String clusterName, String brokerName, Long brokerId) {
@@ -205,55 +234,50 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         long realTimeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_BROKER_CHANNEL_EXPIRED_TIME);
         int realElectionPriority = Optional.ofNullable(electionPriority).orElse(Integer.MAX_VALUE);
         final AtomicBoolean acceptedChannel = new AtomicBoolean(false);
-        if (channel != null) {
-            this.channelLifecycleLock.readLock().lock();
-        }
-        try {
-            // Serialize creation, timestamp refresh, and channel rebinding per broker identity, while
-            // rejecting already-closed or expiry-condemned channels so late heartbeats cannot resurrect
-            // or rebind stale connections. Holding readLock coordinates non-blocking heartbeats with
-            // writeLock in closeChannelIfUnused() so a shared BrokerContainer channel cannot be closed
-            // concurrently with a sibling broker rebinding onto it.
-            this.brokerLiveTable.compute(brokerIdentityInfo, (key, prev) -> {
-                if (channel != null && isChannelClosingOrInactive(channel)) {
+        // Serialize creation, timestamp refresh, and channel rebinding per broker identity, while
+        // rejecting already-closed or expiry-closing channels via the per-channel reverse index.
+        this.brokerLiveTable.compute(brokerIdentityInfo, (key, prev) -> {
+            final Channel oldChannel = prev == null ? null : prev.getChannel();
+            if (channel != null) {
+                if (oldChannel == channel) {
+                    if (isChannelClosingOrInactive(channel)) {
+                        log.warn("Ignore heartbeat from inactive channel {}, brokerInfo:{}", channel, brokerIdentityInfo);
+                        return prev;
+                    }
+                } else if (!bindChannel(channel, key)) {
                     log.warn("Ignore heartbeat from inactive channel {}, brokerInfo:{}", channel, brokerIdentityInfo);
                     return prev;
                 }
-                if (channel != null) {
-                    acceptedChannel.set(true);
-                }
-                long now = System.currentTimeMillis();
-                if (prev == null) {
-                    log.info("new broker registered, {}, brokerId:{}", brokerIdentityInfo, realBrokerId);
-                    return new BrokerLiveInfo(brokerName,
-                        brokerAddr,
-                        realBrokerId,
-                        now,
-                        realTimeoutMillis,
-                        channel,
-                        realEpoch,
-                        realMaxOffset,
-                        realElectionPriority);
-                }
-                prev.setLastUpdateTimestamp(now);
-                prev.setHeartbeatTimeoutMillis(realTimeoutMillis);
-                prev.setElectionPriority(realElectionPriority);
-                if (channel != null && channel != prev.getChannel()) {
-                    prev.setChannel(channel);
-                }
-                if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
-                    prev.setEpoch(realEpoch);
-                    prev.setMaxOffset(realMaxOffset);
-                    prev.setConfirmOffset(realConfirmOffset);
-                }
-                return prev;
-            });
-        } finally {
-            if (channel != null) {
-                this.channelLifecycleLock.readLock().unlock();
+                acceptedChannel.set(true);
             }
-        }
-        if (acceptedChannel.get() && isChannelClosingOrInactive(channel)) {
+            long now = System.currentTimeMillis();
+            if (prev == null) {
+                log.info("new broker registered, {}, brokerId:{}", brokerIdentityInfo, realBrokerId);
+                return new BrokerLiveInfo(brokerName,
+                    brokerAddr,
+                    realBrokerId,
+                    now,
+                    realTimeoutMillis,
+                    channel,
+                    realEpoch,
+                    realMaxOffset,
+                    realElectionPriority);
+            }
+            prev.setLastUpdateTimestamp(now);
+            prev.setHeartbeatTimeoutMillis(realTimeoutMillis);
+            prev.setElectionPriority(realElectionPriority);
+            if (channel != null && channel != oldChannel) {
+                prev.setChannel(channel);
+                unbindChannel(oldChannel, key, false);
+            }
+            if (realEpoch > prev.getEpoch() || realEpoch == prev.getEpoch() && realMaxOffset > prev.getMaxOffset()) {
+                prev.setEpoch(realEpoch);
+                prev.setMaxOffset(realMaxOffset);
+                prev.setConfirmOffset(realConfirmOffset);
+            }
+            return prev;
+        });
+        if (channel != null && acceptedChannel.get() && isChannelClosingOrInactive(channel)) {
             evictBrokerIfChannelMatches(brokerIdentityInfo, channel);
         }
     }
@@ -263,7 +287,11 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         if (channel == null) {
             return;
         }
-        for (BrokerIdentityInfo brokerIdentity : this.brokerLiveTable.keySet()) {
+        final ChannelState state = this.channelBrokerTable.get(channel);
+        if (state == null || state.isClosing()) {
+            return;
+        }
+        for (BrokerIdentityInfo brokerIdentity : state.snapshot()) {
             evictBrokerIfChannelMatches(brokerIdentity, channel);
         }
     }
@@ -275,6 +303,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
                 return live;
             }
             closedRef.set(live);
+            unbindChannel(channel, key, false);
             return null;
         });
         final BrokerLiveInfo closed = closedRef.get();
@@ -288,6 +317,42 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             return true;
         }
         return false;
+    }
+
+    private static final class ChannelState {
+        private final Set<BrokerIdentityInfo> brokerIdentities;
+
+        private ChannelState(Set<BrokerIdentityInfo> brokerIdentities) {
+            this.brokerIdentities = brokerIdentities;
+        }
+
+        private static ChannelState active() {
+            return new ChannelState(ConcurrentHashMap.newKeySet());
+        }
+
+        private static ChannelState closing() {
+            return new ChannelState(null);
+        }
+
+        private boolean isClosing() {
+            return this.brokerIdentities == null;
+        }
+
+        private void add(BrokerIdentityInfo identity) {
+            this.brokerIdentities.add(identity);
+        }
+
+        private void remove(BrokerIdentityInfo identity) {
+            this.brokerIdentities.remove(identity);
+        }
+
+        private boolean isEmpty() {
+            return this.brokerIdentities.isEmpty();
+        }
+
+        private List<BrokerIdentityInfo> snapshot() {
+            return new ArrayList<>(this.brokerIdentities);
+        }
     }
 
     @Override
