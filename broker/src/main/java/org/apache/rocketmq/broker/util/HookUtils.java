@@ -76,7 +76,9 @@ public class HookUtils {
         if (!brokerController.getMessageStore().getRunningFlags().isWriteable()) {
             long value = PRINT_TIMES.getAndIncrement();
             if ((value % 50000) == 0) {
-                LOG.warn("message store is not writeable, so putMessage is forbidden " + brokerController.getMessageStore().getRunningFlags().getFlagBits());
+                LOG.warn("message store is not writeable, so putMessage is forbidden, flagBits={}, flags={}",
+                    brokerController.getMessageStore().getRunningFlags().getFlagBits(),
+                    brokerController.getMessageStore().getRunningFlags().getFlagBitsString());
             }
 
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);

@@ -22,6 +22,8 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.local.LocalChannel;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +33,7 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -39,6 +42,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -342,5 +346,40 @@ public class NettyRemotingClientTest {
         verify(bootstrap).connect(eq("0.0.0.0"), eq(8080));
         assertThat(remotingClient.isAddressReachable("[fe80::]:8080")).isFalse();
         verify(bootstrap).connect(eq("[fe80::]"), eq(8080));
+    }
+
+    @Test
+    public void testGetProxyMatchesIpv4AddressInCidr() throws Exception {
+        NettyRemotingClient client = newClientWithSocksProxy("{\"10.0.0.0/8\":{\"addr\":\"127.0.0.1:1080\"}}");
+        assertThat(getProxy(client, "10.1.2.3:9876")).isNotNull();
+        assertThat(getProxy(client, "192.168.1.1:9876")).isNull();
+    }
+
+    @Test
+    public void testGetProxySkipsCidrForNonIpv4Host() throws Exception {
+        NettyRemotingClient client = newClientWithSocksProxy("{\"10.0.0.0/8\":{\"addr\":\"127.0.0.1:1080\"}}");
+        assertThat(getProxy(client, "namesrv.example.com:9876")).isNull();
+        assertThat(getProxy(client, "[fe80::1]:9876")).isNull();
+    }
+
+    @Test
+    public void testGetProxyDefaultCidrMatchesHostname() throws Exception {
+        NettyRemotingClient client = newClientWithSocksProxy("{\"0.0.0.0/0\":{\"addr\":\"127.0.0.1:1080\"}}");
+        Map.Entry<String, SocksProxyConfig> proxy = getProxy(client, "namesrv.example.com:9876");
+        assertThat(proxy).isNotNull();
+        assertThat(proxy.getKey()).isEqualTo(RemotingHelper.DEFAULT_CIDR_ALL);
+    }
+
+    private static NettyRemotingClient newClientWithSocksProxy(String socksProxyConfig) {
+        NettyClientConfig config = new NettyClientConfig();
+        config.setSocksProxyConfig(socksProxyConfig);
+        return new NettyRemotingClient(config);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map.Entry<String, SocksProxyConfig> getProxy(NettyRemotingClient client, String addr) throws Exception {
+        Method method = NettyRemotingClient.class.getDeclaredMethod("getProxy", String.class);
+        method.setAccessible(true);
+        return (Map.Entry<String, SocksProxyConfig>) method.invoke(client, addr);
     }
 }

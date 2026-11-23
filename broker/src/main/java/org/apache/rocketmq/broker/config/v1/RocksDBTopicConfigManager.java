@@ -164,6 +164,13 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
 
     @Override
     public synchronized void persist() {
+        try {
+            // Permission updates and role changes can advance the in-memory version directly.
+            this.rocksDBConfigManager.persistKvDataVersion();
+        } catch (Exception e) {
+            log.error("persist topic config dataVersion error", e);
+            throw new RuntimeException(e);
+        }
         if (brokerController.getMessageStoreConfig().isRealTimePersistRocksDBConfig()) {
             this.rocksDBConfigManager.flushWAL();
         }

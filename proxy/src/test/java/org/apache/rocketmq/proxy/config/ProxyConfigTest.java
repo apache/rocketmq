@@ -25,6 +25,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ProxyConfigTest {
 
     @Test
+    public void grpcBindAddressesDefaultToWildcard() {
+        ProxyConfig config = new ProxyConfig();
+        assertThat(config.getGrpcServerBindAddress()).isEmpty();
+        assertThat(config.getGrpcAdminServerBindAddress()).isEmpty();
+    }
+
+    @Test
     public void initDataShouldResolveBlankLocalServeAddr() {
         ProxyConfig proxyConfig = new ProxyConfig();
         proxyConfig.setLocalServeAddr(" \t ");

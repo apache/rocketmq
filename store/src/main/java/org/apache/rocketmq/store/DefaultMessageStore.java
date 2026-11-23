@@ -53,6 +53,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -229,6 +230,11 @@ public class DefaultMessageStore implements MessageStore {
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
         final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
+        if (!brokerConfig.isEnableHAService()
+            && (messageStoreConfig.getBrokerRole() != BrokerRole.ASYNC_MASTER
+                || brokerConfig.isEnableControllerMode() || brokerConfig.isEnableSlaveActingMaster())) {
+            throw new IllegalArgumentException("Disabling HA service requires ASYNC_MASTER without controller or slave-acting-master mode");
+        }
         stateMachine = new MessageStoreStateMachine(LOGGER);
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
@@ -421,7 +427,7 @@ public class DefaultMessageStore implements MessageStore {
      */
     @Override
     public void start() throws Exception {
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
+        if (this.haService != null) {
             this.haService.init(this);
         }
 
@@ -1975,6 +1981,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void initializeHAService() {
+        if (!brokerConfig.isEnableHAService()) {
+            return;
+        }
         if (!this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             if (brokerConfig.isEnableControllerMode()) {
                 this.haService = new AutoSwitchHAService();
@@ -2302,11 +2311,21 @@ public class DefaultMessageStore implements MessageStore {
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
+
+        /**
+         * Allowed range of {@code diskSpaceWarningLevelRatio}. A configured value outside this range is
+         * silently replaced, which is why the effective value is logged once when it happens.
+         */
+        static final double MIN_DISK_SPACE_WARNING_LEVEL_RATIO = 0.35;
+        static final double MAX_DISK_SPACE_WARNING_LEVEL_RATIO = 0.90;
+
         private final String diskSpaceWarningLevelRatio =
             System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "");
 
         private final String diskSpaceCleanForciblyRatio =
             System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "");
+
+        private final AtomicBoolean warningLevelRatioClampedWarned = new AtomicBoolean(false);
         private long lastRedeleteTimestamp = 0;
 
         private final AtomicInteger manualDeleteFileSeveralTimes = new AtomicInteger();
@@ -2323,14 +2342,18 @@ public class DefaultMessageStore implements MessageStore {
                 finalDiskSpaceWarningLevelRatio = Double.parseDouble(diskSpaceWarningLevelRatio);
             }
 
-            if (finalDiskSpaceWarningLevelRatio > 0.90) {
-                finalDiskSpaceWarningLevelRatio = 0.90;
-            }
-            if (finalDiskSpaceWarningLevelRatio < 0.35) {
-                finalDiskSpaceWarningLevelRatio = 0.35;
+            boolean outOfRange = finalDiskSpaceWarningLevelRatio < MIN_DISK_SPACE_WARNING_LEVEL_RATIO
+                || finalDiskSpaceWarningLevelRatio > MAX_DISK_SPACE_WARNING_LEVEL_RATIO;
+            double clampedRatio = Math.min(Math.max(finalDiskSpaceWarningLevelRatio,
+                MIN_DISK_SPACE_WARNING_LEVEL_RATIO), MAX_DISK_SPACE_WARNING_LEVEL_RATIO);
+            if (outOfRange && warningLevelRatioClampedWarned.compareAndSet(false, true)) {
+                DefaultMessageStore.LOGGER.warn("diskSpaceWarningLevelRatio={} is out of the allowed range [{}, {}], "
+                        + "so it is clamped to {}; the store is marked read-only once the disk usage exceeds {}",
+                    finalDiskSpaceWarningLevelRatio, MIN_DISK_SPACE_WARNING_LEVEL_RATIO,
+                    MAX_DISK_SPACE_WARNING_LEVEL_RATIO, clampedRatio, clampedRatio);
             }
 
-            return finalDiskSpaceWarningLevelRatio;
+            return clampedRatio;
         }
 
         double getDiskSpaceCleanForciblyRatio() {
@@ -2449,7 +2472,8 @@ public class DefaultMessageStore implements MessageStore {
                 boolean diskFull = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                 if (diskFull) {
                     DefaultMessageStore.LOGGER.error("physic disk maybe full soon " + minPhysicRatio +
-                        ", so mark disk full, storePathPhysic=" + minStorePath);
+                        ", so mark disk full, storePathPhysic=" + minStorePath +
+                        ", diskSpaceWarningLevelRatio=" + getDiskSpaceWarningLevelRatio());
                 }
 
                 cleanImmediately = true;

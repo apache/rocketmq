@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.remoting.protocol.admin;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -61,6 +62,25 @@ public class TopicStatsTableTest {
     @Test
     public void testGetOffsetTable() throws Exception {
         validateTopicStatsTable(topicStatsTable);
+    }
+
+    @Test
+    public void testMerge() {
+        topicStatsTable.setTopicPutTps(2.5);
+        TopicStatsTable other = new TopicStatsTable();
+        MessageQueue otherQueue = new MessageQueue(TEST_TOPIC, "another_broker", 0);
+        TopicOffset otherOffset = new TopicOffset();
+        other.getOffsetTable().put(otherQueue, otherOffset);
+        other.setTopicPutTps(3.5);
+
+        Map<MessageQueue, TopicOffset> expectedOffsets = new HashMap<>(topicStatsTable.getOffsetTable());
+        expectedOffsets.put(otherQueue, otherOffset);
+        topicStatsTable.merge(other);
+
+        Assert.assertEquals(6.0, topicStatsTable.getTopicPutTps(), 0.0);
+        Assert.assertEquals(expectedOffsets, topicStatsTable.getOffsetTable());
+        Assert.assertEquals(3.5, other.getTopicPutTps(), 0.0);
+        Assert.assertEquals(Collections.singletonMap(otherQueue, otherOffset), other.getOffsetTable());
     }
 
     @Test
