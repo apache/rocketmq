@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -140,6 +141,41 @@ public class ConsumeMessageCommandTest {
         System.setOut(out);
         String s = new String(bos.toByteArray(), StandardCharsets.UTF_8);
         Assert.assertTrue(s.contains("Consume ok"));
+    }
+
+    @Test
+    public void testExecuteDefaultWithLargeQueueUsesBoundedPullBatch() throws Exception {
+        ConsumeMessageCommand command = new ConsumeMessageCommand();
+        DefaultMQPullConsumer consumer = mock(DefaultMQPullConsumer.class);
+        MessageQueue queue = new MessageQueue("mytopic", "broker-a", 0);
+
+        when(consumer.fetchSubscribeMessageQueues("mytopic")).thenReturn(Collections.singleton(queue));
+        when(consumer.minOffset(queue)).thenReturn(0L);
+        when(consumer.maxOffset(queue)).thenReturn(3_000_000_000L);
+
+        AtomicInteger maxNums = new AtomicInteger();
+        when(consumer.pull(eq(queue), eq("*"), anyLong(), anyInt())).thenAnswer(invocation -> {
+            maxNums.set(invocation.getArgument(3));
+            return new PullResult(PullStatus.NO_NEW_MSG, 3_000_000_000L, 0L, 3_000_000_000L,
+                Collections.emptyList());
+        });
+
+        Field consumerField = ConsumeMessageCommand.class.getDeclaredField("defaultMQPullConsumer");
+        consumerField.setAccessible(true);
+        consumerField.set(command, consumer);
+
+        Options options = command.buildCommandlineOptions(new Options());
+        CommandLine commandLine = new DefaultParser().parse(options,
+            new String[] {"-t", "mytopic", "-c", "3000000000"});
+        PrintStream originalOut = System.out;
+        try {
+            System.setOut(new PrintStream(new ByteArrayOutputStream()));
+            command.execute(commandLine, options, null);
+        } finally {
+            System.setOut(originalOut);
+        }
+
+        Assert.assertEquals(32, maxNums.get());
     }
 
     @Test
