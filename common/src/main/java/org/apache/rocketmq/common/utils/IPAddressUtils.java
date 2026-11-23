@@ -50,11 +50,7 @@ public class IPAddressUtils {
     public static boolean isValidIPv4Cidr(String cidr) {
         try {
             String[] parts = cidr.split(SLASH);
-            if (parts.length != 2) {
-                return false;
-            }
-            InetAddress ip = InetAddress.getByName(parts[0]);
-            if (ip.getAddress().length != 4) {
+            if (parts.length != 2 || !isValidIPv4(parts[0])) {
                 return false;
             }
             int prefix = Integer.parseInt(parts[1]);
@@ -67,11 +63,7 @@ public class IPAddressUtils {
     public static boolean isValidIPv6Cidr(String cidr) {
         try {
             String[] parts = cidr.split(SLASH);
-            if (parts.length != 2) {
-                return false;
-            }
-            InetAddress ip = InetAddress.getByName(parts[0]);
-            if (ip.getAddress().length != 16) {
+            if (parts.length != 2 || !isValidIPv6(parts[0])) {
                 return false;
             }
             int prefix = Integer.parseInt(parts[1]);
