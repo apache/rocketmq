@@ -300,6 +300,11 @@ public class ConsumerManager {
         if (updateChannelRst && isNotifyConsumerIdsChangedEnable && !isBroadcastMode(consumerGroupInfo.getMessageModel())) {
             callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
         }
+        // Keep the same channel attribute bookkeeping as registerConsumer, otherwise the fast
+        // channel close path cannot find this group and the consumer entry lingers until it expires.
+        if (this.brokerConfig != null && this.brokerConfig.isEnableFastChannelEventProcess() && updateChannelRst) {
+            ClientChannelAttributeHelper.addConsumerGroup(clientChannelInfo.getChannel(), group);
+        }
         if (null != this.brokerStatsManager) {
             this.brokerStatsManager.incConsumerRegisterTime((int) (System.currentTimeMillis() - start));
         }

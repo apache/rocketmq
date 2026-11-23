@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.client;
 
 import com.google.common.collect.ImmutableSet;
 import io.netty.channel.Channel;
+import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
@@ -234,5 +235,28 @@ public class ConsumerManagerTest {
         Set<String> actual = consumerManager.queryTopicConsumeByWho(TOPIC);
         assertThat(actual).contains(GROUP);
         assertThat(actual).doesNotContain(TOPIC);
+    }
+
+    @Test
+    public void testWithoutSubRegistrationRemovedOnFastChannelClose() {
+        brokerConfig.setEnableFastChannelEventProcess(true);
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+
+        EmbeddedChannel embeddedChannel = new EmbeddedChannel();
+        ClientChannelInfo withoutSubChannelInfo = new ClientChannelInfo(embeddedChannel, CLIENT_ID,
+            LanguageCode.JAVA, VERSION);
+        ConsumerGroupInfo groupInfo = new ConsumerGroupInfo(GROUP, CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        groupInfo.getSubscriptionTable().put(TOPIC, new SubscriptionData(TOPIC, SubscriptionData.SUB_ALL));
+        consumerManager.getConsumerTable().put(GROUP, groupInfo);
+
+        // heartbeat-v2 with withoutSub=true: the channel is new, but the group already exists
+        assertTrue(consumerManager.registerConsumerWithoutSub(GROUP, withoutSubChannelInfo,
+            CONSUME_PASSIVELY, MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET, true));
+        assertThat(ClientChannelAttributeHelper.getConsumerGroups(embeddedChannel)).contains(GROUP);
+
+        // the fast channel close path must find the group through the channel attribute
+        assertTrue(consumerManager.doChannelCloseEvent("127.0.0.1", embeddedChannel));
+        assertThat(consumerManager.getConsumerTable().get(GROUP)).isNull();
     }
 }
