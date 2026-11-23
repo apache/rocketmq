@@ -1476,7 +1476,7 @@ public class TimerMessageStore {
             return trs;
         }
 
-        protected void putMessageToTimerWheel(TimerRequest req) {
+        protected void putMessageToTimerWheel(TimerRequest req, TimerRequest.Attempt attempt) {
             try {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
                 StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
@@ -1485,17 +1485,24 @@ public class TimerMessageStore {
                 }
                 if (shouldRunningDequeue && req.getDelayTime() < currWriteTimeMs) {
                     req.setEnqueueTime(Long.MAX_VALUE);
-                    dequeuePutQueue.put(req);
+                    req.setPipelineAttempt(attempt);
+                    attempt.markHandedToPipeline();
+                    try {
+                        dequeuePutQueue.put(req);
+                    } catch (Throwable t) {
+                        attempt.clearHandedToPipeline();
+                        throw t;
+                    }
                 } else {
                     boolean doEnqueueRes = doEnqueue(
                         req.getOffsetPy(), req.getSizePy(), req.getDelayTime(), req.getMsg(), false);
-                    req.idempotentRelease(doEnqueueRes || storeConfig.isTimerSkipUnknownError());
+                    attempt.release(doEnqueueRes || storeConfig.isTimerSkipUnknownError());
                 }
                 perfCounterTicks.endTick(ENQUEUE_PUT);
             } catch (Throwable t) {
                 LOGGER.error("Unknown error", t);
                 if (storeConfig.isTimerSkipUnknownError()) {
-                    req.idempotentRelease(true);
+                    attempt.release(true);
                 } else {
                     holdMomentForUnknownError();
                 }
@@ -1511,25 +1518,69 @@ public class TimerMessageStore {
                 return;
             }
 
+            List<TimerRequest> pending = trs;
             while (!isStopped()) {
-                CountDownLatch latch = new CountDownLatch(trs.size());
-                for (TimerRequest req : trs) {
-                    req.setLatch(latch);
+                // Only the requests whose current attempt has not succeeded are retried, otherwise
+                // the already-succeeded requests would be enqueued again and delivered more than once
+                List<TimerRequest> candidates = new ArrayList<>(pending.size());
+                List<TimerRequest.Attempt> previousAttempts = new ArrayList<>(pending.size());
+                for (TimerRequest req : pending) {
+                    TimerRequest.Attempt previousAttempt = req.getAttempt();
+                    if (previousAttempt == null || !previousAttempt.isSucc()) {
+                        candidates.add(req);
+                        previousAttempts.add(previousAttempt);
+                    }
+                }
+                if (candidates.isEmpty()) {
+                    break;
+                }
+
+                CountDownLatch latch = new CountDownLatch(candidates.size());
+                List<TimerRequest.Attempt> currentAttempts = new ArrayList<>(candidates.size());
+                for (TimerRequest req : candidates) {
+                    // Re-arm completion for this round. Each attempt owns its latch and success
+                    // flag, so a late release from the previous owner can only complete the
+                    // previous attempt, never this one.
+                    currentAttempts.add(req.beginAttempt(latch));
+                }
+
+                for (int i = 0; i < candidates.size(); i++) {
+                    TimerRequest req = candidates.get(i);
+                    TimerRequest.Attempt previousAttempt = previousAttempts.get(i);
+                    TimerRequest.Attempt currentAttempt = currentAttempts.get(i);
+                    if (previousAttempt != null && previousAttempt.isHandedToPipeline() && !previousAttempt.isDone()) {
+                        // The dequeue pipeline still owns the previous attempt. Reusing the
+                        // request now could enqueue or deliver the same message twice, so wait
+                        // until that owner has finished before retrying the request.
+                        while (!previousAttempt.isDone()) {
+                            if (isStopped()) {
+                                // Do not advance the commit offset for a batch that was not
+                                // fully enqueued.
+                                return;
+                            }
+                            previousAttempt.await(50, TimeUnit.MILLISECONDS);
+                        }
+                    }
+                    if (previousAttempt != null && previousAttempt.isSucc()) {
+                        // The previous owner succeeded while we were waiting, there is nothing
+                        // left to enqueue for this attempt.
+                        currentAttempt.release(true);
+                        continue;
+                    }
                     if (storeConfig.isTimerWheelSnapshotFlush()) {
                         synchronized (lockWhenFlush) {
-                            this.putMessageToTimerWheel(req);
+                            this.putMessageToTimerWheel(req, currentAttempt);
                         }
                     } else {
-                        this.putMessageToTimerWheel(req);
+                        this.putMessageToTimerWheel(req, currentAttempt);
                     }
                 }
                 checkDequeueLatch(latch, -1);
-                boolean allSuccess = trs.stream().allMatch(TimerRequest::isSucc);
-                if (allSuccess) {
+                pending = candidates;
+                if (pending.stream().allMatch(TimerRequest::isSucc)) {
                     break;
-                } else {
-                    holdMomentForUnknownError();
                 }
+                holdMomentForUnknownError();
             }
             commitQueueOffset = trs.get(trs.size() - 1).getMsg().getQueueOffset();
             maybeMoveWriteTime();
@@ -1622,6 +1673,12 @@ public class TimerMessageStore {
 
                     setState(AbstractStateService.RUNNING);
                     boolean tmpDequeueChangeFlag = false;
+                    // Bind to the attempt taken from the queue. The enqueue loop may re-arm the
+                    // request for a retry, but this owner must only complete its own attempt.
+                    TimerRequest.Attempt pipelineAttempt = tr.getPipelineAttempt();
+                    if (pipelineAttempt == null) {
+                        pipelineAttempt = tr.getAttempt();
+                    }
 
                     try {
                         while (!isStopped()) {
@@ -1685,7 +1742,7 @@ public class TimerMessageStore {
                             }
                         }
                     } finally {
-                        tr.idempotentRelease(!tmpDequeueChangeFlag);
+                        tr.idempotentRelease(pipelineAttempt, !tmpDequeueChangeFlag);
                     }
                 } catch (Throwable e) {
                     TimerMessageStore.LOGGER.error("Error occurred in " + getServiceName(), e);
@@ -1743,6 +1800,7 @@ public class TimerMessageStore {
                                         perfCounterTicks.getCounter("dequeue_delete").flow(1);
                                     } else {
                                         tr.setMsg(msgExt);
+                                        tr.setPipelineAttempt(tr.getAttempt());
                                         while (!isStopped() && !doRes) {
                                             doRes = dequeuePutQueue.offer(tr, 3, TimeUnit.SECONDS);
                                         }
