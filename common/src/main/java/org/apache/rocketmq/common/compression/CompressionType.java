@@ -18,7 +18,6 @@
 package org.apache.rocketmq.common.compression;
 
 import java.util.Locale;
-
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
 public enum CompressionType {
