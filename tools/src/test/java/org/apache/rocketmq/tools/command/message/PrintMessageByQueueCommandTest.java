@@ -29,6 +29,7 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -36,6 +37,13 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class PrintMessageByQueueCommandTest {
+
+    @Test
+    public void testCreateConsumerUsesToolsGroup() {
+        DefaultMQPullConsumer consumer = new PrintMessageByQueueCommand().createConsumer(null);
+
+        Assert.assertEquals(MixAll.TOOLS_CONSUMER_GROUP, consumer.getConsumerGroup());
+    }
 
     @Test
     public void testCompareToIsAntisymmetricBeyondIntegerMaxValue() {
