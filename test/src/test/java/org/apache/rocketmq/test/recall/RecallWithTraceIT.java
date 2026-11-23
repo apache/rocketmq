@@ -56,6 +56,7 @@ public class RecallWithTraceIT extends BaseConf {
 
     @BeforeClass
     public static void init() throws MQClientException {
+        waitBrokerRegistered(NAMESRV_ADDR, BROKER1_NAME, 1);
         System.setProperty("com.rocketmq.recall.default.trace.enable", Boolean.TRUE.toString());
         topic = MQRandomUtils.getRandomTopic();
         IntegrationTestBase.initTopic(topic, NAMESRV_ADDR, BROKER1_NAME, 1, CQType.SimpleCQ, TopicMessageType.NORMAL);
