@@ -78,6 +78,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -1184,6 +1185,87 @@ public class DefaultMessageStoreTest {
                 .arriving(eq(lmq), eq(MixAll.LMQ_QUEUE_ID), eq(1L), anyLong(), anyLong(), any(), any());
             verify(listener, times(2)).arriving(eq(messageTopic), eq(0), eq(1L), anyLong(), anyLong(), any(), any());
         } finally {
+            shutdownAndDeleteStore(store);
+        }
+    }
+
+    @Test
+    public void testPutMessageLargerThanCommitLogFileRejected() throws Exception {
+        String topic = "OversizedSingleTopic";
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setMappedFileSizeCommitLog(8 * 1024);
+        storeConfig.setMappedFileSizeConsumeQueue(4 * 1024);
+
+        DefaultMessageStore store = (DefaultMessageStore) buildMessageStore(storeConfig, null);
+        assertTrue(store.load());
+        store.start();
+        try {
+            queueTotal = 1;
+            MessageExtBrokerInner oversized = buildMessage(new byte[16 * 1024], topic);
+            oversized.setQueueId(0);
+
+            PutMessageResult oversizedResult = store.putMessage(oversized);
+            assertThat(oversizedResult.isOk()).isFalse();
+            assertThat(oversizedResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.MESSAGE_ILLEGAL);
+            assertThat(oversizedResult.getAppendMessageResult().getStatus()).isEqualTo(AppendMessageStatus.END_OF_FILE);
+            assertThat(store.getMaxOffsetInQueue(topic, 0)).isEqualTo(0L);
+            assertThat(store.getStoreStatsService().getSinglePutMessageTopicTimesTotal(topic).longValue()).isEqualTo(0L);
+            assertThat(store.getStoreStatsService().getSinglePutMessageTopicSizeTotal(topic).longValue()).isEqualTo(0L);
+
+            byte[] validBody = "valid-after-oversized".getBytes(StandardCharsets.UTF_8);
+            MessageExtBrokerInner validMsg = buildMessage(validBody, topic);
+            validMsg.setQueueId(0);
+
+            PutMessageResult validResult = store.putMessage(validMsg);
+            assertThat(validResult.isOk()).isTrue();
+            assertThat(validResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+
+            StoreTestUtil.waitCommitLogReput(store);
+            assertThat(store.getMaxOffsetInQueue(topic, 0)).isEqualTo(1L);
+
+            GetMessageResult getResult = store.getMessage("GROUP_A", topic, 0, 0, 32, null);
+            assertThat(getResult).isNotNull();
+            try {
+                assertThat(getResult.getStatus()).isEqualTo(GetMessageStatus.FOUND);
+                assertThat(getResult.getMessageCount()).isEqualTo(1);
+            } finally {
+                getResult.release();
+            }
+        } finally {
+            shutdownAndDeleteStore(store);
+        }
+    }
+
+    @Test
+    public void testPutMessageRetryAppendUnknownErrorPropagated() throws Exception {
+        String topic = "RetryUnknownErrorTopic";
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setMappedFileSizeCommitLog(8 * 1024);
+        storeConfig.setMappedFileSizeConsumeQueue(4 * 1024);
+
+        DefaultMessageStore store = (DefaultMessageStore) buildMessageStore(storeConfig, null);
+        assertTrue(store.load());
+        store.start();
+        try {
+            MappedFile mockFile = mock(MappedFile.class);
+            when(mockFile.isFull()).thenReturn(false);
+            when(mockFile.appendMessage(any(MessageExtBrokerInner.class), any(AppendMessageCallback.class), any(PutMessageContext.class)))
+                .thenReturn(
+                    new AppendMessageResult(AppendMessageStatus.END_OF_FILE),
+                    new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
+            store.getCommitLog().getMappedFileQueue().getMappedFiles().add(mockFile);
+
+            queueTotal = 1;
+            MessageExtBrokerInner msg = buildMessage("retry-error".getBytes(StandardCharsets.UTF_8), topic);
+            msg.setQueueId(0);
+
+            PutMessageResult putResult = store.putMessage(msg);
+            assertThat(putResult.isOk()).isFalse();
+            assertThat(putResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.UNKNOWN_ERROR);
+            assertThat(putResult.getAppendMessageResult().getStatus()).isEqualTo(AppendMessageStatus.UNKNOWN_ERROR);
+            assertThat(store.getMaxOffsetInQueue(topic, 0)).isEqualTo(0L);
+        } finally {
+            store.getCommitLog().getMappedFileQueue().getMappedFiles().clear();
             shutdownAndDeleteStore(store);
         }
     }

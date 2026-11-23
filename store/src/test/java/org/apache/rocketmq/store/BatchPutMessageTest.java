@@ -22,6 +22,9 @@ import static org.apache.rocketmq.common.message.MessageDecoder.messagePropertie
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -40,6 +43,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -201,6 +205,107 @@ public class BatchPutMessageTest {
             assertTrue(exist);
         }
 
+    }
+
+    @Test
+    public void testPutMessagesLargerThanCommitLogFileRejected() throws Exception {
+        String topic = "batch-oversized-topic";
+        int queue = 0;
+        List<Message> oversizedMessages = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            Message msg = new Message();
+            msg.setTopic(topic);
+            msg.setTags("TAG1");
+            msg.setBody(new byte[4 * 1024]);
+            oversizedMessages.add(msg);
+        }
+
+        MessageExtBatch oversizedBatch = new MessageExtBatch();
+        oversizedBatch.setTopic(topic);
+        oversizedBatch.setQueueId(queue);
+        oversizedBatch.setBody(MessageDecoder.encodeMessages(oversizedMessages));
+        oversizedBatch.setBornTimestamp(System.currentTimeMillis());
+        oversizedBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
+        oversizedBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
+
+        PutMessageResult oversizedResult = messageStore.putMessages(oversizedBatch);
+        assertThat(oversizedResult.isOk()).isFalse();
+        assertThat(oversizedResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.MESSAGE_ILLEGAL);
+        assertThat(oversizedResult.getAppendMessageResult().getStatus()).isEqualTo(AppendMessageStatus.END_OF_FILE);
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queue)).isEqualTo(0L);
+
+        List<Message> validMessages = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            Message msg = new Message();
+            msg.setTopic(topic);
+            msg.setTags("TAG1");
+            msg.setBody(("ok-" + i).getBytes(CHARSET_UTF8));
+            validMessages.add(msg);
+        }
+
+        MessageExtBatch validBatch = new MessageExtBatch();
+        validBatch.setTopic(topic);
+        validBatch.setQueueId(queue);
+        validBatch.setBody(MessageDecoder.encodeMessages(validMessages));
+        validBatch.setBornTimestamp(System.currentTimeMillis());
+        validBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
+        validBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
+
+        PutMessageResult validResult = messageStore.putMessages(validBatch);
+        assertThat(validResult.isOk()).isTrue();
+        assertThat(validResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+
+        Boolean exist = await().atMost(3, SECONDS).until(() -> {
+            GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, 0, 32, null);
+            if (result == null) {
+                return false;
+            }
+            boolean matched = GetMessageStatus.FOUND.equals(result.getStatus()) && result.getMessageCount() == 2;
+            result.release();
+            return matched;
+        }, item -> item);
+        assertTrue(exist);
+    }
+
+    @Test
+    public void testPutMessagesRetryAppendUnknownErrorPropagated() throws Exception {
+        String topic = "batch-retry-unknown-error-topic";
+        int queue = 0;
+        DefaultMessageStore store = (DefaultMessageStore) messageStore;
+        MappedFile mockFile = mock(MappedFile.class);
+        when(mockFile.isFull()).thenReturn(false);
+        when(mockFile.appendMessages(any(MessageExtBatch.class), any(AppendMessageCallback.class), any(PutMessageContext.class)))
+            .thenReturn(
+                new AppendMessageResult(AppendMessageStatus.END_OF_FILE),
+                new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR));
+        store.getCommitLog().getMappedFileQueue().getMappedFiles().add(mockFile);
+
+        try {
+            List<Message> messages = new ArrayList<>();
+            Message msg = new Message();
+            msg.setTopic(topic);
+            msg.setTags("TAG1");
+            msg.setBody("retry-batch-error".getBytes(CHARSET_UTF8));
+            messages.add(msg);
+
+            MessageExtBatch batch = new MessageExtBatch();
+            batch.setTopic(topic);
+            batch.setQueueId(queue);
+            batch.setBody(MessageDecoder.encodeMessages(messages));
+            batch.setBornTimestamp(System.currentTimeMillis());
+            batch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
+            batch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
+
+            PutMessageResult putResult = messageStore.putMessages(batch);
+            assertThat(putResult.isOk()).isFalse();
+            assertThat(putResult.getPutMessageStatus()).isEqualTo(PutMessageStatus.UNKNOWN_ERROR);
+            assertThat(putResult.getAppendMessageResult().getStatus()).isEqualTo(AppendMessageStatus.UNKNOWN_ERROR);
+            assertThat(messageStore.getMaxOffsetInQueue(topic, queue)).isEqualTo(0L);
+            assertThat(store.getStoreStatsService().getSinglePutMessageTopicTimesTotal(topic).longValue()).isEqualTo(0L);
+            assertThat(store.getStoreStatsService().getSinglePutMessageTopicSizeTotal(topic).longValue()).isEqualTo(0L);
+        } finally {
+            store.getCommitLog().getMappedFileQueue().getMappedFiles().clear();
+        }
     }
 
     private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {

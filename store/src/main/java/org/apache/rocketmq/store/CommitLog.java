@@ -1160,6 +1160,10 @@ public class CommitLog implements Swappable {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
 
+        if (!AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+            return CompletableFuture.completedFuture(new PutMessageResult(resolveAppendFailureStatus(result.getStatus()), result));
+        }
+
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // Statistics
@@ -1317,6 +1321,10 @@ public class CommitLog implements Swappable {
             this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
         }
 
+        if (!AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+            return CompletableFuture.completedFuture(new PutMessageResult(resolveAppendFailureStatus(result.getStatus()), result));
+        }
+
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
 
         // Statistics
@@ -1324,6 +1332,21 @@ public class CommitLog implements Swappable {
         storeStatsService.getSinglePutMessageTopicSizeTotal(messageExtBatch.getTopic()).add(result.getWroteBytes());
 
         return handleDiskFlushAndHA(putMessageResult, messageExtBatch, needAckNums, needHandleHA);
+    }
+
+    private PutMessageStatus resolveAppendFailureStatus(AppendMessageStatus status) {
+        if (status == null) {
+            return PutMessageStatus.UNKNOWN_ERROR;
+        }
+        switch (status) {
+            case END_OF_FILE:
+            case MESSAGE_SIZE_EXCEEDED:
+            case PROPERTIES_SIZE_EXCEEDED:
+                return PutMessageStatus.MESSAGE_ILLEGAL;
+            case UNKNOWN_ERROR:
+            default:
+                return PutMessageStatus.UNKNOWN_ERROR;
+        }
     }
 
     private int calcNeedAckNums(int inSyncReplicas) {
