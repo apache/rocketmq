@@ -21,6 +21,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -29,6 +31,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -43,6 +46,7 @@ import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -113,31 +117,91 @@ public class SendMessageCommandTest {
     }
 
     @Test
-    public void testExecuteRejectsUnpairedBrokerAndQueue() throws Exception {
-        assertInvalidTarget("must be specified together", "-b", "broker-a");
-        assertInvalidTarget("must be specified together", "-i", "0");
+    public void testExecuteSelectsWritableQueueOnRequestedBroker() throws Exception {
+        DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        MessageQueue first = new MessageQueue("mytopic", "broker-a", 0);
+        MessageQueue second = new MessageQueue("mytopic", "broker-a", 1);
+        MessageQueue otherBroker = new MessageQueue("mytopic", "broker-b", 0);
+        when(producer.fetchPublishMessageQueues("mytopic")).thenReturn(Arrays.asList(otherBroker, first, second));
+        when(producer.send(any(Message.class), any(MessageQueue.class))).thenAnswer(invocation ->
+            new SendResult(SendStatus.SEND_OK, "message-id", "offset-id", invocation.getArgument(1), 0));
+
+        executeWithTargetOptions(producer, "-b", "broker-a");
+
+        ArgumentCaptor<MessageQueue> queue = ArgumentCaptor.forClass(MessageQueue.class);
+        verify(producer).send(any(Message.class), queue.capture());
+        Assert.assertTrue(Arrays.asList(first, second).contains(queue.getValue()));
+        verify(producer, never()).send(any(Message.class));
+    }
+
+    @Test
+    public void testExecuteRejectsBrokerWithoutWritableQueue() throws Exception {
+        assertNoQueueOnBroker("broker-a", new MessageQueue("mytopic", "broker-b", 0));
+    }
+
+    @Test
+    public void testExecuteRejectsLogicalQueueInBrokerOnlyMode() throws Exception {
+        String logicalBroker = MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX + "scope";
+        assertNoQueueOnBroker(logicalBroker, new MessageQueue("mytopic", logicalBroker, 0));
+    }
+
+    @Test
+    public void testExecuteDoesNotFallBackWhenTargetQueueSendFails() throws Exception {
+        DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        MessageQueue queue = new MessageQueue("mytopic", "broker-a", 0);
+        when(producer.fetchPublishMessageQueues("mytopic")).thenReturn(Collections.singletonList(queue));
+        MQClientException failure = new MQClientException("Target broker unavailable", null);
+        when(producer.send(any(Message.class), eq(queue))).thenThrow(failure);
+
+        RuntimeException error = Assert.assertThrows(RuntimeException.class,
+            () -> executeWithTargetOptions(producer, "-b", "broker-a"));
+
+        Assert.assertSame(failure, error.getCause());
+        verify(producer, never()).send(any(Message.class));
+        verify(producer).shutdown();
+    }
+
+    @Test
+    public void testExecuteRejectsQueueWithoutBroker() throws Exception {
+        assertInvalidTarget("requires -b", "-i", "0");
     }
 
     @Test
     public void testExecuteRejectsInvalidTargetQueue() throws Exception {
         assertInvalidTarget("must be a non-negative integer", "-b", "broker-a", "-i", "-1");
         assertInvalidTarget("must be a non-negative integer", "-b", "broker-a", "-i", "invalid");
-        assertInvalidTarget("must specify a broker name", "-b", " ", "-i", "0");
+        assertInvalidTarget("must specify a broker name", "-b", " ");
+    }
+
+    private void assertNoQueueOnBroker(String broker, MessageQueue availableQueue) throws Exception {
+        DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        when(producer.fetchPublishMessageQueues("mytopic")).thenReturn(Collections.singletonList(availableQueue));
+
+        SubCommandException error = Assert.assertThrows(SubCommandException.class,
+            () -> executeWithTargetOptions(producer, "-b", broker));
+
+        Assert.assertTrue(error.getMessage(), error.getMessage().contains("No writable queue for topic mytopic on broker " + broker));
+        verify(producer, never()).send(any(Message.class));
+        verify(producer, never()).send(any(Message.class), any(MessageQueue.class));
+        verify(producer).shutdown();
     }
 
     private void assertInvalidTarget(String expectedError, String... targetOptions) throws Exception {
         DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        SubCommandException error = Assert.assertThrows(SubCommandException.class,
+            () -> executeWithTargetOptions(producer, targetOptions));
+        Assert.assertTrue(error.getMessage(), error.getMessage().contains(expectedError));
+        verifyNoInteractions(producer);
+    }
+
+    private void executeWithTargetOptions(DefaultMQProducer producer, String... targetOptions) throws Exception {
         SendMessageCommand command = commandWithProducer(producer);
         Options options = command.buildCommandlineOptions(new Options());
         String[] arguments = new String[4 + targetOptions.length];
         System.arraycopy(new String[] {"-t", "mytopic", "-p", "message body"}, 0, arguments, 0, 4);
         System.arraycopy(targetOptions, 0, arguments, 4, targetOptions.length);
         CommandLine commandLine = new DefaultParser().parse(options, arguments);
-
-        SubCommandException error = Assert.assertThrows(SubCommandException.class,
-            () -> command.execute(commandLine, options, null));
-        Assert.assertTrue(error.getMessage(), error.getMessage().contains(expectedError));
-        verifyNoInteractions(producer);
+        command.execute(commandLine, options, null);
     }
 
     private void assertMessageBody(String body, boolean sendToQueue) throws Exception {

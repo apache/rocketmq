@@ -17,18 +17,23 @@
 
 package org.apache.rocketmq.tools.command.message;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-
-import java.nio.charset.StandardCharsets;
 
 public class SendMessageCommand implements SubCommand {
 
@@ -62,7 +67,7 @@ public class SendMessageCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("b", "broker", true, "Target broker name (requires -i)");
+        opt = new Option("b", "broker", true, "Target broker name. Without -i, select a writable queue on this broker.");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -90,17 +95,16 @@ public class SendMessageCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         String topic = commandLine.getOptionValue('t').trim();
-        String brokerName = commandLine.getOptionValue('b');
+        String brokerName = StringUtils.trim(commandLine.getOptionValue('b'));
         String queueIdValue = commandLine.getOptionValue('i');
-        if ((brokerName == null) != (queueIdValue == null)) {
-            throw new SubCommandException("Options -b (--broker) and -i (--qid) must be specified together.");
+        if (brokerName != null && brokerName.isEmpty()) {
+            throw new SubCommandException("Option -b (--broker) must specify a broker name.");
         }
 
         MessageQueue targetQueue = null;
-        if (brokerName != null) {
-            brokerName = brokerName.trim();
-            if (brokerName.isEmpty()) {
-                throw new SubCommandException("Option -b (--broker) must specify a broker name.");
+        if (queueIdValue != null) {
+            if (brokerName == null) {
+                throw new SubCommandException("Option -i (--qid) requires -b (--broker).");
             }
             int queueId;
             try {
@@ -137,12 +141,12 @@ public class SendMessageCommand implements SubCommand {
         SendResult result;
         try {
             producer.start();
-            if (targetQueue != null) {
-                result = producer.send(msg, targetQueue);
-            } else {
-                result = producer.send(msg);
+            if (targetQueue == null && brokerName != null) {
+                targetQueue = selectQueueOnBroker(producer, topic, brokerName);
             }
-
+            result = targetQueue == null ? producer.send(msg) : producer.send(msg, targetQueue);
+        } catch (SubCommandException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
@@ -171,5 +175,18 @@ public class SendMessageCommand implements SubCommand {
                 "None"
             );
         }
+    }
+
+    private MessageQueue selectQueueOnBroker(DefaultMQProducer producer, String topic, String brokerName)
+        throws MQClientException, SubCommandException {
+        // Static topic queues use logical names that do not pin a physical broker.
+        List<MessageQueue> queues = producer.fetchPublishMessageQueues(topic).stream()
+            .filter(queue -> brokerName.equals(queue.getBrokerName()))
+            .filter(queue -> !queue.getBrokerName().startsWith(MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX))
+            .collect(Collectors.toList());
+        if (queues.isEmpty()) {
+            throw new SubCommandException("No writable queue for topic %s on broker %s.", topic, brokerName);
+        }
+        return queues.get(ThreadLocalRandom.current().nextInt(queues.size()));
     }
 }
