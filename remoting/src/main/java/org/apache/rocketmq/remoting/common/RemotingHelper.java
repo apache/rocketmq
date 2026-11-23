@@ -302,7 +302,11 @@ public class RemotingHelper {
         int ipAddr = ipToInt(ip);
         String[] cidrArr = cidr.split("/");
         int netId = Integer.parseInt(cidrArr[1]);
-        int mask = 0xFFFFFFFF << (32 - netId);
+        // A /0 prefix (e.g. 0.0.0.0/0) is meant to match every address. Java takes an int
+        // shift count modulo 32, so "0xFFFFFFFF << 32" is evaluated as "0xFFFFFFFF << 0"
+        // == -1 (compare all 32 bits) and would never match. Handle /0 explicitly so the
+        // mask is 0 and every address matches.
+        int mask = netId == 0 ? 0 : (0xFFFFFFFF << (32 - netId));
         int cidrIpAddr = ipToInt(cidrArr[0]);
 
         return (ipAddr & mask) == (cidrIpAddr & mask);
