@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.queue;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.rocketmq.common.BoundaryType;
@@ -122,44 +123,40 @@ public class RocksDBConsumeQueueTable {
         return (value != null) ? ByteBuffer.wrap(value) : null;
     }
 
-    public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex, final int num) throws RocksDBException {
+    /**
+     * Read up to {@code num} consecutive CQ entries starting at {@code startIndex}.
+     *
+     * <p>A bounded RocksDB iterator scans the key range in one seek and then reads the following
+     * entries sequentially, which avoids building {@code num} point-lookup keys and resolving each
+     * of them independently with a multiGet.
+     *
+     * <p>The returned list keeps the semantics of the previous implementation: it stops at the first
+     * missing offset, so the values are always consecutive CQ units starting at {@code startIndex}.
+     */
+    public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex,
+        final int num) throws RocksDBException {
+        if (num <= 0) {
+            return Collections.emptyList();
+        }
+        if (num == 1) {
+            // A single entry is a point lookup; creating and seeking an iterator costs more than one get.
+            final ByteBuffer value = getCQInKV(topic, queueId, startIndex);
+            return value == null ? Collections.emptyList() : Collections.singletonList(value);
+        }
         final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
-        final List<ColumnFamilyHandle> defaultCFHList = new ArrayList<>(num);
-        final ByteBuffer[] resultList = new ByteBuffer[num];
-        final List<Integer> kvIndexList = new ArrayList<>(num);
-        final List<byte[]> kvKeyList = new ArrayList<>(num);
-        for (int i = 0; i < num; i++) {
-            final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
-            kvIndexList.add(i);
-            kvKeyList.add(keyBB.array());
-            defaultCFHList.add(this.defaultCFH);
-        }
-        int keyNum = kvIndexList.size();
-        if (keyNum > 0) {
-            List<byte[]> kvValueList = this.rocksDBStorage.multiGet(defaultCFHList, kvKeyList);
-            final int valueNum = kvValueList.size();
-            if (keyNum != valueNum) {
-                throw new RocksDBException("rocksdb bug, multiGet");
+        final byte[] startKey = buildCQKeyByteBuffer(topicBytes, queueId, startIndex).array();
+        final byte[] endKey = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + num).array();
+        final List<ByteBuffer> bbValueList = new ArrayList<>(num);
+        this.rocksDBStorage.scanCQ(startKey, endKey, (key, value) -> {
+            final long cqOffset = ByteBuffer.wrap(key).getLong(key.length - Long.BYTES);
+            // ConsumeQueue offsets are continuous. Keep stopping at the first gap, as the multiGet
+            // based implementation did, so callers can advance offsets by one for each returned unit.
+            if (cqOffset != startIndex + bbValueList.size()) {
+                return false;
             }
-            for (int i = 0; i < valueNum; i++) {
-                byte[] value = kvValueList.get(i);
-                if (value == null) {
-                    continue;
-                }
-                ByteBuffer byteBuffer = ByteBuffer.wrap(value);
-                resultList[kvIndexList.get(i)] = byteBuffer;
-            }
-        }
-
-        final int resultSize = resultList.length;
-        List<ByteBuffer> bbValueList = new ArrayList<>(resultSize);
-        for (int i = 0; i < resultSize; i++) {
-            ByteBuffer byteBuffer = resultList[i];
-            if (byteBuffer == null) {
-                break;
-            }
-            bbValueList.add(byteBuffer);
-        }
+            bbValueList.add(ByteBuffer.wrap(value));
+            return true;
+        });
         return bbValueList;
     }
 
