@@ -28,28 +28,24 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RocksdbTopicConfigTransferTest {
 
-    private final String basePath = Paths.get(System.getProperty("user.home"),
-            "unit-test-store", UUID.randomUUID().toString().substring(0, 16).toUpperCase()).toString();
+    @Rule
+    public final TemporaryFolder storeDirectory = TemporaryFolder.builder().assureDeletion().build();
 
     private RocksDBTopicConfigManager rocksdbTopicConfigManager;
 
@@ -68,7 +64,7 @@ public class RocksdbTopicConfigTransferTest {
         BrokerConfig brokerConfig = new BrokerConfig();
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        messageStoreConfig.setStorePathRootDir(basePath);
+        messageStoreConfig.setStorePathRootDir(storeDirectory.getRoot().getAbsolutePath());
         Mockito.lenient().when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
@@ -76,23 +72,6 @@ public class RocksdbTopicConfigTransferTest {
 
     @After
     public void destroy() {
-        if (notToBeExecuted()) {
-            return;
-        }
-        Path pathToBeDeleted = Paths.get(basePath);
-        try {
-            Files.walk(pathToBeDeleted)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                        } catch (IOException e) {
-                            // ignore
-                        }
-                    });
-        } catch (IOException e) {
-            // ignore
-        }
         if (rocksdbTopicConfigManager != null) {
             rocksdbTopicConfigManager.stop();
         }
@@ -248,7 +227,7 @@ public class RocksdbTopicConfigTransferTest {
         Assert.assertEquals(2L, dataVersion.getCounter().get());
         Assert.assertEquals(0L, dataVersion.getStateVersion());
         Assert.assertNotEquals(0, rocksdbTopicConfigManager.getTopicConfigTable().size());
-        Assert.assertEquals(rocksdbTopicConfigManager.getTopicConfigTable().size(), rocksdbTopicConfigManager.getTopicConfigTable().size());
+        Assert.assertEquals(jsonTopicConfigManager.getTopicConfigTable(), rocksdbTopicConfigManager.getTopicConfigTable());
     }
 
 
