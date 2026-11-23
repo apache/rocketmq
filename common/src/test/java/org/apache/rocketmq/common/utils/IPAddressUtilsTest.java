@@ -70,6 +70,38 @@ public class IPAddressUtilsTest {
     }
 
     @Test
+    public void isValidCidrShouldRejectNetworkPartThatIsNotAnIpLiteral() {
+        Assert.assertFalse(IPAddressUtils.isValidCidr("/24"));
+        Assert.assertFalse(IPAddressUtils.isValidCidr("localhost/24"));
+        Assert.assertFalse(IPAddressUtils.isValidCidr("192.168.1.0/"));
+        Assert.assertFalse(IPAddressUtils.isValidCidr("not-an-ip/64"));
+        Assert.assertFalse(IPAddressUtils.isValidCidr("192.168.1.0/24/8"));
+    }
+
+    @Test
+    public void isValidIPv4Cidr() {
+        Assert.assertTrue(IPAddressUtils.isValidIPv4Cidr("0.0.0.0/0"));
+        Assert.assertTrue(IPAddressUtils.isValidIPv4Cidr("192.168.1.0/24"));
+        Assert.assertTrue(IPAddressUtils.isValidIPv4Cidr("192.168.1.1/32"));
+
+        Assert.assertFalse(IPAddressUtils.isValidIPv4Cidr("192.168.1.0/33"));
+        Assert.assertFalse(IPAddressUtils.isValidIPv4Cidr("192.168.1.0/-1"));
+        Assert.assertFalse(IPAddressUtils.isValidIPv4Cidr("::1/24"));
+        Assert.assertFalse(IPAddressUtils.isValidIPv4Cidr("localhost/24"));
+    }
+
+    @Test
+    public void isValidIPv6Cidr() {
+        Assert.assertTrue(IPAddressUtils.isValidIPv6Cidr("2001:db8::/32"));
+        Assert.assertTrue(IPAddressUtils.isValidIPv6Cidr("::1/128"));
+
+        Assert.assertFalse(IPAddressUtils.isValidIPv6Cidr("::1/129"));
+        Assert.assertFalse(IPAddressUtils.isValidIPv6Cidr("::1/-1"));
+        Assert.assertFalse(IPAddressUtils.isValidIPv6Cidr("192.168.1.0/24"));
+        Assert.assertFalse(IPAddressUtils.isValidIPv6Cidr("localhost/64"));
+    }
+
+    @Test
     public void isValidIp() {
         String ipv4 = "192.168.1.0";
         String ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";

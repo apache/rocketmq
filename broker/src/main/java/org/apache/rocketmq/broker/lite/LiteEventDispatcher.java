@@ -382,9 +382,16 @@ public class LiteEventDispatcher extends ServiceThread {
                 continue;
             }
             String clientId = entry.getKey();
-            LOGGER.warn("remove inactive client and re-dispatch. {}, {}", clientId, eventSet.events.size());
+            boolean hasEvents = !eventSet.events.isEmpty();
             iterator.remove();
-            blacklist.put(clientId, PRESENT);
+            if (hasEvents) {
+                LOGGER.warn("remove inactive client and re-dispatch. {}, {}", clientId, eventSet.events.size());
+                // Blacklist only clients with events to re-dispatch; blacklisting an idle client
+                // would block new events until the blacklist expires.
+                blacklist.put(clientId, PRESENT);
+            } else {
+                LOGGER.info("remove idle client event set. {}", clientId);
+            }
             String event;
             while ((event = eventSet.poll()) != null) {
                 doDispatch(eventSet.group, event, clientId); // may still dispatch to current client
