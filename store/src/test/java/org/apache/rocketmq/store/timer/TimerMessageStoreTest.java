@@ -19,12 +19,15 @@ package org.apache.rocketmq.store.timer;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.RandomAccessFile;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -49,6 +53,7 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -67,6 +72,7 @@ import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -658,11 +664,6 @@ public class TimerMessageStoreTest {
     }
 
     @Test
-    public void defaultSnapshotEnabledTest() {
-        assertTrue(new MessageStoreConfig().isTimerWheelSnapshotFlush());
-    }
-
-    @Test
     public void snapshotFlushAndRecoverTest() throws Exception {
         storeConfig.setTimerWheelSnapshotFlush(true);
         storeConfig.setTimerWheelSnapshotIntervalMs(0);
@@ -689,8 +690,8 @@ public class TimerMessageStoreTest {
         long target = first.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
         String wheelPath = TimerMessageStore.getTimerWheelPath(storeConfig.getStorePathRootDir());
         await().atMost(5000, TimeUnit.MILLISECONDS).until(() ->
-            first.getTimerCheckpoint().getLastTimerLogFlushPos() >= target
-                && TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
+            first.getTimerCheckpoint().getLastTimerLogFlushPos() >= target &&
+                TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
         assertThat(first.getTimerCheckpoint().getLastTimerLogFlushPos())
             .isLessThanOrEqualTo(first.getTimerLog().getMappedFileQueue().getMaxWrotePosition());
         // base is the promoted wheel; recovery rewinds one timerlog file and replays the gap (verified below).
@@ -766,6 +767,7 @@ public class TimerMessageStoreTest {
         await().atMost(5000, TimeUnit.MILLISECONDS).until(() ->
             first.getTimerLog().getMappedFileQueue().getFlushedWhere() > 0);
         // CP must stay pinned to the base end (0, no promote yet), not advance with flushedWhere
+        first.getTimerFlushService().flush();
         assertEquals(0, first.getTimerCheckpoint().getLastTimerLogFlushPos());
 
         // now promote a snapshot: CP advances to the flag and base becomes latest
@@ -773,8 +775,8 @@ public class TimerMessageStoreTest {
         long target = first.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
         String wheelPath = TimerMessageStore.getTimerWheelPath(storeConfig.getStorePathRootDir());
         await().atMost(5000, TimeUnit.MILLISECONDS).until(() ->
-            first.getTimerCheckpoint().getLastTimerLogFlushPos() >= target
-                && TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
+            first.getTimerCheckpoint().getLastTimerLogFlushPos() >= target &&
+                TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
         first.shutdown();
 
         // recovery replays [base end, crash) from timerlog: zero loss
@@ -807,8 +809,8 @@ public class TimerMessageStoreTest {
         await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> first.getCommitQueueOffset() == longNum);
         String wheelPath = TimerMessageStore.getTimerWheelPath(storeConfig.getStorePathRootDir());
         await().atMost(5000, TimeUnit.MILLISECONDS).until(() ->
-            first.getTimerCheckpoint().getLastTimerLogFlushPos() > 0
-                && TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
+            first.getTimerCheckpoint().getLastTimerLogFlushPos() > 0 &&
+                TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
         long promotedFlag = first.getTimerCheckpoint().getLastTimerLogFlushPos();
 
         // freeze a pending snapshot WITHOUT promoting: the "CP old, pending x present" crash window.
@@ -837,6 +839,345 @@ public class TimerMessageStoreTest {
         assertEquals(longNum + moreNum, second.getQueueOffset());
         assertEquals(longNum + moreNum, second.getTimerWheel().getNum(longDeliverMs));
         second.shutdown();
+    }
+
+    @Test
+    public void checkpointPinnedDuringPromotionAndRoleChangeTest() throws Exception {
+        TimerMessageStore store = createSnapshotFixture();
+        long baseOffset = readPersistedTimerOffset();
+        long target = store.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
+        TimerCheckpoint checkpoint = Mockito.spy(store.getTimerCheckpoint());
+        Field checkpointField = TimerMessageStore.class.getDeclaredField("timerCheckpoint");
+        checkpointField.setAccessible(true);
+        checkpointField.set(store, checkpoint);
+        CountDownLatch prepareStarted = new CountDownLatch(1);
+        CountDownLatch continuePrepare = new CountDownLatch(1);
+        FutureTask<Void> prepare = new FutureTask<>(() -> {
+            store.prepareTimerCheckPoint();
+            return null;
+        });
+        Thread prepareThread = new Thread(prepare, "TimerCheckpointPrepareTest");
+        Mockito.doAnswer(invocation -> {
+            if (Thread.currentThread() == prepareThread) {
+                prepareStarted.countDown();
+                assertTrue(continuePrepare.await(10, TimeUnit.SECONDS));
+            }
+            return invocation.callRealMethod();
+        }).when(checkpoint).setLastReadTimeMs(Mockito.anyLong());
+        TimerWheel wheel = spyTimerWheel(store);
+        CountDownLatch beforePromote = new CountDownLatch(1);
+        CountDownLatch continuePromote = new CountDownLatch(1);
+        Mockito.doAnswer(invocation -> {
+            beforePromote.countDown();
+            assertTrue(continuePromote.await(10, TimeUnit.SECONDS));
+            return invocation.callRealMethod();
+        }).when(wheel).promoteToBase(target);
+        FutureTask<Void> flush = new FutureTask<>(() -> {
+            forceSnapshot(store);
+            return null;
+        });
+        Thread thread = new Thread(flush, "TimerSnapshotCommitTest");
+        thread.start();
+        try {
+            assertTrue(beforePromote.await(10, TimeUnit.SECONDS));
+            assertEquals(baseOffset, readPersistedTimerOffset());
+            storeConfig.setBrokerRole(BrokerRole.SLAVE);
+            store.enqueue(0);
+            storeConfig.setBrokerRole(BrokerRole.SYNC_MASTER);
+            store.enqueue(0);
+            checkpoint.flush();
+            assertEquals(baseOffset, checkpoint.getLastTimerLogFlushPos());
+            assertEquals(baseOffset, readPersistedTimerOffset());
+            Mockito.verify(checkpoint, Mockito.never()).setLastTimerLogFlushPos(baseOffset);
+            prepareThread.start();
+            assertTrue(prepareStarted.await(10, TimeUnit.SECONDS));
+            continuePromote.countDown();
+            flush.get(10, TimeUnit.SECONDS);
+            assertFalse(prepare.isDone());
+            assertEquals(target, readPersistedTimerOffset());
+        } finally {
+            continuePrepare.countDown();
+            continuePromote.countDown();
+            prepareThread.join(10000);
+            thread.join(10000);
+        }
+        prepare.get(10, TimeUnit.SECONDS);
+        checkpoint.flush();
+        assertEquals(target, checkpoint.getLastTimerLogFlushPos());
+        assertEquals(target, readPersistedTimerOffset());
+        Mockito.verify(checkpoint, Mockito.times(1)).setLastTimerLogFlushPos(target);
+        Mockito.verify(checkpoint, Mockito.never()).setLastTimerLogFlushPos(baseOffset);
+    }
+
+    @Test
+    public void timelineRecallSharesSnapshotBoundaryTest() throws Exception {
+        TimerMessageStore store = createSnapshotFixture();
+        long delayedTime = store.getCommitReadTimeMs() + 20000;
+        MessageExtBrokerInner message = buildMessage(delayedTime + precisionMs, "TimerTest_snapshotCommit", false);
+        transformTimerMessage(store, message);
+        MessageAccessor.putProperty(message, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, "recall-test");
+        PutMessageResult result = messageStore.putMessage(message);
+        assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
+        TimerLog log = Mockito.spy(store.getTimerLog());
+        Field logField = TimerMessageStore.class.getDeclaredField("timerLog");
+        logField.setAccessible(true);
+        logField.set(store, log);
+        TimerWheel wheel = spyTimerWheel(store);
+        CountDownLatch appended = new CountDownLatch(1);
+        CountDownLatch continueEnqueue = new CountDownLatch(1);
+        Mockito.doAnswer(invocation -> {
+            Object offset = invocation.callRealMethod();
+            appended.countDown();
+            assertTrue(continueEnqueue.await(10, TimeUnit.SECONDS));
+            return offset;
+        }).when(log).append(Mockito.any(byte[].class), Mockito.eq(0), Mockito.eq(TimerLog.UNIT_SIZE));
+        FutureTask<Boolean> enqueue = new FutureTask<>(() -> store.doEnqueue(
+            result.getAppendMessageResult().getWroteOffset(), result.getAppendMessageResult().getWroteBytes(),
+            delayedTime, message, true));
+        Thread enqueueThread = new Thread(enqueue, "TimelineRecallSnapshotTest");
+        FutureTask<Void> flush = new FutureTask<>(() -> {
+            forceSnapshot(store);
+            return null;
+        });
+        Thread flushThread = new Thread(flush, "TimelineSnapshotFlushTest");
+        enqueueThread.start();
+        try {
+            assertTrue(appended.await(10, TimeUnit.SECONDS));
+            flushThread.start();
+            await().atMost(10, TimeUnit.SECONDS).until(() -> {
+                ThreadInfo info = ManagementFactory.getThreadMXBean().getThreadInfo(flushThread.getId());
+                return flush.isDone() || info != null && info.getLockOwnerId() == enqueueThread.getId();
+            });
+            assertFalse(flush.isDone());
+            Mockito.verify(wheel, Mockito.never()).copyForSnapshot();
+        } finally {
+            continueEnqueue.countDown();
+            enqueueThread.join(10000);
+            flushThread.join(10000);
+        }
+        assertTrue(enqueue.get(10, TimeUnit.SECONDS));
+        flush.get(10, TimeUnit.SECONDS);
+        TimerWheel base = new TimerWheel(wheel.getFileName(), wheel.slotsTotal, precisionMs);
+        try {
+            assertEquals(wheel.getSlot(delayedTime).lastPos, base.getSlot(delayedTime).lastPos);
+            assertEquals(wheel.getSlot(delayedTime).num, base.getSlot(delayedTime).num);
+        } finally {
+            base.shutdown();
+        }
+    }
+
+    @Test
+    public void snapshotPromotionFailureRollbackTest() throws Exception {
+        TimerMessageStore first = createSnapshotFixture();
+        long firstTime = first.getCommitReadTimeMs() + 10000;
+        long baseOffset = readPersistedTimerOffset();
+        TimerWheel wheel = spyTimerWheel(first);
+        Mockito.doThrow(new IOException("promotion failed")).when(wheel).promoteToBase(Mockito.anyLong());
+        Assert.assertThrows(IOException.class, () -> forceSnapshot(first));
+        assertEquals(baseOffset, readPersistedTimerOffset());
+        assertEquals(0, first.getTimerFlushService().lastSnapshotTime);
+        first.shutdown();
+        storeConfig.setTimerWheelSnapshotFlush(false);
+        TimerMessageStore second = createTimerMessageStore(storeConfig.getStorePathRootDir(), false);
+        assertTrue(second.load());
+        assertSnapshotFixtureSlots(second.getTimerWheel(), firstTime);
+        assertEquals(50, second.getQueueOffset());
+    }
+
+    @Test
+    public void snapshotPostRenameFailureRetryTest() throws Exception {
+        TimerMessageStore store = createSnapshotFixture();
+        long baseOffset = readPersistedTimerOffset();
+        long target = store.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
+        TimerWheel wheel = spyTimerWheel(store);
+        Mockito.doAnswer(invocation -> {
+            invocation.callRealMethod();
+            throw new IOException("failure after replacement");
+        }).doCallRealMethod().when(wheel).promoteToBase(target);
+        Assert.assertThrows(IOException.class, () -> forceSnapshot(store));
+        assertEquals(baseOffset, readPersistedTimerOffset());
+        assertEquals(-1, TimerWheel.getMaxSnapshotFlag(wheel.getFileName()));
+        assertEquals(0, store.getTimerFlushService().lastSnapshotTime);
+        store.getTimerFlushService().flush();
+        assertEquals(target, readPersistedTimerOffset());
+        assertTrue(store.getTimerFlushService().lastSnapshotTime > 0);
+    }
+
+    @Test
+    public void pendingSnapshotImmediateRollbackDeliveryTest() throws Exception {
+        verifyPendingSnapshotRollback(false);
+        TimerMessageStore store = timerStores.get(timerStores.size() - 1);
+        store.start(true);
+        await().atMost(45000, TimeUnit.MILLISECONDS).until(() -> {
+            ConsumeQueue queue = (ConsumeQueue) messageStore.getConsumeQueue("TimerTest_snapshotCommit", 0);
+            return queue != null && queue.getMaxOffsetInQueue() == 50;
+        });
+        Set<String> tags = new HashSet<>();
+        for (int i = 0; i < 50; i++) {
+            MessageExt message = MessageDecoder.decode(getOneMessage("TimerTest_snapshotCommit", 0, i, 2000));
+            assertNotNull(message);
+            tags.add(message.getTags());
+        }
+        assertEquals(50, tags.size());
+    }
+
+    @Test
+    public void pendingSnapshotOrdinaryFlushRollbackTest() throws Exception {
+        verifyPendingSnapshotRollback(true);
+    }
+
+    @Test
+    public void recoveredSnapshotCommitFailureTest() throws Exception {
+        TimerMessageStore first = createSnapshotFixture();
+        long baseOffset = readPersistedTimerOffset();
+        String wheelPath = first.getTimerWheel().getFileName();
+        byte[] baseBefore = Files.readAllBytes(new File(wheelPath).toPath());
+        first.getTimerWheel().copyForSnapshot();
+        long target = first.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
+        first.getTimerWheel().backup(target);
+        first.shutdown();
+        TimerMessageStore second = createTimerMessageStore(storeConfig.getStorePathRootDir(), false);
+        assertEquals(baseOffset, second.getTimerCheckpoint().getLastTimerLogFlushPos());
+        Mockito.doThrow(new IOException("startup promotion failed"))
+            .when(spyTimerWheel(second)).promoteToBase(Mockito.anyLong());
+        assertFalse(second.load());
+        second.shutdown();
+        assertEquals(baseOffset, readPersistedTimerOffset());
+        assertArrayEquals(baseBefore, Files.readAllBytes(new File(wheelPath).toPath()));
+        assertEquals(target, TimerWheel.getMaxSnapshotFlag(wheelPath));
+    }
+
+    @Test
+    public void pendingSnapshotBehindCheckpointWithCompleteLogsTest() throws Exception {
+        TimerMessageStore first = createSnapshotFixture();
+        long firstTime = first.getCommitReadTimeMs() + 10000;
+        String wheelPath = first.getTimerWheel().getFileName();
+        long baseOffset = readPersistedTimerOffset();
+        long target = first.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
+        Files.copy(new File(wheelPath).toPath(), new File(wheelPath + "." + baseOffset).toPath());
+        first.shutdown();
+        TimerCheckpoint checkpoint = new TimerCheckpoint(timerCheckpointFile().getPath());
+        checkpoint.setLastTimerLogFlushPos(target);
+        checkpoint.shutdown();
+        TimerMessageStore second = createTimerMessageStore(storeConfig.getStorePathRootDir(), false);
+        assertTrue(second.load());
+        assertSnapshotFixtureSlots(second.getTimerWheel(), firstTime);
+        assertEquals(target, readPersistedTimerOffset());
+        assertEquals(-1, TimerWheel.getMaxSnapshotFlag(wheelPath));
+    }
+
+    @Test
+    public void pendingSnapshotMissingMiddleLogRejectsLoadTest() throws Exception {
+        TimerMessageStore first = createSnapshotFixture();
+        String wheelPath = first.getTimerWheel().getFileName();
+        long baseOffset = readPersistedTimerOffset();
+        Files.copy(new File(wheelPath).toPath(), new File(wheelPath + "." + baseOffset).toPath());
+        File missingFile = new File(first.getTimerLog().getMappedFileQueue().getMappedFiles().get(3).getFileName());
+        first.shutdown();
+        byte[] baseBefore = Files.readAllBytes(new File(wheelPath).toPath());
+        byte[] checkpointBefore = Files.readAllBytes(timerCheckpointFile().toPath());
+        Files.delete(missingFile.toPath());
+        TimerMessageStore second = createTimerMessageStore(storeConfig.getStorePathRootDir(), false);
+        assertFalse(second.load());
+        second.shutdown();
+        assertArrayEquals(baseBefore, Files.readAllBytes(new File(wheelPath).toPath()));
+        assertArrayEquals(checkpointBefore, Files.readAllBytes(timerCheckpointFile().toPath()));
+        assertEquals(baseOffset, TimerWheel.getMaxSnapshotFlag(wheelPath));
+    }
+
+    private TimerMessageStore createSnapshotFixture() throws Exception {
+        storeConfig.setMappedFileSizeTimerLog(512);
+        storeConfig.setTimerWheelSnapshotFlush(true);
+        storeConfig.setTimerWheelSnapshotIntervalMs(600000);
+        TimerMessageStore store = createTimerMessageStore(storeConfig.getStorePathRootDir(), false);
+        assertTrue(store.load());
+        long now = System.currentTimeMillis() / precisionMs * precisionMs;
+        store.currReadTimeMs = now;
+        store.commitReadTimeMs = now;
+        store.currWriteTimeMs = now;
+        for (int i = 0; i < 50; i++) {
+            long delayedTime = now + 10000 + (long) i * precisionMs;
+            MessageExtBrokerInner message = buildMessage(delayedTime + precisionMs, "TimerTest_snapshotCommit", false);
+            transformTimerMessage(store, message);
+            PutMessageResult result = messageStore.putMessage(message);
+            assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
+            assertTrue(store.doEnqueue(result.getAppendMessageResult().getWroteOffset(),
+                result.getAppendMessageResult().getWroteBytes(), delayedTime, message, false));
+            store.currQueueOffset = i + 1;
+            store.commitQueueOffset = i + 1;
+            store.getTimerCheckpoint().setMasterTimerQueueOffset(i + 1);
+            if (i == 9) {
+                forceSnapshot(store);
+            }
+        }
+        long target = store.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
+        while (store.getTimerLog().getMappedFileQueue().getFlushedWhere() < target) {
+            long before = store.getTimerLog().getMappedFileQueue().getFlushedWhere();
+            store.getTimerLog().getMappedFileQueue().flush(0);
+            assertTrue(store.getTimerLog().getMappedFileQueue().getFlushedWhere() > before);
+        }
+        store.getTimerFlushService().flush();
+        await().atMost(5000, TimeUnit.MILLISECONDS).until(() ->
+            messageStore.getConsumeQueue(TimerMessageStore.TIMER_TOPIC, 0) != null &&
+                messageStore.getConsumeQueue(TimerMessageStore.TIMER_TOPIC, 0).getMaxOffsetInQueue() == 50);
+        return store;
+    }
+
+    private void verifyPendingSnapshotRollback(boolean ordinaryFlush) throws Exception {
+        TimerMessageStore first = createSnapshotFixture();
+        long firstTime = first.getCommitReadTimeMs() + 10000;
+        long target = first.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
+        first.getTimerWheel().copyForSnapshot();
+        first.getTimerWheel().backup(target);
+        first.shutdown();
+        TimerMessageStore second = createTimerMessageStore(storeConfig.getStorePathRootDir(), false);
+        assertTrue(second.load());
+        assertEquals(target, readPersistedTimerOffset());
+        assertEquals(-1, TimerWheel.getMaxSnapshotFlag(second.getTimerWheel().getFileName()));
+        if (ordinaryFlush) {
+            second.getTimerFlushService().flush();
+        }
+        second.shutdown();
+        storeConfig.setTimerWheelSnapshotFlush(false);
+        TimerMessageStore third = createTimerMessageStore(storeConfig.getStorePathRootDir(), false);
+        assertTrue(third.load());
+        assertEquals(50, third.getQueueOffset());
+        assertSnapshotFixtureSlots(third.getTimerWheel(), firstTime);
+    }
+
+    private void assertSnapshotFixtureSlots(TimerWheel wheel, long firstTime) {
+        long previousPosition = -1;
+        for (int i = 0; i < 50; i++) {
+            Slot slot = wheel.getSlot(firstTime + (long) i * precisionMs);
+            assertEquals(firstTime + (long) i * precisionMs, slot.timeMs);
+            assertEquals(slot.firstPos, slot.lastPos);
+            assertTrue(slot.firstPos > previousPosition);
+            previousPosition = slot.firstPos;
+        }
+    }
+
+    private void forceSnapshot(TimerMessageStore store) throws IOException {
+        store.getTimerFlushService().lastSnapshotTime = 0;
+        store.getTimerFlushService().flush();
+    }
+
+    private TimerWheel spyTimerWheel(TimerMessageStore store) throws Exception {
+        TimerWheel wheel = Mockito.spy(store.getTimerWheel());
+        Field field = TimerMessageStore.class.getDeclaredField("timerWheel");
+        field.setAccessible(true);
+        field.set(store, wheel);
+        return wheel;
+    }
+
+    private File timerCheckpointFile() {
+        return new File(storeConfig.getStorePathRootDir(), "config/timercheck");
+    }
+
+    private long readPersistedTimerOffset() throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(timerCheckpointFile(), "r")) {
+            file.seek(8);
+            return file.readLong();
+        }
     }
 
     public ByteBuffer getOneMessage(String topic, int queue, long offset, int timeout) throws Exception {
@@ -879,9 +1220,6 @@ public class TimerMessageStoreTest {
 
     @Test
     public void oldNewOldNewStalePendingBoundaryTest() throws Exception {
-        // old->new->old->new: stale pending survives the old period and wins over the fresh base;
-        // the timerlog gap expired with commitlog is unreplayable -> entries lost.
-        // Known boundary: if recovery ever compares maxFlag against CP, update this test.
         storeConfig.setMappedFileSizeTimerLog(TimerLog.UNIT_SIZE * 40);
         storeConfig.setTimerWheelSnapshotFlush(true);
         storeConfig.setTimerWheelSnapshotIntervalMs(0);
@@ -903,8 +1241,8 @@ public class TimerMessageStoreTest {
         long target1 = new1.getTimerLog().getMappedFileQueue().getMaxWrotePosition();
         String wheelPath = TimerMessageStore.getTimerWheelPath(storeConfig.getStorePathRootDir());
         await().atMost(5000, TimeUnit.MILLISECONDS).until(() ->
-            new1.getTimerCheckpoint().getLastTimerLogFlushPos() >= target1
-                && TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
+            new1.getTimerCheckpoint().getLastTimerLogFlushPos() >= target1 &&
+                TimerWheel.getMaxSnapshotFlag(wheelPath) == -1);
         new1.shutdown();
         long staleFlag = new1.getTimerCheckpoint().getLastTimerLogFlushPos();
         // crash-leftover shape: a complete wheel image under a numeric flag beside the promoted base
@@ -926,8 +1264,8 @@ public class TimerMessageStoreTest {
             old.getTimerCheckpoint().getLastTimerLogFlushPos() >= target2);
         // long interval: commitlog rolls and timerlog files expire, same call as the 30s scheduler
         SelectMappedBufferResult sbr = old.getTimerLog().getWholeBuffer(100 * TimerLog.UNIT_SIZE);
-        sbr.getByteBuffer().position((100 * TimerLog.UNIT_SIZE) % storeConfig.getMappedFileSizeTimerLog()
-            + TimerLog.UNIT_PRE_SIZE_FOR_MSG);
+        sbr.getByteBuffer().position((100 * TimerLog.UNIT_SIZE) % storeConfig.getMappedFileSizeTimerLog() +
+            TimerLog.UNIT_PRE_SIZE_FOR_MSG);
         long minPySim = sbr.getByteBuffer().getLong();
         sbr.release();
         old.getTimerLog().getMappedFileQueue().deleteExpiredFileByOffsetForTimerLog(
@@ -936,15 +1274,16 @@ public class TimerMessageStoreTest {
         assertThat(t2InBase).isGreaterThanOrEqualTo(100);
         old.shutdown();
 
-        // second new upgrade: stale pending wins over the fresh base, the expired gap is lost
+        byte[] baseBefore = Files.readAllBytes(new File(wheelPath).toPath());
+        File checkpointFile = new File(base, "config/timercheck");
+        byte[] checkpointBefore = Files.readAllBytes(checkpointFile.toPath());
         storeConfig.setTimerWheelSnapshotFlush(true);
         final TimerMessageStore new2 = createTimerMessageStore(base, false);
-        assertTrue(new2.load());
-        assertThat(new2.getTimerWheel().getNum(t1)).isGreaterThanOrEqualTo(50);
-        assertThat(new2.getTimerWheel().getNum(t2)).isLessThan(t2InBase);
+        assertFalse(new2.load());
         new2.shutdown();
+        assertArrayEquals(baseBefore, Files.readAllBytes(new File(wheelPath).toPath()));
+        assertArrayEquals(checkpointBefore, Files.readAllBytes(checkpointFile.toPath()));
 
-        // workaround: delete the stale numeric snapshot before the upgrade, base + CP recovers all
         assertTrue(new File(wheelPath + "." + staleFlag).delete());
         final TimerMessageStore new3 = createTimerMessageStore(base, false);
         assertTrue(new3.load());

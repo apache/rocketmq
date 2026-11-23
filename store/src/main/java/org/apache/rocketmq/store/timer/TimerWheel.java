@@ -38,9 +38,9 @@ import java.nio.channels.FileChannel;
 public class TimerWheel {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final int BACKUP_SEGMENT_BYTES = 1024 * 1024;
     public static final String TIMER_WHEEL_FILE_NAME = "timerwheel";
     public static final int BLANK = -1, IGNORE = -2;
-    private static final int BACKUP_SEGMENT_BYTES = 1024 * 1024;
     public final int slotsTotal;
     public final int precisionMs;
     private final String fileName;
@@ -57,9 +57,6 @@ public class TimerWheel {
     private final int wheelLength;
 
     private long snapOffset;
-
-    private final boolean snapshotMode;
-
     private ByteBuffer snapshotBuffer;
 
     public TimerWheel(String fileName, int slotsTotal, int precisionMs) throws IOException {
@@ -74,7 +71,6 @@ public class TimerWheel {
         this.fileName = fileName;
         this.wheelLength = this.slotsTotal * 2 * Slot.SIZE;
         this.snapOffset = snapOffset;
-        this.snapshotMode = snapshotMode;
 
         String finalFileName = selectSnapshotByFlag(snapOffset);
         File file = new File(finalFileName);
@@ -128,10 +124,12 @@ public class TimerWheel {
         UtilAll.cleanBuffer(this.snapshotBuffer);
         localBuffer.remove();
 
-        try {
-            this.fileChannel.close();
-        } catch (Throwable t) {
-            log.error("Shutdown error in timer wheel", t);
+        if (null != this.fileChannel) {
+            try {
+                this.fileChannel.close();
+            } catch (Throwable t) {
+                log.error("Shutdown error in timer wheel", t);
+            }
         }
     }
 
@@ -152,7 +150,7 @@ public class TimerWheel {
         this.mappedByteBuffer.force();
     }
 
-    /** Caller holds lockWhenFlush; the frozen buffer stays immutable until the next copy. */
+    /* Caller holds lockWhenFlush; the frozen buffer stays immutable until the next copy. */
     public void copyForSnapshot() {
         if (snapshotBuffer == null) {
             snapshotBuffer = ByteBuffer.allocateDirect(wheelLength);
@@ -165,7 +163,7 @@ public class TimerWheel {
         snapshotBuffer.flip();
     }
 
-    /** 1 MiB segments + force bound the writeback burst; tmp + atomic rename keep the snapshot complete. */
+    /* 1 MiB segments + force bound the writeback burst; tmp + atomic rename keep the snapshot complete. */
     public void backup(long flushWhere) throws IOException {
         ByteBuffer bf = snapshotBuffer;
         bf.position(0);
@@ -190,18 +188,16 @@ public class TimerWheel {
         }
 
         if (tmpFile.exists()) {
-            Files.move(tmpFile.toPath(), bakFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
+            Files.move(tmpFile.toPath(), bakFile.toPath(),
+                StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             MixAll.fsyncDirectory(Paths.get(bakFile.getParent()));
         }
         cleanExpiredSnapshot();
     }
 
-    /** CP == offset must be durable before this; REPLACE_EXISTING without delete avoids a base-absent window. */
+    /* The checkpoint must not advance until replacement and directory fsync complete. */
     public void promoteToBase(long offset) throws IOException {
         File snapshot = new File(selectSnapshotByFlag(offset));
-        if (!snapshot.exists()) {
-            return;
-        }
         File base = new File(this.fileName);
         Files.move(snapshot.toPath(), base.toPath(),
             StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);

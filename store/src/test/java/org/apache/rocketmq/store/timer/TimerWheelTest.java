@@ -25,6 +25,7 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class TimerWheelTest {
@@ -163,6 +164,18 @@ public class TimerWheelTest {
         assertEquals(4, slot.magic);
         assertEquals(-1, snapWheel.getSlot(delayedTime + precisionMs).timeMs);
         snapWheel.shutdown();
+
+        timerWheel.copyForSnapshot();
+        timerWheel.backup(12345);
+        TimerWheel replacement = new TimerWheel(baseDir, slotsTotal, precisionMs, 12345);
+        try {
+            assertEquals(5, replacement.getSlot(delayedTime).firstPos);
+            assertEquals(6, replacement.getSlot(delayedTime).lastPos);
+            assertEquals(7, replacement.getSlot(delayedTime).num);
+            assertEquals(9, replacement.getSlot(delayedTime + precisionMs).firstPos);
+        } finally {
+            replacement.shutdown();
+        }
     }
 
     @Test
@@ -254,6 +267,34 @@ public class TimerWheelTest {
     }
 
     @Test
+    public void missingSnapshotDoesNotPromoteTest() throws IOException {
+        long delayedTime = defaultDelay + precisionMs;
+        timerWheel.putSlot(delayedTime, 1, 2, 3, 4);
+        timerWheel.flush();
+        File baseFile = new File(baseDir);
+        File snapshotFile = new File(baseDir + ".100");
+        assertTrue(baseFile.isFile());
+        assertFalse(snapshotFile.exists());
+
+        assertThrows(IOException.class, () -> timerWheel.promoteToBase(100));
+        assertTrue(baseFile.isFile());
+        assertFalse(snapshotFile.exists());
+        assertEquals((long) slotsTotal * 2 * Slot.SIZE, baseFile.length());
+
+        TimerWheel reopened = new TimerWheel(baseDir, slotsTotal, precisionMs);
+        try {
+            Slot slot = reopened.getSlot(delayedTime);
+            assertEquals(delayedTime, slot.timeMs);
+            assertEquals(1, slot.firstPos);
+            assertEquals(2, slot.lastPos);
+            assertEquals(3, slot.num);
+            assertEquals(4, slot.magic);
+        } finally {
+            reopened.shutdown();
+        }
+    }
+
+    @Test
     public void snapshotModeNoMmapTest() throws Exception {
         String path = baseDir + "_snap";
         // snapshot mode with no snapshot yet loads the base file but must not mmap it
@@ -301,6 +342,8 @@ public class TimerWheelTest {
         }
         if (null != baseDir) {
             StoreTestUtils.deleteFile(baseDir);
+            StoreTestUtils.deleteFile(baseDir + ".12345");
+            StoreTestUtils.deleteFile(baseDir + ".12345.tmp");
         }
     }
 

@@ -80,7 +80,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
-    private boolean timerWheelSnapshotFlush = true;
+    private boolean timerWheelSnapshotFlush = false;
     private boolean timerWheelEnable = true;
 
     /**

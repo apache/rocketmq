@@ -105,7 +105,7 @@ public class TimerCheckpoint {
         }
     }
 
-    public void flush() {
+    public synchronized void flush() {
         if (null == this.mappedByteBuffer) {
             return;
         }
