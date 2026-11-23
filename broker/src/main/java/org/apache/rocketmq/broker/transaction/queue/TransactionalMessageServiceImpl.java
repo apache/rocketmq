@@ -60,6 +60,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private static final int MAX_PROCESS_TIME_LIMIT = 60000;
     private static final int MAX_RETRY_TIMES_FOR_ESCAPE = 10;
+    private static final long MAX_ESCAPE_RETRY_DELAY = 5000L;
 
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
 
@@ -250,7 +251,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                     msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                                 if (escapeFailCnt < MAX_RETRY_TIMES_FOR_ESCAPE) {
                                     escapeFailCnt++;
-                                    Thread.sleep(100L * (2 ^ escapeFailCnt));
+                                    Thread.sleep(escapeRetryBackoffMillis(escapeFailCnt));
                                 } else {
                                     escapeFailCnt = 0;
                                     newOffset = i + 1;
@@ -351,6 +352,25 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             log.error("Check error", e);
         }
 
+    }
+
+    /**
+     * Backoff in milliseconds before the next attempt to escape a transactional half message.
+     *
+     * <p>Note that {@code 2 ^ n} in Java is XOR, not exponentiation: the previous expression
+     * {@code 100L * (2 ^ escapeFailCnt)} produced a non-monotonic sequence with a zero delay on the second
+     * failure. A left shift yields the intended exponential backoff of {@code 100 * 2^n} ms
+     * (200, 400, 800, ... ms).
+     *
+     * <p>The delay is capped at {@link #MAX_ESCAPE_RETRY_DELAY} ms: {@code check} runs on the single
+     * transaction-check thread, so the uncapped delay of the tenth retry ({@code 100 * 2^10} ms) would block
+     * every queue in the cycle for over a minute.
+     *
+     * @param escapeFailCnt number of consecutive escape failures, starting from 1.
+     * @return delay in milliseconds.
+     */
+    static long escapeRetryBackoffMillis(int escapeFailCnt) {
+        return Math.min(100L * (1L << escapeFailCnt), MAX_ESCAPE_RETRY_DELAY);
     }
 
     private long getImmunityTime(String checkImmunityTimeStr, long transactionTimeout) {

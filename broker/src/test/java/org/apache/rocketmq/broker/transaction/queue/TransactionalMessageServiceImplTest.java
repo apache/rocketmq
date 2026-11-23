@@ -43,6 +43,7 @@ import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,6 +60,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -153,6 +155,26 @@ public class TransactionalMessageServiceImplTest {
     }
 
     @Test
+    public void testCheck_withEscapeFailureRetriesWithBackoff() {
+        brokerController.getBrokerConfig().setEnableSlaveActingMaster(true);
+        brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC)).thenReturn(createMessageQueueSet(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC));
+        when(bridge.getHalfMessage(0, 0, 1)).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 5, "hello", 1));
+        when(bridge.getHalfMessage(0, 1, 1)).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 6, "hellp", 0));
+        when(bridge.getOpMessage(anyInt(), anyLong(), anyInt())).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 1, "5", 0));
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        when(bridge.renewHalfMessageInner(any(MessageExt.class))).thenReturn(createMessageBrokerInner());
+        // The first escape attempt fails and must back off before the message is retried and escaped.
+        when(bridge.escapeMessage(any(MessageExtBrokerInner.class))).thenReturn(false, true);
+
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+
+        verify(bridge, times(2)).escapeMessage(any(MessageExtBrokerInner.class));
+    }
+
+    @Test
     public void testDeletePrepareMessage_queueFull() throws InterruptedException {
         ((TransactionalMessageServiceImpl)queueTransactionMsgService).getDeleteContext().put(0, new MessageQueueOpContext(0, 1));
         boolean res = queueTransactionMsgService.deletePrepareMessage(createMessageBrokerInner());
@@ -177,6 +199,20 @@ public class TransactionalMessageServiceImplTest {
     public void testOpen() {
         boolean isOpen = queueTransactionMsgService.open();
         assertThat(isOpen).isTrue();
+    }
+
+    @Test
+    public void testEscapeRetryBackoffMillisIsExponentialAndCapped() {
+        long[] expected = {200L, 400L, 800L, 1600L, 3200L, 5000L, 5000L, 5000L, 5000L, 5000L};
+        long previous = 0;
+        for (int escapeFailCnt = 1; escapeFailCnt <= expected.length; escapeFailCnt++) {
+            long backoff = TransactionalMessageServiceImpl.escapeRetryBackoffMillis(escapeFailCnt);
+            assertThat(backoff).isEqualTo(expected[escapeFailCnt - 1]);
+            assertThat(backoff).isGreaterThanOrEqualTo(previous);
+            previous = backoff;
+        }
+        // The XOR expression slept for 0 ms on the second failure; the backoff must be 400 ms instead.
+        assertThat(TransactionalMessageServiceImpl.escapeRetryBackoffMillis(2)).isEqualTo(400L);
     }
 
     private PullResult createDiscardPullResult(String topic, long queueOffset, String body, int size) {
