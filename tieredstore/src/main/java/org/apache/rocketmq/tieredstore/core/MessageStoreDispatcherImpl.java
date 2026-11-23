@@ -259,72 +259,108 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             long offset = currentOffset;
             List<SelectMappedBufferResult> appendingBufferList = new ArrayList<>();
             List<DispatchRequest> dispatchRequestList = new ArrayList<>();
-            for (; offset < targetOffset; offset++) {
-                cqUnit = consumeQueue.get(offset);
-                bufferSize += cqUnit.getSize();
-                if (bufferSize >= groupCommitSize) {
-                    break;
-                }
-                message = defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
-                appendingBufferList.add(message);
-
-                ByteBuffer byteBuffer = message.getByteBuffer();
-                AppendResult result = flatFile.appendCommitLog(message);
-                if (!AppendResult.SUCCESS.equals(result)) {
-                    break;
-                }
-
-                long mappedCommitLogOffset = flatFile.getCommitLogMaxOffset() - byteBuffer.remaining();
-                Map<String, String> properties = MessageFormatUtil.getProperties(byteBuffer);
-
-                DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, mappedCommitLogOffset,
-                    cqUnit.getSize(), cqUnit.getTagsCode(), MessageFormatUtil.getStoreTimeStamp(byteBuffer),
-                    cqUnit.getQueueOffset(), properties.getOrDefault(MessageConst.PROPERTY_KEYS, ""),
-                    properties.getOrDefault(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, ""),
-                    0, 0, new HashMap<>());
-                dispatchRequest.setOffsetId(MessageFormatUtil.getOffsetId(byteBuffer));
-
-                result = flatFile.appendConsumeQueue(dispatchRequest);
-                if (!AppendResult.SUCCESS.equals(result)) {
-                    break;
-                } else {
-                    dispatchRequestList.add(dispatchRequest);
-                }
-            }
-
             GroupCommitContext groupCommitContext = new GroupCommitContext();
-            groupCommitContext.setEndOffset(offset);
-            groupCommitContext.setBufferList(appendingBufferList);
-            groupCommitContext.setDispatchRequests(dispatchRequestList);
+            boolean batchCompleted = false;
+            boolean pendingCommitLogAppend = false;
+            try {
+                for (; offset < targetOffset; offset++) {
+                    cqUnit = consumeQueue.get(offset);
+                    if (cqUnit == null) {
+                        // The consume queue can be truncated by the expiry sweep while this batch
+                        // is being built, even though currentOffset was readable above.
+                        log.warn("MessageDispatcher#dispatch cq not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                            topic, queueId, minOffsetInQueue, maxOffsetInQueue, offset, maxOffsetInQueue - offset);
+                        break;
+                    }
+                    bufferSize += cqUnit.getSize();
+                    if (bufferSize >= groupCommitSize) {
+                        break;
+                    }
+                    message = defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
+                    if (message == null) {
+                        // The commitlog data behind this offset can be deleted (expired file)
+                        // while the dispatcher is catching up; the preflight only validated
+                        // currentOffset.
+                        log.warn("MessageDispatcher#dispatch message not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                            topic, queueId, minOffsetInQueue, maxOffsetInQueue, offset, maxOffsetInQueue - offset);
+                        break;
+                    }
+                    appendingBufferList.add(message);
 
-            // If there are many messages waiting to be uploaded, call the upload logic immediately.
-            boolean repeat = timeout || maxOffsetInQueue - offset > storeConfig.getTieredStoreGroupCommitCount();
+                    ByteBuffer byteBuffer = message.getByteBuffer();
+                    AppendResult result = flatFile.appendCommitLog(message);
+                    if (!AppendResult.SUCCESS.equals(result)) {
+                        break;
+                    }
+                    pendingCommitLogAppend = true;
 
-            if (!dispatchRequestList.isEmpty()) {
-                Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
-                    .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
-                    .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, queueId)
-                    .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
-                    .build();
-                TieredStoreMetricsManager.messagesDispatchTotal.add(offset - currentOffset, attributes);
+                    long mappedCommitLogOffset = flatFile.getCommitLogMaxOffset() - byteBuffer.remaining();
+                    Map<String, String> properties = MessageFormatUtil.getProperties(byteBuffer);
 
-                this.commitAsync(flatFile).whenComplete((success, throwable) -> {
-                        if (success) {
-                            constructIndexFile(flatFile.getTopicId(), groupCommitContext);
-                        }
-                        else {
-                            //next commit async,execute constructIndexFile.
-                            GroupCommitContext oldCommit = failedGroupCommitMap.put(flatFile, groupCommitContext);
-                            if (oldCommit != null) {
-                                log.warn("MessageDispatcher#doScheduleDispatch, commitAsync failed, old failed commit context not released, topic={}, queueId={}", topic, queueId);
-                                oldCommit.release();
+                    DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, mappedCommitLogOffset,
+                        cqUnit.getSize(), cqUnit.getTagsCode(), MessageFormatUtil.getStoreTimeStamp(byteBuffer),
+                        cqUnit.getQueueOffset(), properties.getOrDefault(MessageConst.PROPERTY_KEYS, ""),
+                        properties.getOrDefault(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, ""),
+                        0, 0, new HashMap<>());
+                    dispatchRequest.setOffsetId(MessageFormatUtil.getOffsetId(byteBuffer));
+
+                    result = flatFile.appendConsumeQueue(dispatchRequest);
+                    if (!AppendResult.SUCCESS.equals(result)) {
+                        break;
+                    }
+                    dispatchRequestList.add(dispatchRequest);
+                    pendingCommitLogAppend = false;
+                }
+                batchCompleted = true;
+            } finally {
+                // A successful commitlog append with no matching consume queue entry leaves bytes
+                // that only a later successful round will index. Mark the context as ending one
+                // offset past the missing entry, so a commit failure cannot release the context
+                // while those bytes are still waiting to be uploaded.
+                groupCommitContext.setEndOffset(pendingCommitLogAppend ? offset + 1 : offset);
+                groupCommitContext.setBufferList(appendingBufferList);
+                groupCommitContext.setDispatchRequests(dispatchRequestList);
+
+                // Every fetched buffer is owned by the group commit context and released only
+                // after its upload has finished. The commitlog append keeps a reference to the
+                // buffer's bytes, so a context must not be released while that append is still
+                // waiting to be committed. Submit a commit for every non-empty batch, including
+                // a batch that appended no consume queue entry: otherwise the context would be
+                // dropped and its buffers would never be released.
+                if (!appendingBufferList.isEmpty()) {
+                    if (batchCompleted && !dispatchRequestList.isEmpty()) {
+                        Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
+                            .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
+                            .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, queueId)
+                            .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
+                            .build();
+                        TieredStoreMetricsManager.messagesDispatchTotal.add(offset - currentOffset, attributes);
+                    }
+
+                    // If there are many messages waiting to be uploaded, call the upload logic immediately.
+                    // A batch that created no consume queue entry made no progress, so retrying it
+                    // immediately would only append another orphan commitlog copy.
+                    boolean repeat = batchCompleted && !dispatchRequestList.isEmpty() &&
+                        (timeout || maxOffsetInQueue - offset > storeConfig.getTieredStoreGroupCommitCount());
+
+                    this.commitAsync(flatFile).whenComplete((success, throwable) -> {
+                            if (success) {
+                                constructIndexFile(flatFile.getTopicId(), groupCommitContext);
+                            }
+                            else {
+                                //next commit async,execute constructIndexFile.
+                                GroupCommitContext oldCommit = failedGroupCommitMap.put(flatFile, groupCommitContext);
+                                if (oldCommit != null) {
+                                    log.warn("MessageDispatcher#doScheduleDispatch, commitAsync failed, old failed commit context not released, topic={}, queueId={}", topic, queueId);
+                                    oldCommit.release();
+                                }
+                            }
+                            if (success && repeat) {
+                                storeExecutor.getCommonExecutor().submit(() -> dispatch(flatFile));
                             }
                         }
-                        if (success && repeat) {
-                            storeExecutor.getCommonExecutor().submit(() -> dispatch(flatFile));
-                        }
-                    }
-                );
+                    );
+                }
             }
         } catch (ConsumeQueueException e) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
