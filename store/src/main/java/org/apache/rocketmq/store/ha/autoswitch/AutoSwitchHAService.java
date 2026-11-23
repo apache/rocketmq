@@ -229,9 +229,6 @@ public class AutoSwitchHAService extends DefaultHAService {
             return existingEntry;
         }
         final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
-        if (lastEpoch > masterEpoch) {
-            this.epochCache.truncateSuffixByEpoch(masterEpoch);
-        }
         this.epochCache.appendEntry(newEpochEntry);
         return newEpochEntry;
     }
