@@ -62,11 +62,11 @@ public class SendMessageCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("b", "broker", true, "Send message to target broker");
+        opt = new Option("b", "broker", true, "Target broker name (requires -i)");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("i", "qid", true, "Send message to target queue");
+        opt = new Option("i", "qid", true, "Target queue ID, a non-negative integer (requires -b)");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -89,30 +89,41 @@ public class SendMessageCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        Message msg = null;
         String topic = commandLine.getOptionValue('t').trim();
+        String brokerName = commandLine.getOptionValue('b');
+        String queueIdValue = commandLine.getOptionValue('i');
+        if ((brokerName == null) != (queueIdValue == null)) {
+            throw new SubCommandException("Options -b (--broker) and -i (--qid) must be specified together.");
+        }
+
+        MessageQueue targetQueue = null;
+        if (brokerName != null) {
+            brokerName = brokerName.trim();
+            if (brokerName.isEmpty()) {
+                throw new SubCommandException("Option -b (--broker) must specify a broker name.");
+            }
+            int queueId;
+            try {
+                queueId = Integer.parseInt(queueIdValue.trim());
+            } catch (NumberFormatException e) {
+                throw new SubCommandException("Option -i (--qid) must be a non-negative integer.", e);
+            }
+            if (queueId < 0) {
+                throw new SubCommandException("Option -i (--qid) must be a non-negative integer.");
+            }
+            targetQueue = new MessageQueue(topic, brokerName, queueId);
+        }
+
+        Message msg;
         String body = commandLine.getOptionValue('p');
         String tag = null;
         String keys = null;
-        String brokerName = null;
-        int queueId = -1;
         try {
             if (commandLine.hasOption('k')) {
                 keys = commandLine.getOptionValue('k').trim();
             }
             if (commandLine.hasOption('c')) {
                 tag = commandLine.getOptionValue('c').trim();
-            }
-            if (commandLine.hasOption('b')) {
-                brokerName = commandLine.getOptionValue('b').trim();
-            }
-            if (commandLine.hasOption('i')) {
-                if (!commandLine.hasOption('b')) {
-                    System.out.print("Broker name must be set if the queue is chosen!");
-                    return;
-                } else {
-                    queueId = Integer.parseInt(commandLine.getOptionValue('i').trim());
-                }
             }
             msg = new Message(topic, tag, keys, body.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
@@ -126,9 +137,8 @@ public class SendMessageCommand implements SubCommand {
         SendResult result;
         try {
             producer.start();
-            if (brokerName != null && queueId > -1) {
-                MessageQueue messageQueue = new MessageQueue(topic, brokerName, queueId);
-                result = producer.send(msg, messageQueue);
+            if (targetQueue != null) {
+                result = producer.send(msg, targetQueue);
             } else {
                 result = producer.send(msg);
             }

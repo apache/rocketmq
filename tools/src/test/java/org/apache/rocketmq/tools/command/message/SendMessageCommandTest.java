@@ -44,11 +44,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class SendMessageCommandTest {
 
-    private static SendMessageCommand sendMessageCommand = new SendMessageCommand();
+    private static SendMessageCommand sendMessageCommand;
 
     @BeforeClass
     public static void init() throws MQClientException, RemotingException, InterruptedException, MQBrokerException, NoSuchFieldException, IllegalAccessException {
@@ -64,9 +65,7 @@ public class SendMessageCommandTest {
         when(defaultMQProducer.send(any(Message.class))).thenReturn(sendResult);
         when(defaultMQProducer.send(any(Message.class), any(MessageQueue.class))).thenReturn(sendResult);
 
-        Field producerField = SendMessageCommand.class.getDeclaredField("producer");
-        producerField.setAccessible(true);
-        producerField.set(sendMessageCommand, defaultMQProducer);
+        sendMessageCommand = commandWithProducer(defaultMQProducer);
     }
 
     @AfterClass
@@ -113,17 +112,41 @@ public class SendMessageCommandTest {
         assertMessageBody("message body", false);
     }
 
-    private void assertMessageBody(String body, boolean sendToQueue) throws Exception {
-        SendMessageCommand command = new SendMessageCommand();
+    @Test
+    public void testExecuteRejectsUnpairedBrokerAndQueue() throws Exception {
+        assertInvalidTarget("must be specified together", "-b", "broker-a");
+        assertInvalidTarget("must be specified together", "-i", "0");
+    }
+
+    @Test
+    public void testExecuteRejectsInvalidTargetQueue() throws Exception {
+        assertInvalidTarget("must be a non-negative integer", "-b", "broker-a", "-i", "-1");
+        assertInvalidTarget("must be a non-negative integer", "-b", "broker-a", "-i", "invalid");
+        assertInvalidTarget("must specify a broker name", "-b", " ", "-i", "0");
+    }
+
+    private void assertInvalidTarget(String expectedError, String... targetOptions) throws Exception {
         DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        SendMessageCommand command = commandWithProducer(producer);
+        Options options = command.buildCommandlineOptions(new Options());
+        String[] arguments = new String[4 + targetOptions.length];
+        System.arraycopy(new String[] {"-t", "mytopic", "-p", "message body"}, 0, arguments, 0, 4);
+        System.arraycopy(targetOptions, 0, arguments, 4, targetOptions.length);
+        CommandLine commandLine = new DefaultParser().parse(options, arguments);
+
+        SubCommandException error = Assert.assertThrows(SubCommandException.class,
+            () -> command.execute(commandLine, options, null));
+        Assert.assertTrue(error.getMessage(), error.getMessage().contains(expectedError));
+        verifyNoInteractions(producer);
+    }
+
+    private void assertMessageBody(String body, boolean sendToQueue) throws Exception {
+        DefaultMQProducer producer = mock(DefaultMQProducer.class);
+        SendMessageCommand command = commandWithProducer(producer);
         MessageQueue queue = new MessageQueue("mytopic", "broker-a", 1);
         SendResult result = new SendResult(SendStatus.SEND_OK, "message-id", "offset-id", queue, 0);
         when(producer.send(any(Message.class))).thenReturn(result);
         when(producer.send(any(Message.class), any(MessageQueue.class))).thenReturn(result);
-        Field producerField = SendMessageCommand.class.getDeclaredField("producer");
-        producerField.setAccessible(true);
-        producerField.set(command, producer);
-
         Options options = command.buildCommandlineOptions(new Options());
         String[] arguments = sendToQueue
             ? new String[] {"-t", "mytopic", "-p", body, "-b", "broker-a", "-i", "1"}
@@ -138,5 +161,14 @@ public class SendMessageCommandTest {
             verify(producer).send(messageCaptor.capture());
         }
         Assert.assertArrayEquals(body.getBytes(StandardCharsets.UTF_8), messageCaptor.getValue().getBody());
+    }
+
+    private static SendMessageCommand commandWithProducer(DefaultMQProducer producer)
+        throws NoSuchFieldException, IllegalAccessException {
+        SendMessageCommand command = new SendMessageCommand();
+        Field producerField = SendMessageCommand.class.getDeclaredField("producer");
+        producerField.setAccessible(true);
+        producerField.set(command, producer);
+        return command;
     }
 }
