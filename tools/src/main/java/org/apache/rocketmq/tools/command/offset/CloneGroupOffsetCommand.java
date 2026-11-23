@@ -70,7 +70,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
         String destGroup = commandLine.getOptionValue("d").trim();
         String topic = commandLine.getOptionValue("t").trim();
 
-        DefaultMQAdminExt defaultMQAdminExt = createAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName("admin-" + Long.toString(System.currentTimeMillis()));
 
         try {
@@ -103,9 +103,5 @@ public class CloneGroupOffsetCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
-    }
-
-    DefaultMQAdminExt createAdminExt(RPCHook rpcHook) {
-        return new DefaultMQAdminExt(rpcHook);
     }
 }
