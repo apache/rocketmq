@@ -49,12 +49,8 @@ public class IPAddressUtils {
 
     public static boolean isValidIPv4Cidr(String cidr) {
         try {
-            String[] parts = cidr.split(SLASH);
-            if (parts.length != 2) {
-                return false;
-            }
-            InetAddress ip = InetAddress.getByName(parts[0]);
-            if (ip.getAddress().length != 4) {
+            String[] parts = cidr.split(SLASH, -1);
+            if (parts.length != 2 || !VALIDATOR.isValidInet4Address(parts[0])) {
                 return false;
             }
             int prefix = Integer.parseInt(parts[1]);
@@ -66,12 +62,8 @@ public class IPAddressUtils {
 
     public static boolean isValidIPv6Cidr(String cidr) {
         try {
-            String[] parts = cidr.split(SLASH);
-            if (parts.length != 2) {
-                return false;
-            }
-            InetAddress ip = InetAddress.getByName(parts[0]);
-            if (ip.getAddress().length != 16) {
+            String[] parts = cidr.split(SLASH, -1);
+            if (parts.length != 2 || !VALIDATOR.isValidInet6Address(parts[0])) {
                 return false;
             }
             int prefix = Integer.parseInt(parts[1]);

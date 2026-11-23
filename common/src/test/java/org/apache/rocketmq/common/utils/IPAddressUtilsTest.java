@@ -59,6 +59,18 @@ public class IPAddressUtilsTest {
     }
 
     @Test
+    public void isValidCidrRejectsNonLiteralNetworkParts() {
+        assert !IPAddressUtils.isValidCidr("/24");
+        assert !IPAddressUtils.isValidCidr("localhost/24");
+        assert !IPAddressUtils.isValidCidr("example.com/24");
+        assert !IPAddressUtils.isValidCidr("127.0.0.1/33");
+        assert !IPAddressUtils.isValidCidr("/128");
+        assert !IPAddressUtils.isValidCidr("::1/129");
+        assert IPAddressUtils.isValidCidr("127.0.0.1/32");
+        assert IPAddressUtils.isValidCidr("::1/128");
+    }
+
+    @Test
     public void isValidCidr() {
         String ipv4Cidr = "192.168.1.0/24";
         String ipv6Cidr = "2001:0db8:1234:5678::/64";
