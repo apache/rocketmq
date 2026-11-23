@@ -549,30 +549,70 @@ public class RocksDBConsumerOffsetManagerLmqPersistTest {
     }
 
     @Test(timeout = 15000)
-    public void stopWaitsForInFlightVersionWrite() throws Exception {
+    public void commitAdvancesVersionWithoutWritingOnCommitThread() throws Exception {
         brokerConfig.setConsumerOffsetUpdateVersionStep(1);
+        for (boolean incremental : new boolean[] {false, true}) {
+            brokerConfig.setPersistConsumerOffsetIncrementally(incremental);
+            long before = manager.getDataVersion().getCounter().get();
+            manager.commitOffset("client", GROUP, TOPIC, 0, 44);
+            manager.commitOffset("client", GROUP, TOPIC, 0, 45);
+            assertEquals(before + 2, manager.getDataVersion().getCounter().get());
+        }
+        Mockito.verify(storage, Mockito.never()).updateKvDataVersion();
+        Mockito.verify(storage, Mockito.never()).persistKvDataVersion();
+    }
+
+    @Test(timeout = 15000)
+    public void commitDoesNotWaitForVersionPersistence() throws Exception {
+        ExecutorService callers = Executors.newFixedThreadPool(2);
         CountDownLatch versionWriting = new CountDownLatch(1);
         CountDownLatch release = newRelease();
-        Mockito.doAnswer(invocation -> {
-            versionWriting.countDown();
-            await(release);
-            return invocation.callRealMethod();
-        }).when(storage).updateKvDataVersion();
-        ExecutorService callers = Executors.newFixedThreadPool(2);
-        try {
-            Future<?> committed = callers.submit(() -> manager.commitOffset("client", GROUP, TOPIC, 0, 44));
+        try (WorkerBlock ignored = blockWorker()) {
+            brokerConfig.setConsumerOffsetUpdateVersionStep(1);
+            Mockito.doAnswer(invocation -> {
+                assertFalse(Thread.holdsLock(persisterField("pendingLock")));
+                versionWriting.countDown();
+                await(release);
+                return invocation.callRealMethod();
+            }).when(storage).persistKvDataVersion();
+            Future<?> persisted = callers.submit(() -> {
+                manager.persist();
+            });
             await(versionWriting);
-            Future<Boolean> stopped = callers.submit(manager::stop);
-            assertFalse(stopped.isDone());
+            long before = manager.getDataVersion().getCounter().get();
+            callers.submit(() -> manager.commitOffset("client", GROUP, TOPIC, 0, 46))
+                .get(1, TimeUnit.SECONDS);
+            assertEquals(before + 1, manager.getDataVersion().getCounter().get());
+            assertEquals(46, manager.queryOffset(GROUP, TOPIC, 0));
             release.countDown();
-            committed.get(5, TimeUnit.SECONDS);
-            assertTrue(stopped.get(5, TimeUnit.SECONDS));
-            loadNewManager();
-            assertEquals(44, manager.queryOffset(GROUP, TOPIC, 0));
+            persisted.get(5, TimeUnit.SECONDS);
         } finally {
             release.countDown();
             callers.shutdownNow();
         }
+        manager.persist();
+        assertEquals(Long.valueOf(46), readStoredOffset(TOPIC));
+    }
+
+    @Test(timeout = 15000)
+    public void persistAndStopWriteVersionAfterOffsets() throws Exception {
+        brokerConfig.setConsumerOffsetUpdateVersionStep(1);
+        for (boolean incremental : new boolean[] {false, true}) {
+            brokerConfig.setPersistConsumerOffsetIncrementally(incremental);
+            manager.commitOffset("client", GROUP, TOPIC, 0, 60);
+            manager.persist();
+            long persisted = manager.getDataVersion().getCounter().get();
+            assertTrue(manager.stop());
+            loadNewManager();
+            assertEquals(persisted, manager.getDataVersion().getCounter().get());
+            assertEquals(60, manager.queryOffset(GROUP, TOPIC, 0));
+        }
+        manager.commitOffset("client", GROUP, TOPIC, 0, 61);
+        long committed = manager.getDataVersion().getCounter().get();
+        assertTrue(manager.stop());
+        loadNewManager();
+        assertEquals(committed, manager.getDataVersion().getCounter().get());
+        assertEquals(61, manager.queryOffset(GROUP, TOPIC, 0));
     }
 
     @Test(timeout = 15000)
@@ -587,6 +627,11 @@ public class RocksDBConsumerOffsetManagerLmqPersistTest {
             }).when(storage).batchPutWithWal(any(WriteBatch.class));
             Mockito.doAnswer(invocation -> {
                 assertTrue(Thread.holdsLock(writeLock));
+                events.add("version");
+                return invocation.callRealMethod();
+            }).when(storage).persistKvDataVersion();
+            Mockito.doAnswer(invocation -> {
+                assertTrue(Thread.holdsLock(writeLock));
                 events.add("sync");
                 return invocation.callRealMethod();
             }).when(storage).flushWALChecked();
@@ -599,6 +644,7 @@ public class RocksDBConsumerOffsetManagerLmqPersistTest {
             blocked.close();
             assertTrue(manager.stop());
             assertTrue(events.contains("batch"));
+            assertEquals("version", events.get(events.size() - 3));
             assertEquals("sync", events.get(events.size() - 2));
             assertEquals("close", events.get(events.size() - 1));
             Mockito.doCallRealMethod().when(storage).stop();

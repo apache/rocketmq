@@ -189,6 +189,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
                     }
                 }
                 this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                this.rocksDBConfigManager.persistKvDataVersion();
                 this.rocksDBConfigManager.flushWAL();
             } catch (Exception e) {
                 log.error("consumer offset persist Failed", e);
@@ -204,9 +205,8 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         updateOffsetInMemory(clientHost, key, topic, queueId, offset);
         if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
             asyncPersister.commit(key);
-        } else {
-            updateDataVersionByStep();
         }
+        updateDataVersionByStep();
     }
 
     private void updateOffsetInMemory(String clientHost, String key, String topic, int queueId, long offset) {
@@ -225,7 +225,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     private void updateDataVersionByStep() {
         if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
-            updateDataVersion();
+            getDataVersion().nextVersion();
         }
     }
 
@@ -388,7 +388,6 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             }
         }
 
-        // Callers already update memory outside the lock, so this only registers the key; the version write stays inside the lock so close cannot shut down RocksDB mid-write.
         private void commit(String key) {
             synchronized (pendingLock) {
                 if (executor == null) {
@@ -396,7 +395,6 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
                     return;
                 }
                 pendingKeys.add(key);
-                updateDataVersionByStep();
             }
         }
 
@@ -436,8 +434,8 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             synchronized (writeLock) {
                 try {
                     flushPending();
-                    // Flush is only allowed after a successful load; flushOptions is created in loadData.
                     if (running != null) {
+                        rocksDBConfigManager.persistKvDataVersion();
                         rocksDBConfigManager.flushWALChecked();
                     }
                 } catch (Exception e) {
@@ -461,7 +459,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
         // Callers hold writeLock, so the batch-write core does not re-acquire the write lock.
         private int flushBatchLocked(int limit) throws Exception {
-            List<String> selected = new ArrayList<>();
+            List<String> selected = new ArrayList<>(limit);
             try (WriteBatch batch = new WriteBatch()) {
                 RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
                 while (selected.size() < limit && batch.getDataSize() < BATCH_BYTES) {
