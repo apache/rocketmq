@@ -19,6 +19,7 @@ package org.apache.rocketmq.tools.command.topic;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -78,7 +79,7 @@ public class TopicStatusSubCommand implements SubCommand {
                     String addr = bd.selectBrokerAddr();
                     if (addr != null) {
                         TopicStatsTable tst = defaultMQAdminExt.examineTopicStats(addr, topic);
-                        topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                        topicStatsTable.merge(tst);
                     }
                 }
             } else {
@@ -114,7 +115,7 @@ public class TopicStatusSubCommand implements SubCommand {
                 );
             }
             System.out.printf("%n");
-            System.out.printf("Topic Put TPS: %s%n", topicStatsTable.getTopicPutTps());
+            System.out.printf(Locale.ROOT, "Topic Put TPS: %.2f%n", topicStatsTable.getTopicPutTps());
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
