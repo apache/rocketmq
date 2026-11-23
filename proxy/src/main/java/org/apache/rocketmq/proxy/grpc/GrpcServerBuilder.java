@@ -26,6 +26,7 @@ import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
+import java.net.InetSocketAddress;
 import java.util.Objects;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -54,45 +55,45 @@ public class GrpcServerBuilder {
 
     protected TlsCertificateManager tlsCertificateManager;
 
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, InetSocketAddress address,
         TlsCertificateManager tlsCertificateManager) {
-        return new GrpcServerBuilder(executor, port, tlsCertificateManager);
+        return new GrpcServerBuilder(executor, address, tlsCertificateManager);
     }
 
     /**
      * Creates a server with internally owned event loops. Zero selects Netty's default thread count.
      */
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, InetSocketAddress address,
         TlsCertificateManager tlsCertificateManager, int bossLoopNum, int workerLoopNum) {
-        return new GrpcServerBuilder(executor, port, tlsCertificateManager, bossLoopNum, workerLoopNum);
+        return new GrpcServerBuilder(executor, address, tlsCertificateManager, bossLoopNum, workerLoopNum);
     }
 
     /**
      * Creates a server using caller-owned event loops. Both groups must match enableGrpcEpoll.
      * The caller must close them after all servers using them have terminated.
      */
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, InetSocketAddress address,
         TlsCertificateManager tlsCertificateManager, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
-        return new GrpcServerBuilder(executor, port, tlsCertificateManager, bossGroup, workerGroup);
+        return new GrpcServerBuilder(executor, address, tlsCertificateManager, bossGroup, workerGroup);
     }
 
-    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
-        this(executor, port, tlsCertificateManager, ConfigurationManager.getProxyConfig().getGrpcBossLoopNum(),
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, InetSocketAddress address, TlsCertificateManager tlsCertificateManager) {
+        this(executor, address, tlsCertificateManager, ConfigurationManager.getProxyConfig().getGrpcBossLoopNum(),
             ConfigurationManager.getProxyConfig().getGrpcWorkerLoopNum());
     }
 
-    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager,
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, InetSocketAddress address, TlsCertificateManager tlsCertificateManager,
         int bossLoopNum, int workerLoopNum) {
-        this(executor, port, tlsCertificateManager, bossLoopNum, workerLoopNum, null, null);
+        this(executor, address, tlsCertificateManager, bossLoopNum, workerLoopNum, null, null);
     }
 
-    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager,
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, InetSocketAddress address, TlsCertificateManager tlsCertificateManager,
         EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
-        this(executor, port, tlsCertificateManager, 0, 0,
+        this(executor, address, tlsCertificateManager, 0, 0,
             Objects.requireNonNull(bossGroup, "bossGroup"), Objects.requireNonNull(workerGroup, "workerGroup"));
     }
 
-    private GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager,
+    private GrpcServerBuilder(ThreadPoolExecutor executor, InetSocketAddress address, TlsCertificateManager tlsCertificateManager,
         int bossLoopNum, int workerLoopNum, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
         if (bossLoopNum < 0 || workerLoopNum < 0) {
             throw new IllegalArgumentException("Event loop thread counts must not be negative");
@@ -104,7 +105,7 @@ public class GrpcServerBuilder {
         this.bossGroup = bossGroup;
         this.workerGroup = workerGroup;
         this.tlsCertificateManager = tlsCertificateManager;
-        serverBuilder = NettyServerBuilder.forPort(port)
+        serverBuilder = NettyServerBuilder.forAddress(address)
             .maxConcurrentCallsPerConnection(config.getGrpcMaxConcurrentCallsPerConnection());
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
@@ -121,9 +122,9 @@ public class GrpcServerBuilder {
             .permitKeepAliveTime(config.getGrpcServerPermitKeepAliveTimeMillis(), TimeUnit.MILLISECONDS)
             .permitKeepAliveWithoutCalls(config.isGrpcServerPermitKeepAliveWithoutCalls());
 
-        log.info("grpc server builder initialized. port: {}, bossLoopNum: {}, workerLoopNum: {}, "
+        log.info("grpc server builder initialized. address: {}, bossLoopNum: {}, workerLoopNum: {}, "
                 + "callerOwnedEventLoops: {}, maxInboundMessageSize: {}",
-            port, bossLoopNum, workerLoopNum, bossGroup != null, maxInboundMessageSize);
+            address, bossLoopNum, workerLoopNum, bossGroup != null, maxInboundMessageSize);
     }
 
     public GrpcServerBuilder shutdownTime(long time, TimeUnit unit) {

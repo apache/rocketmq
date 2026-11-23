@@ -82,21 +82,35 @@ public class IPAddressUtils {
     }
 
     public static boolean isIPInRange(String ip, String cidr) {
+        if (StringUtils.isBlank(ip) || StringUtils.isBlank(cidr)) {
+            return false;
+        }
         try {
-            String[] parts = cidr.split(SLASH);
+            String[] parts = cidr.split(SLASH, -1);
             if (parts.length == 1) {
-                return StringUtils.equals(ip, cidr);
+                return ip.equals(cidr);
             }
             if (parts.length != 2) {
                 return false;
             }
             InetAddress cidrIp = InetAddress.getByName(parts[0]);
+            InetAddress targetIp = InetAddress.getByName(ip);
+            byte[] cidrBytes = cidrIp.getAddress();
+            byte[] ipBytes = targetIp.getAddress();
+            if (cidrBytes.length != ipBytes.length) {
+                return false;
+            }
+
             int prefixLength = Integer.parseInt(parts[1]);
+            int maxPrefixLength = cidrBytes.length * 8;
+            if (prefixLength < 0 || prefixLength > maxPrefixLength) {
+                return false;
+            }
 
-            BigInteger cidrIpBigInt = new BigInteger(1, cidrIp.getAddress());
-            BigInteger ipBigInt = new BigInteger(1, InetAddress.getByName(ip).getAddress());
+            BigInteger cidrIpBigInt = new BigInteger(1, cidrBytes);
+            BigInteger ipBigInt = new BigInteger(1, ipBytes);
 
-            BigInteger mask = BigInteger.valueOf(-1).shiftLeft(cidrIp.getAddress().length * 8 - prefixLength);
+            BigInteger mask = BigInteger.valueOf(-1).shiftLeft(maxPrefixLength - prefixLength);
             BigInteger cidrIpLower = cidrIpBigInt.and(mask);
             BigInteger cidrIpUpper = cidrIpLower.add(mask.not());
 

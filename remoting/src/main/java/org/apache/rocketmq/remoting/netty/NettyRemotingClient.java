@@ -51,6 +51,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.common.utils.IPAddressUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -285,9 +286,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return null;
         }
         String[] hostAndPort = this.getHostAndPort(addr);
+        // ipInCIDR only understands IPv4 literals, so a hostname or IPv6 host can only match the catch-all CIDR
+        boolean isIPv4Host = IPAddressUtils.isValidIPv4(hostAndPort[0]);
         for (Map.Entry<String, SocksProxyConfig> entry : proxyMap.entrySet()) {
             String cidr = entry.getKey();
-            if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
+            if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || isIPv4Host && RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
                 return entry;
             }
         }
