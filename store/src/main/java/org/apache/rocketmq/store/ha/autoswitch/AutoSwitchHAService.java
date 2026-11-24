@@ -219,14 +219,25 @@ public class AutoSwitchHAService extends DefaultHAService {
      * elected as the master again with the same epoch would otherwise move the start offset of the epoch, and the
      * slave holding the original start offset could never find a consistent point, so it would never rejoin the
      * sync state set.
+     * <p>
+     * The entry is only reused if its start offset is within the local commitlog. The epoch file is not trimmed
+     * against the recovered commitlog on startup, so after an unclean shutdown the recorded start offset may be
+     * greater than the recovered max physical offset. Reusing such an entry would make the slave treat its own
+     * tail as consistent with the master, and the two replicas would silently diverge.
      */
     private EpochEntry appendEpochEntry(final int masterEpoch) {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (lastEpoch == masterEpoch) {
             final EpochEntry existingEntry = this.epochCache.lastEntry();
-            LOGGER.info("Epoch entry already exists locally, keep the original startOffset. epoch:{}, startOffset:{}",
-                existingEntry.getEpoch(), existingEntry.getStartOffset());
-            return existingEntry;
+            final long maxPhyOffset = this.defaultMessageStore.getMaxPhyOffset();
+            if (existingEntry.getStartOffset() <= maxPhyOffset) {
+                LOGGER.info("Epoch entry already exists locally, keep the original startOffset. epoch:{}, startOffset:{}",
+                    existingEntry.getEpoch(), existingEntry.getStartOffset());
+                return existingEntry;
+            }
+            LOGGER.warn("Epoch {} startOffset {} exceeds maxPhyOffset {}, rewrite the entry",
+                masterEpoch, existingEntry.getStartOffset(), maxPhyOffset);
+            this.epochCache.truncateSuffixByEpoch(masterEpoch);
         }
         final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
         this.epochCache.appendEntry(newEpochEntry);

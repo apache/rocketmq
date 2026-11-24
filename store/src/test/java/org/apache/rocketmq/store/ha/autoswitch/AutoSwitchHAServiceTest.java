@@ -110,6 +110,41 @@ public class AutoSwitchHAServiceTest {
         }
     }
 
+    @Test
+    public void testChangeToMasterRewritesEpochWhenStartOffsetExceedsMaxPhyOffset() throws Exception {
+        final String epochFilePath = epochFilePath();
+
+        final DefaultMessageStore messageStore = mockMessageStore(epochFilePath, 0L);
+        AutoSwitchHAService haService = new AutoSwitchHAService();
+        haService.init(messageStore);
+        try {
+            assertTrue(haService.changeToMaster(1));
+            when(messageStore.getMaxPhyOffset()).thenReturn(5000L);
+            assertTrue(haService.changeToMaster(2));
+            final EpochEntry secondEntry = haService.getEpochEntries().get(1);
+            assertEquals(2, secondEntry.getEpoch());
+            assertEquals(5000L, secondEntry.getStartOffset());
+        } finally {
+            haService.shutdown();
+        }
+
+        // Restart after an unclean shutdown: the commitlog recovers to 4800, before the recorded epoch start,
+        // so the recorded entry must be rewritten instead of being reused.
+        haService = new AutoSwitchHAService();
+        haService.init(mockMessageStore(epochFilePath, 4800L));
+        try {
+            assertTrue(haService.changeToMaster(2));
+            final List<EpochEntry> epochEntries = haService.getEpochEntries();
+            assertEquals(2, epochEntries.size());
+            assertEquals(1, epochEntries.get(0).getEpoch());
+            assertEquals(0L, epochEntries.get(0).getStartOffset());
+            assertEquals(2, epochEntries.get(1).getEpoch());
+            assertEquals(4800L, epochEntries.get(1).getStartOffset());
+        } finally {
+            haService.shutdown();
+        }
+    }
+
     private String epochFilePath() {
         return new File(tempFolder.getRoot(), "EpochFileCache").getAbsolutePath();
     }
