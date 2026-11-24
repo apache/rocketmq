@@ -41,6 +41,16 @@ public class MessageBatchTest {
         MessageBatch.generateFromList(messages);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testGenerate_NullMessages() throws Exception {
+        MessageBatch.generateFromList(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGenerate_EmptyMessages() throws Exception {
+        MessageBatch.generateFromList(new ArrayList<>());
+    }
+
     @Test(expected = UnsupportedOperationException.class)
     public void testGenerate_DiffTopic() throws Exception {
         List<Message> messages = generateMessages();

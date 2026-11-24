@@ -32,7 +32,7 @@ namesrvAddr = 127.0.0.1:9876
 ![Idea_config_broker.png](../cn/image/Idea_config_broker.png)
 4. Run the Broker and if the following log is observed, it indicates successful startup.
 ```shell
-The broker[broker-a,192.169.1.2:10911] boot success...
+The broker[broker-a,192.168.1.2:10911] boot success...
 ```
 
 ### Step3: Send or Consume Messages

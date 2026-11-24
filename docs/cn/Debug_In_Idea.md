@@ -32,7 +32,7 @@ namesrvAddr = 127.0.0.1:9876
 ![Idea_config_broker.png](image/Idea_config_broker.png)
 4. 运行Broker，观察到如下日志则启动成功
 ```shell
-The broker[broker-a,192.169.1.2:10911] boot success...
+The broker[broker-a,192.168.1.2:10911] boot success...
 ```
 
 ### Step3: 发送或消费消息

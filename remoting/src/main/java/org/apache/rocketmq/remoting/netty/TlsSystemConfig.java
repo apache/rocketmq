@@ -39,6 +39,9 @@ public class TlsSystemConfig {
     public static final String TLS_CLIENT_AUTHSERVER = "tls.client.authServer";
     public static final String TLS_CLIENT_TRUSTCERTPATH = "tls.client.trustCertPath";
 
+    public static final String TLS_CIPHERS = "tls.ciphers";
+    public static final String TLS_PROTOCOLS = "tls.protocols";
+
 
     /**
      * To determine whether use SSL in client-side, include SDK client and BrokerOuterAPI
@@ -122,4 +125,22 @@ public class TlsSystemConfig {
      * except {@link TlsSystemConfig#tlsMode} and {@link TlsSystemConfig#tlsEnable}
      */
     public static String tlsConfigFile = System.getProperty(TLS_CONFIG_FILE, "/etc/rocketmq/tls.properties");
+
+    /**
+     * The ciphers to be used in TLS
+     * <ol>
+     *     <li>If null, use the default ciphers</li>
+     *     <li>Otherwise, use the ciphers specified in this string, eg: -Dtls.ciphers=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256</li>
+     * </ol>
+     */
+    public static String tlsCiphers = System.getProperty(TLS_CIPHERS, null);
+
+    /**
+     * The protocols to be used in TLS
+     * <ol>
+     *     <li>If null, use the default protocols</li>
+     *     <li>Otherwise, use the protocols specified in this string, eg: -Dtls.protocols=TLSv1.2,TLSv1.3</li>
+     * </ol>
+     */
+    public static String tlsProtocols = System.getProperty(TLS_PROTOCOLS, null);
 }

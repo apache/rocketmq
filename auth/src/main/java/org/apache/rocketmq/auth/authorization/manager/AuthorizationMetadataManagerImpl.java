@@ -176,19 +176,26 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
     @Override
     public CompletableFuture<Acl> getAcl(Subject subject) {
-        CompletableFuture<? extends Subject> subjectFuture;
-        if (subject.isSubject(SubjectType.USER)) {
-            User user = (User) subject;
-            subjectFuture = this.getAuthenticationMetadataProvider().getUser(user.getUsername());
-        } else {
-            subjectFuture = CompletableFuture.completedFuture(subject);
-        }
-        return subjectFuture.thenCompose(sub -> {
-            if (sub == null) {
-                throw new AuthorizationException("The subject is not exist.");
+        try {
+            if (subject == null) {
+                throw new AuthorizationException("The subject is null.");
             }
-            return this.getAuthorizationMetadataProvider().getAcl(subject);
-        });
+            CompletableFuture<? extends Subject> subjectFuture;
+            if (subject.isSubject(SubjectType.USER)) {
+                User user = (User) subject;
+                subjectFuture = this.getAuthenticationMetadataProvider().getUser(user.getUsername());
+            } else {
+                subjectFuture = CompletableFuture.completedFuture(subject);
+            }
+            return subjectFuture.thenCompose(sub -> {
+                if (sub == null) {
+                    throw new AuthorizationException("The subject is not exist.");
+                }
+                return this.getAuthorizationMetadataProvider().getAcl(sub);
+            });
+        } catch (Exception e) {
+            return this.handleException(e);
+        }
     }
 
     @Override
@@ -269,15 +276,15 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     }
 
     private AuthenticationMetadataProvider getAuthenticationMetadataProvider() {
-        if (authorizationMetadataProvider == null) {
+        if (authenticationMetadataProvider == null) {
             throw new IllegalStateException("The authenticationMetadataProvider is not configured.");
         }
         return authenticationMetadataProvider;
     }
 
     private AuthorizationMetadataProvider getAuthorizationMetadataProvider() {
-        if (authenticationMetadataProvider == null) {
-            throw new IllegalStateException("The authenticationMetadataProvider is not configured.");
+        if (authorizationMetadataProvider == null) {
+            throw new IllegalStateException("The authorizationMetadataProvider is not configured.");
         }
         return authorizationMetadataProvider;
     }

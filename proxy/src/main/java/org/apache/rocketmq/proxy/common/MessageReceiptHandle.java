@@ -35,10 +35,16 @@ public class MessageReceiptHandle {
     private final AtomicInteger renewRetryTimes = new AtomicInteger(0);
     private final AtomicInteger renewTimes = new AtomicInteger(0);
     private final long consumeTimestamp;
+    private String liteTopic;
     private volatile String receiptHandleStr;
 
     public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandleStr, String messageId,
         long queueOffset, int reconsumeTimes) {
+        this(group, topic, queueId, receiptHandleStr, messageId, queueOffset, reconsumeTimes, null);
+    }
+
+    public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandleStr, String messageId,
+        long queueOffset, int reconsumeTimes, String liteTopic) {
         this.originalReceiptHandle = ReceiptHandle.decode(receiptHandleStr);
         this.group = group;
         this.topic = topic;
@@ -49,6 +55,7 @@ public class MessageReceiptHandle {
         this.queueOffset = queueOffset;
         this.reconsumeTimes = reconsumeTimes;
         this.consumeTimestamp = originalReceiptHandle.getRetrieveTime();
+        this.liteTopic = liteTopic;
     }
 
     @Override
@@ -86,6 +93,8 @@ public class MessageReceiptHandle {
             .add("renewRetryTimes", renewRetryTimes)
             .add("firstConsumeTimestamp", consumeTimestamp)
             .add("receiptHandleStr", receiptHandleStr)
+            .add("liteTopic", liteTopic)
+            .omitNullValues()
             .toString();
     }
 
@@ -151,5 +160,13 @@ public class MessageReceiptHandle {
 
     public ReceiptHandle getOriginalReceiptHandle() {
         return originalReceiptHandle;
+    }
+
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
     }
 }

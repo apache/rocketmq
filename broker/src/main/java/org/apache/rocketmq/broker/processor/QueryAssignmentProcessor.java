@@ -89,11 +89,6 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     /**
      *
      */

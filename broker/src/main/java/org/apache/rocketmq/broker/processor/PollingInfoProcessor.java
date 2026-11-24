@@ -51,11 +51,6 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request);
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PollingInfoResponseHeader.class);
@@ -106,7 +101,7 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
             return response;
         }
         String key = KeyBuilder.buildPollingKey(requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId());
-        ConcurrentSkipListSet<PopRequest> queue = this.brokerController.getPopMessageProcessor().getPollingMap().get(key);
+        ConcurrentSkipListSet<PopRequest> queue = this.brokerController.getPopMessageProcessor().getPollingMap().getIfPresent(key);
         if (queue != null) {
             responseHeader.setPollingNum(queue.size());
         } else {

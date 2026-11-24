@@ -17,15 +17,10 @@
 
 package org.apache.rocketmq.proxy.remoting.activity;
 
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.common.net.HostAndPort;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -34,6 +29,12 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class GetTopicRouteActivity extends AbstractRemotingActivity {
     public GetTopicRouteActivity(RequestPipeline requestPipeline,
@@ -57,9 +58,7 @@ public class GetTopicRouteActivity extends AbstractRemotingActivity {
         byte[] content;
         Boolean standardJsonOnly = requestHeader.getAcceptStandardJsonOnly();
         if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || null != standardJsonOnly && standardJsonOnly) {
-            content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
-                SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
-                SerializerFeature.MapSortField);
+            content = topicRouteData.encode(JSONWriter.Feature.BrowserCompatible, JSONWriter.Feature.MapSortField);
         } else {
             content = topicRouteData.encode();
         }

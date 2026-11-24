@@ -50,7 +50,7 @@ public class AuthorizationPipeline implements RequestPipeline {
         }
         try {
             List<AuthorizationContext> contexts = newContexts(ctx, request);
-            evaluator.evaluate(contexts);
+            evaluator.evaluate(request, contexts);
         } catch (AuthorizationException | AuthenticationException ex) {
             throw new AbortProcessException(ResponseCode.NO_PERMISSION, ex.getMessage());
         }  catch (Throwable ex) {

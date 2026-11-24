@@ -50,7 +50,7 @@ public class RocksDBLmqConsumerOffsetManagerTest {
     @Before
     public void setUp() {
         brokerController = Mockito.mock(BrokerController.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(Mockito.mock(MessageStoreConfig.class));
+        when(brokerController.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
         offsetManager = new RocksDBConsumerOffsetManager(brokerController);
     }

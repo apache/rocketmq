@@ -18,17 +18,16 @@ The Name Server serves as the provider of routing service. The producer or the c
 ## 7 Pull Consumer
 A type of Consumer, the application pulls messages from brokers by actively invoking the consumer pull message method, and the application has the advantages of controlling the timing and frequency of pulling messages. Once the batch of messages is pulled, user application will initiate consuming process.                    
 ## 8 Push Consumer
-A type of Consumer, the application do not invoke the consumer pull message method to pull messages, instead the client invoke pull message method itself. At the user level it seems like brokers 
-push to consumer when new messages arrived.                        
+A type of Consumer, the application does not invoke the consumer pull message method to pull messages, instead the client invokes the pull message method itself. At the user level it seems like brokers push to the consumer when new messages arrive.                        
 ## 9 Producer Group
 A collection of the same type of Producer, which sends the same type of messages with consistent logic. If a transaction message is sent and the original producer crashes after sending, the broker server will contact other producers in the same producer group to commit or rollback the transactional message.
 ## 10 Consumer Group
 A collection of the same type of Consumer, which consume the same type of messages with consistent logic. The consumer group makes load-balance and fault-tolerance super easy in terms of message consuming.
 Warning: consumer instances of one consumer group must have exactly the same topic subscription(s).   
 
-RocketMQ supports two types of consumption mode:Clustering and Broadcasting.
+RocketMQ supports two types of consumption mode: Clustering and Broadcasting.
 ## 11 Consumption Mode - Clustering
-Under the Clustering mode, all the messages from one topic will be delivered to all the consumers instances averagely as much as possible. That is, one message can be consumed by only one consumer instance.
+Under the Clustering mode, all the messages from one topic will be delivered to all the consumer instances as evenly as possible. That is, one message can be consumed by only one consumer instance.
 ## 12 Consumption Mode - Broadcasting
 Under the Broadcasting mode, each consumer instance of the same consumer group receives every message published to the corresponding topic.
 ## 13 Normal Ordered Message
@@ -39,4 +38,4 @@ Under the Strictly Ordered Message mode, all messages received by the consumers 
 The physical carrier of information transmitted by a messaging system, the smallest unit of production and consumption data, each message must belong to one topic.
 Each Message in RocketMQ has a unique message id and can carry a key used to store business-related value. The system has the function to query messages by its id or key.
 ## 16 Tag
-Flags set for messages to distinguish different types of messages under the same topic, functioning as a "sub-topic". Messages from the same business unit can set different tags under the same topic in terms of different business purposes. The tag can effectively maintain the clarity and consistency of the code and optimize the query system provided by RocketMQ. The consumer can realize different "sub-topic" by using tag in order to achieve better expandability.
+Flags set for messages to distinguish different types of messages under the same topic, functioning as a "sub-topic". Messages from the same business unit can set different tags under the same topic for different business purposes. The tag can effectively maintain the clarity and consistency of the code and optimize the query system provided by RocketMQ. The consumer can realize different "sub-topics" by using tags in order to achieve better extensibility.

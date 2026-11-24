@@ -41,10 +41,15 @@ public class TransactionMetricsFlushService extends ServiceThread {
         long start = System.currentTimeMillis();
         while (!this.isStopped()) {
             try {
-                if (System.currentTimeMillis() - start > brokerController.getBrokerConfig().getTransactionMetricFlushInterval()) {
+                // Bug fix: original code only called waitForRunning inside the if-branch,
+                // so on every iteration where the interval hadn't elapsed yet the loop
+                // spun without yielding (~170 CPU samples in JFR on idle broker).
+                // Now we always wait, then check whether enough time has passed to persist.
+                long interval = brokerController.getBrokerConfig().getTransactionMetricFlushInterval();
+                this.waitForRunning(interval);
+                if (System.currentTimeMillis() - start >= interval) {
                     start = System.currentTimeMillis();
                     brokerController.getTransactionalMessageService().getTransactionMetrics().persist();
-                    waitForRunning(brokerController.getBrokerConfig().getTransactionMetricFlushInterval());
                 }
             } catch (Throwable e) {
                 log.error("Error occurred in " + getServiceName(), e);

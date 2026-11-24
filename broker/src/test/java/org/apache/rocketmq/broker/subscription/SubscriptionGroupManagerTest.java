@@ -47,7 +47,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -101,12 +100,12 @@ public class SubscriptionGroupManagerTest {
         subscriptionGroupConfig.setGroupName(group);
         Map<String, String> attr = ImmutableMap.of("+test", "true");
         subscriptionGroupConfig.setAttributes(attr);
+        SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerControllerMock);
         subscriptionGroupManager.updateSubscriptionGroupConfig(subscriptionGroupConfig);
         SubscriptionGroupConfig result = subscriptionGroupManager.getSubscriptionGroupTable().get(group);
         assertThat(result).isNotNull();
         assertThat(result.getGroupName()).isEqualTo(group);
         assertThat(result.getAttributes().get("test")).isEqualTo("true");
-
 
         SubscriptionGroupConfig subscriptionGroupConfig1 = new SubscriptionGroupConfig();
         subscriptionGroupConfig1.setGroupName(group);
@@ -157,14 +156,28 @@ public class SubscriptionGroupManagerTest {
             groupNames.add(groupName);
         }
 
+        SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerControllerMock);
         subscriptionGroupManager.updateSubscriptionGroupConfigList(configList);
-
-        // Verifying that persist() is called once
-        verify(subscriptionGroupManager, times(1)).persist();
 
         groupNames.forEach(groupName ->
             assertThat(subscriptionGroupManager.getSubscriptionGroupTable().get(groupName)).isNotNull());
+    }
 
+    @Test
+    public void testDeleteSubscriptionGroupConfigWithDeferredPersist() {
+        Mockito.doNothing().when(subscriptionGroupManager).persist();
+
+        SubscriptionGroupConfig deferredGroup = new SubscriptionGroupConfig();
+        deferredGroup.setGroupName("deferred-group");
+        subscriptionGroupManager.getSubscriptionGroupTable().put(deferredGroup.getGroupName(), deferredGroup);
+        subscriptionGroupManager.deleteSubscriptionGroupConfig(deferredGroup.getGroupName(), false);
+        verify(subscriptionGroupManager, never()).persist();
+
+        SubscriptionGroupConfig persistedGroup = new SubscriptionGroupConfig();
+        persistedGroup.setGroupName("persisted-group");
+        subscriptionGroupManager.getSubscriptionGroupTable().put(persistedGroup.getGroupName(), persistedGroup);
+        subscriptionGroupManager.deleteSubscriptionGroupConfig(persistedGroup.getGroupName(), true);
+        verify(subscriptionGroupManager).persist();
     }
 
     @Test

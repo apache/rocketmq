@@ -460,7 +460,16 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
         Mockito.verify(consumerManager, Mockito.times(1)).appendConsumerIdsChangeListener(listenerArgumentCaptor.capture());
         Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
         receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class),
+                Mockito.eq(MESSAGE_ID), Mockito.eq(GROUP), Mockito.eq(TOPIC),
+                Mockito.eq(ConfigurationManager.getProxyConfig().getInvisibleTimeMillisWhenClear())))
+            .thenReturn(CompletableFuture.completedFuture(new AckResult()));
         listenerArgumentCaptor.getValue().handle(ConsumerGroupEvent.CLIENT_UNREGISTER, GROUP, new ClientChannelInfo(channel, "", LanguageCode.JAVA, 0));
-        assertTrue(receiptHandleManager.receiptHandleGroupMap.isEmpty());
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> {
+            Mockito.verify(messagingProcessor, Mockito.times(1))
+                .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+                    Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getInvisibleTimeMillisWhenClear()));
+            assertTrue(receiptHandleManager.receiptHandleGroupMap.isEmpty());
+        });
     }
 }

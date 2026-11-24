@@ -116,7 +116,7 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         pushConsumer.shutdown();
 
         //Add back master
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
         System.out.printf("Add back master1%n");
@@ -175,7 +175,7 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         pushConsumer.shutdown();
 
         //Add back master
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
         System.out.printf("Add back master1%n");
@@ -251,13 +251,13 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         pushConsumer.shutdown();
 
         //Add back master
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
         System.out.printf("Add back master1%n");
 
         //Add back master
-        master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
+        master2With3Replicas = brokerContainer2.addBroker(buildConfigContext(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig()));
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
         System.out.printf("Add back master2%n");
@@ -330,13 +330,13 @@ public class ScheduleSlaveActingMasterIT extends ContainerIntegrationTestBase {
         pushConsumer.shutdown();
 
         //Add back master
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
         System.out.printf("Add back master1%n");
 
         //Add back master
-        master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
+        master2With3Replicas = brokerContainer2.addBroker(buildConfigContext(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig()));
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
         System.out.printf("Add back master2%n");

@@ -16,21 +16,22 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.BitSet;
-import java.nio.charset.StandardCharsets;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.metrics.PopMetricsManager;
+import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
+import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -74,6 +75,12 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return popReviveServices;
     }
 
+    public void shutdown() throws Exception {
+        for (PopReviveService popReviveService : popReviveServices) {
+            popReviveService.shutdown();
+        }
+    }
+
     public void startPopReviveService() {
         for (PopReviveService popReviveService : popReviveServices) {
             popReviveService.start();
@@ -108,11 +115,6 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request, true);
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
         AckMessageRequestHeader requestHeader;
@@ -137,6 +139,11 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.MESSAGE_ILLEGAL);
                 response.setRemark(errorInfo);
                 return response;
+            }
+
+            RemotingCommand ackLiteResponse = ackLite(requestHeader, null, response, channel);
+            if (ackLiteResponse != null) {
+                return ackLiteResponse;
             }
 
             long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
@@ -277,7 +284,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
-        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8));
+        msgInner.setBody(JSON.toJSONBytes(ackMsg));
         msgInner.setQueueId(rqId);
         if (ackMsg instanceof BatchAckMsg) {
             msgInner.setTags(PopAckConstants.BATCH_ACK_TAG);
@@ -384,7 +391,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
             POP_LOGGER.error("put ack msg error:" + putMessageResult);
         }
-        PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
+        brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
         brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(topic, consumeGroup, popTime, qId, ackCount);
     }
 
@@ -451,7 +458,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             long nextOffset = consumerOrderInfoManager.commitAndNext(topic, consumeGroup, qId, ackOffset, popTime);
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceLog()) {
                 POP_LOGGER.info("PopConsumerService ack orderly, time={}, topicId={}, groupId={}, queueId={}, " +
-                        "offset={}, next={}", popTime, topic, consumeGroup, qId, ackOffset, nextOffset);
+                    "offset={}, next={}", popTime, topic, consumeGroup, qId, ackOffset, nextOffset);
             }
 
             if (nextOffset > -1L) {
@@ -475,5 +482,94 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         } finally {
             consumerLockService.unlock(consumeGroup, topic);
         }
+    }
+
+    /**
+     * Currently, batch ack for lite messages is not supported, so we should ensure that all acknowledgements are individual.
+     */
+    protected RemotingCommand ackLite(AckMessageRequestHeader requestHeader, BatchAckMessageRequestBody batchAckBody,
+        final RemotingCommand response, final Channel channel) {
+        if (batchAckBody != null) {
+            POP_LOGGER.warn("bad request, batch ack lite, {}", batchAckBody);
+            response.setCode(ResponseCode.ILLEGAL_OPERATION);
+            response.setRemark("batch ack lite is not supported.");
+            return response;
+        }
+        if (StringUtils.isBlank(requestHeader.getLiteTopic())) {
+            return null;
+        }
+        String group = requestHeader.getConsumerGroup();
+        if (!requestHeader.getTopic().equals(LiteMetadataUtil.getLiteBindTopic(group, brokerController))) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("group type or bind topic not match.");
+            return response;
+        }
+
+        String lmqName = LiteUtil.toLmqName(requestHeader.getTopic(), requestHeader.getLiteTopic());
+        long ackOffset = requestHeader.getOffset();
+        long maxOffset = this.brokerController.getLiteLifecycleManager().getMaxOffsetInQueue(lmqName);
+        if (ackOffset > maxOffset) {
+            POP_LOGGER.warn("ack lite offset illegal, {}, {}, {}", lmqName, ackOffset, maxOffset);
+            response.setCode(ResponseCode.NO_MESSAGE);
+            response.setRemark("ack offset illegal.");
+            return response;
+        }
+        String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
+        if (requestHeader.getQueueId() != 0
+            || ExtraInfoUtil.getReviveQid(extraInfo) != KeyBuilder.POP_ORDER_REVIVE_QUEUE) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("ack queue illegal.");
+            return response;
+        }
+
+        long popTime = ExtraInfoUtil.getPopTime(extraInfo);
+        long invisibleTime = ExtraInfoUtil.getInvisibleTime(extraInfo);
+
+        ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
+        ConsumerOrderInfoManager consumerOrderInfoManager =
+            brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager();
+        PopConsumerLockService consumerLockService = this.brokerController.getPopLiteMessageProcessor().getLockService();
+
+        long oldOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+        if (ackOffset < oldOffset) {
+            return response;
+        }
+        String lockKey = KeyBuilder.buildPopLiteLockKey(group, lmqName);
+        while (!consumerLockService.tryLock(lockKey)) {
+        }
+
+        long dispatchOffset = -1L;
+        try {
+            oldOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+            if (ackOffset < oldOffset) {
+                return response;
+            }
+            long nextOffset = consumerOrderInfoManager.commitAndNext(lmqName, group, 0, ackOffset, popTime);
+            if (nextOffset > -1L) {
+                if (!consumerOffsetManager.hasOffsetReset(lmqName, group, 0)) {
+                    consumerOffsetManager.commitOffset("AckLiteHost", group, lmqName, 0, nextOffset);
+                }
+                if (!consumerOrderInfoManager.checkBlock(null, lmqName, group, 0, invisibleTime)) {
+                    dispatchOffset = nextOffset;
+                }
+            }
+            if (nextOffset == -1) {
+                POP_LOGGER.warn("ack lite, nextOffset illegal. lmq:{}, old:{}, commit:{}", lmqName, oldOffset, ackOffset);
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                response.setRemark("ack offset illegal.");
+                return response;
+            }
+        } finally {
+            consumerLockService.unlock(lockKey);
+        }
+        if (dispatchOffset > -1L) {
+            // Dispatch after unlock, so a pop woken by this event does not fail on the lock still held here.
+            this.brokerController.getLiteEventDispatcher().dispatch(group, lmqName, 0, dispatchOffset, -1);
+        }
+
+        this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
+        this.brokerController.getBrokerStatsManager().incGroupAckNums(group, requestHeader.getTopic(), 1);
+        response.setCode(ResponseCode.SUCCESS);
+        return response;
     }
 }

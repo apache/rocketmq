@@ -72,13 +72,11 @@ public class ConfigStorage extends AbstractRocksDBStorage {
         super(messageStoreConfig.getStorePathRootDir() + File.separator + "config" + File.separator + "rdb");
         this.messageStoreConfig = messageStoreConfig;
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-            .setDaemon(true)
             .setNameFormat("config-storage-%d")
             .build();
         scheduledExecutorService = new ScheduledThreadPoolExecutor(1, threadFactory);
         writeOpsCounter = new AtomicInteger(0);
         this.flushSyncService = new FlushSyncService();
-        this.flushSyncService.setDaemon(true);
     }
 
     private void statNettyMemory() {

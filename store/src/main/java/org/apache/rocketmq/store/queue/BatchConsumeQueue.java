@@ -105,12 +105,19 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         this.topic = topic;
         this.queueId = queueId;
 
+        boolean writeWithoutMmap = false;
+        if (messageStore.getMessageStoreConfig() != null) {
+            writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+        }
+
         if (StringUtils.isBlank(subfolder)) {
             String queueDir = this.storePath + File.separator + topic + File.separator + queueId;
-            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null,
+                writeWithoutMmap);
         } else {
             String queueDir = this.storePath + File.separator + topic + File.separator + queueId + File.separator + subfolder;
-            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null,
+                writeWithoutMmap);
         }
 
         this.byteBufferItem = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
@@ -355,18 +362,18 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public CqUnit getEarliestUnit() {
-        return get(minOffsetInQueue);
+        return minOffsetInQueue >= 0 ? get(minOffsetInQueue) : null;
     }
 
     @Override
     public CqUnit getLatestUnit() {
-        return get(maxOffsetInQueue - 1);
+        return maxOffsetInQueue > 0 ? get(maxOffsetInQueue - 1) : null;
     }
 
     @Override
     public long getLastOffset() {
         CqUnit latestUnit = getLatestUnit();
-        return latestUnit.getPos() + latestUnit.getSize();
+        return latestUnit == null ? -1 : latestUnit.getPos() + latestUnit.getSize();
     }
 
     @Override
@@ -529,7 +536,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
                 if (BrokerRole.SLAVE == this.messageStore.getMessageStoreConfig().getBrokerRole()) {
                     this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsPhysicalOffset(request.getCommitLogOffset());
                 return;
             } else {
                 // XXX: warn and notify me
@@ -625,7 +633,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     }
 
     protected BatchOffsetIndex getMinMsgOffset(MappedFile mappedFile, boolean getBatchSize, boolean getStoreTime) {
-        if (mappedFile.getReadPosition() < CQ_STORE_UNIT_SIZE) {
+        if (mappedFile == null || mappedFile.getReadPosition() < CQ_STORE_UNIT_SIZE) {
             return null;
         }
         return getBatchOffsetIndexByPos(mappedFile, 0, getBatchSize, getStoreTime);
@@ -1192,5 +1200,10 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     @Override
     public void initializeWithOffset(long offset, long minPhyOffset) {
         // not support now
+    }
+
+    @Override
+    public boolean shutdown() {
+        return true;
     }
 }

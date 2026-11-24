@@ -40,7 +40,7 @@ public class InitConfigTest {
         }
 
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
     }
 
     @After

@@ -104,7 +104,9 @@ public class MessageFormatUtil {
     public static List<SelectBufferResult> splitMessageBuffer(ByteBuffer cqBuffer, ByteBuffer msgBuffer) {
 
         if (cqBuffer == null || msgBuffer == null) {
-            log.error("MessageFormatUtil split buffer error, cq buffer or msg buffer is null");
+            log.error("MessageFormatUtil#splitMessageBuffer, cqBuffer={}, msgBuffer={}",
+                cqBuffer == null ? "null" : "size=" + cqBuffer.remaining(),
+                msgBuffer == null ? "null" : "size=" + msgBuffer.remaining());
             return new ArrayList<>();
         }
 
@@ -115,12 +117,13 @@ public class MessageFormatUtil {
             cqBuffer.remaining() / CONSUME_QUEUE_UNIT_SIZE);
 
         if (msgBuffer.remaining() == 0) {
-            log.error("MessageFormatUtil split buffer error, msg buffer length is 0");
+            log.error("MessageFormatUtil#splitMessageBuffer, msgBuffer is empty, cqBufferSize={}", cqBuffer.remaining());
             return bufferResultList;
         }
 
         if (cqBuffer.remaining() == 0 || cqBuffer.remaining() % CONSUME_QUEUE_UNIT_SIZE != 0) {
-            log.error("MessageFormatUtil split buffer error, cq buffer size is {}", cqBuffer.remaining());
+            log.error("MessageFormatUtil#splitMessageBuffer, cqBuffer size invalid, cqBufferSize={}, msgBufferSize={}",
+                cqBuffer.remaining(), msgBuffer.remaining());
             return bufferResultList;
         }
 
@@ -137,8 +140,10 @@ public class MessageFormatUtil {
 
                 int offset = (int) (logOffset - firstCommitLogOffset);
                 if (offset + bufferSize > msgBuffer.limit()) {
-                    log.error("MessageFormatUtil split buffer error, message buffer offset exceeded limit. " +
-                        "Expect length: {}, Actual length: {}", offset + bufferSize, msgBuffer.limit());
+                    log.error("MessageFormatUtil#splitMessageBuffer, message buffer offset exceeded limit, " +
+                            "index={}, total={}, firstCommitLogOffset={}, logOffset={}, bufferSize={}, msgBufferLimit={}",
+                        position / CONSUME_QUEUE_UNIT_SIZE, bufferResultList.size(), firstCommitLogOffset,
+                        logOffset, bufferSize, msgBuffer.limit());
                     break;
                 }
 
@@ -151,14 +156,16 @@ public class MessageFormatUtil {
                 }
                 if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE &&
                     magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
-                    log.error("MessageFormatUtil split buffer error, found unknown magic code. " +
-                        "Message offset: {}, wrong magic code: {}", offset, magicCode);
+                    log.error("MessageFormatUtil#splitMessageBuffer, unknown magic code, " +
+                            "index={}, messageOffset={}, logOffset={}, magicCode={}",
+                        position / CONSUME_QUEUE_UNIT_SIZE, offset, logOffset, magicCode);
                     continue;
                 }
 
                 if (bufferSize != getTotalSize(msgBuffer)) {
-                    log.error("MessageFormatUtil split buffer error, message length not match. " +
-                        "CommitLog length: {}, buffer length: {}", getTotalSize(msgBuffer), bufferSize);
+                    log.error("MessageFormatUtil#splitMessageBuffer, message length not match, " +
+                            "index={}, messageOffset={}, logOffset={}, commitLogLength={}, cqRecordedLength={}",
+                        position / CONSUME_QUEUE_UNIT_SIZE, offset, logOffset, getTotalSize(msgBuffer), bufferSize);
                     continue;
                 }
 

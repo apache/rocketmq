@@ -61,10 +61,12 @@ public class PopConsumerCacheTest {
         Assert.assertEquals(3, consumerRecords.getInFlightRecordCount());
 
         long bufferTimeout = brokerConfig.getPopCkStayBufferTime();
-        Assert.assertEquals(1, consumerRecords.removeExpiredRecords(bufferTimeout + 2).size());
-        Assert.assertNull(consumerRecords.removeExpiredRecords(bufferTimeout + 2));
-        Assert.assertEquals(2, consumerRecords.removeExpiredRecords(bufferTimeout + 4).size());
-        Assert.assertNull(consumerRecords.removeExpiredRecords(bufferTimeout + 4));
+        consumerRecords.stageExpiredRecords(bufferTimeout + 2);
+        Assert.assertEquals(1, consumerRecords.getRemoveTreeMap().size());
+        consumerRecords.clearStagedRecords();
+        consumerRecords.stageExpiredRecords(bufferTimeout + 4);
+        Assert.assertEquals(2, consumerRecords.getRemoveTreeMap().size());
+        consumerRecords.clearStagedRecords();
     }
 
     @Test

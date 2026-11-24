@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.tools.command;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -37,7 +39,7 @@ import org.apache.rocketmq.tools.command.auth.ListAclSubCommand;
 import org.apache.rocketmq.tools.command.auth.ListUserSubCommand;
 import org.apache.rocketmq.tools.command.auth.UpdateAclSubCommand;
 import org.apache.rocketmq.tools.command.auth.UpdateUserSubCommand;
-import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
+import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommand;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
@@ -49,9 +51,10 @@ import org.apache.rocketmq.tools.command.broker.GetColdDataFlowCtrInfoSubCommand
 import org.apache.rocketmq.tools.command.broker.RemoveColdDataFlowCtrGroupConfigSubCommand;
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
+import org.apache.rocketmq.tools.command.broker.SwitchTimerEngineSubCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateColdDataFlowCtrGroupConfigSubCommand;
-import org.apache.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
+import org.apache.rocketmq.tools.command.cluster.ClusterSendMsgRTCommand;
 import org.apache.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import org.apache.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
 import org.apache.rocketmq.tools.command.connection.ProducerConnectionSubCommand;
@@ -77,6 +80,12 @@ import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
 import org.apache.rocketmq.tools.command.export.ExportPopRecordCommand;
 import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetBrokerLiteInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetLiteClientInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetLiteGroupInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetLiteTopicInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetParentTopicInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.TriggerLiteDispatchSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.DumpCompactionLogCommand;
@@ -104,6 +113,7 @@ import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
+import org.apache.rocketmq.tools.command.topic.GetTopicConfigSubCommand;
 import org.apache.rocketmq.tools.command.topic.RemappingStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicClusterSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicListSubCommand;
@@ -114,9 +124,6 @@ import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MQAdminStartup {
     protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<>();
@@ -214,7 +221,7 @@ public class MQAdminStartup {
         initCommand(new PrintMessageSubCommand());
         initCommand(new PrintMessageByQueueCommand());
         initCommand(new SendMsgStatusCommand());
-        initCommand(new BrokerConsumeStatsSubCommad());
+        initCommand(new BrokerConsumeStatsSubCommand());
 
         initCommand(new ProducerConnectionSubCommand());
         initCommand(new ConsumerConnectionSubCommand());
@@ -246,12 +253,13 @@ public class MQAdminStartup {
         initCommand(new AllocateMQSubCommand());
 
         initCommand(new CheckMsgSendRTCommand());
-        initCommand(new CLusterSendMsgRTCommand());
+        initCommand(new ClusterSendMsgRTCommand());
 
         initCommand(new GetNamesrvConfigCommand());
         initCommand(new UpdateNamesrvConfigCommand());
         initCommand(new GetBrokerConfigCommand());
         initCommand(new GetConsumerConfigSubCommand());
+        initCommand(new GetTopicConfigSubCommand());
 
         initCommand(new QueryConsumeQueueCommand());
         initCommand(new SendMessageCommand());
@@ -298,6 +306,15 @@ public class MQAdminStartup {
         initCommand(new CopyAclsSubCommand());
         initCommand(new RocksDBConfigToJsonCommand());
         initCommand(new CheckRocksdbCqWriteProgressCommand());
+        initCommand(new SwitchTimerEngineSubCommand());
+
+        // lite topic related
+        initCommand(new GetBrokerLiteInfoSubCommand());
+        initCommand(new GetParentTopicInfoSubCommand());
+        initCommand(new GetLiteTopicInfoSubCommand());
+        initCommand(new GetLiteClientInfoSubCommand());
+        initCommand(new GetLiteGroupInfoSubCommand());
+        initCommand(new TriggerLiteDispatchSubCommand());
     }
 
     private static void printHelp() {

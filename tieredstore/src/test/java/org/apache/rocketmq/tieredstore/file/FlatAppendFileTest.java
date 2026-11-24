@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
@@ -36,6 +37,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.mockito.Mockito.when;
 
 public class FlatAppendFileTest {
 
@@ -43,6 +47,7 @@ public class FlatAppendFileTest {
     private MessageQueue queue;
     private MetadataStore metadataStore;
     private MessageStoreConfig storeConfig;
+    private MessageStoreExecutor executor;
     private FlatFileFactory flatFileFactory;
 
     @Before
@@ -56,11 +61,13 @@ public class FlatAppendFileTest {
         storeConfig.setTieredStoreConsumeQueueMaxSize(2000L);
         queue = new MessageQueue("TieredFlatFileTest", storeConfig.getBrokerName(), 0);
         metadataStore = new DefaultMetadataStore(storeConfig);
-        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+        executor = new MessageStoreExecutor();
+        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig, executor);
     }
 
     @After
     public void shutdown() throws IOException {
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
@@ -211,5 +218,26 @@ public class FlatAppendFileTest {
         flatFile.commitAsync().join();
         flatFile.destroy();
         Assert.assertEquals(0, flatFile.fileSegmentTable.size());
+    }
+
+    @Test
+    public void getFileCorrectSizeTest() {
+        String filePath = MessageStoreUtil.toFilePath(queue);
+        FlatAppendFile flatFile = flatFileFactory.createFlatFileForConsumeQueue(filePath);
+
+        // first try succeeds
+        FileSegment success = Mockito.mock(FileSegment.class);
+        when(success.getSize()).thenReturn(1024L);
+        Assert.assertEquals(1024L, flatFile.getFileCorrectSize(success));
+        Mockito.verify(success, Mockito.times(1)).getSize();
+
+        // retry then succeed
+        FileSegment retry = Mockito.mock(FileSegment.class);
+        when(retry.getSize())
+            .thenReturn(FlatAppendFile.GET_FILE_SIZE_ERROR)
+            .thenReturn(FlatAppendFile.GET_FILE_SIZE_ERROR)
+            .thenReturn(2048L);
+        Assert.assertEquals(2048L, flatFile.getFileCorrectSize(retry));
+        Mockito.verify(retry, Mockito.times(3)).getSize();
     }
 }

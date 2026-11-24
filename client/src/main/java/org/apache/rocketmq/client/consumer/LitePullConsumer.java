@@ -16,14 +16,13 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageQueue;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 
 public interface LitePullConsumer {
 
@@ -106,6 +105,8 @@ public interface LitePullConsumer {
      *      * null or * expression,meaning subscribe all
      */
     void setSubExpressionForAssign(final String topic, final String subExpression);
+
+    void buildSubscriptionsForHeartbeat(Map<String, MessageSelector> subExpressionMap) throws Exception;
 
     /**
      * Fetch data for the topics or partitions specified using assign API

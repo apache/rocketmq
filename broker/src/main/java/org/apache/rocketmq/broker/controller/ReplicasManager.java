@@ -775,29 +775,33 @@ public class ReplicasManager {
     }
 
     private void scanAvailableControllerAddresses() {
-        if (controllerAddresses == null) {
-            LOGGER.warn("scanAvailableControllerAddresses addresses of controller is null!");
-            return;
-        }
-
-        for (String address : availableControllerAddresses.keySet()) {
-            if (!controllerAddresses.contains(address)) {
-                LOGGER.warn("scanAvailableControllerAddresses remove invalid address {}", address);
-                availableControllerAddresses.remove(address);
+        try {
+            if (controllerAddresses == null) {
+                LOGGER.warn("scanAvailableControllerAddresses addresses of controller is null!");
+                return;
             }
-        }
 
-        for (String address : controllerAddresses) {
-            scanExecutor.submit(() -> {
-                if (brokerOuterAPI.checkAddressReachable(address)) {
-                    availableControllerAddresses.putIfAbsent(address, true);
-                } else {
-                    Boolean value = availableControllerAddresses.remove(address);
-                    if (value != null) {
-                        LOGGER.warn("scanAvailableControllerAddresses remove unconnected address {}", address);
-                    }
+            for (String address : availableControllerAddresses.keySet()) {
+                if (!controllerAddresses.contains(address)) {
+                    LOGGER.warn("scanAvailableControllerAddresses remove invalid address {}", address);
+                    availableControllerAddresses.remove(address);
                 }
-            });
+            }
+
+            for (String address : controllerAddresses) {
+                scanExecutor.submit(() -> {
+                    if (brokerOuterAPI.checkAddressReachable(address)) {
+                        availableControllerAddresses.putIfAbsent(address, true);
+                    } else {
+                        Boolean value = availableControllerAddresses.remove(address);
+                        if (value != null) {
+                            LOGGER.warn("scanAvailableControllerAddresses remove unconnected address {}", address);
+                        }
+                    }
+                });
+            }
+        } catch (final Throwable t) {
+            LOGGER.error("scanAvailableControllerAddresses unexpected exception", t);
         }
     }
 

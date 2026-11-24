@@ -21,6 +21,8 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.rocketmq.acl.common.AclException;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -45,6 +47,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
     protected final MessagingProcessor messagingProcessor;
     protected static final String BROKER_NAME_FIELD = "bname";
     protected static final String BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2 = "n";
+    @SuppressWarnings("DoubleBraceInitialization")
     private static final Map<ProxyExceptionCode, Integer> PROXY_EXCEPTION_RESPONSE_CODE_MAP = new HashMap<ProxyExceptionCode, Integer>() {
         {
             put(ProxyExceptionCode.FORBIDDEN, ResponseCode.NO_PERMISSION);
@@ -105,11 +108,6 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
         }
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     protected abstract RemotingCommand processRequest0(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception;
 
@@ -133,7 +131,8 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
         } else if (t instanceof MQBrokerException) {
             MQBrokerException e = (MQBrokerException) t;
             writeResponse(ctx, context, request, RemotingCommand.createResponseCommand(e.getResponseCode(), e.getErrorMessage()), t);
-        } else if (t instanceof AclException) {
+        } else if (t instanceof AclException || t instanceof AuthenticationException
+            || t instanceof AuthorizationException) {
             writeResponse(ctx, context, request, RemotingCommand.createResponseCommand(ResponseCode.NO_PERMISSION, t.getMessage()), t);
         } else {
             writeResponse(ctx, context, request,

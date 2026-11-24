@@ -22,7 +22,7 @@ import apache.rocketmq.v2.RecallMessageRequest;
 import apache.rocketmq.v2.RecallMessageResponse;
 import apache.rocketmq.v2.Resource;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -31,7 +31,7 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-public class RecallMessageActivity extends AbstractMessingActivity {
+public class RecallMessageActivity extends AbstractMessagingActivity {
 
     public RecallMessageActivity(MessagingProcessor messagingProcessor,
                                  GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {

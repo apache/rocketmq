@@ -20,10 +20,12 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.UtilAll;
@@ -41,6 +43,15 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
 
     private DefaultMQAdminExt defaultMQAdminExt;
 
+    /**
+     * Orders messages by their store timestamp. The lambda it replaces subtracted two longs
+     * and cast the result to int, which wrapped around whenever the timestamps were more than
+     * Integer.MAX_VALUE milliseconds (about 24.8 days) apart, mis-sorting the output and
+     * breaking the comparator contract that TimSort enforces.
+     */
+    static final Comparator<MessageExt> STORE_TIMESTAMP_COMPARATOR =
+        Comparator.comparingLong(MessageExt::getStoreTimestamp);
+
     private DefaultMQAdminExt createMQAdminExt(RPCHook rpcHook) throws SubCommandException {
         if (this.defaultMQAdminExt != null) {
             return defaultMQAdminExt;
@@ -56,17 +67,23 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         }
     }
 
-    public static void queryById(final DefaultMQAdminExt admin, final String clusterName, final String topic,
-        final String msgId,
-        final boolean showAll) throws MQClientException, InterruptedException, IOException {
-
-        QueryResult queryResult = admin.queryMessageByUniqKey(clusterName, topic, msgId, 32, 0, Long.MAX_VALUE);
+    public static void queryById(final DefaultMQAdminExt admin, final String clusterName, final String topic, final String msgId, final boolean showAll, final String startTime, final String endTime) throws MQClientException, InterruptedException, IOException {
+        QueryResult queryResult = null;
+        if (!StringUtils.isEmpty(startTime) && !StringUtils.isEmpty(endTime)) {
+            Long startTimelong = Long.valueOf(startTime);
+            Long endTimelong = Long.valueOf(endTime);
+            if (null != startTimelong && null != endTimelong) {
+                queryResult = admin.queryMessageByUniqKey(clusterName, topic, msgId, 32, startTimelong, endTimelong);
+            }
+        } else {
+            queryResult = admin.queryMessageByUniqKey(clusterName, topic, msgId, 32, System.currentTimeMillis() - 36 * 60 * 60 * 1000, System.currentTimeMillis() + 36 * 60 * 60 * 1000);
+        }
         assert queryResult != null;
         List<MessageExt> list = queryResult.getMessageList();
         if (list == null || list.size() == 0) {
             return;
         }
-        list.sort((o1, o2) -> (int) (o1.getStoreTimestamp() - o2.getStoreTimestamp()));
+        list.sort(STORE_TIMESTAMP_COMPARATOR);
         for (int i = 0; i < (showAll ? list.size() : 1); i++) {
             showMessage(admin, list.get(i), i);
         }
@@ -167,6 +184,14 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("s", "startTime", true, "startTime");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("e", "endTime", true, "endTime");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -179,6 +204,8 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
             final String msgId = commandLine.getOptionValue('i').trim();
             final String topic = commandLine.getOptionValue('t').trim();
             String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : null;
+            String startTime = commandLine.hasOption('s') ? commandLine.getOptionValue('s').trim() : null;
+            String endTime = commandLine.hasOption('e') ? commandLine.getOptionValue('e').trim() : null;
             final boolean showAll = commandLine.hasOption('a');
             if (commandLine.hasOption('g') && commandLine.hasOption('d')) {
                 final String consumerGroup = commandLine.getOptionValue('g').trim();
@@ -198,7 +225,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
                 }
 
             } else {
-                queryById(defaultMQAdminExt, clusterName, topic, msgId, showAll);
+                queryById(defaultMQAdminExt, clusterName, topic, msgId, showAll, startTime, endTime);
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

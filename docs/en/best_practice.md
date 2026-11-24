@@ -4,8 +4,8 @@
 ### 1.1 Attention of send message
 
 #### 1  Uses of tags
-An application should use one topic as far as possible, but identify the message's subtype with tags.Tags can be set freely by the application.
-Only when producers set tags while sending messages, can consumers to filter messages through broker with tags when subscribing messages: message.setTags("TagA").  
+An application should use one topic as far as possible, but identify the message's subtype with tags. Tags can be set freely by the application.
+Only when producers set tags while sending messages, can consumers filter messages through broker with tags when subscribing messages: message.setTags("TagA").  
  
 #### 2 Uses of keys
 The unique identifier for each message at the business level set to the Keys field to help locate message loss problems in the future.
@@ -37,23 +37,23 @@ Each state is describing below:
 
 - **SEND_OK**
 
-Message send successfully.Note that even though message send successfully, but it doesn't mean than it is reliable.
+Message send successfully. Note that even though message send successfully, it doesn't mean that it is reliable.
 To make sure nothing lost, you should also enable the SYNC_MASTER or SYNC_FLUSH.
 
 - **FLUSH_DISK_TIMEOUT**
 
-Message send successfully, but the server flush messages to disk timeout.At this point, the message has entered the server's memory, and the message will be lost only when the server is down.
+Message send successfully, but the server flush messages to disk timeout. At this point, the message has entered the server's memory, and the message will be lost only when the server is down.
 Flush mode and sync flush time interval can be set in the configuration parameters. It will return FLUSH_DISK_TIMEOUT when Broker server doesn't finish flush message to disk in timeout(default is 5s
 ) when sets FlushDiskType=SYNC_FLUSH(default is async flush).
 
 - **FLUSH_SLAVE_TIMEOUT**
 
-Message send successfully, but sync to slave timeout.At this point, the message has entered the server's memory, and the message will be lost only when the server is down.
+Message send successfully, but sync to slave timeout. At this point, the message has entered the server's memory, and the message will be lost only when the server is down.
 It will return FLUSH_SLAVE_TIMEOUT when Broker server role is SYNC_MASTER(default is ASYNC_MASTER),and it doesn't sync message to slave successfully in the timeout(default 5s).
 
 - **SLAVE_NOT_AVAILABLE**
 
-Message send successfully, but slave is not available.It will return SLAVE_NOT_AVAILABLE when Broker role is SYNC_MASTER(default is ASYNC_MASTER), and it doesn't have a slave server available. 
+Message send successfully, but slave is not available. It will return SLAVE_NOT_AVAILABLE when Broker role is SYNC_MASTER(default is ASYNC_MASTER), and it doesn't have a slave server available. 
 
 ### 1.2 Handling of message send failure
 Send method of producer itself supports internal retry. The logic of retry is as follows:
@@ -77,7 +77,7 @@ Typically, this is the process by which messages are sent:
 - Client send request to server
 - Server process request
 - Server response to client 
-So, the time taken to send a message is the sum of the three steps above.Some scenarios require very little time, but not much reliability, such as log collect application.
+So, the time taken to send a message is the sum of the three steps above. Some scenarios require very little time, but not much reliability, such as log collect application.
 This type application can use oneway to send messages. Oneway only send request without waiting for a reply, and send a request at the client implementation level is simply the overhead of an
  operating system call that writes data to the client's socket buffer, this process that typically takes microseconds.
 

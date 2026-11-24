@@ -463,8 +463,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
             }
-            this.epochCache.truncateSuffixByOffset(truncateOffset);
-            LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
+            final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
+            if (truncateOffset < maxPhyOffset) {
+                this.epochCache.truncateSuffixByOffset(truncateOffset);
+                LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
+            }
             changeCurrentState(HAConnectionState.TRANSFER);
             this.currentReportedOffset = truncateOffset;
         }
@@ -491,17 +494,22 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         int masterEpoch = byteBufferRead.getInt(processPosition + AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE - 4);
                         long masterEpochStartOffset = 0;
                         long confirmOffset = 0;
+                        HAConnectionState masterConnectionState = HAConnectionState.fromOrdinal(masterState);
+                        if (masterConnectionState == null) {
+                            LOGGER.error("Received illegal master state ordinal {}", masterState);
+                            return false;
+                        }
                         // If master send transfer header data, set masterEpochStartOffset and confirmOffset value.
-                        if (masterState == HAConnectionState.TRANSFER.ordinal() && diff >= AutoSwitchHAConnection.TRANSFER_HEADER_SIZE) {
+                        if (masterConnectionState == HAConnectionState.TRANSFER && diff >= AutoSwitchHAConnection.TRANSFER_HEADER_SIZE) {
                             masterEpochStartOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.TRANSFER_HEADER_SIZE - 16);
                             confirmOffset = byteBufferRead.getLong(processPosition + AutoSwitchHAConnection.TRANSFER_HEADER_SIZE - 8);
                         }
-                        if (masterState != AutoSwitchHAClient.this.currentState.ordinal()) {
-                            int headerSize = masterState == HAConnectionState.TRANSFER.ordinal() ? AutoSwitchHAConnection.TRANSFER_HEADER_SIZE : AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE;
+                        if (masterConnectionState != AutoSwitchHAClient.this.currentState) {
+                            int headerSize = masterConnectionState == HAConnectionState.TRANSFER ? AutoSwitchHAConnection.TRANSFER_HEADER_SIZE : AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE;
                             AutoSwitchHAClient.this.processPosition += headerSize + bodySize;
                             AutoSwitchHAClient.this.waitForRunning(1);
                             LOGGER.error("State not matched, masterState:{}, slaveState:{}, bodySize:{}, offset:{}, masterEpoch:{}, masterEpochStartOffset:{}, confirmOffset:{}",
-                                HAConnectionState.values()[masterState], AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
+                                masterConnectionState, AutoSwitchHAClient.this.currentState, bodySize, masterOffset, masterEpoch, masterEpochStartOffset, confirmOffset);
                             return false;
                         }
 

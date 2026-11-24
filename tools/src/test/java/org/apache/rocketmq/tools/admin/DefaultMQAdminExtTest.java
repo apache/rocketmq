@@ -109,6 +109,7 @@ public class DefaultMQAdminExtTest {
     private static ClusterInfo clusterInfo = new ClusterInfo();
 
     @BeforeClass
+    @SuppressWarnings("DoubleBraceInitialization")
     public static void init() throws Exception {
         mQClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExt = new DefaultMQAdminExt();

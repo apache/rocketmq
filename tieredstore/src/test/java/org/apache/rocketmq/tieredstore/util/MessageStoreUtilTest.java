@@ -48,6 +48,7 @@ public class MessageStoreUtilTest {
     }
 
     @Test
+    @SuppressWarnings("DoubleBraceInitialization")
     public void toHumanReadableTest() {
         Map<Long, String> capacityTable = new HashMap<Long, String>() {
             {

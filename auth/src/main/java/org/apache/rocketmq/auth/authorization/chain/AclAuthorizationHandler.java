@@ -154,7 +154,11 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
         // the decision deny has higher priority
         Decision d1 = o1.getDecision();
         Decision d2 = o2.getDecision();
-        return d1 == Decision.DENY ? 1 : d2 == Decision.DENY ? -1 : 0;
+
+        if (d1 != d2) {
+            return d1 == Decision.DENY ? -1 : 1;
+        }
+        return 0;
     }
 
     private static void throwException(DefaultAuthorizationContext context, String detail) {

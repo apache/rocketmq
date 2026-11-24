@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -32,15 +33,19 @@ import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManag
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Environment;
 import org.apache.rocketmq.auth.authorization.model.Resource;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
-import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.lite.LiteLifecycleManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -55,9 +60,12 @@ import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -70,15 +78,20 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.AclInfo;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.CreateTopicListRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.DeleteSubscriptionGroupListRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.DeleteTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
@@ -96,11 +109,13 @@ import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHead
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetSubscriptionGroupConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumeQueueRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.remoting.protocol.header.QuerySubscriptionByConsumerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicConsumeByWhoRequestHeader;
@@ -109,26 +124,34 @@ import org.apache.rocketmq.remoting.protocol.header.ResetMasterFlushOffsetHeader
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.util.LibC;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -142,6 +165,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -158,13 +182,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -180,9 +211,11 @@ public class AdminBrokerProcessorTest {
     @Mock
     private Channel channel;
 
+    private final AuthConfig authConfig = new AuthConfig();
+
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
-        new MessageStoreConfig(), null);
+        new MessageStoreConfig(), authConfig);
 
     @Mock
     private MessageStore messageStore;
@@ -235,9 +268,13 @@ public class AdminBrokerProcessorTest {
 
     @Before
     public void init() throws Exception {
+        authConfig.setAuthenticationEnabled(true);
+        authConfig.setAuthenticationWhitelist(null);
         brokerController.setMessageStore(messageStore);
         brokerController.setAuthenticationMetadataManager(authenticationMetadataManager);
         brokerController.setAuthorizationMetadataManager(authorizationMetadataManager);
+        // Initialize BrokerMetricsManager to prevent NPE in tests
+        brokerController.setBrokerMetricsManager(new BrokerMetricsManager(brokerController));
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);
@@ -315,6 +352,36 @@ public class AdminBrokerProcessorTest {
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testResumeCheckHalfMessageRejectsMismatchedTopic() throws Exception {
+        RemotingCommand request = createResumeCheckHalfMessageCommand();
+        when(messageStore.selectOneMessageByOffset(any(Long.class)))
+            .thenReturn(createSelectMappedBufferResult("otherTopic"));
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).isEqualTo("The topic does not match the transaction message");
+        verify(messageStore, never()).putMessage(any());
+    }
+
+    @Test
+    public void testResumeCheckHalfMessageAcceptsMatchingTopic() throws Exception {
+        RemotingCommand request = createResumeCheckHalfMessageCommand();
+        when(messageStore.selectOneMessageByOffset(any(Long.class)))
+            .thenReturn(createSelectMappedBufferResult("topic"));
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class)))
+            .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, null));
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        ArgumentCaptor<MessageExtBrokerInner> messageCaptor = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        verify(messageStore).putMessage(messageCaptor.capture());
+        assertThat(messageCaptor.getValue().getProperty(MessageConst.PROPERTY_REAL_TOPIC)).isEqualTo("topic");
+        assertThat(messageCaptor.getValue().getProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES)).isEqualTo("0");
     }
 
     @Test
@@ -401,6 +468,79 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateTopicListWithUnchangedTopics() throws RemotingCommandException {
+        RemotingCommand request = buildCreateTopicListRequest(Arrays.asList("TEST_BATCH_TOPIC_1", "TEST_BATCH_TOPIC_2"));
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(brokerController, times(1)).registerIncrementBrokerData(anyList(), any());
+
+        TopicConfig unchangedTopic = new TopicConfig("TEST_BATCH_TOPIC_1", 8, 8);
+        TopicConfig updatedTopic = new TopicConfig("TEST_BATCH_TOPIC_2", 16, 16);
+        TopicConfig newTopic = new TopicConfig("TEST_BATCH_TOPIC_3", 8, 8);
+        RemotingCommand mixedRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        mixedRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(unchangedTopic, updatedTopic, newTopic)).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, mixedRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_BATCH_TOPIC_2").getReadQueueNums()).isEqualTo(16);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_BATCH_TOPIC_3")).isNotNull();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<TopicConfig>> registeredCaptor = ArgumentCaptor.forClass(List.class);
+        verify(brokerController, times(2)).registerIncrementBrokerData(registeredCaptor.capture(), any());
+        assertThat(registeredCaptor.getAllValues().get(1)).extracting(TopicConfig::getTopicName)
+            .containsExactly("TEST_BATCH_TOPIC_2", "TEST_BATCH_TOPIC_3");
+
+        doNothing().when(brokerController).registerSingleTopicAll(any(TopicConfig.class));
+        brokerController.getBrokerConfig().setEnableSingleTopicRegister(true);
+        TopicConfig singleRegNewTopic = new TopicConfig("TEST_BATCH_TOPIC_4", 8, 8);
+        RemotingCommand singleRegRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        singleRegRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(unchangedTopic, singleRegNewTopic)).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, singleRegRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_BATCH_TOPIC_4")).isNotNull();
+        verify(brokerController, times(1)).registerSingleTopicAll(any(TopicConfig.class));
+        verify(brokerController, times(1)).registerSingleTopicAll(eq(singleRegNewTopic));
+    }
+
+    @Test
+    public void testUpdateAndCreateTopicListRejectsDuplicateTopics() throws RemotingCommandException {
+        TopicConfig initialTopic = new TopicConfig("TEST_DUP_TOPIC", 4, 4);
+        RemotingCommand initRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        initRequest.setBody(new CreateTopicListRequestBody(Collections.singletonList(initialTopic)).encode());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, initRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        TopicConfig updateTo8 = new TopicConfig("TEST_DUP_TOPIC", 8, 8);
+        TopicConfig newOther = new TopicConfig("TEST_DUP_OTHER", 8, 8);
+        TopicConfig restoreTo4 = new TopicConfig("TEST_DUP_TOPIC", 4, 4);
+        RemotingCommand conflictingRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        conflictingRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(updateTo8, newOther, restoreTo4)).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, conflictingRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo("The topic[TEST_DUP_TOPIC] is duplicated in topic list.");
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getReadQueueNums()).isEqualTo(4);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getWriteQueueNums()).isEqualTo(4);
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_OTHER")).isNull();
+
+        RemotingCommand unchangedDupRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);
+        unchangedDupRequest.setBody(new CreateTopicListRequestBody(Arrays.asList(restoreTo4, new TopicConfig("TEST_DUP_TOPIC", 4, 4))).encode());
+
+        response = adminBrokerProcessor.processRequest(handlerContext, unchangedDupRequest);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(response.getRemark()).isEqualTo("The topic[TEST_DUP_TOPIC] is duplicated in topic list.");
+        assertThat(brokerController.getTopicConfigManager().getTopicConfigTable().get("TEST_DUP_TOPIC").getReadQueueNums()).isEqualTo(4);
+
+        verify(brokerController, times(1)).registerIncrementBrokerData(anyList(), any());
+        verify(brokerController, never()).registerSingleTopicAll(any(TopicConfig.class));
+    }
+
+    @Test
     public void testDeleteTopicInRocksdb() throws Exception {
         if (notToBeExecuted()) {
             return;
@@ -452,9 +592,214 @@ public class AdminBrokerProcessorTest {
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
-        verify(topicConfigManager).deleteTopicConfig(topic);
-        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()));
+        verify(topicConfigManager).deleteTopicConfig(topic, true);
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()), true);
         verify(messageStore, times(2)).deleteTopics(anySet());
+    }
+
+    @Test
+    public void testDeleteTopicListInBroker() throws Exception {
+        // empty list should fail with INVALID_PARAMETER
+        RemotingCommand emptyRequest = buildDeleteTopicListRequest(new ArrayList<>());
+        RemotingCommand emptyResponse = adminBrokerProcessor.processRequest(handlerContext, emptyRequest);
+        assertThat(emptyResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+
+        // blank topic name should fail
+        RemotingCommand blankRequest = buildDeleteTopicListRequest(Arrays.asList("VALID_TOPIC", "", "ANOTHER"));
+        RemotingCommand blankResponse = adminBrokerProcessor.processRequest(handlerContext, blankRequest);
+        assertThat(blankResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        assertThat(blankResponse.getRemark()).isEqualTo("The specified topic is blank.");
+
+        // system topic in batch should be rejected
+        for (String sysTopic : systemTopicSet) {
+            RemotingCommand request = buildDeleteTopicListRequest(Arrays.asList("TEST_DELETE_TOPIC_BATCH_OK", sysTopic));
+            RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+            assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+            assertThat(response.getRemark()).isEqualTo("The topic[" + sysTopic + "] is conflict with system topic.");
+        }
+
+        // happy path
+        List<String> topicList = Arrays.asList("TEST_DELETE_TOPIC_BATCH_1", "TEST_DELETE_TOPIC_BATCH_2");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteTopicListBatchPersist() throws Exception {
+        // Disable rate limiter for test
+        brokerController.getBrokerConfig().setBatchDeleteTopicMaxRate(0);
+
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(null);
+
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.whichGroupByTopic(anyString())).thenReturn(new HashSet<>());
+
+        List<String> topicList = Arrays.asList("TEST_DELETE_TOPIC_BATCH_A", "TEST_DELETE_TOPIC_BATCH_B", "TEST_DELETE_TOPIC_BATCH_A");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(topicConfigManager).deleteTopicConfig("TEST_DELETE_TOPIC_BATCH_A", false);
+        verify(topicConfigManager).deleteTopicConfig("TEST_DELETE_TOPIC_BATCH_B", false);
+        verify(topicConfigManager).persist();
+    }
+
+    @Test
+    public void testDeleteTopicListRateLimited() throws Exception {
+        // Enable rate limiter at 1000/s so the test exercises the throttled path without being slow
+        brokerController.getBrokerConfig().setBatchDeleteTopicMaxRate(1000.0);
+
+        List<String> topicList = Arrays.asList("RL_TOPIC_1", "RL_TOPIC_2", "RL_TOPIC_3");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupList() throws Exception {
+        // empty list should fail with INVALID_PARAMETER
+        RemotingCommand emptyRequest = buildDeleteSubscriptionGroupListRequest(new ArrayList<>(), false);
+        RemotingCommand emptyResponse = adminBrokerProcessor.processRequest(handlerContext, emptyRequest);
+        assertThat(emptyResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+
+        // blank group name should fail
+        RemotingCommand blankRequest = buildDeleteSubscriptionGroupListRequest(Arrays.asList("GID-OK", "", "GID-OK2"), true);
+        RemotingCommand blankResponse = adminBrokerProcessor.processRequest(handlerContext, blankRequest);
+        assertThat(blankResponse.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+
+        // happy path
+        List<String> groupList = Arrays.asList("GID-Group-Name-1", "GID-Group-Name-2");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, true);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListDedup() throws Exception {
+        // Duplicate group names should be deduplicated, request should still succeed
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+
+        List<String> groupList = Arrays.asList("GID-DUP-1", "GID-DUP-2", "GID-DUP-1");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListBatchPersist() throws Exception {
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+        SubscriptionGroupManager subscriptionGroupManager = mock(SubscriptionGroupManager.class);
+        brokerController.setSubscriptionGroupManager(subscriptionGroupManager);
+
+        List<String> groupList = Arrays.asList("GID-BATCH-A", "GID-BATCH-B", "GID-BATCH-A");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(subscriptionGroupManager).deleteSubscriptionGroupConfig("GID-BATCH-A", false);
+        verify(subscriptionGroupManager).deleteSubscriptionGroupConfig("GID-BATCH-B", false);
+        verify(subscriptionGroupManager).persist();
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListRateLimited() throws Exception {
+        // Enable rate limiter at 1000/s so the test exercises the throttled path without being slow
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(1000.0);
+
+        List<String> groupList = Arrays.asList("GID-RL-1", "GID-RL-2", "GID-RL-3");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, true);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListCleanOffset() throws Exception {
+        // cleanOffset=true should invoke removeOffset for each group
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+
+        List<String> groupList = Arrays.asList("GID-CLEAN-1", "GID-CLEAN-2");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, true);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListNoCleanOffset() throws Exception {
+        // cleanOffset=false should still succeed (offset not cleaned unless isLiteGroupType)
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+
+        List<String> groupList = Arrays.asList("GID-NOCLEAN-1", "GID-NOCLEAN-2");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupWithEmptyLiteBindTopicDoesNotCleanOffset() throws Exception {
+        String groupName = "GID-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(groupName);
+        groupConfig.setLiteBindTopic("");
+        brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put(groupName, groupConfig);
+        brokerController.setConsumerOffsetManager(consumerOffsetManager);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, null);
+        request.addExtField("groupName", groupName);
+        request.addExtField("cleanOffset", "false");
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(consumerOffsetManager, never()).removeOffset(groupName);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListWithEmptyLiteBindTopicDoesNotCleanOffset() throws Exception {
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+        String groupName = "GID-BATCH-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(groupName);
+        groupConfig.setLiteBindTopic("");
+        brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put(groupName, groupConfig);
+        brokerController.setConsumerOffsetManager(consumerOffsetManager);
+
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(Collections.singletonList(groupName), false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(consumerOffsetManager, never()).removeOffset(groupName);
+    }
+
+    @Test
+    public void testDeleteTopicListWithPopRetryTopics() throws Exception {
+        // When clearRetryTopicWhenDeleteTopic=true, POP retry topics should be collected and deleted
+        brokerController.getBrokerConfig().setBatchDeleteTopicMaxRate(0);
+
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        String retryTopic = org.apache.rocketmq.common.KeyBuilder.buildPopRetryTopic("myTopic", "cid1",
+            brokerController.getBrokerConfig().isEnableRetryTopicV2());
+        when(topicConfigManager.selectTopicConfig(anyString())).thenAnswer(inv -> {
+            String t = inv.getArgument(0);
+            if ("myTopic".equals(t) || retryTopic.equals(t)) {
+                return new org.apache.rocketmq.common.TopicConfig();
+            }
+            return null;
+        });
+
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.whichGroupByTopic("myTopic")).thenReturn(com.google.common.collect.Sets.newHashSet("cid1"));
+
+        List<String> topicList = Arrays.asList("myTopic");
+        RemotingCommand request = buildDeleteTopicListRequest(topicList);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        // Verify both the original topic and the retry topic were deleted
+        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig("myTopic", false);
+        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig(retryTopic, false);
+        org.mockito.Mockito.verify(topicConfigManager).persist();
     }
 
     @Test
@@ -700,11 +1045,53 @@ public class AdminBrokerProcessorTest {
         searchOffsetRequestHeader.setQueueId(0);
         searchOffsetRequestHeader.setTimestamp(System.currentTimeMillis());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, searchOffsetRequestHeader);
-        request.addExtField("topic", "topic");
-        request.addExtField("queueId", "0");
-        request.addExtField("timestamp", System.currentTimeMillis() + "");
+        request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testSearchOffsetByTimestampWithLiteTopic() throws Exception {
+        // Prepare test data
+        String topic = "testTopic";
+        String liteTopic = "liteTestTopic";
+        long timestamp = System.currentTimeMillis();
+        long mockOffset = 100L;
+        long mockMaxOffset = 500L;
+
+        MessageStore messageStore = mock(MessageStore.class);
+        LiteLifecycleManager liteLifecycleManager = mock(LiteLifecycleManager.class);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        when(brokerController.getLiteLifecycleManager()).thenReturn(liteLifecycleManager);
+
+        when(liteLifecycleManager.getMaxOffsetInQueue(anyString())).thenReturn(mockMaxOffset);
+        when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class)))
+            .thenReturn(mockOffset);
+
+        SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(0);
+        requestHeader.setTimestamp(timestamp);
+        requestHeader.setLiteTopic(liteTopic);
+        requestHeader.setBoundaryType(BoundaryType.LOWER);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.readCustomHeader()).isInstanceOf(SearchOffsetResponseHeader.class);
+
+        SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
+        assertThat(responseHeader.getOffset()).isEqualTo(mockOffset);
+
+        // Verify that the LMQ conversion logic is correctly invoked
+        // When maxOffset > 0, the offset query operation should be executed
+        String expectedLmqTopic = LiteUtil.toLmqName(topic, liteTopic);
+        verify(liteLifecycleManager).getMaxOffsetInQueue(expectedLmqTopic);
+        verify(messageStore).getOffsetInQueueByTime(eq(expectedLmqTopic), eq(0), anyLong(), any(BoundaryType.class));
+        // Verify that queueId is correctly set to 0 (LMQ characteristic)
+        verify(messageStore).getOffsetInQueueByTime(anyString(), eq(0), anyLong(), any(BoundaryType.class));
     }
 
     @Test
@@ -803,6 +1190,42 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateSubscriptionGroupRejectsEmptyLiteBindTopic() {
+        String groupName = "GID-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(groupName);
+        subscriptionGroupConfig.setAttributes(ImmutableMap.of("+lite.bind.topic", ""));
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
+        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes(StandardCharsets.UTF_8));
+
+        RuntimeException exception = Assert.assertThrows(RuntimeException.class,
+            () -> adminBrokerProcessor.processRequest(handlerContext, request));
+
+        assertThat(exception).hasMessageContaining("The specified topic is blank");
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupListRejectsEmptyLiteBindTopic() {
+        String groupName = "GID-LIST-EMPTY-LITE-BIND";
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(groupName);
+        subscriptionGroupConfig.setAttributes(ImmutableMap.of("+lite.bind.topic", ""));
+
+        SubscriptionGroupList subscriptionGroupList =
+            new SubscriptionGroupList(Collections.singletonList(subscriptionGroupConfig));
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST, null);
+        request.setBody(subscriptionGroupList.encode());
+
+        RuntimeException exception = Assert.assertThrows(RuntimeException.class,
+            () -> adminBrokerProcessor.processRequest(handlerContext, request));
+
+        assertThat(exception).hasMessageContaining("The specified topic is blank");
+        assertFalse(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(groupName));
+    }
+
+    @Test
     public void testGetAllSubscriptionGroupInRocksdb() throws Exception {
         initRocksdbSubscriptionManager();
         testGetAllSubscriptionGroup();
@@ -886,10 +1309,13 @@ public class AdminBrokerProcessorTest {
         consumerOffsetManager = mock(ConsumerOffsetManager.class);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         ConsumerOffsetManager consumerOffset = new ConsumerOffsetManager();
-        when(consumerOffsetManager.encode()).thenReturn(JSON.toJSONString(consumerOffset, false));
+        when(consumerOffsetManager.encode()).thenReturn(JSON.toJSONString(consumerOffset));
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        ConsumerOffsetSerializeWrapper consumerOffsetSerializeWrapper = ConsumerOffsetSerializeWrapper.decode(response.getBody(), ConsumerOffsetSerializeWrapper.class);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertFalse(new String(response.getBody()).contains("pullOffsetTable"));
+        assertTrue(consumerOffsetSerializeWrapper.getPullOffsetTable().isEmpty());
     }
 
     @Test
@@ -1046,7 +1472,7 @@ public class AdminBrokerProcessorTest {
         getUserRequestHeader.setUsername("abc");
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, getUserRequestHeader);
         request.setVersion(441);
-        request.addExtField("AccessKey", "rocketmq");
+        request.addExtField("AccessKey", "abc");
         request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
@@ -1057,8 +1483,53 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testGetUserBySuperUser() throws RemotingCommandException {
+        when(authenticationMetadataManager.isSuperUser(eq("rocketmq")))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "rocketmq");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        UserInfo userInfo = JSON.parseObject(
+            new String(response.getBody(), StandardCharsets.UTF_8), UserInfo.class);
+        assertThat(userInfo.getPassword()).isEqualTo("normal-user-secret");
+    }
+
+    @Test
+    public void testGetUserByOtherNormalUserDoesNotReturnPassword() throws RemotingCommandException {
+        when(authenticationMetadataManager.isSuperUser(eq("other")))
+            .thenReturn(CompletableFuture.completedFuture(false));
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "other");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        UserInfo userInfo = JSON.parseObject(content, UserInfo.class);
+        assertThat(userInfo.getUsername()).isEqualTo("abc");
+        assertThat(userInfo.getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+    }
+
+    @Test
     public void testListUser() throws RemotingCommandException {
-        when(authenticationMetadataManager.listUser(eq("abc"))).thenReturn(CompletableFuture.completedFuture(Arrays.asList(User.of("abc", "123", UserType.NORMAL))));
+        when(authenticationMetadataManager.listUser(eq("abc"))).thenReturn(
+            CompletableFuture.completedFuture(Arrays.asList(
+                User.of("abc", "normal-user-secret", UserType.NORMAL),
+                User.of("super", "super-user-secret", UserType.SUPER))));
 
         ListUsersRequestHeader listUserRequestHeader = new ListUsersRequestHeader();
         listUserRequestHeader.setFilter("abc");
@@ -1068,10 +1539,81 @@ public class AdminBrokerProcessorTest {
         request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        List<UserInfo> userInfo = JSON.parseArray(new String(response.getBody()), UserInfo.class);
-        assertThat(userInfo.get(0).getUsername()).isEqualTo("abc");
-        assertThat(userInfo.get(0).getPassword()).isEqualTo("123");
-        assertThat(userInfo.get(0).getUserType()).isEqualTo("Normal");
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        List<UserInfo> users = JSON.parseArray(content, UserInfo.class);
+        assertThat(users.get(0).getUsername()).isEqualTo("abc");
+        assertThat(users.get(0).getUserType()).isEqualTo("Normal");
+        assertThat(users).allMatch(user -> user.getPassword() == null);
+        assertThat(content).doesNotContain("password", "normal-user-secret", "super-user-secret");
+    }
+
+    @Test
+    public void testListUserByNormalUserDoesNotReturnPassword() throws RemotingCommandException {
+        when(authenticationMetadataManager.listUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(
+                User.of("abc", "normal-user-secret", UserType.NORMAL))));
+
+        ListUsersRequestHeader requestHeader = new ListUsersRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_LIST_USER, requestHeader);
+        request.addExtField("AccessKey", "abc");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        List<UserInfo> users = JSON.parseArray(content, UserInfo.class);
+        assertThat(users).hasSize(1);
+        assertThat(users.get(0).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+        verify(authenticationMetadataManager, never()).isSuperUser(anyString());
+    }
+
+    @Test
+    public void testGetUserWithoutAuthenticatedIdentityDoesNotReturnPassword() throws RemotingCommandException {
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        assertThat(JSON.parseObject(content, UserInfo.class).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+    }
+
+    @Test
+    public void testGetUserDoesNotTrustAccessKeyWhenAuthenticationDisabled() throws RemotingCommandException {
+        authConfig.setAuthenticationEnabled(false);
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "abc");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        assertThat(JSON.parseObject(content, UserInfo.class).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
+    }
+
+    @Test
+    public void testGetUserDoesNotTrustAccessKeyWhenAuthenticationIsWhitelisted() throws RemotingCommandException {
+        authConfig.setAuthenticationWhitelist(String.valueOf(RequestCode.AUTH_GET_USER));
+        when(authenticationMetadataManager.getUser(eq("abc")))
+            .thenReturn(CompletableFuture.completedFuture(
+                User.of("abc", "normal-user-secret", UserType.NORMAL)));
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader("abc");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
+        request.addExtField("AccessKey", "abc");
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        String content = new String(response.getBody(), StandardCharsets.UTF_8);
+        assertThat(JSON.parseObject(content, UserInfo.class).getPassword()).isNull();
+        assertThat(content).doesNotContain("password", "normal-user-secret");
     }
 
     @Test
@@ -1167,13 +1709,14 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetTimeCheckPoint() throws RemotingCommandException {
-        when(this.brokerController.getTimerCheckpoint()).thenReturn(null);
+        when(this.brokerController.getTimerMessageStore()).thenReturn(timerMessageStore);
+        when(this.timerMessageStore.getTimerCheckpoint()).thenReturn(null);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TIMER_CHECK_POINT, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
         assertThat(response.getRemark()).isEqualTo("The checkpoint is null");
 
-        when(this.brokerController.getTimerCheckpoint()).thenReturn(new TimerCheckpoint());
+        when(this.timerMessageStore.getTimerCheckpoint()).thenReturn(new TimerCheckpoint());
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -1497,6 +2040,73 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
+    @Test
+    public void testGetSubscriptionGroup() throws RemotingCommandException {
+        brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put("group", new SubscriptionGroupConfig());
+        GetSubscriptionGroupConfigRequestHeader requestHeader = new GetSubscriptionGroupConfigRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG, requestHeader);
+        requestHeader.setGroup("group");
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testCheckRocksdbCqWriteProgress() throws RemotingCommandException {
+        CheckRocksdbCqWriteProgressRequestHeader requestHeader = new CheckRocksdbCqWriteProgressRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS, requestHeader);
+        requestHeader.setTopic("topic");
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testQueryConsumeQueue() throws RemotingCommandException {
+        messageStore = mock(MessageStore.class);
+        ConsumeQueueInterface consumeQueue = mock(ConsumeQueueInterface.class);
+        when(consumeQueue.getMinOffsetInQueue()).thenReturn(0L);
+        when(consumeQueue.getMaxOffsetInQueue()).thenReturn(1L);
+        when(messageStore.getConsumeQueue(anyString(), anyInt())).thenReturn(consumeQueue);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        QueryConsumeQueueRequestHeader requestHeader = new QueryConsumeQueueRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUME_QUEUE, requestHeader);
+        requestHeader.setTopic("topic");
+        requestHeader.setQueueId(0);
+        requestHeader.setConsumerGroup("testGroup");
+        request.makeCustomHeaderToNet();
+        SubscriptionData subscriptionData = mock(SubscriptionData.class);
+        when(brokerController.getConsumerManager()).thenReturn(consumerManager);
+        when(consumerManager.findSubscriptionData(any(), any())).thenReturn(subscriptionData);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testProcessRequest_GetTopicConfig() throws Exception {
+        GetTopicConfigRequestHeader requestHeader = new GetTopicConfigRequestHeader();
+        requestHeader.setTopic("testTopic");
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_CONFIG, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setTopicName("testTopic");
+        TopicConfigManager topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        when(topicConfigManager.selectTopicConfig("testTopic"))
+                .thenReturn(topicConfig);
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertNotNull(response);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+
+        String responseBody = new String(response.getBody(), StandardCharsets.UTF_8);
+        TopicConfigAndQueueMapping result = JSONObject.parseObject(responseBody, TopicConfigAndQueueMapping.class);
+        assertEquals("testTopic", result.getTopicName());
+    }
+
     private ResetOffsetRequestHeader createRequestHeader(String topic,String group,long timestamp,boolean force,long offset,int queueId) {
         ResetOffsetRequestHeader requestHeader = new ResetOffsetRequestHeader();
         requestHeader.setTopic(topic);
@@ -1561,6 +2171,20 @@ public class AdminBrokerProcessorTest {
         return request;
     }
 
+    private RemotingCommand buildDeleteTopicListRequest(List<String> topicList) {
+        DeleteTopicListRequestBody requestBody = new DeleteTopicListRequestBody(topicList);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_BROKER_LIST, null);
+        request.setBody(requestBody.encode());
+        return request;
+    }
+
+    private RemotingCommand buildDeleteSubscriptionGroupListRequest(List<String> groupNameList, boolean cleanOffset) {
+        DeleteSubscriptionGroupListRequestBody requestBody = new DeleteSubscriptionGroupListRequestBody(groupNameList, cleanOffset);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTION_GROUP_LIST, null);
+        request.setBody(requestBody.encode());
+        return request;
+    }
+
     private MessageExt createDefaultMessageExt() {
         MessageExt messageExt = new MessageExt();
         messageExt.setMsgId("12345678");
@@ -1576,6 +2200,17 @@ public class AdminBrokerProcessorTest {
     private SelectMappedBufferResult createSelectMappedBufferResult() {
         SelectMappedBufferResult result = new SelectMappedBufferResult(0, ByteBuffer.allocate(1024), 0, new DefaultMappedFile());
         return result;
+    }
+
+    private SelectMappedBufferResult createSelectMappedBufferResult(String realTopic) throws Exception {
+        MessageExt message = createDefaultMessageExt();
+        message.setBody("body".getBytes(StandardCharsets.UTF_8));
+        message.setTopic(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
+        message.setBornHost(new InetSocketAddress("127.0.0.1", 10911));
+        message.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_REAL_TOPIC, realTopic);
+        ByteBuffer buffer = ByteBuffer.wrap(MessageDecoder.encode(message, false));
+        return new SelectMappedBufferResult(0, buffer, buffer.remaining(), null);
     }
 
     private ResumeCheckHalfMessageRequestHeader createResumeCheckHalfMessageRequestHeader() {

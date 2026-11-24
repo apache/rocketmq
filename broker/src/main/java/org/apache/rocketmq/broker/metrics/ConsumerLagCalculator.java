@@ -16,10 +16,16 @@
  */
 package org.apache.rocketmq.broker.metrics;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -114,6 +120,10 @@ public class ConsumerLagCalculator {
         public CalculateLagResult(String group, String topic, boolean isRetry) {
             super(group, topic, isRetry);
         }
+
+        public long getLagLatency() {
+            return earliestUnconsumedTimestamp == 0 ? 0 : System.currentTimeMillis() - earliestUnconsumedTimestamp;
+        }
     }
 
     public static class CalculateInflightResult extends BaseCalculateResult {
@@ -136,16 +146,22 @@ public class ConsumerLagCalculator {
     private void processAllGroup(Consumer<ProcessGroupInfo> consumer) {
         for (Map.Entry<String, SubscriptionGroupConfig> subscriptionEntry :
             subscriptionGroupManager.getSubscriptionGroupTable().entrySet()) {
-
             String group = subscriptionEntry.getKey();
+            SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
             ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
+
+            boolean isLite = StringUtils.isNotEmpty(subscriptionGroupConfig.getLiteBindTopic());
+            if (isLite) {
+                // lite consumer metrics are calculated by LiteConsumerLagCalculator
+                continue;
+            }
+
             boolean isPop = false;
             if (consumerGroupInfo != null) {
                 isPop = consumerGroupInfo.getConsumeType() == ConsumeType.CONSUME_POP;
             }
             Set<String> topics;
             if (brokerConfig.isUseStaticSubscription()) {
-                SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
                 if (subscriptionGroupConfig.getSubscriptionDataSet() == null ||
                     subscriptionGroupConfig.getSubscriptionDataSet().isEmpty()) {
                     continue;
@@ -211,20 +227,43 @@ public class ConsumerLagCalculator {
     }
 
     public void calculateLag(Consumer<CalculateLagResult> lagRecorder) {
+
+        List<CompletableFuture<CalculateLagResult>> futures = new ArrayList<>();
+
+        BiConsumer<ConsumerLagCalculator.ProcessGroupInfo,
+            CompletableFuture<ConsumerLagCalculator.CalculateLagResult>> biConsumer =
+                (info, future) -> calculate(info, future::complete);
+
         processAllGroup(info -> {
             if (info.group == null || info.topic == null) {
                 return;
             }
-
+            CompletableFuture<CalculateLagResult> future = new CompletableFuture<>();
             if (info.isPop && brokerConfig.isEnableNotifyBeforePopCalculateLag()) {
                 if (popLongPollingService.notifyMessageArriving(info.topic, -1, info.group,
-                    true, null, 0, null, null, new PopCommandCallback(this::calculate, info, lagRecorder))) {
+                    true, null, 0, null, null,
+                    new PopCommandCallback(biConsumer, info, future))) {
+                    futures.add(future);
                     return;
                 }
             }
-
             calculate(info, lagRecorder);
         });
+
+        // Set the maximum wait time to 10 seconds to avoid indefinite blocking
+        // in case of a fast fail that causes the future to not complete its execution.
+        try {
+            CompletableFuture.allOf(futures.toArray(
+                new CompletableFuture[0])).get(10, TimeUnit.SECONDS);
+
+            futures.forEach(future -> {
+                if (future.isDone() && !future.isCompletedExceptionally()) {
+                    lagRecorder.accept(future.join());
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.error("Calculate lag timeout after 10 seconds", e);
+        }
     }
 
     public void calculate(ProcessGroupInfo info, Consumer<CalculateLagResult> lagRecorder) {

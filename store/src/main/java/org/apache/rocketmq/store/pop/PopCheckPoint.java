@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.store.pop;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +36,6 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     private int queueId;
     @JSONField(name = "t")
     private String topic;
-    @JSONField(name = "c")
     private String cid;
     @JSONField(name = "ro")
     private long reviveOffset;
@@ -45,6 +45,8 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     String brokerName;
     @JSONField(name = "rp")
     String rePutTimes; // ck rePut times
+    @JSONField(name = "sp")
+    private boolean suspend; // nack without inc reconsume times, false default.
 
     public long getReviveOffset() {
         return reviveOffset;
@@ -114,10 +116,12 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         this.topic = topic;
     }
 
+    @JSONField(name = "c")
     public String getCId() {
         return cid;
     }
 
+    @JSONField(name = "c")
     public void setCId(String cid) {
         this.cid = cid;
     }
@@ -144,6 +148,14 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
 
     public void setRePutTimes(String rePutTimes) {
         this.rePutTimes = rePutTimes;
+    }
+
+    public boolean isSuspend() {
+        return suspend;
+    }
+
+    public void setSuspend(boolean suspend) {
+        this.suspend = suspend;
     }
 
     public void addDiff(int diff) {
@@ -195,7 +207,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     @Override
     public String toString() {
         return "PopCheckPoint [topic=" + topic + ", cid=" + cid + ", queueId=" + queueId + ", startOffset=" + startOffset + ", bitMap=" + bitMap + ", num=" + num + ", reviveTime=" + getReviveTime()
-            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + ", rePutTimes=" + rePutTimes + "]";
+            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + ", rePutTimes=" + rePutTimes + ", suspend=" + suspend + "]";
     }
 
     @Override

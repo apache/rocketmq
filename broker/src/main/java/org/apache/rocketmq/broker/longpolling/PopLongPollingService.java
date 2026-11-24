@@ -17,25 +17,31 @@
 
 package org.apache.rocketmq.broker.longpolling;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.CommandCallback;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.ConsumeQueueExt;
@@ -52,21 +58,27 @@ public class PopLongPollingService extends ServiceThread {
         LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
     private final NettyRequestProcessor processor;
-    private final ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap;
-    private final ConcurrentLinkedHashMap<String, ConcurrentSkipListSet<PopRequest>> pollingMap;
+    private final Cache<String, ConcurrentHashMap<String, Byte>> topicCidMap;
+    private final Cache<String, ConcurrentSkipListSet<PopRequest>> pollingMap;
     private long lastCleanTime = 0;
 
     private final AtomicLong totalPollingNum = new AtomicLong(0);
     private final boolean notifyLast;
 
-    public PopLongPollingService(BrokerController brokerController, NettyRequestProcessor processor, boolean notifyLast) {
+    public PopLongPollingService(BrokerController brokerController, NettyRequestProcessor processor,
+        boolean notifyLast) {
         this.brokerController = brokerController;
         this.processor = processor;
         // 100000 topic default,  100000 lru topic + cid + qid
-        this.topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
-            .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize() * 2L).build();
-        this.pollingMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>()
-            .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
+        this.topicCidMap = Caffeine.newBuilder()
+            .maximumSize(this.brokerController.getBrokerConfig().getPopPollingMapSize() * 2L)
+            .expireAfterAccess(this.brokerController.getBrokerConfig().getPopPollingMapExpireTimeSeconds(), TimeUnit.SECONDS)
+            .build();
+
+        this.pollingMap = Caffeine.newBuilder()
+            .maximumSize(this.brokerController.getBrokerConfig().getPopPollingMapSize())
+            .expireAfterAccess(this.brokerController.getBrokerConfig().getPopPollingMapExpireTimeSeconds(), TimeUnit.SECONDS)
+            .build();
         this.notifyLast = notifyLast;
     }
 
@@ -85,11 +97,11 @@ public class PopLongPollingService extends ServiceThread {
             try {
                 this.waitForRunning(20);
                 i++;
-                if (pollingMap.isEmpty()) {
+                if (pollingMap.estimatedSize() == 0) {
                     continue;
                 }
                 long tmpTotalPollingNum = 0;
-                for (Map.Entry<String, ConcurrentSkipListSet<PopRequest>> entry : pollingMap.entrySet()) {
+                for (Map.Entry<String, ConcurrentSkipListSet<PopRequest>> entry : pollingMap.asMap().entrySet()) {
                     String key = entry.getKey();
                     ConcurrentSkipListSet<PopRequest> popQ = entry.getValue();
                     if (popQ == null) {
@@ -126,7 +138,7 @@ public class PopLongPollingService extends ServiceThread {
 
                 if (i >= 100) {
                     POP_LOGGER.info("pollingMapSize={},tmpTotalSize={},atomicTotalSize={},diffSize={}",
-                        pollingMap.size(), tmpTotalPollingNum, totalPollingNum.get(),
+                        pollingMap.estimatedSize(), tmpTotalPollingNum, totalPollingNum.get(),
                         Math.abs(totalPollingNum.get() - tmpTotalPollingNum));
                     totalPollingNum.set(tmpTotalPollingNum);
                     i = 0;
@@ -142,7 +154,7 @@ public class PopLongPollingService extends ServiceThread {
         }
         // clean all;
         try {
-            for (Map.Entry<String, ConcurrentSkipListSet<PopRequest>> entry : pollingMap.entrySet()) {
+            for (Map.Entry<String, ConcurrentSkipListSet<PopRequest>> entry : pollingMap.asMap().entrySet()) {
                 ConcurrentSkipListSet<PopRequest> popQ = entry.getValue();
                 PopRequest first;
                 while ((first = popQ.pollFirst()) != null) {
@@ -159,18 +171,36 @@ public class PopLongPollingService extends ServiceThread {
 
     public void notifyMessageArrivingWithRetryTopic(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-        String notifyTopic;
-        if (KeyBuilder.isPopRetryTopicV2(topic)) {
-            notifyTopic = KeyBuilder.parseNormalTopic(topic);
+        if (NamespaceUtil.isRetryTopic(topic)) {
+            notifyMessageArrivingFromRetry(topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
         } else {
-            notifyTopic = topic;
+            notifyMessageArriving(topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
         }
-        notifyMessageArriving(notifyTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
+    }
+
+    private void notifyMessageArrivingFromRetry(String topic, int queueId, Long tagsCode, long msgStoreTime, byte[] filterBitMap,
+        Map<String, String> properties) {
+        String prefix = MixAll.RETRY_GROUP_TOPIC_PREFIX;
+        String originGroup = properties.get(MessageConst.PROPERTY_ORIGIN_GROUP);
+        // In the case of pop consumption, there is no long polling hanging on the retry topic, so the wake-up is skipped.
+        if (StringUtils.isBlank(originGroup)) {
+            return;
+        }
+        // %RETRY%GROUP is used for pull mode, so the wake-up is skipped.
+        int originTopicStartIndex = prefix.length() + originGroup.length() + 1;
+        if (topic.length() <= originTopicStartIndex) {
+            return;
+        }
+        String originTopic = topic.substring(originTopicStartIndex);
+        if (queueId >= 0) {
+            notifyMessageArriving(originTopic, -1, originGroup, true, tagsCode, msgStoreTime, filterBitMap, properties);
+        }
+        notifyMessageArriving(originTopic, queueId, originGroup, true, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 
     public void notifyMessageArriving(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-        ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
+        ConcurrentHashMap<String, Byte> cids = topicCidMap.getIfPresent(topic);
         if (cids == null) {
             return;
         }
@@ -196,7 +226,7 @@ public class PopLongPollingService extends ServiceThread {
 
     public boolean notifyMessageArriving(final String topic, final int queueId, final String cid, boolean force,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties, CommandCallback callback) {
-        ConcurrentSkipListSet<PopRequest> remotingCommands = pollingMap.get(KeyBuilder.buildPollingKey(topic, cid, queueId));
+        ConcurrentSkipListSet<PopRequest> remotingCommands = pollingMap.getIfPresent(KeyBuilder.buildPollingKey(topic, cid, queueId));
         if (remotingCommands == null || remotingCommands.isEmpty()) {
             return false;
         }
@@ -258,7 +288,7 @@ public class PopLongPollingService extends ServiceThread {
                             POP_LOGGER.error(request.toString());
                             POP_LOGGER.error(response.toString());
                         }
-                    });
+                    }, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
                 }
             } catch (Exception e1) {
                 POP_LOGGER.error("ExecuteRequestWhenWakeup run", e1);
@@ -286,14 +316,7 @@ public class PopLongPollingService extends ServiceThread {
         if (requestHeader.getPollTime() <= 0 || this.isStopped()) {
             return NOT_POLLING;
         }
-        ConcurrentHashMap<String, Byte> cids = topicCidMap.get(requestHeader.getTopic());
-        if (cids == null) {
-            cids = new ConcurrentHashMap<>();
-            ConcurrentHashMap<String, Byte> old = topicCidMap.putIfAbsent(requestHeader.getTopic(), cids);
-            if (old != null) {
-                cids = old;
-            }
-        }
+        ConcurrentHashMap<String, Byte> cids = topicCidMap.get(requestHeader.getTopic(), key -> new ConcurrentHashMap<>());
         cids.putIfAbsent(requestHeader.getConsumerGroup(), Byte.MIN_VALUE);
         long expired = requestHeader.getBornTime() + requestHeader.getPollTime();
         final PopRequest request = new PopRequest(remotingCommand, ctx, expired, subscriptionData, messageFilter);
@@ -311,21 +334,13 @@ public class PopLongPollingService extends ServiceThread {
         }
         String key = KeyBuilder.buildPollingKey(requestHeader.getTopic(), requestHeader.getConsumerGroup(),
             requestHeader.getQueueId());
-        ConcurrentSkipListSet<PopRequest> queue = pollingMap.get(key);
-        if (queue == null) {
-            queue = new ConcurrentSkipListSet<>(PopRequest.COMPARATOR);
-            ConcurrentSkipListSet<PopRequest> old = pollingMap.putIfAbsent(key, queue);
-            if (old != null) {
-                queue = old;
-            }
-        } else {
-            // check size
-            int size = queue.size();
-            if (size > brokerController.getBrokerConfig().getPopPollingSize()) {
-                POP_LOGGER.info("polling {}, result POLLING_FULL, singleSize:{}", remotingCommand, size);
-                return POLLING_FULL;
-            }
+        ConcurrentSkipListSet<PopRequest> queue = pollingMap.get(key, k -> new ConcurrentSkipListSet<>(PopRequest.COMPARATOR));
+        int size = queue.size();
+        if (size > brokerController.getBrokerConfig().getPopPollingSize()) {
+            POP_LOGGER.info("polling {}, result POLLING_FULL, singleSize:{}", remotingCommand, size);
+            return POLLING_FULL;
         }
+
         if (queue.add(request)) {
             remotingCommand.setSuspended(true);
             totalPollingNum.incrementAndGet();
@@ -339,14 +354,18 @@ public class PopLongPollingService extends ServiceThread {
         }
     }
 
-    public ConcurrentLinkedHashMap<String, ConcurrentSkipListSet<PopRequest>> getPollingMap() {
+    public Cache<String, ConcurrentSkipListSet<PopRequest>> getPollingMap() {
         return pollingMap;
+    }
+
+    public Cache<String, ConcurrentHashMap<String, Byte>> getTopicCidMap() {
+        return topicCidMap;
     }
 
     private void cleanUnusedResource() {
         try {
             {
-                Iterator<Map.Entry<String, ConcurrentHashMap<String, Byte>>> topicCidMapIter = topicCidMap.entrySet().iterator();
+                Iterator<Map.Entry<String, ConcurrentHashMap<String, Byte>>> topicCidMapIter = topicCidMap.asMap().entrySet().iterator();
                 while (topicCidMapIter.hasNext()) {
                     Map.Entry<String, ConcurrentHashMap<String, Byte>> entry = topicCidMapIter.next();
                     String topic = entry.getKey();
@@ -368,7 +387,7 @@ public class PopLongPollingService extends ServiceThread {
             }
 
             {
-                Iterator<Map.Entry<String, ConcurrentSkipListSet<PopRequest>>> pollingMapIter = pollingMap.entrySet().iterator();
+                Iterator<Map.Entry<String, ConcurrentSkipListSet<PopRequest>>> pollingMapIter = pollingMap.asMap().entrySet().iterator();
                 while (pollingMapIter.hasNext()) {
                     Map.Entry<String, ConcurrentSkipListSet<PopRequest>> entry = pollingMapIter.next();
                     if (entry.getKey() == null) {

@@ -185,6 +185,11 @@ public class EscapeBridge {
                 messageExt.setWaitStoreMsgOK(false);
 
                 final TopicPublishInfo topicPublishInfo = this.brokerController.getTopicRouteInfoManager().tryToFindTopicPublishInfo(messageExt.getTopic());
+                if (null == topicPublishInfo || !topicPublishInfo.ok()) {
+                    LOG.warn("asyncPutMessage: no route info of topic {} when escaping message, msgId={}",
+                        messageExt.getTopic(), messageExt.getMsgId());
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true));
+                }
                 final String producerGroup = getProducerGroup(messageExt);
 
                 final MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue();
@@ -250,6 +255,11 @@ public class EscapeBridge {
                 messageExt.setWaitStoreMsgOK(false);
 
                 final TopicPublishInfo topicPublishInfo = this.brokerController.getTopicRouteInfoManager().tryToFindTopicPublishInfo(messageExt.getTopic());
+                if (null == topicPublishInfo || !topicPublishInfo.ok()) {
+                    LOG.warn("asyncRemotePutMessageToSpecificQueue: no route info of topic {} when escaping message, msgId={}",
+                        messageExt.getTopic(), messageExt.getMsgId());
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true));
+                }
                 List<MessageQueue> mqs = topicPublishInfo.getMessageQueueList();
 
                 if (null == mqs || mqs.isEmpty()) {

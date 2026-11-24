@@ -131,11 +131,10 @@ public class Validators {
     }
 
     public static void checkBrokerConfig(final Properties brokerConfig) throws MQClientException {
-        // TODO: use MixAll.isPropertyValid() when jdk upgrade to 1.8
-        if (brokerConfig.containsKey("brokerPermission")
-            && !PermName.isValid(brokerConfig.getProperty("brokerPermission"))) {
+        String brokerPermission = brokerConfig.getProperty("brokerPermission");
+        if (brokerPermission != null && !PermName.isValid(brokerPermission)) {
             throw new MQClientException(ResponseCode.NO_PERMISSION,
-                String.format("brokerPermission value: %s is invalid.", brokerConfig.getProperty("brokerPermission")));
+                    String.format("brokerPermission value: %s is invalid.", brokerPermission));
         }
     }
 }

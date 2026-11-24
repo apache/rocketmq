@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -38,6 +39,8 @@ import org.apache.rocketmq.common.attribute.LongRangeAttribute;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
@@ -135,6 +138,24 @@ public class TopicConfigManagerTest {
 
         RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> topicConfigManager.updateTopicConfig(topicConfig));
         Assert.assertEquals("only add attribute is supported while creating topic. key: " + key, runtimeException.getMessage());
+    }
+
+    @Test
+    public void testDeleteTopicConfigWithDeferredPersist() {
+        TopicConfigManager manager = Mockito.spy(topicConfigManager);
+        Mockito.doNothing().when(manager).persist();
+
+        TopicConfig deferredTopic = new TopicConfig();
+        deferredTopic.setTopicName("deferred-topic");
+        manager.getTopicConfigTable().put(deferredTopic.getTopicName(), deferredTopic);
+        manager.deleteTopicConfig(deferredTopic.getTopicName(), false);
+        Mockito.verify(manager, Mockito.never()).persist();
+
+        TopicConfig persistedTopic = new TopicConfig();
+        persistedTopic.setTopicName("persisted-topic");
+        manager.getTopicConfigTable().put(persistedTopic.getTopicName(), persistedTopic);
+        manager.deleteTopicConfig(persistedTopic.getTopicName(), true);
+        Mockito.verify(manager).persist();
     }
 
     @Test
@@ -399,5 +420,50 @@ public class TopicConfigManagerTest {
         Assert.assertTrue(result.containsKey(String.format("topic%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
         Assert.assertFalse(result.containsKey(String.format("topic%05d", beginIndex - 1)));
         Assert.assertFalse(result.containsKey(String.format("topic%05d", endIndex + 1)));
+    }
+
+    @Test
+    public void testSplitRegistrationBumpsVersion() {
+        brokerController.getBrokerConfig().setEnableSplitRegistration(true);
+        long counterBefore = topicConfigManager.getDataVersion().getCounter().get();
+
+        TopicConfigAndMappingSerializeWrapper wrapper =
+            topicConfigManager.buildSerializeWrapper(topicConfigManager.getTopicConfigTable());
+
+        long counterAfter = topicConfigManager.getDataVersion().getCounter().get();
+        Assert.assertEquals(counterBefore + 1, counterAfter);
+        Assert.assertEquals(counterAfter, wrapper.getDataVersion().getCounter().get());
+    }
+
+    @Test
+    public void testSerializeWrapperIsSnapshot() {
+        topicConfigManager.getTopicConfigTable().clear();
+
+        for (int i = 0; i < 10; i++) {
+            TopicConfig tc = new TopicConfig("BaseTopic-" + i, 4, 4,
+                PermName.PERM_READ | PermName.PERM_WRITE);
+            topicConfigManager.getTopicConfigTable().put(tc.getTopicName(), tc);
+        }
+
+        TopicConfigSerializeWrapper wrapper = topicConfigManager.buildTopicConfigSerializeWrapper();
+        ConcurrentMap<String, TopicConfig> wrapperTable = wrapper.getTopicConfigTable();
+        int sizeAtBuild = wrapperTable.size();
+        long versionAtBuild = wrapper.getDataVersion().getCounter().get();
+
+        // Wrapper should hold an independent snapshot, not the live reference
+        Assert.assertNotSame(topicConfigManager.getTopicConfigTable(), wrapperTable);
+
+        // Simulate a concurrent topic update after the wrapper was built
+        TopicConfig newTopic = new TopicConfig("NewTopic-AfterBuild", 8, 8,
+            PermName.PERM_READ | PermName.PERM_WRITE);
+        topicConfigManager.getTopicConfigTable().put(newTopic.getTopicName(), newTopic);
+        topicConfigManager.updateDataVersion();
+
+        // The wrapper's table should NOT see the new topic
+        Assert.assertFalse(wrapperTable.containsKey("NewTopic-AfterBuild"));
+        Assert.assertEquals(sizeAtBuild, wrapperTable.size());
+
+        // The wrapper's version should reflect a consistent point-in-time snapshot
+        Assert.assertEquals(versionAtBuild, wrapper.getDataVersion().getCounter().get());
     }
 }

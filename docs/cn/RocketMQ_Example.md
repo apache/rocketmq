@@ -54,12 +54,12 @@
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-client</artifactId>
-    <version>4.9.1</version>
+    <version>5.5.0</version>
 </dependency>
 ```
 `gradle`
 ```
-compile 'org.apache.rocketmq:rocketmq-client:4.3.0'
+compile 'org.apache.rocketmq:rocketmq-client:5.5.0'
 ```
 ### 1.2 消息发送
 

@@ -25,4 +25,6 @@ public interface ReceiptHandleManager {
     void addReceiptHandle(ProxyContext context, Channel channel, String group, String msgID, MessageReceiptHandle messageReceiptHandle);
 
     MessageReceiptHandle removeReceiptHandle(ProxyContext context, Channel channel, String group, String msgID, String receiptHandle);
+
+    int getUnackedMessageCount(ProxyContext context, Channel channel, String group);
 }

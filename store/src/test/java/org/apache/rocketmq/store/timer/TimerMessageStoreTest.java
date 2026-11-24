@@ -110,6 +110,7 @@ public class TimerMessageStoreTest {
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
         storeConfig.setTimerInterceptDelayLevel(true);
         storeConfig.setTimerPrecisionMs(precisionMs);
+        storeConfig.setAppendTopicForTimerDeleteKey(false); // reset default value
 
         mockMessageStore = Mockito.mock(MessageStore.class);
         messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
@@ -176,6 +177,31 @@ public class TimerMessageStoreTest {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
         return null;
+    }
+
+    @Test
+    public void testConvertMessagePropertiesStringMatchesProperties() throws Exception {
+        final TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+
+        MessageExtBrokerInner msgExt = buildMessage(3000, "TimerTest_testConvertMessage", false);
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_TOPIC, msgExt.getTopic());
+        MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
+        msgExt.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        msgExt.setTopic(TimerMessageStore.TIMER_TOPIC);
+
+        // delivered message: internal properties are cleared from both the map and the wire data
+        MessageExtBrokerInner delivered = timerMessageStore.convertMessage(msgExt, false);
+        assertEquals("TimerTest_testConvertMessage", delivered.getTopic());
+        assertFalse(delivered.getPropertiesString().contains(MessageConst.PROPERTY_REAL_TOPIC));
+        assertFalse(delivered.getPropertiesString().contains(MessageConst.PROPERTY_REAL_QUEUE_ID));
+        assertEquals(MessageDecoder.messageProperties2String(delivered.getProperties()), delivered.getPropertiesString());
+
+        // rolled message: keeps REAL_TOPIC and stays consistent between the map and the wire data
+        MessageExtBrokerInner rolled = timerMessageStore.convertMessage(msgExt, true);
+        assertEquals(TimerMessageStore.TIMER_TOPIC, rolled.getTopic());
+        assertTrue(rolled.getPropertiesString().contains(MessageConst.PROPERTY_REAL_TOPIC));
+        assertTrue(rolled.getPropertiesString().contains(MessageConst.PROPERTY_REAL_QUEUE_ID));
+        assertEquals(MessageDecoder.messageProperties2String(rolled.getProperties()), rolled.getPropertiesString());
     }
 
     @Test
@@ -358,7 +384,7 @@ public class TimerMessageStoreTest {
 
         MessageExtBrokerInner delMsg = buildMessage(delayMs, topic, false);
         transformTimerMessage(timerMessageStore,delMsg);
-        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(topic, uniqKey));
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(topic, uniqKey, false));
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
@@ -375,6 +401,7 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testDeleteTimerMessage_ukCollision() throws Exception {
+        storeConfig.setAppendTopicForTimerDeleteKey(true); // append topic as namespace
         String topic = "TimerTest_testDeleteTimerMessage";
         String collisionTopic = "TimerTest_testDeleteTimerMessage_collision";
 
@@ -397,13 +424,13 @@ public class TimerMessageStoreTest {
 
         MessageExtBrokerInner delMsg = buildMessage(delayMs, "whatever", false);
         transformTimerMessage(timerMessageStore, delMsg);
-        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(topic, firstUniqKey));
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(topic, firstUniqKey, true));
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
         delMsg = buildMessage(delayMs, "whatever", false);
         transformTimerMessage(timerMessageStore, delMsg);
-        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(collisionTopic, secondUniqKey));
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(collisionTopic, secondUniqKey, true));
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
@@ -579,6 +606,51 @@ public class TimerMessageStoreTest {
         assertNotNull(msgExt);
         assertEquals(1, Integer.valueOf(msgExt.getProperty(MessageConst.PROPERTY_TIMER_ROLL_TIMES)).intValue());
         storeConfig.setTimerRollWindowSlot(Integer.MAX_VALUE);
+    }
+
+    @Test
+    public void testCheckAndReviseMetricsWithEmptyTimerWheel() throws Exception {
+        String topic = "TimerTest_testCheckAndReviseMetricsWithEmptyTimerWheel";
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+        timerMessageStore.load();
+
+        // the timer log has a mapped file, but no slot in the timer wheel is eligible
+        TimerLog timerLog = Mockito.spy(timerMessageStore.getTimerLog());
+        Field timerLogField = TimerMessageStore.class.getDeclaredField("timerLog");
+        timerLogField.setAccessible(true);
+        timerLogField.set(timerMessageStore, timerLog);
+        assertNotNull(timerLog.getMappedFileQueue().getLastMappedFile(0));
+        timerMessageStore.currReadTimeMs = System.currentTimeMillis() / precisionMs * precisionMs;
+        assertEquals(Long.MAX_VALUE, timerMessageStore.getTimerWheel().checkPhyPos(timerMessageStore.currReadTimeMs, 0));
+
+        timerMessageStore.getTimerMetrics().getTopicPair(topic).getCount().set(5);
+        timerMessageStore.checkAndReviseMetrics();
+
+        verify(timerLog, Mockito.never()).getWholeBuffer(Long.MAX_VALUE);
+        assertEquals(0, timerMessageStore.getTimerMetrics().getTimingCount(topic));
+    }
+
+    @Test
+    public void testCheckAndReviseMetricsWithValidSlot() throws Exception {
+        String topic = "TimerTest_testCheckAndReviseMetricsWithValidSlot";
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null, true);
+        timerMessageStore.load();
+
+        long curr = System.currentTimeMillis() / precisionMs * precisionMs;
+        timerMessageStore.currReadTimeMs = curr;
+        timerMessageStore.currWriteTimeMs = curr;
+        long delayedTime = curr + 2 * precisionMs;
+        for (int i = 0; i < 2; i++) {
+            MessageExtBrokerInner inner = buildMessage(delayedTime, topic, false);
+            MessageAccessor.putProperty(inner, MessageConst.PROPERTY_REAL_TOPIC, topic);
+            assertTrue(timerMessageStore.doEnqueue(i * 100L, 100, delayedTime, inner, false));
+        }
+        assertEquals(0, timerMessageStore.getTimerWheel().checkPhyPos(curr, 0));
+
+        timerMessageStore.getTimerMetrics().getTopicPair(topic).getCount().set(5);
+        timerMessageStore.checkAndReviseMetrics();
+
+        assertEquals(2, timerMessageStore.getTimerMetrics().getTimingCount(topic));
     }
 
     public ByteBuffer getOneMessage(String topic, int queue, long offset, int timeout) throws Exception {

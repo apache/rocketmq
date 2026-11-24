@@ -45,6 +45,7 @@ public class FlatFileStoreTest {
     public void init() {
         storeConfig = new MessageStoreConfig();
         storeConfig.setStorePathRootDir(storePath);
+        storeConfig.setTieredStoreFilePath(storePath);
         storeConfig.setTieredBackendServiceProvider(PosixFileSegment.class.getName());
         storeConfig.setBrokerName("brokerName");
         metadataStore = new DefaultMetadataStore(storeConfig);

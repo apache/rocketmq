@@ -39,7 +39,13 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminAuthInterceptor;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminForwarder;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -48,6 +54,7 @@ import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
+import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -81,16 +88,56 @@ public class ProxyStartup {
             TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
-            // create grpcServer
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
+            // create grpcServer (data plane). Capture the application reference so the
+            // admin server can reuse the SAME GrpcChannelManager / GrpcClientSettingsManager
+            // that the data plane uses to track online clients.
+            GrpcMessagingApplication dataPlaneApplication = createServiceProcessor(messagingProcessor);
+            GrpcServer grpcServer = createGrpcServerBuilder(executor,
+                    ConfigurationManager.getProxyConfig().getGrpcServerBindAddress(),
                     ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
-                .addService(createServiceProcessor(messagingProcessor))
+                .addService(dataPlaneApplication)
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
                 .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
+
+            // Dedicated admin gRPC server (control plane), gated by grpcAdminServerEnable. Reuses
+            // the data plane's GrpcChannelManager so admin queries can see the data-plane clients.
+            Integer adminPort = ConfigurationManager.getProxyConfig().getGrpcAdminServerPort();
+            if (ConfigurationManager.getProxyConfig().isGrpcAdminServerEnable()
+                && adminPort != null && adminPort > 0) {
+                DefaultGrpcMessagingActivity dataPlaneActivity =
+                    (DefaultGrpcMessagingActivity) dataPlaneApplication.getGrpcMessagingActivity();
+                GrpcChannelManager sharedChannelManager = dataPlaneActivity.getGrpcChannelManager();
+                GrpcClientSettingsManager sharedSettingsManager = dataPlaneActivity.getGrpcClientSettingsManager();
+                DefaultMessagingProcessor defaultProcessor = (DefaultMessagingProcessor) messagingProcessor;
+
+                // Forwards client-targeted admin RPCs to the proxy that owns the client channel.
+                ProxyAdminForwarder adminForwarder =
+                    new ProxyAdminForwarder(defaultProcessor.getServiceManager());
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminForwarder);
+
+                ProxyAdminGrpcService adminService = new ProxyAdminGrpcService(
+                    defaultProcessor.getServiceManager(),
+                    messagingProcessor,
+                    sharedChannelManager,
+                    sharedSettingsManager,
+                    adminForwarder);
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminService);
+                GrpcServer adminGrpcServer = createGrpcServerBuilder(executor,
+                        ConfigurationManager.getProxyConfig().getGrpcAdminServerBindAddress(), adminPort, tlsCertificateManager)
+                    .addService(adminService)
+                    // authentication has to see the channel id HeaderInterceptor derives from the
+                    // transport, so it is ordered after the standard pipeline rather than appended
+                    .configInterceptor(new ProxyAdminAuthInterceptor(
+                        ConfigurationManager.getAuthConfig(), messagingProcessor))
+                    .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
+                    .build();
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminGrpcServer);
+                log.info("admin gRPC server will start on port {}", adminPort);
+            }
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
@@ -117,12 +164,19 @@ public class ProxyStartup {
         log.info(new Date() + " rocketmq-proxy startup successfully");
     }
 
+    protected static GrpcServerBuilder createGrpcServerBuilder(ThreadPoolExecutor executor, String bindAddress,
+        int port, TlsCertificateManager tlsCertificateManager) {
+        InetSocketAddress address = StringUtils.isBlank(bindAddress)
+            ? new InetSocketAddress(port) : new InetSocketAddress(bindAddress.trim(), port);
+        return GrpcServerBuilder.newBuilder(executor, address, tlsCertificateManager);
+    }
+
     protected static void initConfiguration(CommandLineArgument commandLineArgument) throws Exception {
         if (StringUtils.isNotBlank(commandLineArgument.getProxyConfigPath())) {
             System.setProperty(Configuration.CONFIG_PATH_PROPERTY, commandLineArgument.getProxyConfigPath());
         }
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
         log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
 

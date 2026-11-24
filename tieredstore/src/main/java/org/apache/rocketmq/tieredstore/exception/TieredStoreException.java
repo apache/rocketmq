@@ -27,6 +27,16 @@ public class TieredStoreException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
+    public static boolean hasErrorCode(Throwable throwable, TieredStoreErrorCode errorCode) {
+        for (Throwable cause = throwable; cause != null && cause != cause.getCause(); cause = cause.getCause()) {
+            if (cause instanceof TieredStoreException &&
+                errorCode == ((TieredStoreException) cause).getErrorCode()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public TieredStoreErrorCode getErrorCode() {
         return errorCode;
     }

@@ -16,15 +16,18 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import java.io.File;
-import java.util.Iterator;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.DataConverter;
@@ -38,13 +41,37 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
+    private static final String VERSION_COLUMN_FAMILY = "consumerOffsetVersion";
+    private static final String OFFSET_COLUMN_FAMILY = "consumerOffset";
+
     protected transient RocksDBConfigManager rocksDBConfigManager;
+    private final boolean useSingleRocksDBForAllConfigs;
+    private final String storePathRootDir;
+
+    public RocksDBConsumerOffsetManager(BrokerController brokerController, boolean useSingleRocksDB,
+        String storePathRootDir) {
+        super(brokerController);
+
+        this.useSingleRocksDBForAllConfigs = useSingleRocksDB;
+        this.storePathRootDir = StringUtils.isBlank(storePathRootDir) ?
+            brokerController.getMessageStoreConfig().getStorePathRootDir() : storePathRootDir;
+
+        long flushInterval = brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs();
+        CompressionType compressionType =
+            CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType());
+        String rocksDBPath = rocksdbConfigFilePath(storePathRootDir, useSingleRocksDB);
+
+        this.rocksDBConfigManager = useSingleRocksDB ? new RocksDBConfigManager(rocksDBPath, flushInterval,
+            compressionType, OFFSET_COLUMN_FAMILY, VERSION_COLUMN_FAMILY) : new RocksDBConfigManager(rocksDBPath,
+            flushInterval, compressionType);
+    }
+
+    public RocksDBConsumerOffsetManager(BrokerController brokerController, boolean useSingleRocksDBForAllConfigs) {
+        this(brokerController, useSingleRocksDBForAllConfigs, null);
+    }
 
     public RocksDBConsumerOffsetManager(BrokerController brokerController) {
-        super(brokerController);
-        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs(),
-            CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType()));
-
+        this(brokerController, brokerController.getBrokerConfig().isUseSingleRocksDBForAllConfigs(), null);
     }
 
     @Override
@@ -55,7 +82,9 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         if (!loadDataVersion() || !loadConsumerOffset()) {
             return false;
         }
-
+        if (useSingleRocksDBForAllConfigs) {
+            migrateFromSeparateRocksDBs();
+        }
         return true;
     }
 
@@ -80,7 +109,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
                 log.error("load json consumerOffset info failed, startup will exit");
                 return false;
             }
-            this.persist();
+            this.persist0(); // ensure full persistence
             this.getDataVersion().assignNewOne(dataVersion);
             updateDataVersion();
             log.info("update offset from json, dataVersion:{}, offsetTable: {} ", this.getDataVersion(), JSON.toJSONString(this.getOffsetTable()));
@@ -95,7 +124,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     @Override
-    protected void removeConsumerOffset(String topicAtGroup) {
+    public void removeConsumerOffset(String topicAtGroup) {
         try {
             byte[] keyBytes = topicAtGroup.getBytes(DataConverter.CHARSET_UTF8);
             this.rocksDBConfigManager.delete(keyBytes);
@@ -112,29 +141,77 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         log.info("load exist local offset, {}, {}", topicAtGroup, wrapper.getOffsetTable());
     }
 
-    public String rocksdbConfigFilePath() {
-        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "consumerOffsets" + File.separator;
+    public String rocksdbConfigFilePath(String storePathRootDir, boolean useSingleRocksDBForAllConfigs) {
+        if (StringUtils.isBlank(storePathRootDir)) {
+            storePathRootDir = brokerController.getMessageStoreConfig().getStorePathRootDir();
+        }
+        Path rootPath = Paths.get(storePathRootDir);
+        if (useSingleRocksDBForAllConfigs) {
+            return rootPath.resolve("config").resolve("metadata").toString();
+        }
+        return rootPath.resolve("config").resolve("consumerOffsets").toString();
+    }
+
+    @Override
+    public String configFilePath() {
+        return BrokerPathConfigHelper.getConsumerOffsetPath(this.storePathRootDir);
     }
 
     @Override
     public synchronized void persist() {
-        WriteBatch writeBatch = new WriteBatch();
-        try {
-            Iterator<Entry<String, ConcurrentMap<Integer, Long>>> iterator = this.offsetTable.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Entry<String, ConcurrentMap<Integer, Long>> entry = iterator.next();
-                putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
-
-                if (writeBatch.getDataSize() >= 4 * 1024) {
-                    this.rocksDBConfigManager.batchPutWithWal(writeBatch);
-                }
-            }
-            this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+        if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+            updateDataVersion();
             this.rocksDBConfigManager.flushWAL();
+            return;
+        }
+        persist0();
+    }
+
+    private void persist0() {
+        if (rocksDBConfigManager.isLoaded()) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
+                    putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
+                    if (writeBatch.getDataSize() >= 4 * 1024) {
+                        this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                    }
+                }
+                this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                this.rocksDBConfigManager.flushWAL();
+            } catch (Exception e) {
+                log.error("consumer offset persist Failed", e);
+            }
+        } else {
+            log.warn("RocksDBConsumerOffsetManager has been stopped, persist fail");
+        }
+    }
+
+    @Override
+    public void commitOffset(String clientHost, String group, String topic, int queueId, long offset) {
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
+        if (null == map) {
+            map = MixAll.isLmq(topic) ? new ConcurrentHashMap<>(1, 1.0F) : new ConcurrentHashMap<>();
+            map.put(queueId, offset);
+            this.offsetTable.put(key, map);
+        } else {
+            Long storeOffset = map.put(queueId, offset);
+            if (storeOffset != null && offset < storeOffset) {
+                LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+            }
+        }
+        if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
+            updateDataVersion();
+        }
+        if (!brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+            return;
+        }
+
+        try (WriteBatch writeBatch = new WriteBatch()) {
+            putWriteBatch(writeBatch, key, map);
+            this.rocksDBConfigManager.batchPutWithWal(writeBatch);
         } catch (Exception e) {
             log.error("consumer offset persist Failed", e);
-        } finally {
-            writeBatch.close();
         }
     }
 
@@ -147,8 +224,8 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         byte[] keyBytes = topicGroupName.getBytes(DataConverter.CHARSET_UTF8);
         RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
         wrapper.setOffsetTable(offsetMap);
-        byte[] valueBytes = JSON.toJSONBytes(wrapper, SerializerFeature.BrowserCompatible);
-        writeBatch.put(keyBytes, valueBytes);
+        byte[] valueBytes = JSON.toJSONBytes(wrapper, JSONWriter.Feature.BrowserCompatible);
+        rocksDBConfigManager.writeBatchPutOperation(writeBatch, keyBytes, valueBytes);
     }
 
     @Override
@@ -161,12 +238,107 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         return rocksDBConfigManager.getKvDataVersion();
     }
 
+    @Override
     public void updateDataVersion() {
         try {
             rocksDBConfigManager.updateKvDataVersion();
         } catch (Exception e) {
             log.error("update consumer offset dataVersion error", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Migrate data from separate RocksDB instances to the unified RocksDB when useSingleRocksDBForAllConfigs is
+     * enabled.
+     * This method will only be called when switching from separate RocksDB mode to unified mode.
+     * It opens the separate RocksDB in read-only mode, compares versions, and imports data if needed.
+     */
+    private void migrateFromSeparateRocksDBs() {
+        String separateRocksDBPath = rocksdbConfigFilePath(this.storePathRootDir, false);
+
+        // Check if separate RocksDB exists
+        if (!UtilAll.isPathExists(separateRocksDBPath)) {
+            log.info("Separate RocksDB for consumer offsets does not exist at {}, no migration needed",
+                separateRocksDBPath);
+            return;
+        }
+
+        log.info("Starting migration from separate RocksDB at {} to unified RocksDB", separateRocksDBPath);
+
+        // Open separate RocksDB in read-only mode
+        RocksDBConfigManager separateRocksDBConfigManager = null;
+        try {
+            long memTableFlushIntervalMs = brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs();
+            org.rocksdb.CompressionType compressionType =
+                org.rocksdb.CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType());
+
+            separateRocksDBConfigManager = new RocksDBConfigManager(separateRocksDBPath, memTableFlushIntervalMs,
+                compressionType);
+
+            // Initialize in read-only mode
+            if (!separateRocksDBConfigManager.init(true)) {
+                log.error("Failed to initialize separate RocksDB in read-only mode");
+                return;
+            }
+
+            // Load data version from separate RocksDB
+            if (!separateRocksDBConfigManager.loadDataVersion()) {
+                log.error("Failed to load data version from separate RocksDB");
+                return;
+            }
+
+            DataVersion separateDataVersion = separateRocksDBConfigManager.getKvDataVersion();
+            DataVersion unifiedDataVersion = this.getDataVersion();
+
+            log.info("Comparing data versions - Separate: {}, Unified: {}", separateDataVersion, unifiedDataVersion);
+
+            // Compare versions and import if separate version is newer
+            if (separateDataVersion.getCounter().get() > unifiedDataVersion.getCounter().get()) {
+                log.info("Separate RocksDB has newer data, importing...");
+
+                // Load consumer offsets from separate RocksDB
+                if (separateRocksDBConfigManager.loadData(this::importConsumerOffset)) {
+                    log.info("Successfully imported consumer offsets from separate RocksDB");
+
+                    // Update unified data version to be newer than separate one
+                    this.getDataVersion().assignNewOne(separateDataVersion);
+                    this.getDataVersion().nextVersion(); // Make it one version higher
+                    updateDataVersion();
+
+                    log.info("Updated unified data version to {}", this.getDataVersion());
+                } else {
+                    log.error("Failed to import consumer offsets from separate RocksDB");
+                }
+            } else {
+                log.info("Unified RocksDB is already up-to-date, no migration needed");
+            }
+        } catch (Exception e) {
+            log.error("Error during migration from separate RocksDB", e);
+        } finally {
+            // Clean up resources
+            if (separateRocksDBConfigManager != null) {
+                try {
+                    separateRocksDBConfigManager.stop();
+                } catch (Exception e) {
+                    log.warn("Error stopping separate RocksDB config manager", e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Import a consumer offset from the separate RocksDB during migration
+     *
+     * @param key  The topic@group name bytes
+     * @param body The consumer offset data bytes
+     */
+    private void importConsumerOffset(final byte[] key, final byte[] body) {
+        try {
+            decodeOffset(key, body);
+            this.rocksDBConfigManager.put(key, body);
+        } catch (Exception e) {
+            log.error("Error importing consumer offset", e);
         }
     }
 }

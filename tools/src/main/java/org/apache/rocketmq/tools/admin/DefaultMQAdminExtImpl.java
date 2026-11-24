@@ -16,7 +16,26 @@
  */
 package org.apache.rocketmq.tools.admin;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
@@ -70,6 +89,11 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
+import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
@@ -102,27 +126,6 @@ import org.apache.rocketmq.tools.admin.common.AdminToolHandler;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
 import org.apache.rocketmq.tools.admin.common.AdminToolsResultCodeEnum;
 import org.apache.rocketmq.tools.command.CommandUtil;
-
-import java.io.UnsupportedEncodingException;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
@@ -299,7 +302,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
                 TopicStatsTable tst = this.mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
-                topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                topicStatsTable.merge(tst);
             }
         }
 
@@ -334,8 +337,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                 String addr = bd.selectBrokerAddr();
                                 if (addr != null) {
                                     TopicStatsTable tst = mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
-                                    topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
-                                    topicStatsTable.setTopicPutTps(topicStatsTable.getTopicPutTps() + tst.getTopicPutTps());
+                                    topicStatsTable.merge(tst);
                                 }
                             } catch (Exception e) {
                                 logger.error("getTopicStatsInfo error. topic={}", topic, e);
@@ -905,7 +907,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                         resetOffsetByTimestampOld(addr, topicRouteMap.get(bd.getBrokerName()), group, topic, timestamp, true);
                                         successList.add(addr);
                                     } catch (Exception e2) {
-                                        logger.error(MessageFormat.format("resetOffsetByTimestampOld error. addr={0}, topic={1}, group={2},timestamp={3}", addr, topic, group, timestamp), e);
+                                        logger.error("resetOffsetByTimestampOld error. addr={}, topic={}, group={}, timestamp={}", addr, topic, group, timestamp, e);
                                         failureList.add(addr);
                                     }
                                 } else if (ResponseCode.SYSTEM_ERROR == e.getResponseCode()) {
@@ -913,11 +915,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                     successList.add(addr);
                                 } else {
                                     failureList.add(addr);
-                                    logger.error(MessageFormat.format("resetOffsetNewConcurrent error. addr={0}, topic={1}, group={2},timestamp={3}", addr, topic, group, timestamp), e);
+                                    logger.error("resetOffsetNewConcurrent error. addr={}, topic={}, group={}, timestamp={}", addr, topic, group, timestamp, e);
                                 }
                             } catch (Exception e) {
                                 failureList.add(addr);
-                                logger.error(MessageFormat.format("resetOffsetNewConcurrent error. addr={0}, topic={1}, group={2},timestamp={3}", addr, topic, group, timestamp), e);
+                                logger.error("resetOffsetNewConcurrent error. addr={}, topic={}, group={}, timestamp={}", addr, topic, group, timestamp, e);
                             } finally {
                                 latch.countDown();
                             }
@@ -1739,9 +1741,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin,
         long end) throws MQClientException, InterruptedException, RemotingException {
-        return this.mqClientInstance.getMQAdminImpl().queryMessage(clusterName, topic, key, maxNum, begin, end, false);
+        return this.mqClientInstance.getMQAdminImpl().queryMessage(clusterName, topic, key, maxNum, begin, end, false, MessageConst.INDEX_KEY_TYPE, null);
     }
 
+    public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, String keyType, String lastKey) throws MQClientException, InterruptedException, RemotingException {
+        return this.mqClientInstance.getMQAdminImpl().queryMessage(clusterName, topic, key, maxNum, begin, end, false, keyType, lastKey);
+    }
     @Override
     public void updateConsumeOffset(String brokerAddr, String consumeGroup, MessageQueue mq,
         long offset) throws RemotingException, InterruptedException, MQBrokerException {
@@ -2053,4 +2058,50 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         this.mqClientInstance.getMQClientAPIImpl().exportPopRecord(brokerAddr, timeout);
     }
+
+    @Override
+    public void switchTimerEngine(String brokerAddr, String desTimerEngine) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().switchTimerEngine(brokerAddr, desTimerEngine, timeoutMillis);
+    }
+
+
+    @Override
+    public GetBrokerLiteInfoResponseBody getBrokerLiteInfo(String brokerAddr)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().getBrokerLiteInfo(brokerAddr, timeoutMillis);
+    }
+
+    @Override
+    public GetParentTopicInfoResponseBody getParentTopicInfo(String brokerAddr, String topic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQClientAPIImpl().getParentTopicInfo(brokerAddr, topic, timeoutMillis);
+    }
+
+    @Override
+    public GetLiteTopicInfoResponseBody getLiteTopicInfo(String brokerAddr, String parentTopic, String liteTopic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQClientAPIImpl().getLiteTopicInfo(brokerAddr, parentTopic, liteTopic,
+            timeoutMillis);
+    }
+
+    @Override
+    public GetLiteClientInfoResponseBody getLiteClientInfo(String brokerAddr, String parentTopic, String group,
+        String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQClientAPIImpl().getLiteClientInfo(brokerAddr, parentTopic, group, clientId,
+         timeoutMillis);
+    }
+
+    @Override
+    public GetLiteGroupInfoResponseBody getLiteGroupInfo(String brokerAddr, String group, String liteTopic, int topK)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return this.mqClientInstance.getMQClientAPIImpl().getLiteGroupInfo(brokerAddr, group, liteTopic, topK, timeoutMillis);
+    }
+
+    @Override
+    public void triggerLiteDispatch(String brokerAddr, String group, String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().triggerLiteDispatch(brokerAddr, group, clientId, timeoutMillis);
+    }
+
 }

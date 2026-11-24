@@ -58,6 +58,8 @@ public class PosixFileSegment extends FileSegment {
     private volatile File file;
     private volatile FileChannel readFileChannel;
     private volatile FileChannel writeFileChannel;
+    private volatile RandomAccessFile readRandomAccessFile;
+    private volatile RandomAccessFile writeRandomAccessFile;
 
     public PosixFileSegment(MessageStoreConfig storeConfig,
         FileSegmentType fileType, String filePath, long baseOffset, MessageStoreExecutor executor) {
@@ -73,7 +75,7 @@ public class PosixFileSegment extends FileSegment {
         String clusterBasePath = String.format("%s_%s", MessageStoreUtil.getHash(clusterName), clusterName);
         fullPath = Paths.get(basePath, clusterBasePath, filePath,
             fileType.toString(), MessageStoreUtil.offset2FileName(baseOffset)).toString();
-        log.info("Constructing Posix FileSegment, filePath: {}", fullPath);
+        log.info("PosixFileSegment#init, constructing, filePath={}", fullPath);
 
         this.createFile();
     }
@@ -113,7 +115,7 @@ public class PosixFileSegment extends FileSegment {
         }
     }
 
-    @SuppressWarnings({"resource", "ResultOfMethodCallIgnored"})
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private void createFile0() {
         try {
             File file = new File(fullPath);
@@ -123,14 +125,16 @@ public class PosixFileSegment extends FileSegment {
             }
             if (!file.exists()) {
                 if (file.createNewFile()) {
-                    log.debug("Create Posix FileSegment, filePath: {}", fullPath);
+                    log.debug("PosixFileSegment#createFile0, create file, filePath={}", fullPath);
                 }
             }
-            this.readFileChannel = new RandomAccessFile(file, "r").getChannel();
-            this.writeFileChannel = new RandomAccessFile(file, "rwd").getChannel();
+            this.readRandomAccessFile = new RandomAccessFile(file, "r");
+            this.readFileChannel = this.readRandomAccessFile.getChannel();
+            this.writeRandomAccessFile = new RandomAccessFile(file, "rwd");
+            this.writeFileChannel = this.writeRandomAccessFile.getChannel();
             this.file = file;
         } catch (Exception e) {
-            log.error("PosixFileSegment#createFile: create file {} failed: ", filePath, e);
+            log.error("PosixFileSegment#createFile0, create file failed, filePath={}", filePath, e);
         }
     }
 
@@ -140,9 +144,9 @@ public class PosixFileSegment extends FileSegment {
         this.close();
         if (file != null && file.exists()) {
             if (file.delete()) {
-                log.info("Destroy Posix FileSegment, filePath: {}", fullPath);
+                log.info("PosixFileSegment#destroyFile, destroy file, filePath={}", fullPath);
             } else {
-                log.warn("Destroy Posix FileSegment error, filePath: {}", fullPath);
+                log.warn("PosixFileSegment#destroyFile, destroy file error, filePath={}", fullPath);
             }
         }
     }
@@ -155,12 +159,20 @@ public class PosixFileSegment extends FileSegment {
                 readFileChannel.close();
                 readFileChannel = null;
             }
+            if (readRandomAccessFile != null) {
+                readRandomAccessFile.close();
+                readRandomAccessFile = null;
+            }
             if (writeFileChannel != null && writeFileChannel.isOpen()) {
                 writeFileChannel.close();
                 writeFileChannel = null;
             }
+            if (writeRandomAccessFile != null) {
+                writeRandomAccessFile.close();
+                writeRandomAccessFile = null;
+            }
         } catch (IOException e) {
-            log.error("Destroy Posix FileSegment failed, filePath: {}", fullPath, e);
+            log.error("PosixFileSegment#close, close failed, filePath={}", fullPath, e);
         }
     }
 
@@ -173,8 +185,7 @@ public class PosixFileSegment extends FileSegment {
         return CompletableFuture.supplyAsync((Supplier<ByteBuffer>) () -> {
             ByteBuffer byteBuffer = ByteBuffer.allocate(length);
             try {
-                readFileChannel.position(position);
-                readFileChannel.read(byteBuffer);
+                readFileChannel.read(byteBuffer, position);
                 byteBuffer.flip();
                 byteBuffer.limit(length);
 
@@ -191,9 +202,10 @@ public class PosixFileSegment extends FileSegment {
                 long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
                 attributesBuilder.put(LABEL_SUCCESS, false);
                 TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+                throw new RuntimeException(e);
             }
             return byteBuffer;
-        }, executor.bufferFetchExecutor);
+        }, executor.getBufferFetchExecutor());
     }
 
     @Override
@@ -229,6 +241,6 @@ public class PosixFileSegment extends FileSegment {
                 return false;
             }
             return true;
-        }, executor.bufferCommitExecutor);
+        }, executor.getBufferCommitExecutor());
     }
 }

@@ -19,11 +19,11 @@ package org.apache.rocketmq.proxy.service.route;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
@@ -32,12 +32,10 @@ import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.latency.Resolver;
 import org.apache.rocketmq.client.latency.ServiceDetector;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
-import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.Address;
@@ -53,19 +51,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final MQClientAPIFactory mqClientAPIFactory;
-    private MQFaultStrategy mqFaultStrategy;
-
+    private final MQFaultStrategy mqFaultStrategy;
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
-    protected final ScheduledExecutorService scheduledExecutorService;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
+    protected final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
+    protected MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider = new DefaultMessageQueuePriorityProvider();
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
 
-        this.scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(
-            new ThreadFactoryImpl("TopicRouteService_")
-        );
         this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getTopicRouteServiceThreadPoolNums(),
             config.getTopicRouteServiceThreadPoolNums(),
@@ -74,7 +68,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             "TopicRouteCacheRefresh",
             config.getTopicRouteServiceThreadPoolQueueCapacity()
         );
-        this.mqClientAPIFactory = mqClientAPIFactory;
 
         this.topicCache = Caffeine.newBuilder().maximumSize(config.getTopicRouteServiceCacheMaxNum())
             .expireAfterAccess(config.getTopicRouteServiceCacheExpiredSeconds(), TimeUnit.SECONDS)
@@ -134,6 +127,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 }
             }
         }, serviceDetector);
+
+        this.penalizers.addAll(buildPenalizerByMQFaultStrategy(mqFaultStrategy));
         this.init();
     }
 
@@ -146,22 +141,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     }
 
     protected void init() {
-        this.appendShutdown(this.scheduledExecutorService::shutdown);
-        this.appendStartAndShutdown(this.mqClientAPIFactory);
-    }
-
-    @Override
-    public void shutdown() throws Exception {
-        if (this.mqFaultStrategy.isStartDetectorEnable()) {
-            mqFaultStrategy.shutdown();
-        }
-    }
-
-    @Override
-    public void start() throws Exception {
-        if (this.mqFaultStrategy.isStartDetectorEnable()) {
-            this.mqFaultStrategy.startDetector();
-        }
+        this.appendStartAndShutdown(this.mqFaultStrategy);
     }
 
     public ClientConfig extractClientConfigFromProxyConfig(ProxyConfig proxyConfig) {
@@ -220,10 +200,36 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     protected MessageQueueView buildMessageQueueView(String topic, TopicRouteData topicRouteData) {
         if (isTopicRouteValid(topicRouteData)) {
-            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, TopicRouteService.this.getMqFaultStrategy());
+            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, this.penalizers, this.priorityProvider);
             log.debug("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
             return tmp;
         }
         return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+    }
+
+    public void setPriorityProvider(MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider) {
+        this.priorityProvider = priorityProvider;
+    }
+
+    public void addPenalizer(MessageQueuePenalizer<AddressableMessageQueue> penalizer) {
+        this.penalizers.add(penalizer);
+    }
+
+    @VisibleForTesting
+    public static List<MessageQueuePenalizer<AddressableMessageQueue>> buildPenalizerByMQFaultStrategy(MQFaultStrategy mqFaultStrategy) {
+        List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
+        penalizers.add(messageQueue -> {
+            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getAvailableFilter().filter(messageQueue)) {
+                return 0;
+            }
+            return 10;
+        });
+        penalizers.add(messageQueue -> {
+            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getReachableFilter().filter(messageQueue)) {
+                return 0;
+            }
+            return 100;
+        });
+        return penalizers;
     }
 }

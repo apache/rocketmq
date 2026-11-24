@@ -1,8 +1,8 @@
 # TLS Configuration
-This section introduce TLS configuration in RocketMQ.
+This section introduces TLS configuration in RocketMQ.
 
-## 1 Generate Certification Files
-User can generate certification files using OpenSSL. Suggested to generate files in Linux.
+## 1 Generate Certificate Files
+Users can generate certificate files using OpenSSL. It is suggested to generate files in Linux.
 
 ### 1.1 Generate ca.pem
 ```shell
@@ -107,7 +107,7 @@ Add following parameters in JVM. The value of "tls.config.file" needs to be repl
 -Dtls.client.authServer=true -Dtls.enable=true  -Dtls.test.mode.enable=false  -Dtls.config.file=/opt/certs/tlsclient.properties
 ```
 
-Enable TLS for client linke following:
+Enable TLS for client like the following:
 ```Java
 public class ExampleProducer {
     public static void main(String[] args) throws Exception {
@@ -118,6 +118,45 @@ public class ExampleProducer {
 
         // Send messages as usual.
         producer.shutdown();
-    }    
+    }
 }
 ```
+
+## 5 Proxy TLS Configuration
+
+RocketMQ Proxy uses `rmq-proxy.json` (not `tls.properties`) for TLS configuration. The proxy supports TLS for both its gRPC and Remoting protocol endpoints.
+
+### 5.1 Configure rmq-proxy.json
+
+Add TLS-related fields to `distribution/conf/rmq-proxy.json`:
+
+```json
+{
+  "rocketMQClusterName": "DefaultCluster",
+  "tlsTestModeEnable": false,
+  "tlsKeyPath": "/opt/certFiles/server.key",
+  "tlsKeyPassword": "123456",
+  "tlsCertPath": "/opt/certFiles/server.pem"
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `tlsTestModeEnable` | boolean | `true` | Use self-signed certificates for testing. Set to `false` for production. |
+| `tlsKeyPath` | string | `${PROXY_HOME}/conf/tls/rocketmq.key` | Path to the server private key file (PKCS#8 PEM format). |
+| `tlsKeyPassword` | string | `""` | Password for the encrypted private key. Leave empty if the key is not encrypted. |
+| `tlsCertPath` | string | `${PROXY_HOME}/conf/tls/rocketmq.crt` | Path to the server certificate chain file (X.509 PEM format). |
+| `tlsCertWatchIntervalMs` | int | `3600000` | Interval in milliseconds to check for certificate file changes. |
+
+### 5.2 Update Proxy JVM parameters
+
+Edit `runproxy.sh` (or the script that launches the proxy) to enable TLS enforcing mode:
+
+```shell
+JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing"
+```
+
+The three available TLS modes are:
+- `disabled` - TLS is not supported; incoming TLS handshakes are rejected.
+- `permissive` - TLS is optional; the proxy accepts both TLS and non-TLS connections.
+- `enforcing` - TLS is required; non-TLS connections are rejected.

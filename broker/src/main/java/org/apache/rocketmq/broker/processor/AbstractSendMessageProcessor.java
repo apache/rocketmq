@@ -54,13 +54,13 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -182,12 +182,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
 
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_CONSUMER_GROUP, requestHeader.getGroup())
                 .put(LABEL_TOPIC, requestHeader.getOriginTopic())
                 .put(LABEL_IS_SYSTEM, BrokerMetricsManager.isSystem(requestHeader.getOriginTopic(), requestHeader.getGroup()))
                 .build();
-            BrokerMetricsManager.sendToDlqMessages.add(1, attributes);
+            this.brokerController.getBrokerMetricsManager().getSendToDlqMessages().add(1, attributes);
 
             isDLQ = true;
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
@@ -484,6 +484,28 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
+        String properties = requestHeader.getProperties();
+        if (properties != null && (properties.contains(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)
+            || requestHeader.isBatch() && (properties.contains(MessageConst.PROPERTY_DELAY_TIME_LEVEL)
+                || properties.contains(MessageConst.PROPERTY_TIMER_DELIVER_MS)
+                || properties.contains(MessageConst.PROPERTY_TIMER_DELAY_MS)
+                || properties.contains(MessageConst.PROPERTY_TIMER_DELAY_SEC)))) {
+            Map<String, String> messageProperties = MessageDecoder.string2messageProperties(properties);
+            if (messageProperties.containsKey(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)) {
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                response.setRemark("The timer deletion property is reserved for broker internal use.");
+                return response;
+            }
+            if (requestHeader.isBatch() && (messageProperties.containsKey(MessageConst.PROPERTY_DELAY_TIME_LEVEL)
+                || messageProperties.containsKey(MessageConst.PROPERTY_TIMER_DELIVER_MS)
+                || messageProperties.containsKey(MessageConst.PROPERTY_TIMER_DELAY_MS)
+                || messageProperties.containsKey(MessageConst.PROPERTY_TIMER_DELAY_SEC))) {
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                response.setRemark("Delayed messages are not supported for batching.");
+                return response;
+            }
+        }
+
         TopicConfig topicConfig =
             this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
@@ -543,7 +565,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
         final RemotingCommand response) {
-        NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
+        NettyRemotingAbstract.writeResponse(ctx.channel(), request, response, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
     }
 
     public void executeSendMessageHookBefore(SendMessageContext context) {
@@ -589,8 +611,4 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         }
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
 }

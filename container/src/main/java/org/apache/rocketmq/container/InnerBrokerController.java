@@ -18,13 +18,14 @@ package org.apache.rocketmq.container;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -35,9 +36,10 @@ public class InnerBrokerController extends BrokerController {
     public InnerBrokerController(
         final BrokerContainer brokerContainer,
         final BrokerConfig brokerConfig,
-        final MessageStoreConfig messageStoreConfig
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
     ) {
-        super(brokerConfig, messageStoreConfig);
+        super(brokerConfig, messageStoreConfig, authConfig);
         this.brokerContainer = brokerContainer;
         this.brokerOuterAPI = this.brokerContainer.getBrokerOuterAPI();
     }
@@ -45,10 +47,19 @@ public class InnerBrokerController extends BrokerController {
     @Override
     protected void initializeRemotingServer() {
         RemotingServer remotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort());
-        RemotingServer fastRemotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2);
+
+        if (this.brokerMetricsManager != null && remotingServer instanceof NettyRemotingServer) {
+            ((NettyRemotingServer) remotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+        }
 
         setRemotingServer(remotingServer);
-        setFastRemotingServer(fastRemotingServer);
+        if (this.brokerConfig.isEnableFastRemotingServer()) {
+            RemotingServer fastRemotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2);
+            if (this.brokerMetricsManager != null && fastRemotingServer instanceof NettyRemotingServer) {
+                ((NettyRemotingServer) fastRemotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+            }
+            setFastRemotingServer(fastRemotingServer);
+        }
     }
 
     @Override
@@ -71,9 +82,9 @@ public class InnerBrokerController extends BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
-        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 try {
                     if (System.currentTimeMillis() < shouldStartTime) {
                         BrokerController.LOG.info("Register to namesrv after {}", shouldStartTime);
@@ -93,9 +104,9 @@ public class InnerBrokerController extends BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
             scheduleSendHeartbeat();
 
-            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
-                public void run0() {
+                public void run() {
                     try {
                         InnerBrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {

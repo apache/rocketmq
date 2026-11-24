@@ -645,8 +645,10 @@ public class UtilAll {
             file.delete();
         } else if (file.isDirectory()) {
             File[] files = file.listFiles();
-            for (File file1 : files) {
-                deleteFile(file1);
+            if (files != null) {
+                for (File file1 : files) {
+                    deleteFile(file1);
+                }
             }
             file.delete();
         }

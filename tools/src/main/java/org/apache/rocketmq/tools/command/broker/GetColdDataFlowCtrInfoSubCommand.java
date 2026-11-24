@@ -16,13 +16,9 @@
  */
 package org.apache.rocketmq.tools.command.broker;
 
-import java.io.UnsupportedEncodingException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -36,6 +32,12 @@ import org.apache.rocketmq.tools.admin.MQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 public class GetColdDataFlowCtrInfoSubCommand implements SubCommand {
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -116,7 +118,7 @@ public class GetColdDataFlowCtrInfoSubCommand implements SubCommand {
             value.remove("createTimeMills");
         });
 
-        String formatStr = JSON.toJSONString(jsonObject, true);
+        String formatStr = JSON.toJSONString(jsonObject, JSONWriter.Feature.PrettyFormat);
         System.out.printf(formatStr);
         System.out.printf("%n");
     }

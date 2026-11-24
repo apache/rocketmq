@@ -41,7 +41,6 @@ public class ZlibCompressor implements Compressor {
             deflaterOutputStream.close();
             result = byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
-            defeater.end();
             throw e;
         } finally {
             try {

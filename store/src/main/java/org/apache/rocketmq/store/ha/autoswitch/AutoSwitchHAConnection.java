@@ -310,7 +310,12 @@ public class AutoSwitchHAConnection implements HAConnection {
                     int diff = byteBufferRead.position() - ReadSocketService.this.processPosition;
                     if (diff >= AutoSwitchHAClient.MIN_HEADER_SIZE) {
                         int readPosition = ReadSocketService.this.processPosition;
-                        HAConnectionState slaveState = HAConnectionState.values()[byteBufferRead.getInt(readPosition)];
+                        int slaveStateOrdinal = byteBufferRead.getInt(readPosition);
+                        HAConnectionState slaveState = HAConnectionState.fromOrdinal(slaveStateOrdinal);
+                        if (slaveState == null) {
+                            LOGGER.error("Received illegal slave state ordinal {}", slaveStateOrdinal);
+                            return false;
+                        }
 
                         switch (slaveState) {
                             case HANDSHAKE:
@@ -591,6 +596,20 @@ public class AutoSwitchHAConnection implements HAConnection {
                     this.releaseData();
                     this.waitForRunning(100);
                     return;
+                }
+
+                // Check and update currentTransferEpochEndOffset
+                if (AutoSwitchHAConnection.this.currentTransferEpochEndOffset == -1) {
+                    EpochEntry currentEpochEntry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+                    if (currentEpochEntry != null) {
+                        if (currentEpochEntry.getEndOffset() != EpochEntry.LAST_EPOCH_END_OFFSET) {
+                            LOGGER.info("Update currentTransferEpochEndOffset from -1 to {}", currentEpochEntry.getEndOffset());
+                            AutoSwitchHAConnection.this.currentTransferEpochEndOffset = currentEpochEntry.getEndOffset();
+                        }
+                    } else {
+                        // we should never reach here
+                        LOGGER.warn("[BUG]Can't find currentTransferEpoch [{}] from epoch cache", currentTransferEpoch);
+                    }
                 }
 
                 // We must ensure that the transmitted logs are within the same epoch

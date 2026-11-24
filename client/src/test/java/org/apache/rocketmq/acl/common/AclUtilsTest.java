@@ -20,6 +20,7 @@ import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.io.File;
@@ -230,6 +231,8 @@ public class AclUtilsTest {
 
     @Test
     public void testGetAclRPCHookByFileName() {
+        // Skip this test if running in Bazel, as the resource path is a path inside the JAR.
+        Assume.assumeTrue(System.getProperty("build.bazel") == null);
         RPCHook actual = AclUtils.getAclRPCHook(Objects.requireNonNull(AclUtilsTest.class.getResource("/acl_hook/plain_acl.yml")).getPath());
         assertNotNull(actual);
         assertTrue(actual instanceof AclClientRPCHook);

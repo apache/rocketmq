@@ -110,6 +110,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
             msgBodys.addData(new String(message.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
             originMsgIndex.put(new String(message.getBody(), StandardCharsets.UTF_8), internalSendResult);
+            sendResult.setSendResultObj(internalSendResult);
         } catch (Exception e) {
             if (isDebug) {
                 e.printStackTrace();

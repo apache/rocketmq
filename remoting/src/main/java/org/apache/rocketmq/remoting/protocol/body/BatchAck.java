@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.remoting.protocol.body;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import org.apache.rocketmq.remoting.protocol.BitSetSerializerDeserializer;
 
 import java.io.Serializable;

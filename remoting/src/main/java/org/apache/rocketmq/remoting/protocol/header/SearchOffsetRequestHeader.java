@@ -31,11 +31,12 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-@RocketMQAction(value = RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, action = Action.GET)
+@RocketMQAction(value = RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, action = {Action.SUB, Action.GET})
 public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.TOPIC)
     private String topic;
+    private String liteTopic;
     @CFNotNull
     private Integer queueId;
     @CFNotNull
@@ -56,6 +57,14 @@ public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
     @Override
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
     }
 
     @Override
@@ -89,6 +98,7 @@ public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("topic", topic)
+            .add("liteTopic", liteTopic)
             .add("queueId", queueId)
             .add("timestamp", timestamp)
             .add("boundaryType", boundaryType.getName())

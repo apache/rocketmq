@@ -27,7 +27,7 @@ $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### 验证Broker是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
 $ tail -f ~/logs/rocketmqlogs/broker.log 
-The broker[broker-a, 192.169.1.2:10911] boot success...
+The broker[broker-a, 192.168.1.2:10911] boot success...
 ```
 
 #### 1.2 多Master模式
@@ -279,6 +279,26 @@ RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-n</td>
+  <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td rowspan=4 height=137 class=xl68 width=163 style='border-bottom:1.0pt;
+  height:103.0pt;border-top:none;width:122pt'>getTopicConfig</td>
+  <td rowspan=4 class=xl70 width=135 style='border-bottom:1.0pt;
+  border-top:none;width:101pt'>查看 Broker 上实际存储的 Topic 配置。用法：getTopicConfig -t &lt;topic&gt; [-b &lt;brokerAddr&gt; | -c &lt;cluster&gt;]；未指定 -b 或 -c 时查询所有 Broker。</td>
+  <td class=xl65 width=149 style='width:112pt'>-t</td>
+  <td class=xl66 width=159 style='width:119pt'>topic 名称</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-b</td>
+  <td class=xl66 width=159 style='width:119pt'>Broker 地址，格式 ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-c</td>
+  <td class=xl66 width=159 style='width:119pt'>集群名称</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-n</td>
   <td class=xl66 width=159 style='width:119pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
@@ -891,7 +911,7 @@ RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
   <td class=xl68 width=87 style='width:65pt'>开始时间戳，格式详见-h</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-d</td>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-e</td>
   <td class=xl68 width=87 style='width:65pt'>结束时间戳</td>
  </tr>
  <tr height=39 style='height:29.0pt'>

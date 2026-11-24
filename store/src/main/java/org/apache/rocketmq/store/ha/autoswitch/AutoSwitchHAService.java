@@ -100,12 +100,19 @@ public class AutoSwitchHAService extends DefaultHAService {
     @Override
     public void removeConnection(HAConnection conn) {
         if (!defaultMessageStore.isShutdown()) {
-            final Set<Long> syncStateSet = getLocalSyncStateSet();
             Long slave = ((AutoSwitchHAConnection) conn).getSlaveId();
-            if (syncStateSet.contains(slave)) {
-                syncStateSet.remove(slave);
-                markSynchronizingSyncStateSet(syncStateSet);
-                notifySyncStateSetChanged(syncStateSet);
+            this.writeLock.lock();
+            try {
+                final Set<Long> newSyncStateSet = new HashSet<>(this.syncStateSet);
+                if (newSyncStateSet.contains(slave)) {
+                    newSyncStateSet.remove(slave);
+                    markSynchronizingSyncStateSet(newSyncStateSet);
+                    notifySyncStateSetChanged(newSyncStateSet);
+                    this.syncStateSet.clear();
+                    this.syncStateSet.addAll(newSyncStateSet);
+                }
+            } finally {
+                this.writeLock.unlock();
             }
         }
         super.removeConnection(conn);

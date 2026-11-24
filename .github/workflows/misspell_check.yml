@@ -4,6 +4,11 @@ on:
     types: [opened, reopened, synchronize]
   push:
     branches: [master, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   misspell-check:
     runs-on: ubuntu-latest

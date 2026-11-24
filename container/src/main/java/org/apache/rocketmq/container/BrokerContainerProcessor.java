@@ -24,8 +24,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.Properties;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
+import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -44,11 +46,11 @@ import org.apache.rocketmq.remoting.protocol.header.RemoveBrokerRequestHeader;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerContainerProcessor implements NettyRequestProcessor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private final BrokerContainer brokerContainer;
-    private List<BrokerBootHook> brokerBootHookList;
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected final BrokerContainer brokerContainer;
+    protected List<BrokerBootHook> brokerBootHookList;
 
-    private final Set<String> configBlackList = new HashSet<>();
+    protected final Set<String> configBlackList = new HashSet<>();
 
     public BrokerContainerProcessor(BrokerContainer brokerContainer) {
         this.brokerContainer = brokerContainer;
@@ -80,13 +82,8 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
-    private synchronized RemotingCommand addBroker(ChannelHandlerContext ctx,
-                                                   RemotingCommand request) throws Exception {
+    protected synchronized RemotingCommand addBroker(ChannelHandlerContext ctx,
+        RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final AddBrokerRequestHeader requestHeader = (AddBrokerRequestHeader) request.decodeCommandCustomHeader(AddBrokerRequestHeader.class);
 
@@ -120,8 +117,10 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
 
         BrokerConfig brokerConfig = new BrokerConfig();
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        AuthConfig authConfig = new AuthConfig();
         MixAll.properties2Object(brokerProperties, brokerConfig);
         MixAll.properties2Object(brokerProperties, messageStoreConfig);
+        MixAll.properties2Object(brokerProperties, authConfig);
 
         messageStoreConfig.setHaListenPort(brokerConfig.getListenPort() + 1);
         brokerConfig.setBrokerConfigPath(configPath);
@@ -147,36 +146,43 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
             }
 
             if (messageStoreConfig.getTotalReplicas() < messageStoreConfig.getInSyncReplicas()
-                    || messageStoreConfig.getTotalReplicas() < messageStoreConfig.getMinInSyncReplicas()
-                    || messageStoreConfig.getInSyncReplicas() < messageStoreConfig.getMinInSyncReplicas()) {
+                || messageStoreConfig.getTotalReplicas() < messageStoreConfig.getMinInSyncReplicas()
+                || messageStoreConfig.getInSyncReplicas() < messageStoreConfig.getMinInSyncReplicas()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark("invalid replicas number");
                 return response;
             }
         }
 
-        BrokerController brokerController;
+        ConfigContext configContext = new ConfigContext.Builder().
+            brokerConfig(brokerConfig).
+            messageStoreConfig(messageStoreConfig).
+            authConfig(authConfig).
+            properties(brokerProperties).
+            build();
+
+        InnerBrokerController innerBrokerController;
         try {
-            brokerController = this.brokerContainer.addBroker(brokerConfig, messageStoreConfig);
+            innerBrokerController = this.brokerContainer.addBroker(configContext);
         } catch (Exception e) {
-            LOGGER.error("addBroker exception {}", e);
+            LOGGER.error("addBroker exception", e);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(e.getMessage());
             return response;
         }
-        if (brokerController != null) {
-            brokerController.getConfiguration().registerConfig(brokerProperties);
+        if (innerBrokerController != null) {
+            innerBrokerController.getConfiguration().registerConfig(brokerProperties);
             try {
                 for (BrokerBootHook brokerBootHook : brokerBootHookList) {
-                    brokerBootHook.executeBeforeStart(brokerController, brokerProperties);
+                    brokerBootHook.executeBeforeStart(innerBrokerController, brokerProperties);
                 }
-                brokerController.start();
+                innerBrokerController.start();
 
                 for (BrokerBootHook brokerBootHook : brokerBootHookList) {
-                    brokerBootHook.executeAfterStart(brokerController, brokerProperties);
+                    brokerBootHook.executeAfterStart(innerBrokerController, brokerProperties);
                 }
             } catch (Exception e) {
-                LOGGER.error("start broker exception {}", e);
+                LOGGER.error("start broker exception", e);
                 BrokerIdentity brokerIdentity;
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
@@ -186,9 +192,9 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                         brokerConfig.getBrokerName(), brokerConfig.getBrokerId());
                 }
                 this.brokerContainer.removeBroker(brokerIdentity);
-                brokerController.shutdown();
+                innerBrokerController.shutdown();
                 response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("start broker failed, " + e);
+                response.setRemark("start broker failed" + e);
                 return response;
             }
             response.setCode(ResponseCode.SUCCESS);
@@ -201,7 +207,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private synchronized RemotingCommand removeBroker(ChannelHandlerContext ctx,
+    protected synchronized RemotingCommand removeBroker(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final RemoveBrokerRequestHeader requestHeader = (RemoveBrokerRequestHeader) request.decodeCommandCustomHeader(RemoveBrokerRequestHeader.class);
@@ -274,6 +280,26 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    // sensitive config keys that must never be returned by config query interfaces
+    private static final String[] SENSITIVE_CONFIG_KEYS = new String[] {
+        "initAuthenticationUser", "innerClientAuthenticationCredentials"
+    };
+
+    /**
+     * Remove sensitive entries from a snapshot of the broker configuration.
+     */
+    static String sanitizeConfigForResponse(Properties source) {
+        if (source == null) {
+            return null;
+        }
+        Properties properties = new Properties();
+        properties.putAll(source);
+        for (String key : SENSITIVE_CONFIG_KEYS) {
+            properties.remove(key);
+        }
+        return MixAll.properties2String(properties, true);
+    }
+
     private boolean validateBlackListConfigExist(Properties properties) {
         for (String blackConfig : configBlackList) {
             if (properties.containsKey(blackConfig)) {
@@ -288,8 +314,15 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerConfigResponseHeader.class);
         final GetBrokerConfigResponseHeader responseHeader = (GetBrokerConfigResponseHeader) response.readCustomHeader();
 
-        String content = this.brokerContainer.getConfiguration().getAllConfigsFormatString();
-        if (content != null && content.length() > 0) {
+        String content = sanitizeConfigForResponse(
+            this.brokerContainer.getConfiguration().getAllConfigsSnapshot());
+        if (content == null) {
+            LOGGER.error("BrokerContainerProcessor#getBrokerConfig: failed to sanitize broker config");
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Failed to sanitize broker config");
+            return response;
+        }
+        if (content.length() > 0) {
             try {
                 content = MixAll.adjustConfigForPlatform(content);
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));

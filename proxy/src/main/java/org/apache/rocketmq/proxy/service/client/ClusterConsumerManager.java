@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.client;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -38,8 +39,15 @@ public class ClusterConsumerManager extends ConsumerManager implements StartAndS
 
     public ClusterConsumerManager(TopicRouteService topicRouteService, AdminService adminService,
                                   MQClientAPIFactory mqClientAPIFactory, ConsumerIdsChangeListener consumerIdsChangeListener, long channelExpiredTimeout, RPCHook rpcHook) {
+        this(topicRouteService, adminService, mqClientAPIFactory, consumerIdsChangeListener,
+            channelExpiredTimeout, rpcHook, null);
+    }
+
+    public ClusterConsumerManager(TopicRouteService topicRouteService, AdminService adminService,
+        MQClientAPIFactory mqClientAPIFactory, ConsumerIdsChangeListener consumerIdsChangeListener,
+        long channelExpiredTimeout, RPCHook rpcHook, ExecutorService consumeExecutor) {
         super(consumerIdsChangeListener, channelExpiredTimeout);
-        this.heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, this, mqClientAPIFactory, rpcHook);
+        this.heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, this, mqClientAPIFactory, rpcHook, consumeExecutor);
     }
 
     @Override

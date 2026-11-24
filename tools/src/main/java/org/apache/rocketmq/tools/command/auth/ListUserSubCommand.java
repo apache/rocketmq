@@ -34,7 +34,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ListUserSubCommand implements SubCommand {
 
-    private static final String FORMAT = "%-16s  %-22s  %-22s  %-22s%n";
+    private static final String FORMAT = "%-16s  %-22s  %-22s%n";
 
     @Override
     public String commandName() {
@@ -115,7 +115,8 @@ public class ListUserSubCommand implements SubCommand {
     }
 
     private void printUsers(List<UserInfo> users) {
-        System.out.printf(FORMAT, "#UserName", "#Password", "#UserType", "#UserStatus");
-        users.forEach(user -> System.out.printf(FORMAT, user.getUsername(), user.getPassword(), user.getUserType(), user.getUserStatus()));
+        System.out.printf(FORMAT, "#UserName", "#UserType", "#UserStatus");
+        users.forEach(user -> System.out.printf(FORMAT,
+            user.getUsername(), user.getUserType(), user.getUserStatus()));
     }
 }

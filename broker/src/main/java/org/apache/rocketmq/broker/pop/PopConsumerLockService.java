@@ -41,16 +41,24 @@ public class PopConsumerLockService {
         this.lockTable = new ConcurrentHashMap<>();
     }
 
-    public boolean tryLock(String groupId, String topicId) {
+    public boolean tryLock(String key) {
         return Objects.requireNonNull(ConcurrentHashMapUtils.computeIfAbsent(lockTable,
-            groupId + PopAckConstants.SPLIT + topicId, s -> new TimedLock())).tryLock();
+            key, s -> new TimedLock())).tryLock();
     }
 
-    public void unlock(String groupId, String topicId) {
-        TimedLock lock = lockTable.get(groupId + PopAckConstants.SPLIT + topicId);
+    public boolean tryLock(String groupId, String topicId) {
+        return tryLock(groupId + PopAckConstants.SPLIT + topicId);
+    }
+
+    public void unlock(String key) {
+        TimedLock lock = lockTable.get(key);
         if (lock != null) {
             lock.unlock();
         }
+    }
+
+    public void unlock(String groupId, String topicId) {
+        unlock(groupId + PopAckConstants.SPLIT + topicId);
     }
 
     // For retry topics, should lock origin group and topic

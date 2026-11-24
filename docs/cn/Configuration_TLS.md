@@ -52,6 +52,10 @@ tls.server.certPath=/opt/certFiles/server.pem
 tls.server.authClient=false
 # The store path of trusted certificates for verifying the client endpoint's certificate
 tls.server.trustCertPath=/opt/certFiles/ca.pem
+# The ciphers in TLS
+# tls.ciphers=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+# The protocols in TLS
+# tls.protocols=TLSv1.2,TLSv1.3
 ```
 
 如果需要客户端连接时也进行认证，则还需要在该文件中增加以下内容
@@ -66,6 +70,10 @@ tls.client.certPath=/opt/certFiles/client.pem
 tls.client.authServer=false                    
 # The store path of trusted certificates for verifying the server endpoint's certificate
 tls.client.trustCertPath=/opt/certFiles/ca.pem
+# The ciphers in TLS
+# tls.ciphers=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+# The protocols in TLS
+# tls.protocols=TLSv1.2,TLSv1.3
 ```
 
 
@@ -96,6 +104,10 @@ tls.client.keyPassword=123456
 tls.client.certPath=/opt/certFiles/client.pem               
 # The store path of trusted certificates for verifying the server endpoint's certificate
 tls.client.trustCertPath=/opt/certFiles/ca.pem
+# The ciphers in TLS
+# tls.ciphers=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+# The protocols in TLS
+# tls.protocols=TLSv1.2,TLSv1.3
 ```
 
 JVM中需要加以下参数.tls.config.file的值需要使用之前创建的文件：
@@ -114,6 +126,45 @@ public class ExampleProducer {
 
         // Send messages as usual.
         producer.shutdown();
-    }    
+    }
 }
 ```
+
+## 5 Proxy TLS 配置
+
+RocketMQ Proxy 使用 `rmq-proxy.json`（而非 `tls.properties`）进行 TLS 配置。Proxy 的 gRPC 和 Remoting 协议端口均支持 TLS。
+
+### 5.1 配置 rmq-proxy.json
+
+在 `distribution/conf/rmq-proxy.json` 中添加 TLS 相关字段：
+
+```json
+{
+  "rocketMQClusterName": "DefaultCluster",
+  "tlsTestModeEnable": false,
+  "tlsKeyPath": "/opt/certFiles/server.key",
+  "tlsKeyPassword": "123456",
+  "tlsCertPath": "/opt/certFiles/server.pem"
+}
+```
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `tlsTestModeEnable` | boolean | `true` | 是否使用自签名测试证书，生产环境需设为 `false` |
+| `tlsKeyPath` | string | `${PROXY_HOME}/conf/tls/rocketmq.key` | 服务端私钥文件路径（PKCS#8 PEM 格式） |
+| `tlsKeyPassword` | string | `""` | 加密私钥的密码，私钥未加密时留空 |
+| `tlsCertPath` | string | `${PROXY_HOME}/conf/tls/rocketmq.crt` | 服务端证书链文件路径（X.509 PEM 格式） |
+| `tlsCertWatchIntervalMs` | int | `3600000` | 证书文件变更检测间隔（毫秒） |
+
+### 5.2 配置 Proxy 启动参数
+
+编辑 `runproxy.sh`（或启动 Proxy 的脚本），启用 TLS enforcing 模式：
+
+```shell
+JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing"
+```
+
+三种 TLS 模式说明：
+- `disabled` - 不支持 TLS，拒绝所有 TLS 握手请求
+- `permissive` - TLS 可选，同时接受 TLS 和非 TLS 连接
+- `enforcing` - 强制 TLS，拒绝非 TLS 连接

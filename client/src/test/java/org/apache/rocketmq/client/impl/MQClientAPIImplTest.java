@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl;
 
+import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
@@ -63,6 +65,7 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
@@ -108,6 +111,8 @@ import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
@@ -154,6 +159,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -539,7 +545,7 @@ public class MQClientAPIImplTest {
             message.setBody("body".getBytes());
             message.setTopic(topic);
             message.putUserProperty("key", "value");
-            message.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqTopic);
+            MessageAccessor.putProperty(message, MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqTopic);
             message.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, String.valueOf(0));
             response.setBody(MessageDecoder.encode(message, false));
             responseFuture.setResponseCommand(response);
@@ -1363,6 +1369,68 @@ public class MQClientAPIImplTest {
     }
 
     @Test
+    public void testDeleteTopicInBrokerList() throws RemotingException, InterruptedException, MQClientException {
+        mockInvokeSync();
+        mqClientAPI.deleteTopicInBrokerList(defaultBrokerAddr, java.util.Arrays.asList("topicA", "topicB"), defaultTimeout);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testDeleteTopicInBrokerListFail() throws RemotingException, InterruptedException, MQClientException {
+        when(response.getCode()).thenReturn(ResponseCode.SYSTEM_ERROR);
+        when(response.getRemark()).thenReturn("error");
+        when(remotingClient.invokeSync(any(), any(), anyLong())).thenReturn(response);
+        mqClientAPI.deleteTopicInBrokerList(defaultBrokerAddr, java.util.Arrays.asList("topicA"), defaultTimeout);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testDeleteTopicInBrokerListNullResponse() throws RemotingException, InterruptedException, MQClientException {
+        when(remotingClient.invokeSync(any(), any(), anyLong())).thenReturn(null);
+        mqClientAPI.deleteTopicInBrokerList(defaultBrokerAddr, java.util.Arrays.asList("topicA"), defaultTimeout);
+    }
+
+    @Test
+    public void testDeleteTopicInBrokerListVerifyRequest() throws Exception {
+        mockInvokeSync();
+        org.mockito.ArgumentCaptor<RemotingCommand> captor = org.mockito.ArgumentCaptor.forClass(RemotingCommand.class);
+        mqClientAPI.deleteTopicInBrokerList(defaultBrokerAddr, java.util.Arrays.asList("t1", "t2"), defaultTimeout);
+        org.mockito.Mockito.verify(remotingClient).invokeSync(any(), captor.capture(), anyLong());
+        RemotingCommand captured = captor.getValue();
+        assertEquals(RequestCode.DELETE_TOPIC_IN_BROKER_LIST, captured.getCode());
+        assertNotNull(captured.getBody());
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupList() throws RemotingException, InterruptedException, MQClientException {
+        mockInvokeSync();
+        mqClientAPI.deleteSubscriptionGroupList(defaultBrokerAddr, java.util.Arrays.asList("groupA", "groupB"), true, defaultTimeout);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testDeleteSubscriptionGroupListFail() throws RemotingException, InterruptedException, MQClientException {
+        when(response.getCode()).thenReturn(ResponseCode.SYSTEM_ERROR);
+        when(response.getRemark()).thenReturn("error");
+        when(remotingClient.invokeSync(any(), any(), anyLong())).thenReturn(response);
+        mqClientAPI.deleteSubscriptionGroupList(defaultBrokerAddr, java.util.Arrays.asList("groupA"), false, defaultTimeout);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testDeleteSubscriptionGroupListNullResponse() throws RemotingException, InterruptedException, MQClientException {
+        when(remotingClient.invokeSync(any(), any(), anyLong())).thenReturn(null);
+        mqClientAPI.deleteSubscriptionGroupList(defaultBrokerAddr, java.util.Arrays.asList("groupA"), true, defaultTimeout);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListVerifyRequest() throws Exception {
+        mockInvokeSync();
+        org.mockito.ArgumentCaptor<RemotingCommand> captor = org.mockito.ArgumentCaptor.forClass(RemotingCommand.class);
+        mqClientAPI.deleteSubscriptionGroupList(defaultBrokerAddr, java.util.Arrays.asList("g1", "g2"), true, defaultTimeout);
+        org.mockito.Mockito.verify(remotingClient).invokeSync(any(), captor.capture(), anyLong());
+        RemotingCommand captured = captor.getValue();
+        assertEquals(RequestCode.DELETE_SUBSCRIPTION_GROUP_LIST, captured.getCode());
+        assertNotNull(captured.getBody());
+    }
+
+    @Test
     public void assertGetKVConfigValue() throws RemotingException, InterruptedException, MQClientException {
         mockInvokeSync();
         GetKVConfigResponseHeader responseHeader = mock(GetKVConfigResponseHeader.class);
@@ -1674,6 +1742,88 @@ public class MQClientAPIImplTest {
         assertEquals(1, actual.getTopicConfigTable().size());
         assertNotNull(actual.getDataVersion());
         assertEquals(0, actual.getDataVersion().getStateVersion());
+    }
+
+    @Test
+    public void testGetAllTopicConfigFetchesLastEntryWhenTotalIsOneOverPageSize()
+        throws Exception {
+        final int pageSize = 100;
+        final int total = pageSize + 1;
+        ClientConfig pagedClientConfig = new ClientConfig();
+        pagedClientConfig.setMaxPageSizeInGetMetadata(pageSize);
+        MQClientAPIImpl pagedApi = new MQClientAPIImpl(new NettyClientConfig(), null, null, pagedClientConfig);
+        Field field = MQClientAPIImpl.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(pagedApi, remotingClient);
+
+        DataVersion dataVersion = new DataVersion();
+        TopicConfigSerializeWrapper page1 = new TopicConfigSerializeWrapper();
+        for (int i = 0; i < pageSize; i++) {
+            page1.getTopicConfigTable().put("topic-" + i, new TopicConfig("topic-" + i));
+        }
+        page1.setDataVersion(dataVersion);
+        TopicConfigSerializeWrapper page2 = new TopicConfigSerializeWrapper();
+        page2.getTopicConfigTable().put("topic-" + pageSize, new TopicConfig("topic-" + pageSize));
+        page2.setDataVersion(dataVersion);
+
+        GetAllTopicConfigResponseHeader header1 = new GetAllTopicConfigResponseHeader();
+        header1.setTotalTopicNum(total);
+        RemotingCommand resp1 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header1));
+        resp1.setBody(RemotingSerializable.encode(page1));
+        GetAllTopicConfigResponseHeader header2 = new GetAllTopicConfigResponseHeader();
+        header2.setTotalTopicNum(total);
+        RemotingCommand resp2 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header2));
+        resp2.setBody(RemotingSerializable.encode(page2));
+        when(remotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong()))
+            .thenReturn(resp1, resp2);
+
+        TopicConfigSerializeWrapper actual = pagedApi.getAllTopicConfig(defaultBrokerAddr, defaultTimeout);
+
+        assertEquals(total, actual.getTopicConfigTable().size());
+        assertEquals("topic-" + pageSize, actual.getTopicConfigTable().get("topic-" + pageSize).getTopicName());
+    }
+
+    @Test
+    public void testGetAllSubscriptionGroupFetchesLastEntryWhenTotalIsOneOverPageSize()
+        throws Exception {
+        final int pageSize = 100;
+        final int total = pageSize + 1;
+        ClientConfig pagedClientConfig = new ClientConfig();
+        pagedClientConfig.setMaxPageSizeInGetMetadata(pageSize);
+        MQClientAPIImpl pagedApi = new MQClientAPIImpl(new NettyClientConfig(), null, null, pagedClientConfig);
+        Field field = MQClientAPIImpl.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(pagedApi, remotingClient);
+
+        DataVersion dataVersion = new DataVersion();
+        SubscriptionGroupWrapper page1 = new SubscriptionGroupWrapper();
+        for (int i = 0; i < pageSize; i++) {
+            SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+            config.setGroupName("group-" + i);
+            page1.getSubscriptionGroupTable().put("group-" + i, config);
+        }
+        page1.setDataVersion(dataVersion);
+        SubscriptionGroupWrapper page2 = new SubscriptionGroupWrapper();
+        SubscriptionGroupConfig lastConfig = new SubscriptionGroupConfig();
+        lastConfig.setGroupName("group-" + pageSize);
+        page2.getSubscriptionGroupTable().put("group-" + pageSize, lastConfig);
+        page2.setDataVersion(dataVersion);
+
+        GetAllSubscriptionGroupResponseHeader header1 = new GetAllSubscriptionGroupResponseHeader();
+        header1.setTotalGroupNum(total);
+        RemotingCommand resp1 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header1));
+        resp1.setBody(RemotingSerializable.encode(page1));
+        GetAllSubscriptionGroupResponseHeader header2 = new GetAllSubscriptionGroupResponseHeader();
+        header2.setTotalGroupNum(total);
+        RemotingCommand resp2 = wireResponse(RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, header2));
+        resp2.setBody(RemotingSerializable.encode(page2));
+        when(remotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong()))
+            .thenReturn(resp1, resp2);
+
+        SubscriptionGroupWrapper actual = pagedApi.getAllSubscriptionGroup(defaultBrokerAddr, defaultTimeout);
+
+        assertEquals(total, actual.getSubscriptionGroupTable().size());
+        assertNotNull(actual.getSubscriptionGroupTable().get("group-" + pageSize));
     }
 
     @Test
@@ -2031,6 +2181,22 @@ public class MQClientAPIImplTest {
         }
     }
 
+    @Test
+    public void testCheckRocksdbCqWriteProgress() throws Exception {
+        RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Success");
+        CheckRocksdbCqWriteResult expectedResult = new CheckRocksdbCqWriteResult();
+        expectedResult.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue());
+        response.setBody(JSON.toJSONString(expectedResult).getBytes());
+
+        when(remotingClient.invokeSync(any(String.class), any(RemotingCommand.class), any(Long.class)))
+                .thenReturn(response);
+
+        CheckRocksdbCqWriteResult result = mqClientAPI.checkRocksdbCqWriteProgress(
+                "brokerAddr", "testTopic", 12345L, 3000L);
+
+        assertEquals(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue(), result.getCheckStatus());
+    }
+
     private Properties createProperties() {
         Properties result = new Properties();
         result.put("key", "value");
@@ -2056,6 +2222,16 @@ public class MQClientAPIImplTest {
 
     private void setResponseBody(Object responseBody) {
         when(response.getBody()).thenReturn(RemotingSerializable.encode(responseBody));
+    }
+
+    /**
+     * Round-trips the response through encode/decode so response headers are carried as extFields,
+     * mirroring the wire format the client actually parses.
+     */
+    private static RemotingCommand wireResponse(RemotingCommand response) throws RemotingCommandException {
+        ByteBuffer frame = response.encode();
+        frame.position(4); // strip the total length the transport decoder consumes
+        return RemotingCommand.decode(frame.slice());
     }
 
     private void mockInvokeSync() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {

@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.broker.pop;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.annotation.JSONField;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
@@ -70,12 +70,20 @@ public class PopConsumerRecord {
     @JSONField(ordinal = 8)
     private String attemptId;
 
+    @JSONField(ordinal = 9)
+    private boolean suspend;
+
     // used for test and fastjson
     public PopConsumerRecord() {
     }
 
     public PopConsumerRecord(long popTime, String groupId, String topicId, int queueId,
         int retryFlag, long invisibleTime, long offset, String attemptId) {
+        this(popTime, groupId, topicId, queueId, retryFlag, invisibleTime, offset, attemptId, false);
+    }
+
+    public PopConsumerRecord(long popTime, String groupId, String topicId, int queueId, int retryFlag,
+                             long invisibleTime, long offset, String attemptId, boolean suspend) {
 
         this.popTime = popTime;
         this.groupId = groupId;
@@ -85,6 +93,7 @@ public class PopConsumerRecord {
         this.invisibleTime = invisibleTime;
         this.offset = offset;
         this.attemptId = attemptId;
+        this.suspend = suspend;
     }
 
     @JSONField(serialize = false)
@@ -119,7 +128,7 @@ public class PopConsumerRecord {
     }
 
     public static PopConsumerRecord decode(byte[] body) {
-        return JSONObject.parseObject(body, PopConsumerRecord.class);
+        return JSON.parseObject(body, PopConsumerRecord.class);
     }
 
     public long getPopTime() {
@@ -194,6 +203,14 @@ public class PopConsumerRecord {
         this.attemptId = attemptId;
     }
 
+    public boolean isSuspend() {
+        return suspend;
+    }
+
+    public void setSuspend(boolean suspend) {
+        this.suspend = suspend;
+    }
+
     @Override
     public String toString() {
         return "PopDeliveryRecord{" +
@@ -206,6 +223,7 @@ public class PopConsumerRecord {
             ", offset=" + offset +
             ", attemptTimes=" + attemptTimes +
             ", attemptId='" + attemptId + '\'' +
+            ", suspend=" + suspend +
             '}';
     }
 }

@@ -47,6 +47,9 @@ public class MultiDispatchUtils {
         if (!isNeedHandleMultiDispatch(messageStoreConfig, dispatchRequest.getTopic())) {
             return false;
         }
+        if (messageStoreConfig.isRocksdbCQDoubleWriteEnable() && messageStoreConfig.isCombineCQUseRocksdbForLmq()) {
+            return false; // no need to dispatch file CQ here
+        }
         Map<String, String> prop = dispatchRequest.getPropertiesMap();
         if (prop == null || prop.isEmpty()) {
             return false;

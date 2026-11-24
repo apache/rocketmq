@@ -21,7 +21,6 @@ import java.util.function.Supplier;
 import org.apache.rocketmq.auth.authentication.enums.SubjectType;
 import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
-import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authentication.model.User;
@@ -62,8 +61,8 @@ public class UserAuthorizationHandler implements Handler<DefaultAuthorizationCon
             if (result == null) {
                 throw new AuthorizationException("User:{} not found.", user.getUsername());
             }
-            if (user.getUserStatus() == UserStatus.DISABLE) {
-                throw new AuthenticationException("User:{} is disabled.", user.getUsername());
+            if (result.getUserStatus() == UserStatus.DISABLE) {
+                throw new AuthorizationException("User:{} is disabled.", result.getUsername());
             }
             return result;
         });

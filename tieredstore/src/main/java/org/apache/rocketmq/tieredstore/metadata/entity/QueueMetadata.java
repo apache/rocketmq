@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.metadata.entity;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class QueueMetadata {

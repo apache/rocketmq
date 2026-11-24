@@ -17,47 +17,50 @@
 package org.apache.rocketmq.common.config;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompressionType;
-import org.rocksdb.ReadOptions;
+import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
 
 public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
-    public static final byte[] KV_DATA_VERSION_COLUMN_FAMILY_NAME = "kvDataVersion".getBytes(StandardCharsets.UTF_8);
-    public static final byte[] FORBIDDEN_COLUMN_FAMILY_NAME = "forbidden".getBytes(StandardCharsets.UTF_8);
+    public static final Charset CHARSET = StandardCharsets.UTF_8;
+    public static final ConcurrentMap<String, ConfigRocksDBStorage> STORE_MAP = new ConcurrentHashMap<>();
 
-    protected ColumnFamilyHandle kvDataVersionFamilyHandle;
-    protected ColumnFamilyHandle forbiddenFamilyHandle;
-    public static final byte[] KV_DATA_VERSION_KEY = "kvDataVersionKey".getBytes(StandardCharsets.UTF_8);
+    private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilyNameHandleMap;
+    private ColumnFamilyOptions columnFamilyOptions;
 
-
-
-    public ConfigRocksDBStorage(final String dbPath) {
-        this(dbPath, false);
-    }
-
-    public ConfigRocksDBStorage(final String dbPath, CompressionType compressionType) {
-        this(dbPath, false);
-        this.compressionType = compressionType;
+    private ConfigRocksDBStorage(final String dbPath, boolean readOnly, CompressionType compressionType) {
+        super(dbPath);
+        this.readOnly = readOnly;
+        if (compressionType != null) {
+            this.compressionType = compressionType;
+        }
+        this.columnFamilyNameHandleMap = new ConcurrentHashMap<>();
     }
 
     public ConfigRocksDBStorage(final String dbPath, boolean readOnly) {
-        super(dbPath);
-        this.readOnly = readOnly;
+        this(dbPath, readOnly, null);
     }
 
     protected void initOptions() {
         this.options = ConfigHelper.createConfigDBOptions();
+        this.columnFamilyOptions = ConfigHelper.createConfigColumnFamilyOptions();
+        this.cfOptions.add(columnFamilyOptions);
         super.initOptions();
     }
 
@@ -68,19 +71,20 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
             initOptions();
 
-            final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
+            List<byte[]> columnFamilyNames = new ArrayList<>(RocksDB.listColumnFamilies(
+                new Options(options, columnFamilyOptions), dbPath));
+            addIfNotExists(columnFamilyNames, RocksDB.DEFAULT_COLUMN_FAMILY);
 
-            ColumnFamilyOptions defaultOptions = ConfigHelper.createConfigColumnFamilyOptions();
-            this.cfOptions.add(defaultOptions);
-            cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
-            cfDescriptors.add(new ColumnFamilyDescriptor(KV_DATA_VERSION_COLUMN_FAMILY_NAME, defaultOptions));
-            cfDescriptors.add(new ColumnFamilyDescriptor(FORBIDDEN_COLUMN_FAMILY_NAME, defaultOptions));
-            open(cfDescriptors);
+            List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
+            for (byte[] columnFamilyName : columnFamilyNames) {
+                cfDescriptors.add(new ColumnFamilyDescriptor(columnFamilyName, columnFamilyOptions));
+            }
 
-            this.defaultCFHandle = cfHandles.get(0);
-            this.kvDataVersionFamilyHandle = cfHandles.get(1);
-            this.forbiddenFamilyHandle = cfHandles.get(2);
-
+            this.open(cfDescriptors);
+            for (int i = 0; i < columnFamilyNames.size(); i++) {
+                columnFamilyNameHandleMap.put(new String(columnFamilyNames.get(i), CHARSET), cfHandles.get(i));
+            }
+            this.defaultCFHandle = columnFamilyNameHandleMap.get(new String(RocksDB.DEFAULT_COLUMN_FAMILY, CHARSET));
         } catch (final Exception e) {
             AbstractRocksDBStorage.LOGGER.error("postLoad Failed. {}", this.dbPath, e);
             return false;
@@ -90,45 +94,16 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
     @Override
     protected void preShutdown() {
-        this.kvDataVersionFamilyHandle.close();
-        this.forbiddenFamilyHandle.close();
+        for (final ColumnFamilyHandle columnFamilyHandle : this.columnFamilyNameHandleMap.values()) {
+            if (columnFamilyHandle.isOwningHandle()) {
+                columnFamilyHandle.close();
+            }
+        }
     }
 
-    public void put(final byte[] keyBytes, final int keyLen, final byte[] valueBytes) throws Exception {
-        put(this.defaultCFHandle, this.ableWalWriteOptions, keyBytes, keyLen, valueBytes, valueBytes.length);
-    }
-
-    public void put(final ByteBuffer keyBB, final ByteBuffer valueBB) throws Exception {
-        put(this.defaultCFHandle, this.ableWalWriteOptions, keyBB, valueBB);
-    }
-
-    public byte[] get(final byte[] keyBytes) throws Exception {
-        return get(this.defaultCFHandle, this.totalOrderReadOptions, keyBytes);
-    }
-
-    public void updateKvDataVersion(final byte[] valueBytes) throws Exception {
-        put(this.kvDataVersionFamilyHandle, this.ableWalWriteOptions, KV_DATA_VERSION_KEY, KV_DATA_VERSION_KEY.length, valueBytes, valueBytes.length);
-    }
-
-    public byte[] getKvDataVersion() throws Exception {
-        return get(this.kvDataVersionFamilyHandle, this.totalOrderReadOptions, KV_DATA_VERSION_KEY);
-    }
-
-    public void updateForbidden(final byte[] keyBytes, final byte[] valueBytes) throws Exception {
-        put(this.forbiddenFamilyHandle, this.ableWalWriteOptions, keyBytes, keyBytes.length, valueBytes, valueBytes.length);
-    }
-
-    public byte[] getForbidden(final byte[] keyBytes) throws Exception {
-        return get(this.forbiddenFamilyHandle, this.totalOrderReadOptions, keyBytes);
-    }
-
-    public void delete(final byte[] keyBytes) throws Exception {
-        delete(this.defaultCFHandle, this.ableWalWriteOptions, keyBytes);
-    }
-
-    public List<byte[]> multiGet(final List<ColumnFamilyHandle> cfhList, final List<byte[]> keys) throws
-        RocksDBException {
-        return multiGet(this.totalOrderReadOptions, cfhList, keys);
+    // batch operations
+    public void writeBatchPutOperation(String cf, WriteBatch writeBatch, final byte[] key, final byte[] value) throws RocksDBException {
+        writeBatch.put(getOrCreateColumnFamily(cf), key, value);
     }
 
     public void batchPut(final WriteBatch batch) throws RocksDBException {
@@ -139,15 +114,100 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
         batchPut(this.ableWalWriteOptions, batch);
     }
 
+
+    // operations with the specified cf
+    public void put(String cf, final byte[] keyBytes, final int keyLen, final byte[] valueBytes) throws Exception {
+        put(getOrCreateColumnFamily(cf), this.ableWalWriteOptions, keyBytes, keyLen, valueBytes, valueBytes.length);
+    }
+
+    public void put(String cf, final ByteBuffer keyBB, final ByteBuffer valueBB) throws Exception {
+        put(getOrCreateColumnFamily(cf), this.ableWalWriteOptions, keyBB, valueBB);
+    }
+
+    public byte[] get(String cf, final byte[] keyBytes) throws Exception {
+        ColumnFamilyHandle columnFamilyHandle = columnFamilyNameHandleMap.get(cf);
+        if (columnFamilyHandle == null) {
+            return null;
+        }
+        return get(columnFamilyHandle, this.totalOrderReadOptions, keyBytes);
+    }
+
+    public void delete(String cf, final byte[] keyBytes) throws Exception {
+        ColumnFamilyHandle columnFamilyHandle = columnFamilyNameHandleMap.get(cf);
+        if (columnFamilyHandle == null) {
+            return;
+        }
+        delete(columnFamilyHandle, this.ableWalWriteOptions, keyBytes);
+    }
+
+    public void iterate(final String cf, BiConsumer<byte[], byte[]> biConsumer) throws RocksDBException {
+        if (!hold()) {
+            LOGGER.warn("RocksDBKvStore[path={}] has been shut down", dbPath);
+            return;
+        }
+        ColumnFamilyHandle columnFamilyHandle = columnFamilyNameHandleMap.get(cf);
+        if (columnFamilyHandle == null) {
+            return;
+        }
+        try (RocksIterator iterator = this.db.newIterator(columnFamilyHandle)) {
+            for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
+                biConsumer.accept(iterator.key(), iterator.value());
+            }
+            iterator.status();
+        }
+    }
+
     public RocksIterator iterator() {
         return this.db.newIterator(this.defaultCFHandle, this.totalOrderReadOptions);
     }
 
-    public RocksIterator forbiddenIterator() {
-        return this.db.newIterator(this.forbiddenFamilyHandle, this.totalOrderReadOptions);
+    public ColumnFamilyHandle getOrCreateColumnFamily(String cf) throws RocksDBException {
+        if (!columnFamilyNameHandleMap.containsKey(cf)) {
+            if (readOnly) {
+                String errInfo = String.format("RocksDBKvStore[path=%s] is open as read-only", dbPath);
+                LOGGER.warn(errInfo);
+                throw new RocksDBException(errInfo);
+            }
+            synchronized (this) {
+                if (!columnFamilyNameHandleMap.containsKey(cf)) {
+                    ColumnFamilyDescriptor columnFamilyDescriptor =
+                        new ColumnFamilyDescriptor(cf.getBytes(CHARSET), columnFamilyOptions);
+                    ColumnFamilyHandle columnFamilyHandle = db.createColumnFamily(columnFamilyDescriptor);
+                    columnFamilyNameHandleMap.putIfAbsent(cf, columnFamilyHandle);
+                    cfHandles.add(columnFamilyHandle);
+                }
+            }
+        }
+        return columnFamilyNameHandleMap.get(cf);
     }
 
-    public RocksIterator iterator(ReadOptions readOptions) {
-        return this.db.newIterator(this.defaultCFHandle, readOptions);
+    public void addIfNotExists(List<byte[]> columnFamilyNames, byte[] byteArray) {
+        if (columnFamilyNames.stream().noneMatch(array -> Arrays.equals(array, byteArray))) {
+            columnFamilyNames.add(byteArray);
+        }
+    }
+
+    public static ConfigRocksDBStorage getStore(String path, boolean readOnly, CompressionType compressionType) {
+        return ConcurrentHashMapUtils.computeIfAbsent(STORE_MAP, path,
+            k -> new ConfigRocksDBStorage(path, readOnly, compressionType));
+    }
+
+    public static ConfigRocksDBStorage getStore(String path, boolean readOnly) {
+        return getStore(path, readOnly, null);
+    }
+
+    public static void shutdown(String path) {
+        ConfigRocksDBStorage kvStore = STORE_MAP.remove(path);
+        if (kvStore != null) {
+            kvStore.shutdown();
+        }
+    }
+
+    public static void destroy(String path) {
+        ConfigRocksDBStorage kvStore = STORE_MAP.remove(path);
+        if (kvStore != null) {
+            kvStore.shutdown();
+            kvStore.destroy();
+        }
     }
 }

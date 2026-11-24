@@ -21,13 +21,12 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
-import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 /**
  * An interface for broker container to hold multiple master and slave brokers.
@@ -47,12 +46,11 @@ public interface IBrokerContainer {
     /**
      * Add a broker to this container with specific broker config.
      *
-     * @param brokerConfig the specified broker config
-     * @param storeConfig the specified store config
+     * @param configContext the specified config context
      * @return the added BrokerController or null if the broker already exists
      * @throws Exception when initialize broker
      */
-    BrokerController addBroker(BrokerConfig brokerConfig, MessageStoreConfig storeConfig) throws Exception;
+    BrokerController addBroker(ConfigContext configContext) throws Exception;
 
     /**
      * Remove the broker from this container associated with the specific broker identity

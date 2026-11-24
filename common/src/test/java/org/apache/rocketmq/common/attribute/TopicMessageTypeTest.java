@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.attribute;
 
 import com.google.common.collect.Sets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -33,6 +34,7 @@ public class TopicMessageTypeTest {
     private Map<String, String> transactionMessageProperty;
     private Map<String, String> delayMessageProperty;
     private Map<String, String> fifoMessageProperty;
+    private Map<String, String> priorityMessageProperty;
 
     @Before
     public void setUp() {
@@ -40,15 +42,18 @@ public class TopicMessageTypeTest {
         transactionMessageProperty = new HashMap<>();
         delayMessageProperty = new HashMap<>();
         fifoMessageProperty = new HashMap<>();
+        priorityMessageProperty = new HashMap<>();
 
         transactionMessageProperty.put(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         delayMessageProperty.put(MessageConst.PROPERTY_DELAY_TIME_LEVEL, "1");
         fifoMessageProperty.put(MessageConst.PROPERTY_SHARDING_KEY, "shardingKey");
+        priorityMessageProperty.put(MessageConst.PROPERTY_PRIORITY, "3");
     }
 
     @Test
     public void testTopicMessageTypeSet() {
-        Set<String> expectedSet = Sets.newHashSet("UNSPECIFIED", "NORMAL", "FIFO", "DELAY", "TRANSACTION", "MIXED");
+        Set<String> expectedSet
+            = Sets.newHashSet("UNSPECIFIED", "NORMAL", "FIFO", "DELAY", "TRANSACTION", "PRIORITY", "LITE", "MIXED");
         Set<String> actualSet = TopicMessageType.topicMessageTypeSet();
         assertEquals(expectedSet, actualSet);
     }
@@ -78,11 +83,38 @@ public class TopicMessageTypeTest {
     }
 
     @Test
+    public void testParseFromMessageProperty_Priority() {
+        TopicMessageType actual = TopicMessageType.parseFromMessageProperty(priorityMessageProperty);
+        assertEquals(TopicMessageType.PRIORITY, actual);
+    }
+
+    @Test
     public void testGetMetricsValue() {
         for (TopicMessageType type : TopicMessageType.values()) {
-            String expected = type.getValue().toLowerCase();
+            String expected = type.getValue().toLowerCase(Locale.ROOT);
             String actual = type.getMetricsValue();
             assertEquals(expected, actual);
+        }
+    }
+
+    @Test
+    public void testGetMetricsValueIsLocaleIndependent() {
+        // Metric labels must not change with the JVM default locale. Under a
+        // Turkish locale, String.toLowerCase() maps 'I' to dotless 'i', which
+        // would corrupt labels such as PRIORITY, FIFO and TRANSACTION.
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("tr", "TR"));
+            assertEquals("unspecified", TopicMessageType.UNSPECIFIED.getMetricsValue());
+            assertEquals("normal", TopicMessageType.NORMAL.getMetricsValue());
+            assertEquals("fifo", TopicMessageType.FIFO.getMetricsValue());
+            assertEquals("delay", TopicMessageType.DELAY.getMetricsValue());
+            assertEquals("transaction", TopicMessageType.TRANSACTION.getMetricsValue());
+            assertEquals("priority", TopicMessageType.PRIORITY.getMetricsValue());
+            assertEquals("lite", TopicMessageType.LITE.getMetricsValue());
+            assertEquals("mixed", TopicMessageType.MIXED.getMetricsValue());
+        } finally {
+            Locale.setDefault(original);
         }
     }
 
@@ -115,6 +147,13 @@ public class TopicMessageTypeTest {
         properties.clear();
         properties.put(MessageConst.PROPERTY_SHARDING_KEY, "sharding_key");
         Assert.assertEquals(TopicMessageType.FIFO, TopicMessageType.parseFromMessageProperty(properties));
+
+        // PRIORITY
+        properties.clear();
+        properties.put(MessageConst.PROPERTY_PRIORITY, "3");
+        Assert.assertEquals(TopicMessageType.PRIORITY, TopicMessageType.parseFromMessageProperty(properties));
+        properties.put(MessageConst.PROPERTY_DELAY_TIME_LEVEL, "3");
+        Assert.assertEquals(TopicMessageType.DELAY, TopicMessageType.parseFromMessageProperty(properties));
 
         // NORMAL
         properties.clear();

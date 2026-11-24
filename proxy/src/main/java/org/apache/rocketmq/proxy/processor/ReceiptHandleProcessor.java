@@ -40,8 +40,10 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
                 .setChannel(event.getKey().getChannel());
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
-            messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
-                    messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), event.getRenewTime())
+            messagingProcessor
+                .changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
+                    messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(),
+                    event.getRenewTime(), messageReceiptHandle.getLiteTopic())
                 .whenComplete((v, t) -> {
                     if (t != null) {
                         event.getFuture().completeExceptionally(t);
@@ -51,6 +53,7 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
                 });
         };
         this.receiptHandleManager = new DefaultReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
+        this.appendStartAndShutdown(receiptHandleManager);
     }
 
     protected ProxyContext createContext(String actionName) {
@@ -63,6 +66,10 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
 
     public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle) {
         return receiptHandleManager.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
+    }
+
+    public int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group) {
+        return receiptHandleManager.getUnackedMessageCount(ctx, channel, group);
     }
 
 }

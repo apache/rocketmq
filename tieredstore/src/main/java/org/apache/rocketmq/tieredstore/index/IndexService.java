@@ -61,6 +61,13 @@ public interface IndexService {
     void shutdown();
 
     /**
+     * Force shutdown the index service.
+     */
+    default void forceShutdown() {
+        shutdown();
+    };
+
+    /**
      * Destroys the index service and releases all resources.
      */
     void destroy();

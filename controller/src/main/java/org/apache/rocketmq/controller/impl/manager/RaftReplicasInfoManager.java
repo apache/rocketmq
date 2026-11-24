@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
@@ -126,7 +126,7 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         List<String> needReElectBrokerNames = scanNeedReelectBrokerSets(new BrokerValidPredicate() {
             @Override
             public boolean check(String clusterName, String brokerName, Long brokerId) {
-                return !isBrokerActive(clusterName, brokerName, brokerId, checkTime);
+                return isBrokerActive(clusterName, brokerName, brokerId, checkTime);
             }
         });
         Set<String> alreadyReportedBrokerName = notActiveBrokerIdentityInfoList.stream()

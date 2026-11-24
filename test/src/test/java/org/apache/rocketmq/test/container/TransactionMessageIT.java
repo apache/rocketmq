@@ -156,7 +156,7 @@ public class TransactionMessageIT extends ContainerIntegrationTestBase {
         pushConsumer.shutdown();
         producer.shutdown();
 
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
         awaitUntilSlaveOK();
@@ -244,12 +244,12 @@ public class TransactionMessageIT extends ContainerIntegrationTestBase {
         pushConsumer.shutdown();
         producer.shutdown();
 
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
 
-        master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(),
-            master2With3Replicas.getMessageStoreConfig());
+        master2With3Replicas = brokerContainer2.addBroker(buildConfigContext(master2With3Replicas.getBrokerConfig(),
+            master2With3Replicas.getMessageStoreConfig()));
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
 

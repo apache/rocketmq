@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -546,7 +546,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
-    public class HandlePutResultTask implements Runnable {
+    class HandlePutResultTask implements Runnable {
         private final int delayLevel;
 
         public HandlePutResultTask(int delayLevel) {
@@ -557,6 +557,12 @@ public class ScheduleMessageService extends ConfigManager {
         public void run() {
             LinkedBlockingQueue<PutResultProcess> pendingQueue =
                 ScheduleMessageService.this.deliverPendingTable.get(this.delayLevel);
+
+            // Check if the queue exists for the given level
+            if (pendingQueue == null) {
+                log.warn("No pending queue found for delay level: {}", this.delayLevel);
+                return;
+            }
 
             PutResultProcess putResultProcess;
             while ((putResultProcess = pendingQueue.peek()) != null) {
@@ -599,7 +605,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
-    public class PutResultProcess {
+    class PutResultProcess {
         private String topic;
         private long offset;
         private long physicOffset;
@@ -722,26 +728,26 @@ public class ScheduleMessageService extends ConfigManager {
                 ScheduleMessageService.this.brokerController.getBrokerStatsManager().incGroupGetNums(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, result.getAppendMessageResult().getMsgNum());
                 ScheduleMessageService.this.brokerController.getBrokerStatsManager().incGroupGetSize(MixAll.SCHEDULE_CONSUMER_GROUP, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC, result.getAppendMessageResult().getWroteBytes());
 
-                Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                Attributes attributes = ScheduleMessageService.this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                     .put(LABEL_TOPIC, TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)
                     .put(LABEL_CONSUMER_GROUP, MixAll.SCHEDULE_CONSUMER_GROUP)
                     .put(LABEL_IS_SYSTEM, true)
                     .build();
-                BrokerMetricsManager.messagesOutTotal.add(result.getAppendMessageResult().getMsgNum(), attributes);
-                BrokerMetricsManager.throughputOutTotal.add(result.getAppendMessageResult().getWroteBytes(), attributes);
+                ScheduleMessageService.this.brokerController.getBrokerMetricsManager().getMessagesOutTotal().add(result.getAppendMessageResult().getMsgNum(), attributes);
+                ScheduleMessageService.this.brokerController.getBrokerMetricsManager().getThroughputOutTotal().add(result.getAppendMessageResult().getWroteBytes(), attributes);
 
                 ScheduleMessageService.this.brokerController.getBrokerStatsManager().incTopicPutNums(this.topic, result.getAppendMessageResult().getMsgNum(), 1);
                 ScheduleMessageService.this.brokerController.getBrokerStatsManager().incTopicPutSize(this.topic, result.getAppendMessageResult().getWroteBytes());
                 ScheduleMessageService.this.brokerController.getBrokerStatsManager().incBrokerPutNums(this.topic, result.getAppendMessageResult().getMsgNum());
 
-                attributes = BrokerMetricsManager.newAttributesBuilder()
+                attributes = ScheduleMessageService.this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                     .put(LABEL_TOPIC, topic)
                     .put(LABEL_MESSAGE_TYPE, TopicMessageType.DELAY.getMetricsValue())
                     .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
                     .build();
-                BrokerMetricsManager.messagesInTotal.add(result.getAppendMessageResult().getMsgNum(), attributes);
-                BrokerMetricsManager.throughputInTotal.add(result.getAppendMessageResult().getWroteBytes(), attributes);
-                BrokerMetricsManager.messageSize.record(result.getAppendMessageResult().getWroteBytes() / result.getAppendMessageResult().getMsgNum(), attributes);
+                ScheduleMessageService.this.brokerController.getBrokerMetricsManager().getMessagesInTotal().add(result.getAppendMessageResult().getMsgNum(), attributes);
+                ScheduleMessageService.this.brokerController.getBrokerMetricsManager().getThroughputInTotal().add(result.getAppendMessageResult().getWroteBytes(), attributes);
+                ScheduleMessageService.this.brokerController.getBrokerMetricsManager().getMessageSize().record(result.getAppendMessageResult().getWroteBytes() / result.getAppendMessageResult().getMsgNum(), attributes);
             }
         }
 
@@ -824,7 +830,7 @@ public class ScheduleMessageService extends ConfigManager {
         }
     }
 
-    public enum ProcessStatus {
+    enum ProcessStatus {
         /**
          * In process, the processing result has not yet been returned.
          */

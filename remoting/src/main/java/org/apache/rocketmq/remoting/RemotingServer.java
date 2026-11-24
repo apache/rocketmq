@@ -54,4 +54,7 @@ public interface RemotingServer extends RemotingService {
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException;
 
+    void writeResponse(final Channel channel, final RemotingCommand request, 
+        final RemotingCommand response, final java.util.function.Consumer<io.netty.util.concurrent.Future<?>> callback);
+
 }

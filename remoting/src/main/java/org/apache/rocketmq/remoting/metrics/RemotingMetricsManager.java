@@ -35,34 +35,38 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.HISTOGRAM_RPC_LATENCY;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE_KEY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.PROTOCOL_TYPE_REMOTING;
+
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_CANCELED;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_SUCCESS;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_WRITE_CHANNEL_FAILED;
 
 public class RemotingMetricsManager {
-    public static LongHistogram rpcLatency = new NopLongHistogram();
-    public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+    private LongHistogram rpcLatency = new NopLongHistogram();
+    private Supplier<AttributesBuilder> attributesBuilderSupplier;
 
-    public static AttributesBuilder newAttributesBuilder() {
-        if (attributesBuilderSupplier == null) {
-            return Attributes.builder();
-        }
-        return attributesBuilderSupplier.get()
-            .put(LABEL_PROTOCOL_TYPE, PROTOCOL_TYPE_REMOTING);
+    public RemotingMetricsManager() {
     }
 
-    public static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
-        RemotingMetricsManager.attributesBuilderSupplier = attributesBuilderSupplier;
-        rpcLatency = meter.histogramBuilder(HISTOGRAM_RPC_LATENCY)
+    public AttributesBuilder newAttributesBuilder() {
+        if (this.attributesBuilderSupplier == null) {
+            return Attributes.builder();
+        }
+        return this.attributesBuilderSupplier.get()
+            .put(LABEL_PROTOCOL_TYPE_KEY, PROTOCOL_TYPE_REMOTING);
+    }
+
+    public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        this.attributesBuilderSupplier = attributesBuilderSupplier;
+        this.rpcLatency = meter.histogramBuilder(HISTOGRAM_RPC_LATENCY)
             .setDescription("Rpc latency")
             .setUnit("milliseconds")
             .ofLongs()
             .build();
     }
 
-    public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(
             (double) Duration.ofMillis(1).toMillis(),
             (double) Duration.ofMillis(3).toMillis(),
@@ -83,7 +87,7 @@ public class RemotingMetricsManager {
         return Lists.newArrayList(new Pair<>(selector, viewBuilder));
     }
 
-    public static String getWriteAndFlushResult(Future<?> future) {
+    public String getWriteAndFlushResult(Future<?> future) {
         String result = RESULT_SUCCESS;
         if (future.isCancelled()) {
             result = RESULT_CANCELED;
@@ -92,5 +96,20 @@ public class RemotingMetricsManager {
         }
         return result;
     }
+
+    // Getter methods for external access
+    public LongHistogram getRpcLatency() {
+        return rpcLatency;
+    }
+
+    public Supplier<AttributesBuilder> getAttributesBuilderSupplier() {
+        return attributesBuilderSupplier;
+    }
+
+    // Setter methods for testing
+    public void setAttributesBuilderSupplier(Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        this.attributesBuilderSupplier = attributesBuilderSupplier;
+    }
+
 
 }

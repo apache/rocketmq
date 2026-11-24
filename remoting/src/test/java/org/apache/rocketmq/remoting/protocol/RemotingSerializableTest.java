@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.TypeAdapter;
@@ -105,8 +105,7 @@ public class RemotingSerializableTest {
         }
         Foo foo = new Foo();
         String invalid = new String(foo.encode(), Charset.defaultCharset());
-        String valid = new String(foo.encode(SerializerFeature.BrowserCompatible, SerializerFeature.QuoteFieldNames,
-             SerializerFeature.MapSortField), Charset.defaultCharset());
+        String valid = new String(foo.encode(JSONWriter.Feature.BrowserCompatible, JSONWriter.Feature.MapSortField), Charset.defaultCharset());
 
         Gson gson = new Gson();
         final TypeAdapter<JsonElement> strictAdapter = gson.getAdapter(JsonElement.class);

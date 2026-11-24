@@ -154,4 +154,8 @@ public class StatisticsManager {
     public void setStatisticsItemStateGetter(StatisticsItemStateGetter statisticsItemStateGetter) {
         this.statisticsItemStateGetter = statisticsItemStateGetter;
     }
+
+    public void shutdown() {
+        executor.shutdown();
+    }
 }

@@ -54,6 +54,10 @@ public class ReceiveMessageResponseStreamWriter {
     }
 
     public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult) {
+        writeAndComplete(ctx, request, popResult, null);
+    }
+
+    public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult, Runnable doAfterWrite) {
         PopStatus status = popResult.getPopStatus();
         List<MessageExt> messageFoundList = popResult.getMsgFoundList();
         try {
@@ -103,6 +107,9 @@ public class ReceiveMessageResponseStreamWriter {
                         .build());
                     break;
             }
+            if (doAfterWrite != null) {
+                doAfterWrite.run();
+            }
         } catch (Throwable t) {
             writeResponseWithErrorIgnore(
                 ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.getInstance().buildStatus(t)).build());
@@ -122,14 +129,17 @@ public class ReceiveMessageResponseStreamWriter {
         if (handle == null) {
             return;
         }
-
+        String liteTopic = ctx.isLiteConsumer() ? messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC) : null;
         this.messagingProcessor.changeInvisibleTime(
             ctx,
             ReceiptHandle.decode(handle),
             messageExt.getMsgId(),
             request.getGroup().getName(),
             request.getMessageQueue().getTopic().getName(),
-            NACK_INVISIBLE_TIME
+            NACK_INVISIBLE_TIME,
+            liteTopic,
+            MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
+            true
         );
     }
 

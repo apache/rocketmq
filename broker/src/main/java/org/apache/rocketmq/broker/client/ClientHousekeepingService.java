@@ -41,14 +41,11 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     public void start() {
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ClientHousekeepingService.this.scanExceptionChannel();
-                } catch (Throwable e) {
-                    log.error("Error occurred when scan not active client channels.", e);
-                }
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                ClientHousekeepingService.this.scanExceptionChannel();
+            } catch (Throwable e) {
+                log.error("Error occurred when scan not active client channels.", e);
             }
         }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
     }

@@ -37,5 +37,11 @@ public enum HAConnectionState {
     /**
      * Connection shutdown.
      */
-    SHUTDOWN,
+    SHUTDOWN;
+
+    private static final HAConnectionState[] VALUES = values();
+
+    public static HAConnectionState fromOrdinal(int ordinal) {
+        return ordinal >= 0 && ordinal < VALUES.length ? VALUES[ordinal] : null;
+    }
 }

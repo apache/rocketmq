@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.remoting.metrics;
 
+import io.opentelemetry.api.common.AttributeKey;
+
 public class RemotingMetricsConstant {
     public static final String HISTOGRAM_RPC_LATENCY = "rocketmq_rpc_latency";
     public static final String LABEL_PROTOCOL_TYPE = "protocol_type";
@@ -23,6 +25,14 @@ public class RemotingMetricsConstant {
     public static final String LABEL_RESPONSE_CODE = "response_code";
     public static final String LABEL_IS_LONG_POLLING = "is_long_polling";
     public static final String LABEL_RESULT = "result";
+
+    // Pre-built typed AttributeKey singletons. Use these in AttributesBuilder.put()
+    // on hot paths to avoid allocating a fresh InternalAttributeKeyImpl per call.
+    public static final AttributeKey<String>  LABEL_PROTOCOL_TYPE_KEY = AttributeKey.stringKey(LABEL_PROTOCOL_TYPE);
+    public static final AttributeKey<String>  LABEL_REQUEST_CODE_KEY = AttributeKey.stringKey(LABEL_REQUEST_CODE);
+    public static final AttributeKey<String>  LABEL_RESPONSE_CODE_KEY = AttributeKey.stringKey(LABEL_RESPONSE_CODE);
+    public static final AttributeKey<Boolean> LABEL_IS_LONG_POLLING_KEY = AttributeKey.booleanKey(LABEL_IS_LONG_POLLING);
+    public static final AttributeKey<String>  LABEL_RESULT_KEY = AttributeKey.stringKey(LABEL_RESULT);
 
     public static final String PROTOCOL_TYPE_REMOTING = "remoting";
 

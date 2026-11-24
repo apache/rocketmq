@@ -26,13 +26,13 @@ import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
-public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
+public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
 
     public ChangeInvisibleDurationActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
@@ -60,8 +60,12 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
                 request.getMessageId(),
                 group,
                 request.getTopic().getName(),
-                Durations.toMillis(request.getInvisibleDuration())
-            ).thenApply(ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
+                Durations.toMillis(request.getInvisibleDuration()),
+                request.getLiteTopic(),
+                MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
+                request.getSuspend()
+            ).thenApply(
+                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

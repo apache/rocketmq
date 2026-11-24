@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.CustomizedBackoff;
 import apache.rocketmq.v2.ExponentialBackoff;
 import apache.rocketmq.v2.Publishing;
@@ -24,7 +25,10 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
+import apache.rocketmq.v2.SubscriptionEntry;
 import com.google.protobuf.util.Durations;
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
@@ -39,15 +43,24 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class GrpcClientSettingsManagerTest extends BaseActivityTest {
-    private GrpcClientSettingsManager grpcClientSettingsManager;
+
+    private final ProxyContext ctx = ProxyContext.create();
+    private final String clientId = "testClientId";
 
     @Before
     public void before() throws Throwable {
         super.before();
-        this.grpcClientSettingsManager = new GrpcClientSettingsManager(this.messagingProcessor);
+        grpcClientSettingsManager = spy(new GrpcClientSettingsManager(messagingProcessor));
     }
 
     @Test
@@ -109,5 +122,83 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
         assertNull(this.grpcClientSettingsManager.getClientSettings(context));
         assertNull(this.grpcClientSettingsManager.removeAndGetClientSettings(context));
+    }
+
+    @Test
+    public void testOfflineClientLiteSubscription_SettingsNullAndNoCachedSettings() {
+        doReturn(null).when(grpcClientSettingsManager).getRawClientSettings(anyString());
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, null);
+
+        verify(messagingProcessor, never()).syncLiteSubscription(any(), any(), anyLong());
+    }
+
+    @Test
+    public void testOfflineClientLiteSubscription_SettingsNull_CachedSettingsNotLite() {
+        Settings cachedSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .build();
+        doReturn(cachedSettings).when(grpcClientSettingsManager).getRawClientSettings(anyString());
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, null);
+
+        verify(messagingProcessor, never()).syncLiteSubscription(any(), any(), anyLong());
+    }
+
+    @Test
+    public void testOfflineClientLiteSubscription_SettingsNotNull_NotLiteConsumer() {
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .build();
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+
+        verify(messagingProcessor, never()).syncLiteSubscription(any(), any(), anyLong());
+    }
+
+    @Test
+    public void testOfflineClientLiteSubscription_ValidLiteConsumer_Success() {
+        Subscription subscription = Subscription.newBuilder()
+            .setGroup(Resource.newBuilder().setName("testGroup").build())
+            .addSubscriptions(SubscriptionEntry.newBuilder()
+                .setTopic(Resource.newBuilder().setName("testTopic").build())
+                .build())
+            .build();
+
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.LITE_PUSH_CONSUMER)
+            .setSubscription(subscription)
+            .build();
+
+        when(messagingProcessor.syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(null));
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+
+        verify(messagingProcessor, times(1)).syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong());
+    }
+
+    @Test
+    public void testOfflineClientLiteSubscription_ValidLiteConsumer_SyncThrowsException() {
+        Subscription subscription = Subscription.newBuilder()
+            .setGroup(Resource.newBuilder().setName("testGroup").build())
+            .addSubscriptions(SubscriptionEntry.newBuilder()
+                .setTopic(Resource.newBuilder().setName("testTopic").build())
+                .build())
+            .build();
+
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.LITE_PUSH_CONSUMER)
+            .setSubscription(subscription)
+            .build();
+
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        future.completeExceptionally(new RuntimeException("Simulated error"));
+        when(messagingProcessor.syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong()))
+            .thenReturn(future);
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+
+        verify(messagingProcessor, times(1)).syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong());
     }
 }

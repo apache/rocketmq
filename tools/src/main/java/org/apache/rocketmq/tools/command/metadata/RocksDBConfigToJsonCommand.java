@@ -17,22 +17,8 @@
 
 package org.apache.rocketmq.tools.command.metadata;
 
-import com.alibaba.fastjson.JSONObject;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -48,6 +34,22 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.rocksdb.RocksIterator;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RocksDBConfigToJsonCommand implements SubCommand {
 
@@ -128,7 +130,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
             System.out.print("Rocksdb path is invalid.\n");
             return;
         }
-        path = Paths.get(path, type.toString()).toString();
+        path = Paths.get(path, type.getTypeName()).toString();
         String exportFile = commandLine.hasOption("exportFile") ? commandLine.getOptionValue("exportFile").trim() : null;
         Map<String, JSONObject> configMap = getConfigMapFromRocksDB(path, type);
         if (configMap != null) {
@@ -136,10 +138,10 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 if (commandLine.hasOption("jsonEnable") && "false".equalsIgnoreCase(commandLine.getOptionValue("jsonEnable").trim())) {
                     printConfigMapJsonDisable(configMap);
                 } else {
-                    System.out.print(JSONObject.toJSONString(configMap, true) + "\n");
+                    System.out.print(JSONObject.toJSONString(configMap, JSONWriter.Feature.PrettyFormat) + "\n");
                 }
             } else {
-                String jsonString = JSONObject.toJSONString(configMap, true);
+                String jsonString = JSONObject.toJSONString(configMap, JSONWriter.Feature.PrettyFormat);
                 try {
                     MixAll.string2File(jsonString, exportFile);
                 } catch (IOException e) {
@@ -192,8 +194,12 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
             return loadConsumerOffsets(path);
         }
 
-        ConfigRocksDBStorage configRocksDBStorage = new ConfigRocksDBStorage(path, true);
-        configRocksDBStorage.start();
+        ConfigRocksDBStorage configRocksDBStorage = ConfigRocksDBStorage.getStore(path, true);
+        if (!configRocksDBStorage.start()) {
+            System.out.print("Failed to initialize ConfigRocksDBStorage.\n");
+            return null;
+        }
+
         RocksIterator iterator = configRocksDBStorage.iterator();
         try {
             final Map<String, JSONObject> configMap = new HashMap<>();
@@ -208,10 +214,17 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 configTable.put(name, jsonObject);
                 iterator.next();
             }
-            byte[] kvDataVersion = configRocksDBStorage.getKvDataVersion();
-            if (kvDataVersion != null) {
-                configMap.put("dataVersion",
-                    JSONObject.parseObject(new String(kvDataVersion, DataConverter.CHARSET_UTF8)));
+
+            // Try to get data version
+            try {
+                byte[] kvDataVersion = configRocksDBStorage.get("kvDataVersion",
+                    "kvDataVersionKey".getBytes(DataConverter.CHARSET_UTF8));
+                if (kvDataVersion != null) {
+                    configMap.put("dataVersion",
+                        JSONObject.parseObject(new String(kvDataVersion, DataConverter.CHARSET_UTF8)));
+                }
+            } catch (Exception e) {
+                // Ignore if data version is not available
             }
 
             if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.TOPICS.equals(configType)) {
@@ -224,7 +237,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
         } catch (Exception e) {
             System.out.print("Error occurred while converting RocksDB kv config to json, " + "configType=" + configType + ", " + e.getMessage() + "\n");
         } finally {
-            configRocksDBStorage.shutdown();
+            ConfigRocksDBStorage.shutdown(path);
         }
         return null;
     }
@@ -284,8 +297,12 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
     }
 
     private static Map<String, JSONObject> loadConsumerOffsets(String path) {
-        ConfigRocksDBStorage configRocksDBStorage = new ConfigRocksDBStorage(path, true);
-        configRocksDBStorage.start();
+        ConfigRocksDBStorage configRocksDBStorage = ConfigRocksDBStorage.getStore(path, true);
+        if (!configRocksDBStorage.start()) {
+            System.out.print("Failed to initialize ConfigRocksDBStorage for consumer offsets.\n");
+            return null;
+        }
+
         RocksIterator iterator = configRocksDBStorage.iterator();
         try {
             final Map<String, JSONObject> configMap = new HashMap<>();
@@ -305,7 +322,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
         } catch (Exception e) {
             System.out.print("Error occurred while converting RocksDB kv config to json, " + "configType=consumerOffsets, " + e.getMessage() + "\n");
         } finally {
-            configRocksDBStorage.shutdown();
+            ConfigRocksDBStorage.shutdown(path);
         }
         return null;
     }

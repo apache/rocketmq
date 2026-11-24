@@ -46,7 +46,6 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MixAll;
@@ -356,18 +355,14 @@ public class BrokerOuterAPI {
             requestHeader.setClusterName(clusterName);
 
             for (final String namesrvAddr : nameServerAddressList) {
-                brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
+                brokerOuterExecutor.execute(() -> {
+                    RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
+                    request.setBody(dataVersion.encode());
 
-                    @Override
-                    public void run0() {
-                        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_DATA_VERSION, requestHeader);
-                        request.setBody(dataVersion.encode());
-
-                        try {
-                            BrokerOuterAPI.this.remotingClient.invokeOneway(namesrvAddr, request, timeoutMillis);
-                        } catch (Exception e) {
-                            LOGGER.error("sendHeartbeat Exception " + namesrvAddr, e);
-                        }
+                    try {
+                        BrokerOuterAPI.this.remotingClient.invokeOneway(namesrvAddr, request, timeoutMillis);
+                    } catch (Exception e) {
+                        LOGGER.error("sendHeartbeat Exception " + namesrvAddr, e);
                     }
                 });
             }
@@ -389,9 +384,9 @@ public class BrokerOuterAPI {
 
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
             for (final String namesrvAddr : nameServerAddressList) {
-                brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
+                brokerOuterExecutor.execute(new Runnable() {
                     @Override
-                    public void run0() {
+                    public void run() {
                         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, requestHeader);
 
                         try {
@@ -532,9 +527,9 @@ public class BrokerOuterAPI {
             requestHeader.setBodyCrc32(bodyCrc32);
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
-                brokerOuterExecutor.execute(new AbstractBrokerRunnable(brokerIdentity) {
+                brokerOuterExecutor.execute(new Runnable() {
                     @Override
-                    public void run0() {
+                    public void run() {
                         try {
                             RegisterBrokerResult result = registerBroker(namesrvAddr, oneway, timeoutMills, requestHeader, body);
                             if (result != null) {
@@ -719,9 +714,9 @@ public class BrokerOuterAPI {
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
-                brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
+                brokerOuterExecutor.execute(new Runnable() {
                     @Override
-                    public void run0() {
+                    public void run() {
                         try {
                             QueryDataVersionRequestHeader requestHeader = new QueryDataVersionRequestHeader();
                             requestHeader.setBrokerAddr(brokerAddr);
@@ -836,7 +831,7 @@ public class BrokerOuterAPI {
                     continue;
                 }
 
-                if (topicSeq >= totalTopicNum - 1) {
+                if (topicSeq >= totalTopicNum) {
                     LOGGER.info("get all topic config, totalTopicNum: {}", totalTopicNum);
                     break;
                 }
@@ -986,7 +981,7 @@ public class BrokerOuterAPI {
                     continue;
                 }
 
-                if (groupSeq >= totalGroupNum - 1) {
+                if (groupSeq >= totalGroupNum) {
                     LOGGER.info("get all subscription group config, totalGroupNum: {}", totalGroupNum);
                     break;
                 }
@@ -1501,9 +1496,9 @@ public class BrokerOuterAPI {
         requestHeader.setHeartbeatTimeoutMills(controllerHeartBeatTimeoutMills);
         requestHeader.setElectionPriority(electionPriority);
         requestHeader.setBrokerId(brokerId);
-        brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
+        brokerOuterExecutor.execute(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, requestHeader);
 
                 try {

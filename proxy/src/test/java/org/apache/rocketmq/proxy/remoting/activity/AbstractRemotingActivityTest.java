@@ -23,6 +23,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.acl.common.AclException;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MQVersion;
@@ -182,6 +184,33 @@ public class AbstractRemotingActivityTest extends InitConfigTest {
         assertThat(remotingCommand).isNull();
         verify(ctx, times(1)).writeAndFlush(captor.capture());
         assertThat(captor.getValue().getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+    @Test
+    public void testRequestAuthExceptions() throws Exception {
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        String brokerName = "broker";
+        CompletableFuture<RemotingCommand> authenticationFuture = new CompletableFuture<>();
+        authenticationFuture.completeExceptionally(new AuthenticationException("authentication failed"));
+        CompletableFuture<RemotingCommand> authorizationFuture = new CompletableFuture<>();
+        authorizationFuture.completeExceptionally(new AuthorizationException("authorization failed"));
+        when(messagingProcessorMock.request(any(), eq(brokerName), any(), anyLong()))
+            .thenReturn(authenticationFuture, authorizationFuture);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
+        request.setOpaque(123);
+        request.addExtField(AbstractRemotingActivity.BROKER_NAME_FIELD, brokerName);
+
+        remotingActivity.request(ctx, request, null, 10000);
+        remotingActivity.request(ctx, request, null, 10000);
+
+        verify(ctx, times(2)).writeAndFlush(captor.capture());
+        assertThat(captor.getAllValues()).allSatisfy(response -> {
+            assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+            assertThat(response.getOpaque()).isEqualTo(123);
+            assertThat(response.isResponseType()).isTrue();
+        });
+        assertThat(captor.getAllValues().get(0).getRemark()).isEqualTo("authentication failed");
+        assertThat(captor.getAllValues().get(1).getRemark()).isEqualTo("authorization failed");
     }
 
     @Test

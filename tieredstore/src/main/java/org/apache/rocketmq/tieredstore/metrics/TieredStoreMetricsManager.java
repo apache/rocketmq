@@ -207,7 +207,7 @@ public class TieredStoreMetricsManager {
 
         dispatchLatency = meter.gaugeBuilder(GAUGE_DISPATCH_LATENCY)
             .setDescription("Tiered store dispatch latency")
-            .setUnit("seconds")
+            .setUnit("milliseconds")
             .ofLongs()
             .buildWithCallback(measurement -> {
                 for (FlatMessageFile flatFile : flatFileStore.deepCopyFlatFileToList()) {
@@ -261,7 +261,7 @@ public class TieredStoreMetricsManager {
             .ofLongs()
             .buildWithCallback(measurement -> {
                 if (fetcher instanceof MessageStoreFetcherImpl) {
-                    long count = ((MessageStoreFetcherImpl) fetcher).getFetcherCache().stats().loadCount();
+                    long count = ((MessageStoreFetcherImpl) fetcher).getFetcherCache().estimatedSize();
                     measurement.record(count, newAttributesBuilder().build());
                 }
             });
@@ -272,8 +272,10 @@ public class TieredStoreMetricsManager {
             .ofLongs()
             .buildWithCallback(measurement -> {
                 if (fetcher instanceof MessageStoreFetcherImpl) {
-                    long count = ((MessageStoreFetcherImpl) fetcher).getFetcherCache().estimatedSize();
-                    measurement.record(count, newAttributesBuilder().build());
+                    long bytes = ((MessageStoreFetcherImpl) fetcher).getFetcherCache().policy().eviction()
+                        .map(eviction -> eviction.weightedSize().orElse(0L))
+                        .orElse(0L);
+                    measurement.record(bytes, newAttributesBuilder().build());
                 }
             });
 

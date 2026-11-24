@@ -18,6 +18,7 @@
 package org.apache.rocketmq.common.attribute;
 
 import com.google.common.collect.Sets;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -28,15 +29,19 @@ public enum TopicMessageType {
     FIFO("FIFO"),
     DELAY("DELAY"),
     TRANSACTION("TRANSACTION"),
+    PRIORITY("PRIORITY"),
+    LITE("LITE"),
     MIXED("MIXED");
 
     private final String value;
+
     TopicMessageType(String value) {
         this.value = value;
     }
 
     public static Set<String> topicMessageTypeSet() {
-        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value, MIXED.value);
+        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value,
+            PRIORITY.value, LITE.value, MIXED.value);
     }
 
     public String getValue() {
@@ -44,9 +49,8 @@ public enum TopicMessageType {
     }
 
     public static TopicMessageType parseFromMessageProperty(Map<String, String> messageProperty) {
-        String isTrans = messageProperty.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        String isTransValue = "true";
-        if (isTransValue.equals(isTrans)) {
+        // the parse order keeps message types mutually exclusive
+        if (Boolean.parseBoolean(messageProperty.get(MessageConst.PROPERTY_TRANSACTION_PREPARED))) {
             return TopicMessageType.TRANSACTION;
         } else if (messageProperty.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
             || messageProperty.get(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
@@ -55,11 +59,15 @@ public enum TopicMessageType {
             return TopicMessageType.DELAY;
         } else if (messageProperty.get(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             return TopicMessageType.FIFO;
+        } else if (messageProperty.get(MessageConst.PROPERTY_PRIORITY) != null) {
+            return TopicMessageType.PRIORITY;
+        } else if (messageProperty.get(MessageConst.PROPERTY_LITE_TOPIC) != null) {
+            return TopicMessageType.LITE;
         }
         return TopicMessageType.NORMAL;
     }
 
     public String getMetricsValue() {
-        return value.toLowerCase();
+        return value.toLowerCase(Locale.ROOT);
     }
 }

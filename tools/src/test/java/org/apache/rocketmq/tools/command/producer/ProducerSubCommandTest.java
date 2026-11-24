@@ -17,13 +17,12 @@
 
 package org.apache.rocketmq.tools.command.producer;
 
-import java.util.HashMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
-import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.body.ProducerInfo;
+import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.server.NameServerMocker;
@@ -31,6 +30,10 @@ import org.apache.rocketmq.tools.command.server.ServerResponseMocker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class ProducerSubCommandTest {
     private ServerResponseMocker brokerMocker;
@@ -61,21 +64,16 @@ public class ProducerSubCommandTest {
     }
 
     private ServerResponseMocker startOneBroker() {
-        ConsumeStats consumeStats = new ConsumeStats();
-        HashMap<MessageQueue, OffsetWrapper> offsetTable = new HashMap<>();
-        MessageQueue messageQueue = new MessageQueue();
-        messageQueue.setBrokerName("mockBrokerName");
-        messageQueue.setQueueId(1);
-        messageQueue.setBrokerName("mockTopicName");
+        ProducerTableInfo producerTableInfo = new ProducerTableInfo(new HashMap<>());
+        List<ProducerInfo> producerInfo = new ArrayList<>();
+        producerInfo.add(new ProducerInfo(
+                "xxxx-client-id",
+                "127.0.0.1:18978",
+                LanguageCode.JAVA,
+                400,
+                System.currentTimeMillis()));
 
-        OffsetWrapper offsetWrapper = new OffsetWrapper();
-        offsetWrapper.setBrokerOffset(1);
-        offsetWrapper.setConsumerOffset(1);
-        offsetWrapper.setLastTimestamp(System.currentTimeMillis());
-
-        offsetTable.put(messageQueue, offsetWrapper);
-        consumeStats.setOffsetTable(offsetTable);
-        // start broker
-        return ServerResponseMocker.startServer(consumeStats.encode());
+        producerTableInfo.getData().put("mockTopicName", producerInfo);
+        return ServerResponseMocker.startServer(producerTableInfo.encode());
     }
 }

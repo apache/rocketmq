@@ -5,6 +5,10 @@ on:
   push:
     branches: [master, develop]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   it-test:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
@@ -24,6 +28,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          submodules: true
 
       - name: Set up JDK ${{ matrix.jdk }}
         uses: actions/setup-java@v4
