@@ -342,7 +342,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         messageExt.setBody("body".getBytes());
 
         PopResult popResult = new PopResult(PopStatus.FOUND, Collections.singletonList(messageExt));
-        when(this.messagingProcessor.popLiteMessage(
+        when(this.messagingProcessor.popMessage(
             any(),
             any(),
             anyString(),
@@ -350,7 +350,9 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             anyInt(),
             anyLong(),
             anyLong(),
+            anyInt(),
             any(),
+            anyBoolean(),
             any(),
             isNull(),
             anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));

@@ -52,6 +52,7 @@ import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
@@ -233,6 +234,21 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         GetConsumerRunningInfoRequestHeader header,
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture) {
         if (Objects.isNull(header) || !header.isJstackEnable()) {
+            // The gRPC v2 telemetry protocol only offers PrintThreadStackTraceCommand for this
+            // request: there is no command that reports consumer running info without a stack dump.
+            // Returning without touching responseFuture used to leave the caller hanging until
+            // GrpcChannelManager#scanExpireResultFuture fired SYSTEM_BUSY "call remote timeout",
+            // which both wastes grpcProxyRelayRequestTimeoutInSeconds and misreports the cause as a
+            // timeout. REQUEST_CODE_NOT_SUPPORTED is the accurate code here: the request itself is
+            // understood and the peer is healthy, the protocol simply cannot serve this variant.
+            // (SYSTEM_ERROR/SYSTEM_BUSY would advertise a retryable proxy-side fault, which is
+            // wrong and would make callers loop.)
+            if (responseFuture != null) {
+                responseFuture.complete(new ProxyRelayResult<>(ResponseCode.REQUEST_CODE_NOT_SUPPORTED,
+                    "gRPC v2 protocol cannot report consumer running info without jstack, "
+                        + "retry with jstackEnable=true",
+                    null));
+            }
             return CompletableFuture.completedFuture(null);
         }
         this.writeTelemetryCommand(TelemetryCommand.newBuilder()

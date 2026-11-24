@@ -22,11 +22,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.filter.FilterFactory;
@@ -48,6 +50,9 @@ public class ConsumerFilterManager extends ConfigManager {
 
     private ConcurrentMap<String/*Topic*/, FilterDataMapByTopic>
         filterDataByTopic = new ConcurrentHashMap<>(256);
+
+    private final transient ConcurrentMap<String/*ConsumerID*/, SubscriptionFilterHandler>
+            subscriptionFilterData = new ConcurrentHashMap<>(256);
 
     private transient BrokerController brokerController;
     private transient BloomFilter bloomFilter;
@@ -113,23 +118,21 @@ public class ConsumerFilterManager extends ConfigManager {
         }
 
         // make illegal topic dead.
-        Collection<ConsumerFilterData> groupFilterData = getByGroup(consumerGroup);
+        Set<String> curSubList = new HashSet<>();
+        for (SubscriptionData subscriptionData : subList) {
+            curSubList.add(subscriptionData.getTopic());
+        }
 
-        Iterator<ConsumerFilterData> iterator = groupFilterData.iterator();
-        while (iterator.hasNext()) {
-            ConsumerFilterData filterData = iterator.next();
-
-            boolean exist = false;
-            for (SubscriptionData subscriptionData : subList) {
-                if (subscriptionData.getTopic().equals(filterData.getTopic())) {
-                    exist = true;
-                    break;
+        SubscriptionFilterHandler subscriptionFilterHandler = this.subscriptionFilterData.get(consumerGroup);
+        if (null != subscriptionFilterHandler) {
+            for (Map.Entry<String, ConsumerFilterData> entry : subscriptionFilterHandler.getTopicSqlFilterData().entrySet()) {
+                if (!curSubList.contains(entry.getKey())) {
+                    ConsumerFilterData filterData = entry.getValue();
+                    if (filterData != null) {
+                        filterData.setDeadTime(System.currentTimeMillis());
+                        log.info("Consumer filter changed: {}, make illegal topic dead:{}", consumerGroup, filterData);
+                    }
                 }
-            }
-
-            if (!exist && !filterData.isDead()) {
-                filterData.setDeadTime(System.currentTimeMillis());
-                log.info("Consumer filter changed: {}, make illegal topic dead:{}", consumerGroup, filterData);
             }
         }
     }
@@ -144,34 +147,48 @@ public class ConsumerFilterManager extends ConfigManager {
             return false;
         }
 
-        FilterDataMapByTopic filterDataMapByTopic = this.filterDataByTopic.get(topic);
-
-        if (filterDataMapByTopic == null) {
-            FilterDataMapByTopic temp = new FilterDataMapByTopic(topic);
-            FilterDataMapByTopic prev = this.filterDataByTopic.putIfAbsent(topic, temp);
-            filterDataMapByTopic = prev != null ? prev : temp;
+        if (null != this.brokerController) {
+            TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
+            if (null == topicConfig) {
+                return false;
+            }
         }
 
-        BloomFilterData bloomFilterData = bloomFilter.generate(consumerGroup + "#" + topic);
+        SubscriptionFilterHandler subscriptionFilterHandler = this.subscriptionFilterData.get(consumerGroup);
+        if (subscriptionFilterHandler == null) {
+            SubscriptionFilterHandler temp = new SubscriptionFilterHandler(consumerGroup);
+            SubscriptionFilterHandler prev = this.subscriptionFilterData.putIfAbsent(consumerGroup, temp);
+            subscriptionFilterHandler = prev != null ? prev : temp;
+        }
 
-        return filterDataMapByTopic.register(consumerGroup, expression, type, bloomFilterData, clientVersion);
+        BloomFilterData bloomFilterData = null;
+        if (this.brokerController == null
+                || this.brokerController.getBrokerConfig().isEnableCalcFilterBitMap()) {
+            bloomFilterData = bloomFilter.generate(consumerGroup + "#" + topic);
+        }
+        ConsumerFilterData consumerFilterData = subscriptionFilterHandler.register(consumerGroup, expression, type, bloomFilterData, clientVersion, topic);
+        if (null == consumerFilterData) {
+            return false;
+        }
+        this.filterDataByTopic.putIfAbsent(topic, new FilterDataMapByTopic(topic));
+        this.filterDataByTopic.get(topic).put(consumerFilterData);
+        return true;
     }
 
     public void unRegister(final String consumerGroup) {
-        for (Entry<String, FilterDataMapByTopic> entry : filterDataByTopic.entrySet()) {
-            entry.getValue().unRegister(consumerGroup);
+        SubscriptionFilterHandler handler = this.subscriptionFilterData.get(consumerGroup);
+        if (handler != null) {
+            handler.unRegister();
         }
     }
 
     public ConsumerFilterData get(final String topic, final String consumerGroup) {
-        if (!this.filterDataByTopic.containsKey(topic)) {
-            return null;
-        }
-        if (this.filterDataByTopic.get(topic).getGroupFilterData().isEmpty()) {
+        SubscriptionFilterHandler handler = this.subscriptionFilterData.get(consumerGroup);
+        if (handler == null) {
             return null;
         }
 
-        return this.filterDataByTopic.get(topic).getGroupFilterData().get(consumerGroup);
+        return handler.getTopicSqlFilterData().get(topic);
     }
 
     public Collection<ConsumerFilterData> getByGroup(final String consumerGroup) {
@@ -196,14 +213,12 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public final Collection<ConsumerFilterData> get(final String topic) {
-        if (!this.filterDataByTopic.containsKey(topic)) {
-            return null;
-        }
-        if (this.filterDataByTopic.get(topic).getGroupFilterData().isEmpty()) {
+        FilterDataMapByTopic mapByTopic = this.filterDataByTopic.get(topic);
+        if (mapByTopic == null || mapByTopic.getGroupFilterData().isEmpty()) {
             return null;
         }
 
-        return this.filterDataByTopic.get(topic).getGroupFilterData().values();
+        return mapByTopic.getGroupFilterData().values();
     }
 
     public BloomFilter getBloomFilter() {
@@ -275,6 +290,19 @@ public class ConsumerFilterManager extends ConfigManager {
             if (!bloomChanged) {
                 this.filterDataByTopic = load.filterDataByTopic;
             }
+
+            // rebuild subscriptionFilterData from filterDataByTopic
+            for (Entry<String, FilterDataMapByTopic> entry : this.filterDataByTopic.entrySet()) {
+                for (Entry<String, ConsumerFilterData> groupEntry : entry.getValue().getGroupFilterData().entrySet()) {
+                    ConsumerFilterData data = groupEntry.getValue();
+                    if (data == null) {
+                        continue;
+                    }
+                    SubscriptionFilterHandler handler = this.subscriptionFilterData
+                        .computeIfAbsent(data.getConsumerGroup(), SubscriptionFilterHandler::new);
+                    handler.getTopicSqlFilterData().put(data.getTopic(), data);
+                }
+            }
         }
     }
 
@@ -288,26 +316,34 @@ public class ConsumerFilterManager extends ConfigManager {
     }
 
     public void clean() {
-        Iterator<Map.Entry<String, FilterDataMapByTopic>> topicIterator = this.filterDataByTopic.entrySet().iterator();
-        while (topicIterator.hasNext()) {
-            Map.Entry<String, FilterDataMapByTopic> filterDataMapByTopic = topicIterator.next();
+        Iterator<Map.Entry<String, SubscriptionFilterHandler>> consumerIterator = this.subscriptionFilterData.entrySet().iterator();
+        while (consumerIterator.hasNext()) {
+            Map.Entry<String, SubscriptionFilterHandler> subscriptionFilterHandlerEntry = consumerIterator.next();
 
             Iterator<Map.Entry<String, ConsumerFilterData>> filterDataIterator
-                = filterDataMapByTopic.getValue().getGroupFilterData().entrySet().iterator();
+                    = subscriptionFilterHandlerEntry.getValue().getTopicSqlFilterData().entrySet().iterator();
 
             while (filterDataIterator.hasNext()) {
                 Map.Entry<String, ConsumerFilterData> filterDataByGroup = filterDataIterator.next();
 
                 ConsumerFilterData filterData = filterDataByGroup.getValue();
                 if (filterData.howLongAfterDeath() >= (this.brokerController == null ? MS_24_HOUR : this.brokerController.getBrokerConfig().getFilterDataCleanTimeSpan())) {
-                    log.info("Remove filter consumer {}, died too long!", filterDataByGroup.getValue());
+                    log.info("Remove filter consumer {}, died too long!", filterDataByGroup.getKey());
                     filterDataIterator.remove();
+
+                    FilterDataMapByTopic mapByTopic = this.filterDataByTopic.get(filterData.getTopic());
+                    if (mapByTopic != null) {
+                        log.info("Remove filter data {} {} from filterDataByTopic", filterData.getTopic(), filterData.getConsumerGroup());
+                        mapByTopic.getGroupFilterData().remove(filterData.getConsumerGroup());
+                        if (mapByTopic.getGroupFilterData().isEmpty()) {
+                            this.filterDataByTopic.remove(filterData.getTopic());
+                        }
+                    }
                 }
             }
-
-            if (filterDataMapByTopic.getValue().getGroupFilterData().isEmpty()) {
-                log.info("Topic has no consumer, remove it! {}", filterDataMapByTopic.getKey());
-                topicIterator.remove();
+            if (subscriptionFilterHandlerEntry.getValue().getTopicSqlFilterData().isEmpty()) {
+                log.info("subscriptionFilterData Remove filter consumer {}", subscriptionFilterHandlerEntry.getKey());
+                consumerIterator.remove();
             }
         }
     }
@@ -334,115 +370,10 @@ public class ConsumerFilterManager extends ConfigManager {
             this.topic = topic;
         }
 
-        public void unRegister(String consumerGroup) {
-            if (!this.groupFilterData.containsKey(consumerGroup)) {
-                return;
+        public void put(ConsumerFilterData consumerFilterData) {
+            if (null != consumerFilterData) {
+                this.groupFilterData.put(consumerFilterData.getConsumerGroup(), consumerFilterData);
             }
-
-            ConsumerFilterData data = this.groupFilterData.get(consumerGroup);
-
-            if (data == null || data.isDead()) {
-                return;
-            }
-
-            long now = System.currentTimeMillis();
-
-            log.info("Unregister consumer filter: {}, deadTime: {}", data, now);
-
-            data.setDeadTime(now);
-        }
-
-        public boolean register(String consumerGroup, String expression, String type, BloomFilterData bloomFilterData,
-            long clientVersion) {
-            ConsumerFilterData old = this.groupFilterData.get(consumerGroup);
-
-            if (old == null) {
-                ConsumerFilterData consumerFilterData = build(topic, consumerGroup, expression, type, clientVersion);
-                if (consumerFilterData == null) {
-                    return false;
-                }
-                consumerFilterData.setBloomFilterData(bloomFilterData);
-
-                old = this.groupFilterData.putIfAbsent(consumerGroup, consumerFilterData);
-                if (old == null) {
-                    log.info("New consumer filter registered: {}", consumerFilterData);
-                    return true;
-                } else {
-                    if (clientVersion <= old.getClientVersion()) {
-                        if (!type.equals(old.getExpressionType()) || !expression.equals(old.getExpression())) {
-                            log.warn("Ignore consumer({} : {}) filter(concurrent), because of version {} <= {}, but maybe info changed!old={}:{}, ignored={}:{}",
-                                consumerGroup, topic,
-                                clientVersion, old.getClientVersion(),
-                                old.getExpressionType(), old.getExpression(),
-                                type, expression);
-                        }
-                        if (clientVersion == old.getClientVersion() && old.isDead()) {
-                            reAlive(old);
-                            return true;
-                        }
-
-                        return false;
-                    } else {
-                        this.groupFilterData.put(consumerGroup, consumerFilterData);
-                        log.info("New consumer filter registered(concurrent): {}, old: {}", consumerFilterData, old);
-                        return true;
-                    }
-                }
-            } else {
-                if (clientVersion <= old.getClientVersion()) {
-                    if (!type.equals(old.getExpressionType()) || !expression.equals(old.getExpression())) {
-                        log.info("Ignore consumer({}:{}) filter, because of version {} <= {}, but maybe info changed!old={}:{}, ignored={}:{}",
-                            consumerGroup, topic,
-                            clientVersion, old.getClientVersion(),
-                            old.getExpressionType(), old.getExpression(),
-                            type, expression);
-                    }
-                    if (clientVersion == old.getClientVersion() && old.isDead()) {
-                        reAlive(old);
-                        return true;
-                    }
-
-                    return false;
-                }
-
-                boolean change = !old.getExpression().equals(expression) || !old.getExpressionType().equals(type);
-                if (old.getBloomFilterData() == null && bloomFilterData != null) {
-                    change = true;
-                }
-                if (old.getBloomFilterData() != null && !old.getBloomFilterData().equals(bloomFilterData)) {
-                    change = true;
-                }
-
-                // if subscribe data is changed, or consumer is died too long.
-                if (change) {
-                    ConsumerFilterData consumerFilterData = build(topic, consumerGroup, expression, type, clientVersion);
-                    if (consumerFilterData == null) {
-                        // new expression compile error, remove old, let client report error.
-                        this.groupFilterData.remove(consumerGroup);
-                        return false;
-                    }
-                    consumerFilterData.setBloomFilterData(bloomFilterData);
-
-                    this.groupFilterData.put(consumerGroup, consumerFilterData);
-
-                    log.info("Consumer filter info change, old: {}, new: {}, change: {}",
-                        old, consumerFilterData, change);
-
-                    return true;
-                } else {
-                    old.setClientVersion(clientVersion);
-                    if (old.isDead()) {
-                        reAlive(old);
-                    }
-                    return true;
-                }
-            }
-        }
-
-        protected void reAlive(ConsumerFilterData filterData) {
-            long oldDeadTime = filterData.getDeadTime();
-            filterData.setDeadTime(0);
-            log.info("Re alive consumer filter: {}, oldDeadTime: {}", filterData, oldDeadTime);
         }
 
         public final ConsumerFilterData get(String consumerGroup) {
@@ -465,4 +396,124 @@ public class ConsumerFilterManager extends ConfigManager {
             this.topic = topic;
         }
     }
+
+
+    public static class SubscriptionFilterHandler {
+
+        private Map<String/*Topic*/, ConsumerFilterData> topicSqlFilterData = new ConcurrentHashMap<>();
+
+        final private String consumerId;
+
+        public SubscriptionFilterHandler(String consumerId) {
+            this.consumerId = consumerId;
+        }
+
+        public void unRegister() {
+            for (ConsumerFilterData data : topicSqlFilterData.values()) {
+                if (data != null && !data.isDead()) {
+                    long now = System.currentTimeMillis();
+                    log.info("Unregister consumer filter: {}, deadTime: {}", data, now);
+                    data.setDeadTime(now);
+                }
+            }
+        }
+
+        public ConsumerFilterData register(String consumerGroup, String expression, String type, BloomFilterData bloomFilterData,
+                                           long clientVersion, String topic) {
+            ConsumerFilterData old = this.topicSqlFilterData.get(topic);
+            if (old == null) {
+                ConsumerFilterData consumerFilterData = build(topic, consumerGroup, expression, type, clientVersion);
+                if (consumerFilterData == null) {
+                    return null;
+                }
+                consumerFilterData.setBloomFilterData(bloomFilterData);
+                old = this.topicSqlFilterData.putIfAbsent(topic, consumerFilterData);
+                if (old == null) {
+                    log.info("New consumer filter registered: {}", consumerFilterData);
+                    return consumerFilterData;
+                } else {
+                    if (clientVersion <= old.getClientVersion()) {
+                        if (!type.equals(old.getExpressionType()) || !expression.equals(old.getExpression())) {
+                            log.warn("Ignore consumer({} : {}) filter(concurrent), because of version {} <= {}, but maybe info changed!old={}:{}, ignored={}:{}",
+                                    consumerGroup, topic,
+                                    clientVersion, old.getClientVersion(),
+                                    old.getExpressionType(), old.getExpression(),
+                                    type, expression);
+                        }
+                        if (clientVersion == old.getClientVersion() && old.isDead()) {
+                            reAlive(old);
+                            return old;
+                        }
+                        return null;
+                    } else {
+                        this.topicSqlFilterData.put(topic, consumerFilterData);
+                        log.info("New consumer filter registered(concurrent): {}, old: {}", consumerFilterData, old);
+                        return consumerFilterData;
+                    }
+                }
+            } else {
+                if (clientVersion <= old.getClientVersion()) {
+                    if (!type.equals(old.getExpressionType()) || !expression.equals(old.getExpression())) {
+                        log.info("Ignore consumer({}:{}) filter, because of version {} <= {}, but maybe info changed!old={}:{}, ignored={}:{}",
+                                consumerGroup, topic,
+                                clientVersion, old.getClientVersion(),
+                                old.getExpressionType(), old.getExpression(),
+                                type, expression);
+                    }
+                    if (clientVersion == old.getClientVersion() && old.isDead()) {
+                        reAlive(old);
+                        return old;
+                    }
+                    return null;
+                }
+
+                boolean change = !old.getExpression().equals(expression) || !old.getExpressionType().equals(type);
+                if (old.getBloomFilterData() == null && bloomFilterData != null) {
+                    change = true;
+                }
+                if (old.getBloomFilterData() != null && !old.getBloomFilterData().equals(bloomFilterData)) {
+                    change = true;
+                }
+
+                // if subscribe data is changed, or consumer is died too long.
+                if (change) {
+                    ConsumerFilterData consumerFilterData = build(topic, consumerGroup, expression, type, clientVersion);
+                    if (consumerFilterData == null) {
+                        // new expression compile error, remove old, let client report error.
+                        this.topicSqlFilterData.remove(topic);
+                        return null;
+                    }
+                    consumerFilterData.setBloomFilterData(bloomFilterData);
+                    this.topicSqlFilterData.put(topic, consumerFilterData);
+                    log.info("Consumer filter info change, old: {}, new: {}, change: true", old, consumerFilterData);
+                    return consumerFilterData;
+                } else {
+                    old.setClientVersion(clientVersion);
+                    if (old.isDead()) {
+                        reAlive(old);
+                    }
+                    return old;
+                }
+            }
+        }
+
+        protected void reAlive(ConsumerFilterData filterData) {
+            long oldDeadTime = filterData.getDeadTime();
+            filterData.setDeadTime(0);
+            log.info("Re alive consumer filter: {}, oldDeadTime: {}", filterData, oldDeadTime);
+        }
+
+        public Map<String, ConsumerFilterData> getTopicSqlFilterData() {
+            return topicSqlFilterData;
+        }
+
+        public void setTopicSqlFilterData(Map<String, ConsumerFilterData> topicSqlFilterData) {
+            this.topicSqlFilterData = topicSqlFilterData;
+        }
+
+        public String getConsumerId() {
+            return consumerId;
+        }
+    }
+
 }

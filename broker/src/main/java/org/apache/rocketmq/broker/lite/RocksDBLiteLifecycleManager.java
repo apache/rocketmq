@@ -17,11 +17,9 @@
 
 package org.apache.rocketmq.broker.lite;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -32,10 +30,7 @@ import org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -52,43 +47,6 @@ public class RocksDBLiteLifecycleManager extends AbstractLiteLifecycleManager {
     @Override
     public long getMaxOffsetInQueue(String lmqName) {
         return maxCqOffsetTable.getOrDefault(lmqName + "-0", -1L) + 1;
-    }
-
-    @Override
-    public List<String> collectByParentTopic(String parentTopic) {
-        if (StringUtils.isEmpty(parentTopic)) {
-            return Collections.emptyList();
-        }
-        List<String> resultList = new ArrayList<>();
-        Iterator<Map.Entry<String, Long>> iterator = maxCqOffsetTable.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Long> entry = iterator.next();
-            String queueAndQid = entry.getKey();
-            String lmqName = queueAndQid.substring(0, queueAndQid.lastIndexOf("-"));
-            if (LiteUtil.belongsTo(lmqName, parentTopic)) {
-                resultList.add(lmqName);
-            }
-        }
-        return resultList;
-    }
-
-    @Override
-    public List<Pair<String, String>> collectExpiredLiteTopic() {
-        List<Pair<String, String>> lmqToDelete = new ArrayList<>();
-        Iterator<Map.Entry<String, Long>> iterator = maxCqOffsetTable.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Long> entry = iterator.next();
-            String queueAndQid = entry.getKey();
-            String lmqName = queueAndQid.substring(0, queueAndQid.lastIndexOf("-"));
-            String parentTopic = LiteUtil.getParentTopic(lmqName);
-            if (null == parentTopic) {
-                continue;
-            }
-            if (isLiteTopicExpired(parentTopic, lmqName, entry.getValue() + 1)) {
-                lmqToDelete.add(new Pair<>(parentTopic, lmqName));
-            }
-        }
-        return lmqToDelete;
     }
 
     @Override

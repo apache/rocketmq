@@ -161,12 +161,15 @@ public class RocksDBConfigManager {
 
     public void updateKvDataVersion() throws Exception {
         kvDataVersion.nextVersion();
-        this.configRocksDBStorage.put(versionCF, KV_DATA_VERSION_KEY, KV_DATA_VERSION_KEY.length,
-            JSON.toJSONString(kvDataVersion).getBytes(StandardCharsets.UTF_8));
+        persistKvDataVersion();
     }
 
     public void setKvDataVersion(DataVersion dataVersion)  throws Exception {
         this.kvDataVersion = dataVersion;
+        persistKvDataVersion();
+    }
+
+    public void persistKvDataVersion() throws Exception {
         this.configRocksDBStorage.put(versionCF, KV_DATA_VERSION_KEY, KV_DATA_VERSION_KEY.length,
             JSON.toJSONString(kvDataVersion).getBytes(StandardCharsets.UTF_8));
     }

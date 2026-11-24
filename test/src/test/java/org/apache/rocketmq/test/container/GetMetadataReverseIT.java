@@ -282,7 +282,7 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
 
         awaitUntilSlaveOK();
 
-        await().atMost(Duration.ofMinutes(1)).until(() -> master1With3Replicas.getTimerCheckpoint().getMasterTimerQueueOffset() >= MESSAGE_COUNT);
+        await().atMost(Duration.ofMinutes(1)).until(() -> master1With3Replicas.getTimerMessageStore().getTimerCheckpoint().getMasterTimerQueueOffset() >= MESSAGE_COUNT);
 
         pushConsumer.shutdown();
     }

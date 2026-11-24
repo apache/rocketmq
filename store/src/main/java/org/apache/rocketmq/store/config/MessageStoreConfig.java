@@ -112,7 +112,6 @@ public class MessageStoreConfig {
     private long timerRocksDBPrecisionMs = 1000L;
     private double timerRocksDBRollMaxTps = 8000.0;
     private double timerRocksDBTimeExpiredMaxTps = 200000.0;
-    private int timerRocksDBRollIntervalHours = 1;
     private int timerRocksDBRollRangeHours = 2;
     private boolean timerRecallToTimeWheelEnable = true;
     private boolean timerRecallToTimelineEnable = true;
@@ -192,6 +191,15 @@ public class MessageStoreConfig {
     private int putMsgIndexHightWater = 600000;
     // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
+
+    // Upper bound (in bytes) of the per-thread reusable scratch buffer that
+    // CommitLog.checkMessageAndReturnSize keeps for message verification. The buffer is grow-only,
+    // so this also caps how much memory each dispatch/recovery thread can retain for its lifetime.
+    // Messages larger than this are verified with a transient buffer instead of the reusable one.
+    // Default 1M: it covers the vast majority of messages while keeping per-thread retained memory
+    // small even when concurrent dispatch (enableBuildConsumeQueueConcurrently) runs many threads;
+    // raise it if larger messages are common.
+    private int maxCheckMessageReuseBufferSize = 1024 * 1024;
 
     // The maximum size of message body can be  set in config;count with maxMsgNums * CQ_STORE_UNIT_SIZE(20 || 46)
     private int maxFilterMessageSize = 16000;
@@ -795,6 +803,14 @@ public class MessageStoreConfig {
         this.maxMessageSize = maxMessageSize;
     }
 
+    public int getMaxCheckMessageReuseBufferSize() {
+        return maxCheckMessageReuseBufferSize;
+    }
+
+    public void setMaxCheckMessageReuseBufferSize(int maxCheckMessageReuseBufferSize) {
+        this.maxCheckMessageReuseBufferSize = maxCheckMessageReuseBufferSize;
+    }
+
     public int getMaxFilterMessageSize() {
         return maxFilterMessageSize;
     }
@@ -892,10 +908,18 @@ public class MessageStoreConfig {
         this.storePathCommitLog = storePathCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getStorePathDLedgerCommitLog() {
         return storePathDLedgerCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
         this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
     }
@@ -1364,50 +1388,98 @@ public class MessageStoreConfig {
         this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getdLegerGroup() {
         return dLegerGroup;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setdLegerGroup(String dLegerGroup) {
         this.dLegerGroup = dLegerGroup;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getdLegerPeers() {
         return dLegerPeers;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setdLegerPeers(String dLegerPeers) {
         this.dLegerPeers = dLegerPeers;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getdLegerSelfId() {
         return dLegerSelfId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setdLegerSelfId(String dLegerSelfId) {
         this.dLegerSelfId = dLegerSelfId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public boolean isEnableDLegerCommitLog() {
         return enableDLegerCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setEnableDLegerCommitLog(boolean enableDLegerCommitLog) {
         this.enableDLegerCommitLog = enableDLegerCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getPreferredLeaderId() {
         return preferredLeaderId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setPreferredLeaderId(String preferredLeaderId) {
         this.preferredLeaderId = preferredLeaderId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public boolean isEnableBatchPush() {
         return enableBatchPush;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setEnableBatchPush(boolean enableBatchPush) {
         this.enableBatchPush = enableBatchPush;
     }
@@ -2323,14 +2395,6 @@ public class MessageStoreConfig {
 
     public int getTimerReputServiceQueueCapacity() {
         return timerReputServiceQueueCapacity;
-    }
-
-    public int getTimerRocksDBRollIntervalHours() {
-        return timerRocksDBRollIntervalHours;
-    }
-
-    public void setTimerRocksDBRollIntervalHours(int timerRocksDBRollIntervalHours) {
-        this.timerRocksDBRollIntervalHours = timerRocksDBRollIntervalHours;
     }
 
     public int getTimerRocksDBRollRangeHours() {

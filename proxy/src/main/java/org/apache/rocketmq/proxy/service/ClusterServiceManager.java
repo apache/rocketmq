@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service;
 
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
@@ -50,6 +51,7 @@ import org.apache.rocketmq.proxy.service.relay.ClusterProxyRelayService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ClusterTopicRouteService;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
+import org.apache.rocketmq.proxy.service.sysmessage.SystemMessageConsumeExecutor;
 import org.apache.rocketmq.proxy.service.transaction.ClusterTransactionService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -69,6 +71,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     protected LiteSubscriptionService liteSubscriptionService;
 
     protected ScheduledExecutorService scheduledExecutorService;
+    protected ThreadPoolExecutor systemMessageConsumeExecutor;
     protected MQClientAPIFactory messagingClientAPIFactory;
     protected MQClientAPIFactory operationClientAPIFactory;
     protected MQClientAPIFactory transactionClientAPIFactory;
@@ -109,8 +112,9 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
         this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
 
+        this.systemMessageConsumeExecutor = SystemMessageConsumeExecutor.create(proxyConfig);
         this.producerManager = new ProducerManager();
-        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout(), rpcHook);
+        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout(), rpcHook, this.systemMessageConsumeExecutor);
 
         this.transactionClientAPIFactory = new MQClientAPIFactory(
             nameserverAccessConfig,
@@ -154,11 +158,13 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendShutdown(scheduledExecutorService::shutdown);
         this.appendStartAndShutdown(this.messagingClientAPIFactory);
         this.appendStartAndShutdown(this.operationClientAPIFactory);
+        this.appendStartAndShutdown(this.adminService);
         this.appendStartAndShutdown(this.transactionClientAPIFactory);
         this.appendStartAndShutdown(this.liteSubscriptionAPIFactory);
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
         this.appendStartAndShutdown(this.metadataService);
+        this.appendShutdown(() -> ThreadUtils.shutdownGracefully(this.systemMessageConsumeExecutor, 5, TimeUnit.SECONDS));
         this.appendStartAndShutdown(this.consumerManager);
     }
 

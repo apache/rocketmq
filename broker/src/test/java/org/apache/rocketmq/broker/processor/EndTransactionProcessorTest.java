@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.stats.Stats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -53,6 +54,8 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -124,6 +127,33 @@ public class EndTransactionProcessorTest {
     }
 
     @Test
+    public void testProcessRequestRejectsMismatchedTopic() throws RemotingCommandException {
+        when(transactionMsgService.commitMessage(any(EndTransactionRequestHeader.class)))
+            .thenReturn(createResponse(ResponseCode.SUCCESS));
+        RemotingCommand request = createEndTransactionMsgCommand(
+            MessageSysFlag.TRANSACTION_COMMIT_TYPE, false, "allowedTopic");
+
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        verify(messageStore, never()).putMessage(any(MessageExtBrokerInner.class));
+        verify(transactionMsgService, never()).deletePrepareMessage(any(MessageExt.class));
+    }
+
+    @Test
+    public void testProcessRequestRejectsMismatchedTopicOnRollback() throws RemotingCommandException {
+        when(transactionMsgService.rollbackMessage(any(EndTransactionRequestHeader.class)))
+            .thenReturn(createResponse(ResponseCode.SUCCESS));
+        RemotingCommand request = createEndTransactionMsgCommand(
+            MessageSysFlag.TRANSACTION_ROLLBACK_TYPE, false, "allowedTopic");
+
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        verify(transactionMsgService, never()).deletePrepareMessage(any(MessageExt.class));
+    }
+
+    @Test
     public void testProcessRequest_NotType() throws RemotingCommandException {
         RemotingCommand request = createEndTransactionMsgCommand(MessageSysFlag.TRANSACTION_NOT_TYPE, true);
         RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
@@ -154,9 +184,28 @@ public class EndTransactionProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.ILLEGAL_OPERATION);
     }
 
+    @Test
+    public void testProcessRequestAllowsMissingTopicForCompatibility() throws RemotingCommandException {
+        when(transactionMsgService.commitMessage(any(EndTransactionRequestHeader.class)))
+            .thenReturn(createResponse(ResponseCode.SUCCESS));
+        when(messageStore.putMessage(any(MessageExtBrokerInner.class)))
+            .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK,
+                createAppendMessageResult(AppendMessageStatus.PUT_OK)));
+        EndTransactionRequestHeader header = createEndTransactionRequestHeader(
+            MessageSysFlag.TRANSACTION_COMMIT_TYPE, false);
+        header.setTopic(null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, header);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = endTransactionProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
     private MessageExt createDefaultMessageExt() {
         MessageExt messageExt = new MessageExt();
         messageExt.setMsgId("12345678");
+        messageExt.setTopic(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
         messageExt.setQueueId(0);
         messageExt.setCommitLogOffset(123456789L);
         messageExt.setQueueOffset(1234);
@@ -169,7 +218,7 @@ public class EndTransactionProcessorTest {
 
     private EndTransactionRequestHeader createEndTransactionRequestHeader(int status, boolean isCheckMsg) {
         EndTransactionRequestHeader header = new EndTransactionRequestHeader();
-        header.setTopic("topic");
+        header.setTopic(TOPIC);
         header.setCommitLogOffset(123456789L);
         header.setFromTransactionCheck(isCheckMsg);
         header.setCommitOrRollback(status);
@@ -181,7 +230,12 @@ public class EndTransactionProcessorTest {
     }
 
     private RemotingCommand createEndTransactionMsgCommand(int status, boolean isCheckMsg) {
+        return createEndTransactionMsgCommand(status, isCheckMsg, TOPIC);
+    }
+
+    private RemotingCommand createEndTransactionMsgCommand(int status, boolean isCheckMsg, String topic) {
         EndTransactionRequestHeader header = createEndTransactionRequestHeader(status, isCheckMsg);
+        header.setTopic(topic);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.END_TRANSACTION, header);
         request.makeCustomHeaderToNet();
         return request;
@@ -197,6 +251,7 @@ public class EndTransactionProcessorTest {
     private MessageExt createRejectMessageExt() {
         MessageExt messageExt = new MessageExt();
         messageExt.setMsgId("12345678");
+        messageExt.setTopic(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
         messageExt.setQueueId(0);
         messageExt.setCommitLogOffset(123456789L);
         messageExt.setQueueOffset(1234);
@@ -205,7 +260,7 @@ public class EndTransactionProcessorTest {
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_QUEUE_ID, "0");
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_PRODUCER_GROUP, "testTransactionGroup");
-        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_TOPIC, "TEST");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_REAL_TOPIC, TOPIC);
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS, "60");
         return messageExt;
     }

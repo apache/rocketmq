@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.offset;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -86,21 +87,21 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public void cleanOffsetByTopic(String topic) {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
+
+        this.offsetTable.entrySet().removeIf(entry -> {
+            String topicAtGroup = entry.getKey();
             if (topicAtGroup.contains(topic)) {
                 String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
                 if (arrays.length == 2 && topic.equals(arrays[0])) {
-                    it.remove();
                     removeConsumerOffset(topicAtGroup);
                     pullOffsetTable.remove(topicAtGroup);
                     resetOffsetTable.remove(topicAtGroup);
-                    LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, next.getValue());
+                    LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, entry.getValue());
+                    return true;
                 }
             }
-        }
+            return false;
+        });
     }
 
     public void scanUnsubscribedTopic() {
@@ -327,24 +328,15 @@ public class ConsumerOffsetManager extends ConfigManager {
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic, final String filterGroups) {
 
         Map<Integer, Long> queueMinOffset = new HashMap<>();
-        Set<String> topicGroups = this.offsetTable.keySet();
+        Set<String> excludedGroups = new HashSet<>();
         if (!UtilAll.isBlank(filterGroups)) {
-            for (String group : filterGroups.split(",")) {
-                Iterator<String> it = topicGroups.iterator();
-                while (it.hasNext()) {
-                    String topicAtGroup = it.next();
-                    if (group.equals(topicAtGroup.split(TOPIC_GROUP_SEPARATOR)[1])) {
-                        it.remove();
-                        removeConsumerOffset(topicAtGroup);
-                    }
-                }
-            }
+            Collections.addAll(excludedGroups, filterGroups.split(","));
         }
 
         for (Map.Entry<String, ConcurrentMap<Integer, Long>> offSetEntry : this.offsetTable.entrySet()) {
             String topicGroup = offSetEntry.getKey();
             String[] topicGroupArr = topicGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (topic.equals(topicGroupArr[0])) {
+            if (topicGroupArr.length == 2 && topicGroupArr[0].equals(topic) && !excludedGroups.contains(topicGroupArr[1])) {
                 for (Entry<Integer, Long> entry : offSetEntry.getValue().entrySet()) {
                     long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, entry.getKey());
                     if (entry.getValue() >= minOffset) {

@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
@@ -30,6 +31,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 public class ResumeCheckHalfMessageRequestHeader implements CommandCustomHeader {
 
     @RocketMQResource(ResourceType.TOPIC)
+    @CFNotNull
     private String topic;
     @CFNullable
     private String msgId;

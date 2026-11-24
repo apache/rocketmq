@@ -100,7 +100,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         this.flatFileStore = new FlatFileStore(this.storeConfig, this.metadataStore, this.storeExecutor);
         this.indexService = new IndexStoreService(this.flatFileStore.getFlatFileFactory(),
             MessageStoreUtil.getIndexFilePath(this.storeConfig.getBrokerName()));
-        this.fetcher = new MessageStoreFetcherImpl(this);
+        this.fetcher = createFetcher(this.storeConfig, this.flatFileStore, this.indexService);
         this.dispatcher = new MessageStoreDispatcherImpl(this);
         next.addDispatcher(dispatcher);
     }
@@ -157,6 +157,18 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     public FlatFileStore getFlatFileStore() {
         return flatFileStore;
+    }
+
+    /**
+     * Build the fetcher used by this message store. Called from the constructor via
+     * virtual dispatch, so subclass overrides MUST NOT read {@link TieredMessageStore}
+     * instance fields beyond the parameters supplied here — other fields may not yet
+     * be initialized at the time this method runs. The supplied {@code storeConfig},
+     * {@code flatFileStore}, and {@code indexService} are guaranteed initialized.
+     */
+    protected MessageStoreFetcher createFetcher(MessageStoreConfig storeConfig,
+        FlatFileStore flatFileStore, IndexService indexService) {
+        return new MessageStoreFetcherImpl(this, storeConfig, flatFileStore, indexService);
     }
 
     public IndexService getIndexService() {

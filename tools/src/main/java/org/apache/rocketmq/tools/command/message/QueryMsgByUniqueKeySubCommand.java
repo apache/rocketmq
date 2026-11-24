@@ -20,6 +20,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -41,6 +42,15 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 public class QueryMsgByUniqueKeySubCommand implements SubCommand {
 
     private DefaultMQAdminExt defaultMQAdminExt;
+
+    /**
+     * Orders messages by their store timestamp. The lambda it replaces subtracted two longs
+     * and cast the result to int, which wrapped around whenever the timestamps were more than
+     * Integer.MAX_VALUE milliseconds (about 24.8 days) apart, mis-sorting the output and
+     * breaking the comparator contract that TimSort enforces.
+     */
+    static final Comparator<MessageExt> STORE_TIMESTAMP_COMPARATOR =
+        Comparator.comparingLong(MessageExt::getStoreTimestamp);
 
     private DefaultMQAdminExt createMQAdminExt(RPCHook rpcHook) throws SubCommandException {
         if (this.defaultMQAdminExt != null) {
@@ -73,7 +83,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         if (list == null || list.size() == 0) {
             return;
         }
-        list.sort((o1, o2) -> (int) (o1.getStoreTimestamp() - o2.getStoreTimestamp()));
+        list.sort(STORE_TIMESTAMP_COMPARATOR);
         for (int i = 0; i < (showAll ? list.size() : 1); i++) {
             showMessage(admin, list.get(i), i);
         }

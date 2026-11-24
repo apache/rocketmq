@@ -123,7 +123,7 @@ public class ConsumeMessagePopConcurrentlyServiceTest {
     public void testShutdown() throws IllegalAccessException {
         popService.shutdown(3000L);
         Field scheduledExecutorServiceField = FieldUtils.getDeclaredField(popService.getClass(), "scheduledExecutorService", true);
-        Field consumeExecutorField = FieldUtils.getDeclaredField(popService.getClass(), "consumeExecutor", true);
+        Field consumeExecutorField = FieldUtils.getField(popService.getClass(), "consumeExecutor", true);
         ScheduledExecutorService scheduledExecutorService = (ScheduledExecutorService) scheduledExecutorServiceField.get(popService);
         ThreadPoolExecutor consumeExecutor = (ThreadPoolExecutor) consumeExecutorField.get(popService);
         assertTrue(scheduledExecutorService.isShutdown());
@@ -148,7 +148,7 @@ public class ConsumeMessagePopConcurrentlyServiceTest {
         PopProcessQueue processQueue = mock(PopProcessQueue.class);
         MessageQueue messageQueue = mock(MessageQueue.class);
         ThreadPoolExecutor consumeExecutor = mock(ThreadPoolExecutor.class);
-        FieldUtils.writeDeclaredField(popService, "consumeExecutor", consumeExecutor, true);
+        FieldUtils.writeField(popService, "consumeExecutor", consumeExecutor, true);
         popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
         verify(consumeExecutor, times(1)).submit(any(Runnable.class));
     }
@@ -159,7 +159,7 @@ public class ConsumeMessagePopConcurrentlyServiceTest {
         PopProcessQueue processQueue = mock(PopProcessQueue.class);
         MessageQueue messageQueue = mock(MessageQueue.class);
         ThreadPoolExecutor consumeExecutor = mock(ThreadPoolExecutor.class);
-        FieldUtils.writeDeclaredField(popService, "consumeExecutor", consumeExecutor, true);
+        FieldUtils.writeField(popService, "consumeExecutor", consumeExecutor, true);
         when(defaultMQPushConsumer.getConsumeMessageBatchMaxSize()).thenReturn(1);
         popService.submitPopConsumeRequest(msgs, processQueue, messageQueue);
         verify(consumeExecutor, times(2)).submit(any(Runnable.class));

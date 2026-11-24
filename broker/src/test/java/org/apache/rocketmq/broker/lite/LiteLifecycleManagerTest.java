@@ -18,16 +18,20 @@
 package org.apache.rocketmq.broker.lite;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.longpolling.NotifyMessageArrivingListener;
+import org.apache.rocketmq.broker.longpolling.PullRequestHoldService;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.processor.NotificationProcessor;
+import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.lite.LiteUtil;
+import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -39,6 +43,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,6 +57,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
@@ -62,16 +68,13 @@ public class LiteLifecycleManagerTest {
     private static String storePathRootDir;
     private static MessageStore messageStore;
     private static LiteLifecycleManager liteLifecycleManager;
+    private static LiteEventDispatcher liteEventDispatcher;
     private static TopicConfig mockTopicConfig = new TopicConfig();
 
     @BeforeClass
     public static void setUp() throws Exception {
         storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-lifecycleTest";
         UtilAll.deleteFile(new File(storePathRootDir));
-
-        messageStore = LiteTestUtil.buildMessageStore(storePathRootDir, BROKER_CONFIG, TOPIC_CONFIG_TABLE, false);
-        messageStore.load();
-        messageStore.start();
 
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         LiteSharding liteSharding = Mockito.mock(LiteSharding.class);
@@ -80,9 +83,11 @@ public class LiteLifecycleManagerTest {
         LiteSubscriptionRegistry liteSubscriptionRegistry = Mockito.mock(LiteSubscriptionRegistry.class);
         ConsumerOffsetManager consumerOffsetManager = Mockito.mock(ConsumerOffsetManager.class);
         when(consumerOffsetManager.getPullOffsetTable()).thenReturn(new ConcurrentHashMap<>());
+        // dispatch() fans out to subscribers right after maintaining the prefix index; no subscriber here
+        when(liteSubscriptionRegistry.getAllSubscribers(nullable(String.class), anyString()))
+            .thenReturn(Collections.emptyMap());
 
         when(brokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
-        when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getLiteSubscriptionRegistry()).thenReturn(liteSubscriptionRegistry);
@@ -93,6 +98,20 @@ public class LiteLifecycleManagerTest {
 
         LiteLifecycleManager testObject = new LiteLifecycleManager(brokerController, liteSharding);
         liteLifecycleManager = Mockito.spy(testObject);
+
+        // Wire the real notify path so putMessage drives the prefix index:
+        //   putMessage -> reput -> NotifyMessageArrivingListener.arriving
+        //   -> LiteEventDispatcher.dispatch -> onLmqCreate -> lmqPrefixIndex
+        liteEventDispatcher = new LiteEventDispatcher(brokerController, liteSubscriptionRegistry, liteLifecycleManager);
+        MessageArrivingListener listener = new NotifyMessageArrivingListener(
+            Mockito.mock(PullRequestHoldService.class), Mockito.mock(PopMessageProcessor.class),
+            Mockito.mock(NotificationProcessor.class), liteEventDispatcher);
+
+        messageStore = LiteTestUtil.buildMessageStore(storePathRootDir, BROKER_CONFIG, TOPIC_CONFIG_TABLE, false, listener);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        messageStore.load();
+        messageStore.start();
+
         liteLifecycleManager.init();
     }
 
@@ -135,25 +154,44 @@ public class LiteLifecycleManagerTest {
     }
 
     @Test
-    public void testCollectExpiredLiteTopic() {
+    public void testGetLiteTopicCount() {
         int num = 3;
         String parentTopic = UUID.randomUUID().toString();
+        mockTopicConfig.getAttributes().put(
+            TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
         for (int i = 0; i < num; i++) {
             messageStore.putMessage(LiteTestUtil.buildMessage(parentTopic, UUID.randomUUID().toString()));
-            messageStore.putMessage(LiteTestUtil.buildMessage(UUID.randomUUID().toString(), null));
+            messageStore.putMessage(LiteTestUtil.buildMessage(UUID.randomUUID().toString(), UUID.randomUUID().toString()));
         }
         await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
 
-        when(liteLifecycleManager.isLiteTopicExpired(anyString(), anyString(), anyLong())).thenReturn(false);
-        List<Pair<String, String>> result = liteLifecycleManager.collectExpiredLiteTopic();
-        Assert.assertEquals(0, result.size());
+        Assert.assertEquals(num, liteLifecycleManager.getLiteTopicCount(parentTopic));
+        Assert.assertEquals(0, liteLifecycleManager.getLiteTopicCount(UUID.randomUUID().toString()));
+    }
 
-        when(liteLifecycleManager.isLiteTopicExpired(eq(parentTopic), anyString(), anyLong())).thenReturn(true);
-        result = liteLifecycleManager.collectExpiredLiteTopic();
-        Assert.assertEquals(num, result.size());
-        for (Pair<String, String> pair : result) {
-            Assert.assertEquals(parentTopic, pair.getObject1());
-            Assert.assertTrue(LiteUtil.belongsTo(pair.getObject2(), parentTopic));
+    @Test
+    public void testCleanByParentTopic() {
+        int num = 3;
+        String parentTopic = UUID.randomUUID().toString();
+        mockTopicConfig.getAttributes().put(
+            TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
+        List<String> liteTopics =
+            IntStream.range(0, num).mapToObj(i -> UUID.randomUUID().toString()).collect(Collectors.toList());
+        for (int i = 0; i < num; i++) {
+            messageStore.putMessage(LiteTestUtil.buildMessage(parentTopic, liteTopics.get(i)));
+        }
+        await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
+
+        for (int i = 0; i < num; i++) {
+            String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
+            Assert.assertTrue(messageStore.getQueueStore().getConsumeQueueTable().containsKey(lmqName));
+        }
+
+        liteLifecycleManager.cleanByParentTopic(parentTopic);
+
+        for (int i = 0; i < num; i++) {
+            String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
+            Assert.assertFalse(messageStore.getQueueStore().getConsumeQueueTable().containsKey(lmqName));
         }
     }
 
@@ -176,33 +214,6 @@ public class LiteLifecycleManagerTest {
 
         when(liteLifecycleManager.isLiteTopicExpired(eq(parentTopic), anyString(), anyLong())).thenReturn(true);
         liteLifecycleManager.cleanExpiredLiteTopic();
-
-        for (int i = 0; i < num; i++) {
-            String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
-            Assert.assertFalse(messageStore.getQueueStore().getConsumeQueueTable().containsKey(lmqName));
-        }
-    }
-
-    @Test
-    public void testCleanByParentTopic() {
-        int num = 3;
-        String parentTopic = UUID.randomUUID().toString();
-        mockTopicConfig.getAttributes().put(
-            TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
-
-        List<String> liteTopics =
-            IntStream.range(0, 3).mapToObj(i -> UUID.randomUUID().toString()).collect(Collectors.toList());
-        for (int i = 0; i < num; i++) {
-            messageStore.putMessage(LiteTestUtil.buildMessage(parentTopic, liteTopics.get(i)));
-        }
-        await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
-
-        for (int i = 0; i < num; i++) {
-            String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
-            Assert.assertTrue(messageStore.getQueueStore().getConsumeQueueTable().containsKey(lmqName));
-        }
-
-        liteLifecycleManager.cleanByParentTopic(parentTopic);
 
         for (int i = 0; i < num; i++) {
             String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));

@@ -362,18 +362,18 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public CqUnit getEarliestUnit() {
-        return get(minOffsetInQueue);
+        return minOffsetInQueue >= 0 ? get(minOffsetInQueue) : null;
     }
 
     @Override
     public CqUnit getLatestUnit() {
-        return get(maxOffsetInQueue - 1);
+        return maxOffsetInQueue > 0 ? get(maxOffsetInQueue - 1) : null;
     }
 
     @Override
     public long getLastOffset() {
         CqUnit latestUnit = getLatestUnit();
-        return latestUnit.getPos() + latestUnit.getSize();
+        return latestUnit == null ? -1 : latestUnit.getPos() + latestUnit.getSize();
     }
 
     @Override
@@ -633,7 +633,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     }
 
     protected BatchOffsetIndex getMinMsgOffset(MappedFile mappedFile, boolean getBatchSize, boolean getStoreTime) {
-        if (mappedFile.getReadPosition() < CQ_STORE_UNIT_SIZE) {
+        if (mappedFile == null || mappedFile.getReadPosition() < CQ_STORE_UNIT_SIZE) {
             return null;
         }
         return getBatchOffsetIndexByPos(mappedFile, 0, getBatchSize, getStoreTime);

@@ -20,14 +20,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeReturnType;
@@ -42,7 +38,6 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.body.CMResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
@@ -50,15 +45,12 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
-public class ConsumeMessageOrderlyService implements ConsumeMessageService {
+public class ConsumeMessageOrderlyService extends AbstractConsumeMessageService {
     private static final Logger log = LoggerFactory.getLogger(ConsumeMessageOrderlyService.class);
     private final static long MAX_TIME_CONSUME_CONTINUOUSLY =
         Long.parseLong(System.getProperty("rocketmq.client.maxTimeConsumeContinuously", "60000"));
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
-    private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerOrderly messageListener;
-    private final BlockingQueue<Runnable> consumeRequestQueue;
-    private final ThreadPoolExecutor consumeExecutor;
     private final String consumerGroup;
     private final MessageQueueLock messageQueueLock = new MessageQueueLock();
     private final ScheduledExecutorService scheduledExecutorService;
@@ -66,22 +58,14 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     public ConsumeMessageOrderlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerOrderly messageListener) {
+        super(defaultMQPushConsumerImpl.getDefaultMQPushConsumer(), new ThreadFactoryImpl("ConsumeMessageThread_"
+            + getConsumerGroupTag(defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumerGroup())));
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
         this.messageListener = messageListener;
 
-        this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        this.consumeRequestQueue = new LinkedBlockingQueue<>();
 
-        String consumerGroupTag = (consumerGroup.length() > 100 ? consumerGroup.substring(0, 100) : consumerGroup) + "_";
-        this.consumeExecutor = new ThreadPoolExecutor(
-            this.defaultMQPushConsumer.getConsumeThreadMin(),
-            this.defaultMQPushConsumer.getConsumeThreadMax(),
-            1000 * 60,
-            TimeUnit.MILLISECONDS,
-            this.consumeRequestQueue,
-            new ThreadFactoryImpl("ConsumeMessageThread_" + consumerGroupTag));
-
+        String consumerGroupTag = getConsumerGroupTag(consumerGroup);
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_" + consumerGroupTag));
     }
 
@@ -105,7 +89,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     public void shutdown(long awaitTerminateMillis) {
         this.stopped = true;
         this.scheduledExecutorService.shutdown();
-        ThreadUtils.shutdownGracefully(this.consumeExecutor, awaitTerminateMillis, TimeUnit.MILLISECONDS);
+        shutdownConsumeExecutor(awaitTerminateMillis);
         if (MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
             this.unlockAllMQ();
         }
@@ -113,28 +97,6 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
     public synchronized void unlockAllMQ() {
         this.defaultMQPushConsumerImpl.getRebalanceImpl().unlockAll(false);
-    }
-
-    @Override
-    public void updateCorePoolSize(int corePoolSize) {
-        if (corePoolSize > 0
-            && corePoolSize <= Short.MAX_VALUE
-            && corePoolSize < this.defaultMQPushConsumer.getConsumeThreadMax()) {
-            this.consumeExecutor.setCorePoolSize(corePoolSize);
-        }
-    }
-
-    @Override
-    public void incCorePoolSize() {
-    }
-
-    @Override
-    public void decCorePoolSize() {
-    }
-
-    @Override
-    public int getCorePoolSize() {
-        return this.consumeExecutor.getCorePoolSize();
     }
 
     @Override

@@ -21,9 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -46,8 +44,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 public class LiteEventDispatcher extends ServiceThread {
 
@@ -63,7 +59,6 @@ public class LiteEventDispatcher extends ServiceThread {
     private final BrokerController brokerController;
     private final LiteSubscriptionRegistry liteSubscriptionRegistry;
     private final AbstractLiteLifecycleManager liteLifecycleManager;
-    private final ConsumerOffsetManager consumerOffsetManager;
 
     protected final ConcurrentMap<String, ClientEventSet> clientEventMap = new ConcurrentHashMap<>();
     protected final ConcurrentSkipListSet<FullDispatchRequest> fullDispatchSet = new ConcurrentSkipListSet<>(COMPARATOR);
@@ -78,7 +73,6 @@ public class LiteEventDispatcher extends ServiceThread {
         this.brokerController = brokerController;
         this.liteSubscriptionRegistry = liteSubscriptionRegistry;
         this.liteLifecycleManager = liteLifecycleManager;
-        this.consumerOffsetManager = brokerController.getConsumerOffsetManager();
     }
 
     public void init() {
@@ -96,21 +90,18 @@ public class LiteEventDispatcher extends ServiceThread {
         if (queueId != 0 || !LiteUtil.isLiteTopicQueue(lmqName)) {
             return;
         }
+        // Maintain prefix index on the lmq's first message: the arriving notification carries
+        // logicOffset = queueOffset + 1, so the first message shows offset == 1. Pre-existing lmqs
+        // are populated once at startup during init().
+        if (offset == 1) {
+            liteLifecycleManager.onLmqCreate(lmqName);
+        }
         doDispatch(group, lmqName, null);
     }
 
     protected void doDispatch(String group, String lmqName, String excludeClientId) {
-        SubscriberWrapper wrapper = liteSubscriptionRegistry.getAllSubscriber(group, lmqName);
-        if (null == wrapper) {
-            return;
-        }
-        if (wrapper instanceof SubscriberWrapper.ListWrapper) {
-            selectAndDispatch(lmqName, wrapper.asListWrapper().getClients(), excludeClientId);
-        }
-        if (wrapper instanceof SubscriberWrapper.MapWrapper) {
-            Map<String, List<ClientGroup>> map = wrapper.asMapWrapper().getGroupMap();
-            map.forEach((key, value) -> selectAndDispatch(lmqName, value, excludeClientId));
-        }
+        Map<String, List<ClientGroup>> subscriberMap = liteSubscriptionRegistry.getAllSubscribers(group, lmqName);
+        subscriberMap.values().forEach(clients -> selectAndDispatch(lmqName, clients, excludeClientId));
     }
 
     /**
@@ -119,7 +110,7 @@ public class LiteEventDispatcher extends ServiceThread {
      * If there are multiple clients, randomly select one and consider fallback options
      * Try to avoid dispatching to the excluded one but fallback if no other choice.
      *
-     * @param clients all clients of one group
+     * @param clients         all clients of one group
      * @param excludeClientId the client ID to exclude from selection, probably consuming blocked.
      * @return true if dispatched to one client
      */
@@ -160,8 +151,7 @@ public class LiteEventDispatcher extends ServiceThread {
             }
         }
         if (selectedClient != null) {
-            this.brokerController.getPopLiteMessageProcessor().getPopLiteLongPollingService()
-                .notifyMessageArriving(selectedClient, true, 0, group);
+            notifyMessageArriving(selectedClient, group);
         } else if (isWildcardGroup) { // no one available in this group, so schedule a full dispatch once
             scheduleFullDispatchForWildcardGroup(group,
                 brokerController.getBrokerConfig().getLiteEventFullDispatchDelayTimeForWildcardGroup());
@@ -205,7 +195,7 @@ public class LiteEventDispatcher extends ServiceThread {
      */
     public void doFullDispatchForClient(String clientId, String group) {
         LiteSubscription subscription = liteSubscriptionRegistry.getLiteSubscription(clientId);
-        if (null == subscription || CollectionUtils.isEmpty(subscription.getLiteTopicSet())) {
+        if (null == subscription || CollectionUtils.isEmpty(subscription.getLmqSet())) {
             LOGGER.info("client full dispatch, but no subscription. {}", clientId);
             return;
         }
@@ -223,21 +213,16 @@ public class LiteEventDispatcher extends ServiceThread {
                 + (isActiveConsuming ? 0 : random.nextInt(10 * 1000)));
             return;
         }
-        LOGGER.info("client full dispatch, {}, total:{}", clientId, subscription.getLiteTopicSet().size());
+        LOGGER.info("client full dispatch, {}, total:{}", clientId, subscription.getLmqSet().size());
         int count = 0;
-        for (String lmqName : subscription.getLiteTopicSet()) {
+        for (String lmqName : subscription.getLmqSet()) {
             long maxOffset = liteLifecycleManager.getMaxOffsetInQueue(lmqName);
-            if (maxOffset <= 0) {
-                continue;
-            }
-            long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
-            if (consumerOffset >= maxOffset) {
+            if (isFullyConsumed(group, lmqName, maxOffset)) {
                 continue;
             }
             if (eventSet.offer(lmqName)) {
                 if (count++ % 10 == 0) {
-                    brokerController.getPopLiteMessageProcessor().getPopLiteLongPollingService()
-                        .notifyMessageArriving(clientId, true, 0, group);
+                    notifyMessageArriving(clientId, group);
                 }
             } else {
                 LOGGER.warn("client event set full again, wait another period. {}, {}", clientId, isActiveConsuming);
@@ -246,9 +231,28 @@ public class LiteEventDispatcher extends ServiceThread {
                 break;
             }
         }
-        brokerController.getPopLiteMessageProcessor().getPopLiteLongPollingService()
-            .notifyMessageArriving(clientId, true, 0, group);
+        notifyMessageArriving(clientId, group);
         LOGGER.info("client full dispatch finish. {}, dispatch:{}", clientId, count);
+    }
+
+    private void notifyMessageArriving(String clientId, String group) {
+        brokerController.getPopLiteMessageProcessor()
+            .getPopLiteLongPollingService()
+            .notifyMessageArriving(clientId, true, 0, group);
+        brokerController.getNotificationProcessor()
+            .getPopLiteLongPollingService()
+            .notifyMessageArriving(clientId, true, 0, group);
+    }
+
+    /**
+     * Check whether a client has any events in the event queue.
+     *
+     * @param clientId the client ID to check
+     * @return true if the client has events, false otherwise
+     */
+    public boolean hasEvents(String clientId) {
+        ClientEventSet eventSet = clientEventMap.get(clientId);
+        return eventSet != null && eventSet.size() > 0;
     }
 
     /**
@@ -260,34 +264,36 @@ public class LiteEventDispatcher extends ServiceThread {
         if (null == parentTopic || !LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
             return;
         }
-        List<ClientGroup> clients =  liteSubscriptionRegistry.getWildcardSubscriber(group, parentTopic).getClients();
+        List<ClientGroup> clients = liteSubscriptionRegistry.getWildcardGroupClients(group);
         if (CollectionUtils.isEmpty(clients)) {
             return;
         }
-        AtomicInteger count = new AtomicInteger();
-        Function<Triple<String, Long, Long>, Boolean> function = triple -> {
+        int[] count = {0};
+        liteLifecycleManager.forEachLiteTopicByParent(parentTopic, triple -> {
             String lmqName = triple.getLeft();
             long maxOffset = triple.getMiddle();
-            if (!LiteUtil.belongsTo(lmqName, parentTopic)) {
-                return true;
-            }
-            if (maxOffset <= 0) {
-                return true;
-            }
-            long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
-            if (consumerOffset >= maxOffset) {
+            if (isFullyConsumed(group, lmqName, maxOffset)) {
                 return true;
             }
             if (selectAndDispatch(lmqName, clients, null)) {
-                count.incrementAndGet();
-            } else {
-                LOGGER.warn("doFullDispatchForWildcardGroup, wait another period. {}", group);
-                return false;
+                count[0]++;
+                return true;
             }
+            LOGGER.warn("doFullDispatchForWildcardGroup, wait another period. {}", group);
+            return false;
+        });
+        LOGGER.info("doFullDispatchForWildcardGroup finish. {}, dispatch:{}", group, count[0]);
+    }
+
+    /**
+     * Returns true if all messages of the lmq have been consumed for the given group.
+     */
+    private boolean isFullyConsumed(String group, String lmqName, long maxOffset) {
+        if (maxOffset <= 0) {
             return true;
-        };
-        liteLifecycleManager.forEachLiteTopic(function);
-        LOGGER.info("doFullDispatchForWildcardGroup finish. {}, dispatch:{}", group, count);
+        }
+        long consumerOffset = brokerController.getConsumerOffsetManager().queryOffset(group, lmqName, 0);
+        return consumerOffset >= maxOffset;
     }
 
     /**
@@ -376,9 +382,16 @@ public class LiteEventDispatcher extends ServiceThread {
                 continue;
             }
             String clientId = entry.getKey();
-            LOGGER.warn("remove inactive client and re-dispatch. {}, {}", clientId, eventSet.events.size());
+            boolean hasEvents = !eventSet.events.isEmpty();
             iterator.remove();
-            blacklist.put(clientId, PRESENT);
+            if (hasEvents) {
+                LOGGER.warn("remove inactive client and re-dispatch. {}, {}", clientId, eventSet.events.size());
+                // Blacklist only clients with events to re-dispatch; blacklisting an idle client
+                // would block new events until the blacklist expires.
+                blacklist.put(clientId, PRESENT);
+            } else {
+                LOGGER.info("remove idle client event set. {}", clientId);
+            }
             String event;
             while ((event = eventSet.poll()) != null) {
                 doDispatch(eventSet.group, event, clientId); // may still dispatch to current client
@@ -506,10 +519,6 @@ public class LiteEventDispatcher extends ServiceThread {
                     doDispatch(group, lmqName, null);
                 }
             }
-        }
-
-        @Override
-        public void onUnregister(String clientId, String group, String lmqName) {
         }
 
         /**

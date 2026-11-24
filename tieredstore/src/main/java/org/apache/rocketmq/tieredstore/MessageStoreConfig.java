@@ -118,7 +118,11 @@ public class MessageStoreConfig {
     private boolean readAheadCacheEnable = true;
     private int readAheadMessageCountThreshold = 4096;
     private int readAheadMessageSizeThreshold = 16 * 1024 * 1024;
+    // Legacy single-TTL fallback duration for read-ahead cache entries. The primary
+    // policy uses create/after-read TTLs below.
     private long readAheadCacheExpireDuration = 15 * 1000;
+    private long readAheadCacheCreateExpireDuration = Duration.ofMinutes(3).toMillis();
+    private long readAheadCacheAfterReadExpireDuration = Duration.ofSeconds(10).toMillis();
     private double readAheadCacheSizeThresholdRate = 0.3;
 
     private int tieredStoreMaxPendingLimit = 10000;
@@ -365,6 +369,22 @@ public class MessageStoreConfig {
 
     public void setReadAheadCacheExpireDuration(long duration) {
         this.readAheadCacheExpireDuration = duration;
+    }
+
+    public long getReadAheadCacheCreateExpireDuration() {
+        return readAheadCacheCreateExpireDuration;
+    }
+
+    public void setReadAheadCacheCreateExpireDuration(long readAheadCacheCreateExpireDuration) {
+        this.readAheadCacheCreateExpireDuration = readAheadCacheCreateExpireDuration;
+    }
+
+    public long getReadAheadCacheAfterReadExpireDuration() {
+        return readAheadCacheAfterReadExpireDuration;
+    }
+
+    public void setReadAheadCacheAfterReadExpireDuration(long readAheadCacheAfterReadExpireDuration) {
+        this.readAheadCacheAfterReadExpireDuration = readAheadCacheAfterReadExpireDuration;
     }
 
     public double getReadAheadCacheSizeThresholdRate() {

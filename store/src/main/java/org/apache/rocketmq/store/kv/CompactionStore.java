@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
@@ -149,7 +149,7 @@ public class CompactionStore {
                 try {
                     v = new CompactionLog(defaultMessageStore, this, topic, queueId);
                     v.load(true);
-                    int randomDelay = 1000 + new Random(System.currentTimeMillis()).nextInt(compactionInterval);
+                    int randomDelay = 1000 + ThreadLocalRandom.current().nextInt(compactionInterval);
                     compactionSchedule.scheduleWithFixedDelay(v::doCompaction, compactionInterval + randomDelay, compactionInterval + randomDelay, TimeUnit.MILLISECONDS);
                 } catch (IOException e) {
                     log.error("create compactionLog exception: ", e);

@@ -39,6 +39,17 @@ public class BrokerConfig extends BrokerIdentity {
     @ImportantField
     private int listenPort = 6888;
 
+    /**
+     * Whether to create the Fast Remoting server on listenPort - 2. Requires a broker restart.
+     */
+    private boolean enableFastRemotingServer = true;
+
+    /**
+     * Whether to create the HA service, including its listener, replication client and background threads.
+     * Disable only for ASYNC_MASTER without controller or slave-acting-master mode. Requires a broker restart.
+     */
+    private boolean enableHAService = true;
+
     @ImportantField
     private String brokerIP1 = NetworkUtil.getLocalAddress();
     private String brokerIP2 = NetworkUtil.getLocalAddress();
@@ -462,6 +473,14 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enableStatsMetrics = true;
     private boolean enableRequestMetrics = true;
     private boolean enableLagAndDlqMetrics = true;
+
+    /**
+     * Whether to suppress exporting data points whose value is not greater than a minimal
+     * threshold (minValue). Set true to reduce metrics cardinality and export payload.
+     * Suppressed series disappear from the export instead of reporting minValue, so alert rules
+     * based on absent()/absent_over_time() will fire once value drops to minValue.
+     */
+    private boolean suppressMinValueMetrics = false;
 
     private long channelExpiredTimeout = 1000 * 120;
     private long subscriptionExpiredTimeout = 1000 * 60 * 10;
@@ -1067,6 +1086,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setListenPort(int listenPort) {
         this.listenPort = listenPort;
+    }
+
+    public boolean isEnableFastRemotingServer() {
+        return enableFastRemotingServer;
+    }
+
+    public void setEnableFastRemotingServer(boolean enableFastRemotingServer) {
+        this.enableFastRemotingServer = enableFastRemotingServer;
+    }
+
+    public boolean isEnableHAService() {
+        return enableHAService;
+    }
+
+    public void setEnableHAService(boolean enableHAService) {
+        this.enableHAService = enableHAService;
     }
 
     public int getLitePullMessageThreadPoolNums() {
@@ -2016,6 +2051,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableLagAndDlqMetrics(boolean enableLagAndDlqMetrics) {
         this.enableLagAndDlqMetrics = enableLagAndDlqMetrics;
+    }
+
+    public boolean isSuppressMinValueMetrics() {
+        return suppressMinValueMetrics;
+    }
+
+    public void setSuppressMinValueMetrics(boolean suppressMinValueMetrics) {
+        this.suppressMinValueMetrics = suppressMinValueMetrics;
     }
 
     public boolean isEnableRemotingMetrics() {

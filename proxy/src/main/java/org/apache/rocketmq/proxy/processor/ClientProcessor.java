@@ -96,10 +96,7 @@ public class ClientProcessor extends AbstractProcessor {
         Set<SubscriptionData> subList,
         boolean updateSubscription
     ) {
-        validateLiteMode(ctx, consumerGroup, messageModel);
-        if (MessageModel.LITE_SELECTIVE == messageModel) {
-            validateLiteSubTopic(ctx, consumerGroup, subList);
-        }
+        messageModel = validateLiteConsumer(ctx, consumerGroup, messageModel, subList);
         this.serviceManager.getConsumerManager().registerConsumer(
             consumerGroup,
             clientChannelInfo,
@@ -169,28 +166,28 @@ public class ClientProcessor extends AbstractProcessor {
     }
 
     /**
-     * Validates the message model for a given consumer group.
-     * Ensures that regular groups do not use LITE mode and LITE groups use LITE mode.
-     *
-     * @param ctx          the proxy context
-     * @param group        the consumer group name
-     * @param messageModel the message model to validate
+     * Ensures the lite/regular consumer identity matches the group binding and resolves the effective
+     * message model.
      */
-    protected void validateLiteMode(ProxyContext ctx, String group, MessageModel messageModel) {
-        String bindTopic = getGroupOrException(ctx, group).getLiteBindTopic();
-        if (StringUtils.isEmpty(bindTopic)) {
-            // regular group
-            if (MessageModel.LITE_SELECTIVE == messageModel) {
-                throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP,
-                    "regular group cannot use LITE mode: " + group);
-            }
-        } else {
-            // lite group
-            if (MessageModel.LITE_SELECTIVE != messageModel) {
-                throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP,
-                    "lite group must use LITE mode: " + group);
+    protected MessageModel validateLiteConsumer(ProxyContext ctx, String consumerGroup,
+        MessageModel messageModel, Set<SubscriptionData> subList) {
+        SubscriptionGroupConfig groupConfig = getGroupOrException(ctx, consumerGroup);
+        boolean liteConsumer = ctx.isLiteConsumer();
+        boolean liteGroup = StringUtils.isNotEmpty(groupConfig.getLiteBindTopic());
+        if (liteConsumer != liteGroup) {
+            throw new GrpcProxyException(Code.ILLEGAL_CONSUMER_GROUP, liteGroup
+                ? "lite group must use LITE mode: " + consumerGroup
+                : "regular group cannot use LITE mode: " + consumerGroup);
+        }
+        if (liteGroup) {
+            validateLiteSubTopic(ctx, consumerGroup, subList);
+            // A wildcard lite group consumes with clustering semantics, so report it as CLUSTERING.
+            // The message model is only a display value here, thus safe to override.
+            if (groupConfig.isWildcardLiteGroup()) {
+                messageModel = MessageModel.CLUSTERING;
             }
         }
+        return messageModel;
     }
 
     protected void validateLiteSubTopic(ProxyContext ctx, String group, Set<SubscriptionData> subList) {

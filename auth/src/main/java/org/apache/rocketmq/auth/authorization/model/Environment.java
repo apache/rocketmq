@@ -46,7 +46,7 @@ public class Environment {
         if (CollectionUtils.isEmpty(this.sourceIps)) {
             return true;
         }
-        if (CollectionUtils.isEmpty(environment.getSourceIps())) {
+        if (environment == null || CollectionUtils.isEmpty(environment.getSourceIps())) {
             return false;
         }
         String targetIp = environment.getSourceIps().get(0);

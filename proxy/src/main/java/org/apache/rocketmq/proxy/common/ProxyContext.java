@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.common;
 
+import apache.rocketmq.v2.ClientType;
 import io.netty.channel.Channel;
 import java.util.HashMap;
 import java.util.Map;
@@ -139,6 +140,20 @@ public class ProxyContext {
 
     public String getNamespace() {
         return this.getVal(ContextVariable.NAMESPACE);
+    }
+
+    public void setClientType(String clientType) {
+        this.withVal(ContextVariable.CLIENT_TYPE, clientType);
+    }
+
+    public String getClientType() {
+        return this.getVal(ContextVariable.CLIENT_TYPE);
+    }
+
+    public boolean isLiteConsumer() {
+        String clientType = this.getClientType();
+        return ClientType.LITE_PUSH_CONSUMER.name().equals(clientType)
+            || ClientType.LITE_SIMPLE_CONSUMER.name().equals(clientType);
     }
 
 }

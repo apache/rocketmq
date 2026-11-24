@@ -37,6 +37,7 @@ public class TopicValidator {
     public static final String RMQ_SYS_ROCKSDB_OFFSET_TOPIC = "CHECKPOINT_TOPIC";
 
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
+    public static final String RMQ_SYS_WHEEL_TIMER_TOPIC = SYSTEM_TOPIC_PREFIX + "wheel_timer";
     public static final String SYNC_BROKER_MEMBER_GROUP_PREFIX = SYSTEM_TOPIC_PREFIX + "SYNC_BROKER_MEMBER_";
 
     public static final boolean[] VALID_CHAR_BIT_MAP = new boolean[128];
@@ -47,6 +48,8 @@ public class TopicValidator {
      */
     private static final int GROUP_MAX_LENGTH = 120;
     private static final int RETRY_OR_DLQ_TOPIC_MAX_LENGTH = 255;
+
+    private static volatile int groupMaxLength = GROUP_MAX_LENGTH;
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<>();
 
@@ -77,6 +80,7 @@ public class TopicValidator {
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_OFFSET_MOVED_EVENT);
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC);
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC);
+        NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_WHEEL_TIMER_TOPIC);
 
         // regex: ^[%|a-zA-Z0-9_-]+$
         // %
@@ -139,6 +143,11 @@ public class TopicValidator {
         return new ValidateResult(true, "");
     }
 
+    public static void setGroupMaxLength(int maxLength) {
+        groupMaxLength = maxLength <= 0 ? GROUP_MAX_LENGTH
+            : Math.min(maxLength, RETRY_OR_DLQ_TOPIC_MAX_LENGTH);
+    }
+
     public static ValidateResult validateGroup(String group) {
 
         if (UtilAll.isBlank(group)) {
@@ -150,8 +159,8 @@ public class TopicValidator {
             return new ValidateResult(false, falseRemark);
         }
 
-        if (group.length() > GROUP_MAX_LENGTH) {
-            String falseRemark = "The specified group: " + group + ", is longer than group max length: " + GROUP_MAX_LENGTH;
+        if (group.length() > groupMaxLength) {
+            String falseRemark = "The specified group: " + group + ", is longer than group max length: " + groupMaxLength;
             return new ValidateResult(false, falseRemark);
         }
 

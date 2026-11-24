@@ -17,21 +17,24 @@
 
 package org.apache.rocketmq.broker.lite;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.metrics.LiteConsumerLagCalculator;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
@@ -47,6 +50,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager.MAX_INVALID_SCAN_COUNT;
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -54,7 +58,6 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.atLeastOnce;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -81,6 +84,10 @@ public class AbstractLiteLifecycleManagerTest {
     private ConsumerOrderInfoManager consumerOrderInfoManager;
     @Mock
     private LiteSubscriptionRegistry liteSubscriptionRegistry;
+    @Mock
+    private BrokerMetricsManager brokerMetricsManager;
+    @Mock
+    private LiteConsumerLagCalculator liteConsumerLagCalculator;
 
     private TestLiteLifecycleManager lifecycleManager;
     private BrokerConfig brokerConfig;
@@ -88,6 +95,7 @@ public class AbstractLiteLifecycleManagerTest {
     private final TopicConfig topicConfig = new TopicConfig(PARENT_TOPIC, 1, 1);
     private final SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
     private final ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
 
     @Before
     public void setUp() {
@@ -100,13 +108,14 @@ public class AbstractLiteLifecycleManagerTest {
         when(brokerController.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessor);
         when(popLiteMessageProcessor.getConsumerOrderInfoManager()).thenReturn(consumerOrderInfoManager);
         when(brokerController.getLiteSubscriptionRegistry()).thenReturn(liteSubscriptionRegistry);
+        when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+        when(brokerMetricsManager.getLiteConsumerLagCalculator()).thenReturn(liteConsumerLagCalculator);
 
         topicConfig.getAttributes().put(
             TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
-        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        topicConfig.setLiteTopicExpiration(1);
         topicConfigTable.put(PARENT_TOPIC, topicConfig);
         when(topicConfigManager.getTopicConfigTable()).thenReturn(topicConfigTable);
-        when(topicConfigManager.selectTopicConfig(PARENT_TOPIC)).thenReturn(topicConfig);
 
         groupConfig.setGroupName(GROUP);
         groupConfig.setLiteBindTopic(PARENT_TOPIC);
@@ -120,6 +129,7 @@ public class AbstractLiteLifecycleManagerTest {
         TestLiteLifecycleManager testObject = new TestLiteLifecycleManager(brokerController, liteSharding);
         lifecycleManager = Mockito.spy(testObject);
         lifecycleManager.init();
+        lifecycleManager.lmqPrefixIndex.add(EXIST_LMQ_NAME);
     }
 
     @After
@@ -127,6 +137,7 @@ public class AbstractLiteLifecycleManagerTest {
         topicConfig.getAttributes().clear();
         groupConfig.getAttributes().clear();
         offsetTable.clear();
+        topicConfigTable.clear();
     }
 
     @Test
@@ -151,21 +162,22 @@ public class AbstractLiteLifecycleManagerTest {
     }
 
     @Test
-    public void testGetLiteTopicCount() {
-        Assert.assertEquals(1, lifecycleManager.getLiteTopicCount(PARENT_TOPIC));
-        verify(lifecycleManager).collectByParentTopic(PARENT_TOPIC);
-
-        Assert.assertEquals(0, lifecycleManager.getLiteTopicCount("whatever"));
-        verify(lifecycleManager, never()).collectByParentTopic("whatever");
-    }
-
-    @Test
     public void testIsLiteTopicExpired() {
         // not lite topic queue
         Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, "whatever", 10L));
 
         // maxOffset invalid
-        Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 0L));
+        for (int i = 0; i < MAX_INVALID_SCAN_COUNT; i++) {
+            Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 0L));
+        }
+        Assert.assertTrue(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 0L));
+
+        // storeTime invalid
+        when(messageStore.getMessageStoreTimeStamp(anyString(), anyInt(), anyLong())).thenReturn(-1L);
+        for (int i = 0; i < MAX_INVALID_SCAN_COUNT; i++) {
+            Assert.assertFalse(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 100L));
+        }
+        Assert.assertTrue(lifecycleManager.isLiteTopicExpired(PARENT_TOPIC, EXIST_LMQ_NAME, 100L));
 
         // less than minLiteTTl
         long mockStoreTime = System.currentTimeMillis();
@@ -211,6 +223,7 @@ public class AbstractLiteLifecycleManagerTest {
         verify(messageStore).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry).cleanSubscription(EXIST_LMQ_NAME, false);
         verify(consumerOrderInfoManager, times(1)).remove(EXIST_LMQ_NAME, GROUP);
+        verify(liteConsumerLagCalculator, times(1)).removeLagInfoByLmq(PARENT_TOPIC, EXIST_LMQ_NAME);
 
         // not sharding to this broker
         when(liteSharding.shardingByLmqName(PARENT_TOPIC, EXIST_LMQ_NAME)).thenReturn("otherBrokerName");
@@ -227,31 +240,24 @@ public class AbstractLiteLifecycleManagerTest {
     public void testCleanExpiredLiteTopic() {
         String removeKey = EXIST_LMQ_NAME + TOPIC_GROUP_SEPARATOR + GROUP;
         when(liteSharding.shardingByLmqName(PARENT_TOPIC, EXIST_LMQ_NAME)).thenReturn(brokerConfig.getBrokerName());
+        brokerConfig.setMinLiteTTl(0);
+        when(messageStore.getMessageStoreTimeStamp(anyString(), anyInt(), anyLong()))
+            .thenReturn(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(10));
 
         lifecycleManager.cleanExpiredLiteTopic();
         verify(consumerOffsetManager).removeConsumerOffset(removeKey);
         verify(messageStore).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry).cleanSubscription(EXIST_LMQ_NAME, false);
-    }
-
-    @Test
-    public void testCleanByParentTopic() {
-        String removeKey = EXIST_LMQ_NAME + TOPIC_GROUP_SEPARATOR + GROUP;
-        when(liteSharding.shardingByLmqName(PARENT_TOPIC, EXIST_LMQ_NAME)).thenReturn(brokerConfig.getBrokerName());
-
-        lifecycleManager.cleanByParentTopic(PARENT_TOPIC);
-        verify(consumerOffsetManager).removeConsumerOffset(removeKey);
-        verify(messageStore).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
-        verify(liteSubscriptionRegistry).cleanSubscription(EXIST_LMQ_NAME, false);
-
-        lifecycleManager.cleanByParentTopic("whatever");
-        verify(lifecycleManager, never()).collectByParentTopic("whatever");
+        verify(liteConsumerLagCalculator).removeLagInfoByLmq(PARENT_TOPIC, EXIST_LMQ_NAME);
     }
 
     @Test
     public void testRun() throws InterruptedException {
         brokerConfig.setLiteTtlCheckInterval(100L);
+        brokerConfig.setMinLiteTTl(0);
         when(liteSharding.shardingByLmqName(PARENT_TOPIC, EXIST_LMQ_NAME)).thenReturn(brokerConfig.getBrokerName());
+        when(messageStore.getMessageStoreTimeStamp(anyString(), anyInt(), anyLong()))
+            .thenReturn(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(10));
         lifecycleManager.start();
         Thread.sleep(300);
         lifecycleManager.shutdown();
@@ -262,28 +268,31 @@ public class AbstractLiteLifecycleManagerTest {
     }
 
     private static class TestLiteLifecycleManager extends AbstractLiteLifecycleManager {
+
         public TestLiteLifecycleManager(BrokerController brokerController, LiteSharding liteSharding) {
             super(brokerController, liteSharding);
         }
 
         @Override
         public long getMaxOffsetInQueue(String lmqName) {
-            return EXIST_LMQ_NAME.equals(lmqName) ? 100 : -1;
-        }
-
-        @Override
-        public List<Pair<String, String>> collectExpiredLiteTopic() {
-            return Collections.singletonList(new Pair<>(PARENT_TOPIC, EXIST_LMQ_NAME));
-        }
-
-        @Override
-        public List<String> collectByParentTopic(String parentTopic) {
-            return PARENT_TOPIC.equals(parentTopic) ? Collections.singletonList(EXIST_LMQ_NAME) : Collections.emptyList();
+            return LiteUtil.isLiteTopicQueue(lmqName) ? 100 : -1;
         }
 
         @Override
         public void forEachLiteTopic(Function<Triple<String, Long, Long>, Boolean> function) {
-
+            List<Triple<String, Long, Long>> triples = new ArrayList<>();
+            lmqPrefixIndex.forEachLmqByPrefix(LiteUtil.LITE_TOPIC_PREFIX, lmqName -> {
+                long maxOffset = getMaxOffsetInQueue(lmqName);
+                if (maxOffset > 0) {
+                    triples.add(Triple.of(lmqName, maxOffset, null));
+                }
+                return true;
+            });
+            for (Triple<String, Long, Long> triple : triples) {
+                if (!function.apply(triple)) {
+                    break;
+                }
+            }
         }
     }
 }

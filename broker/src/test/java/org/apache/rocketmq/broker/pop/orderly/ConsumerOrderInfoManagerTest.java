@@ -536,6 +536,28 @@ public class ConsumerOrderInfoManagerTest {
     }
 
     @Test
+    public void isAttemptIdMatchTest() {
+        StringBuilder orderInfoBuilder = new StringBuilder();
+        String attemptId = UUID.randomUUID().toString();
+        consumerOrderInfoManager.update(
+            attemptId,
+            false,
+            TOPIC,
+            GROUP,
+            QUEUE_ID_0,
+            popTime,
+            3000,
+            Lists.newArrayList(1L, 2L, 3L),
+            orderInfoBuilder
+        );
+
+        assertTrue(consumerOrderInfoManager.isAttemptIdMatched(attemptId, TOPIC, GROUP));
+        assertFalse(consumerOrderInfoManager.isAttemptIdMatched(UUID.randomUUID().toString(), TOPIC, GROUP));
+        assertFalse(consumerOrderInfoManager.isAttemptIdMatched(attemptId, "unknownTopic", GROUP));
+        assertFalse(consumerOrderInfoManager.isAttemptIdMatched(null, TOPIC, GROUP));
+    }
+
+    @Test
     public void testGetMaxLockFreeTimestamp() {
         QueueLevelConsumerManager.OrderInfo orderInfo = new QueueLevelConsumerManager.OrderInfo();
         orderInfo.setOffsetList(new ArrayList<>());

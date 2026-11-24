@@ -109,6 +109,14 @@ public class CommitLog implements Swappable {
 
     private final boolean enabledAppendPropCRC;
 
+    // Per-thread reusable scratch buffer for checkMessageAndReturnSize. That method reads
+    // body/topic/properties into this buffer transiently (contents are copied out or CRC'd
+    // before the method returns), so per-thread reuse is safe and avoids allocating a fresh
+    // message-sized byte[] on every dispatched message. Buffers are grow-only up to
+    // maxCheckMessageReuseBufferSize; larger sizes (oversized messages or a corrupt length)
+    // fall back to a transient array to avoid pinning a huge buffer permanently.
+    private final ThreadLocal<byte[]> checkMessageBuffer = ThreadLocal.withInitial(() -> new byte[0]);
+
     public CommitLog(final DefaultMessageStore messageStore) {
         String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
         RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush()
@@ -432,6 +440,28 @@ public class CommitLog implements Swappable {
         }
     }
 
+    /**
+     * Returns a scratch buffer of at least {@code totalSize} bytes for {@link #checkMessageAndReturnSize}.
+     * The buffer is used purely transiently there (each field is read into it and copied out / CRC'd
+     * before the next use), so a per-thread reusable buffer is safe and removes a per-message byte[]
+     * allocation. Sizes within {@code maxCheckMessageReuseBufferSize} are reused grow-only; larger sizes
+     * return a transient array so an oversized buffer is never pinned. A negative (corrupt) totalSize
+     * is rejected by the caller before reaching here.
+     */
+    // Package-private for testing (CheckMessageBufferReuseTest).
+    byte[] borrowCheckMessageBuffer(final int totalSize) {
+        int reuseCap = this.defaultMessageStore.getMessageStoreConfig().getMaxCheckMessageReuseBufferSize();
+        if (totalSize > reuseCap) {
+            return new byte[totalSize];
+        }
+        byte[] buffer = this.checkMessageBuffer.get();
+        if (buffer.length < totalSize) {
+            buffer = new byte[totalSize];
+            this.checkMessageBuffer.set(buffer);
+        }
+        return buffer;
+    }
+
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean checkDupInfo) {
         return this.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, true);
@@ -456,7 +486,7 @@ public class CommitLog implements Swappable {
             }
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
-            if (byteBuffer.remaining() < totalSize - 4) {
+            if (totalSize < 0 || byteBuffer.remaining() < totalSize - 4) {
                 return new DispatchRequest(-1, false /* fail */);
             }
 
@@ -475,7 +505,7 @@ public class CommitLog implements Swappable {
 
             MessageVersion messageVersion = MessageVersion.valueOfMagicCode(magicCode);
 
-            byte[] bytesContent = new byte[totalSize];
+            byte[] bytesContent = borrowCheckMessageBuffer(totalSize);
 
             int bodyCRC = byteBuffer.getInt();
 
@@ -1909,17 +1939,7 @@ public class CommitLog implements Swappable {
                 return null;
             }
 
-            try {
-                LmqDispatch.wrapLmqDispatch(defaultMessageStore, msgInner);
-            } catch (ConsumeQueueException e) {
-                if (e.getCause() instanceof RocksDBException) {
-                    log.error("Failed to wrap multi-dispatch", e);
-                    return new AppendMessageResult(AppendMessageStatus.ROCKSDB_ERROR);
-                }
-                log.error("Failed to wrap multi-dispatch", e);
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-            }
-
+            LmqDispatch.reinsertWaitStorePropertyForLegacySerialization(msgInner);
             msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
             final byte[] propertiesData =
@@ -1973,7 +1993,20 @@ public class CommitLog implements Swappable {
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
+            String[] lmqQueueNames = null;
             if (isMultiDispatchMsg) {
+                if (!msgInner.isEncodeCompleted()) {
+                    try {
+                        lmqQueueNames = LmqDispatch.prepareLmqDispatch(defaultMessageStore, msgInner);
+                    } catch (ConsumeQueueException e) {
+                        if (e.getCause() instanceof RocksDBException) {
+                            log.error("Failed to wrap multi-dispatch", e);
+                            return new AppendMessageResult(AppendMessageStatus.ROCKSDB_ERROR);
+                        }
+                        log.error("Failed to wrap multi-dispatch", e);
+                        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+                    }
+                }
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
                     return appendMessageResult;
@@ -2062,14 +2095,19 @@ public class CommitLog implements Swappable {
 
             final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
             CommitLog.this.getMessageStore().getPerfCounter().startTick("WRITE_MEMORY_TIME_MS");
-            // Write messages to the queue buffer
+            // Append the encoded message to the current CommitLog buffer
             byteBuffer.put(preEncodeBuffer);
             CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
             msgInner.setEncodedBuff(null);
 
             if (isMultiDispatchMsg) {
                 try {
-                    LmqDispatch.updateLmqOffsets(defaultMessageStore, msgInner);
+                    if (lmqQueueNames == null) {
+                        // The encoded message may be retried after reaching the end of a mapped file.
+                        LmqDispatch.updateLmqOffsets(defaultMessageStore, msgInner);
+                    } else {
+                        LmqDispatch.updateLmqOffsets(defaultMessageStore, lmqQueueNames);
+                    }
                 } catch (ConsumeQueueException e) {
                     // Increase in-memory max offset of the queue should not fail.
                     return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);

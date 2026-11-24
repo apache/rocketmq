@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.metrics;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -93,6 +94,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CON
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_QUEUEING_LATENCY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_READY_MESSAGES;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_HALF_MESSAGES;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_LMQ_NUM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PROCESSOR_WATERMARK;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRODUCER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_FINISH_MSG_LATENCY;
@@ -138,6 +140,7 @@ public class BrokerMetricsManager {
     private ObservableLongGauge brokerPermission = new NopObservableLongGauge();
     private ObservableLongGauge topicNum = new NopObservableLongGauge();
     private ObservableLongGauge consumerGroupNum = new NopObservableLongGauge();
+    private ObservableLongGauge lmqNum = new NopObservableLongGauge();
 
     // request metrics
     private LongCounter messagesInTotal = new NopLongCounter();
@@ -602,6 +605,13 @@ public class BrokerMetricsManager {
             .setDescription("Active subscription group number")
             .ofLongs()
             .buildWithCallback(measurement -> measurement.record(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().size(), newAttributesBuilder().build()));
+
+        if (messageStore.getMessageStoreConfig().isEnableLmq()) {
+            lmqNum = brokerMeter.gaugeBuilder(GAUGE_LMQ_NUM)
+                .setDescription("Current LMQ number")
+                .ofLongs()
+                .buildWithCallback(measurement -> measurement.record(messageStore.getQueueStore().getLmqNum(), newAttributesBuilder().build()));
+        }
     }
 
     private void initRequestMetrics() {
@@ -712,13 +722,17 @@ public class BrokerMetricsManager {
             .setDescription("Consumer lag messages")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                consumerLagCalculator.calculateLag(result ->
-                    measurement.record(result.lag, buildLagAttributes(result))
-                );
+                consumerLagCalculator.calculateLag(result -> {
+                    if (shouldRecordValue(result.lag, 0)) {
+                        measurement.record(result.lag, buildLagAttributes(result));
+                    }
+                });
 
-                liteConsumerLagCalculator.calculateLiteLagCount(result ->
-                    measurement.record(result.lag, buildLagAttributes(result))
-                );
+                liteConsumerLagCalculator.calculateLiteLagCount(result -> {
+                    if (shouldRecordValue(result.lag, 0)) {
+                        measurement.record(result.lag, buildLagAttributes(result));
+                    }
+                });
             });
 
         consumerLagLatency = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_LATENCY)
@@ -726,18 +740,28 @@ public class BrokerMetricsManager {
             .setUnit("milliseconds")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                consumerLagCalculator.calculateLag(lagResult ->
-                    measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult)));
+                consumerLagCalculator.calculateLag(lagResult -> {
+                    if (shouldRecordValue(lagResult.getLagLatency(), 0)) {
+                        measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult));
+                    }
+                });
 
-                liteConsumerLagCalculator.calculateLiteLagLatency(lagResult ->
-                    measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult)));
+                liteConsumerLagCalculator.calculateLiteLagLatency(lagResult -> {
+                    if (shouldRecordValue(lagResult.getLagLatency(), 0)) {
+                        measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult));
+                    }
+                });
             });
 
         consumerInflightMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_INFLIGHT_MESSAGES)
             .setDescription("Consumer inflight messages")
             .ofLongs()
             .buildWithCallback(measurement ->
-                consumerLagCalculator.calculateInflight(result -> measurement.record(result.inFlight, buildLagAttributes(result))));
+                consumerLagCalculator.calculateInflight(result -> {
+                    if (shouldRecordValue(result.inFlight, 0)) {
+                        measurement.record(result.inFlight, buildLagAttributes(result));
+                    }
+                }));
 
         consumerQueueingLatency = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_QUEUEING_LATENCY)
             .setDescription("Consumer queueing time")
@@ -749,24 +773,37 @@ public class BrokerMetricsManager {
                 if (result.earliestUnPulledTimestamp != 0) {
                     latency = curTimeStamp - result.earliestUnPulledTimestamp;
                 }
-                measurement.record(latency, buildLagAttributes(result));
+                if (shouldRecordValue(latency, 0)) {
+                    measurement.record(latency, buildLagAttributes(result));
+                }
             }));
 
         consumerReadyMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_READY_MESSAGES)
             .setDescription("Consumer ready messages")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                consumerLagCalculator.calculateAvailable(result ->
-                    measurement.record(result.available, buildLagAttributes(result)));
+                consumerLagCalculator.calculateAvailable(result -> {
+                    if (shouldRecordValue(result.available, 0)) {
+                        measurement.record(result.available, buildLagAttributes(result));
+                    }
+                });
 
                 // for lite, ready == lag
-                liteConsumerLagCalculator.calculateLiteLagCount(result ->
-                    measurement.record(result.lag, buildLagAttributes(result)));
+                liteConsumerLagCalculator.calculateLiteLagCount(result -> {
+                    if (shouldRecordValue(result.lag, 0)) {
+                        measurement.record(result.lag, buildLagAttributes(result));
+                    }
+                });
             });
 
         sendToDlqMessages = brokerMeter.counterBuilder(COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
             .setDescription("Consumer send to DLQ messages")
             .build();
+    }
+
+    @VisibleForTesting
+    boolean shouldRecordValue(long currentValue, long minValue) {
+        return !brokerConfig.isSuppressMinValueMetrics() || currentValue > minValue;
     }
 
     private void initTransactionMetrics() {

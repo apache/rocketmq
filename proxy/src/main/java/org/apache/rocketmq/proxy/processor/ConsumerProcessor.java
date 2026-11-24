@@ -128,26 +128,46 @@ public class ConsumerProcessor extends AbstractProcessor {
                 maxMsgNums = ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST;
             }
 
-            PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
-            requestHeader.setConsumerGroup(consumerGroup);
-            requestHeader.setTopic(topic);
-            requestHeader.setQueueId(messageQueue.getQueueId());
-            requestHeader.setMaxMsgNums(maxMsgNums);
-            requestHeader.setInvisibleTime(invisibleTime);
-            requestHeader.setPollTime(pollTime);
-            requestHeader.setInitMode(initMode);
-            requestHeader.setExpType(subscriptionData.getExpressionType());
-            requestHeader.setExp(subscriptionData.getSubString());
-            requestHeader.setOrder(fifo);
-            requestHeader.setAttemptId(attemptId);
+            if (ctx.isLiteConsumer()) {
+                PopLiteMessageRequestHeader requestHeader = new PopLiteMessageRequestHeader();
+                requestHeader.setClientId(ctx.getClientID());
+                requestHeader.setConsumerGroup(consumerGroup);
+                requestHeader.setTopic(topic);
+                requestHeader.setMaxMsgNum(maxMsgNums);
+                requestHeader.setInvisibleTime(invisibleTime);
+                requestHeader.setPollTime(pollTime);
+                requestHeader.setAttemptId(attemptId);
+                requestHeader.setBornTime(System.currentTimeMillis());
 
-            future = this.serviceManager.getMessageService().popMessage(
-                    ctx,
-                    messageQueue,
-                    requestHeader,
-                    timeoutMillis)
-                .thenApplyAsync(popResult -> filterPopResult(ctx, popResult,
-                    requestHeader, consumerGroup, topic, subscriptionData, popMessageResultFilter), this.executor);
+                future = this.serviceManager.getMessageService().popLiteMessage(
+                        ctx,
+                        messageQueue,
+                        requestHeader,
+                        timeoutMillis)
+                    .thenApplyAsync(popResult -> filterPopResult(ctx, popResult,
+                        requestHeader, consumerGroup, topic, subscriptionData, popMessageResultFilter), this.executor);
+            } else {
+                PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+                requestHeader.setConsumerGroup(consumerGroup);
+                requestHeader.setTopic(topic);
+                requestHeader.setQueueId(messageQueue.getQueueId());
+                requestHeader.setMaxMsgNums(maxMsgNums);
+                requestHeader.setInvisibleTime(invisibleTime);
+                requestHeader.setPollTime(pollTime);
+                requestHeader.setInitMode(initMode);
+                requestHeader.setExpType(subscriptionData.getExpressionType());
+                requestHeader.setExp(subscriptionData.getSubString());
+                requestHeader.setOrder(fifo);
+                requestHeader.setAttemptId(attemptId);
+
+                future = this.serviceManager.getMessageService().popMessage(
+                        ctx,
+                        messageQueue,
+                        requestHeader,
+                        timeoutMillis)
+                    .thenApplyAsync(popResult -> filterPopResult(ctx, popResult,
+                        requestHeader, consumerGroup, topic, subscriptionData, popMessageResultFilter), this.executor);
+            }
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -173,8 +193,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                     }
                     MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_POP_CK, handleString);
 
-                    String liteTopic = messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC);
-
+                    String liteTopic = ctx.isLiteConsumer() ? messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC) : null;
                     PopMessageResultFilter.FilterResult filterResult =
                         popMessageResultFilter.filterMessage(ctx, consumerGroup, subscriptionData, messageExt);
                     switch (filterResult) {
@@ -185,8 +204,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                                 messageExt.getMsgId(),
                                 consumerGroup,
                                 topic,
-                                liteTopic,
-                                MessagingProcessor.DEFAULT_TIMEOUT_MILLS);
+                                liteTopic);
                             break;
                         case TO_DLQ:
                             this.messagingProcessor.forwardMessageToDeadLetterQueue(
@@ -195,8 +213,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                                 messageExt.getMsgId(),
                                 consumerGroup,
                                 topic,
-                                liteTopic,
-                                MessagingProcessor.DEFAULT_TIMEOUT_MILLS);
+                                liteTopic);
                             break;
                         case TO_RETURN:
                             this.messagingProcessor.changeInvisibleTime(
@@ -225,78 +242,6 @@ public class ConsumerProcessor extends AbstractProcessor {
         return popResult;
     }
 
-    public CompletableFuture<PopResult> popLiteMessage(
-        ProxyContext ctx,
-        QueueSelector queueSelector,
-        String consumerGroup,
-        String topic,
-        int maxMsgNums,
-        long invisibleTime,
-        long pollTime,
-        SubscriptionData subscriptionData,
-        PopMessageResultFilter popMessageResultFilter,
-        String attemptId,
-        long timeoutMillis
-    ) {
-        CompletableFuture<PopResult> future = new CompletableFuture<>();
-        try {
-            AddressableMessageQueue messageQueue = queueSelector.select(ctx,
-                this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(ctx, topic));
-            if (messageQueue == null) {
-                throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no readable queue");
-            }
-            return doPopLiteMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime,
-                subscriptionData, popMessageResultFilter, attemptId, timeoutMillis);
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
-    }
-
-    private CompletableFuture<PopResult> doPopLiteMessage(
-        ProxyContext ctx,
-        AddressableMessageQueue messageQueue,
-        String consumerGroup,
-        String topic,
-        int maxMsgNums,
-        long invisibleTime,
-        long pollTime,
-        SubscriptionData subscriptionData,
-        PopMessageResultFilter popMessageResultFilter,
-        String attemptId,
-        long timeoutMillis
-    ) {
-        CompletableFuture<PopResult> future = new CompletableFuture<>();
-        try {
-            if (maxMsgNums > ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST) {
-                log.warn("change maxNums from {} to {} for pop request, with info: topic:{}, group:{}",
-                    maxMsgNums, ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST, topic, consumerGroup);
-                maxMsgNums = ProxyUtils.MAX_MSG_NUMS_FOR_POP_REQUEST;
-            }
-
-            PopLiteMessageRequestHeader requestHeader = new PopLiteMessageRequestHeader();
-            requestHeader.setClientId(ctx.getClientID());
-            requestHeader.setConsumerGroup(consumerGroup);
-            requestHeader.setTopic(topic);
-            requestHeader.setMaxMsgNum(maxMsgNums);
-            requestHeader.setInvisibleTime(invisibleTime);
-            requestHeader.setPollTime(pollTime);
-            requestHeader.setAttemptId(attemptId);
-            requestHeader.setBornTime(System.currentTimeMillis());
-
-            future = this.serviceManager.getMessageService().popLiteMessage(
-                    ctx,
-                    messageQueue,
-                    requestHeader,
-                    timeoutMillis)
-                .thenApplyAsync(popResult -> filterPopResult(ctx, popResult,
-                    requestHeader, consumerGroup, topic, subscriptionData, popMessageResultFilter), this.executor);
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-            FutureUtils.addExecutor(future, this.executor);
-        }
-        return future;
-    }
 
     private void fillUniqIDIfNeed(MessageExt messageExt) {
         if (StringUtils.isBlank(MessageClientIDSetter.getUniqID(messageExt))) {

@@ -172,6 +172,20 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     @Override
+    public boolean isAttemptIdMatched(String attemptId, String topic, String group) {
+        ConcurrentHashMap<Integer/*queueId*/, OrderInfo> qs = table.get(buildKey(topic, group));
+        if (qs == null || attemptId == null) {
+            return false;
+        }
+        for (OrderInfo orderInfo : qs.values()) {
+            if (orderInfo != null && attemptId.equals(orderInfo.getAttemptId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public void clearBlock(String topic, String group, int queueId) {
         table.computeIfPresent(buildKey(topic, group), (key, val) -> {
             val.remove(queueId);

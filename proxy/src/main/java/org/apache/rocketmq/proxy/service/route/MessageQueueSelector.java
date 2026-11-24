@@ -24,9 +24,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
@@ -67,9 +67,8 @@ public class MessageQueueSelector {
             this.queues.addAll(buildWrite(topicRouteWrapper));
         }
         buildBrokerActingQueues(topicRouteWrapper.getTopicName(), this.queues);
-        Random random = new Random();
-        this.queueIndex = new AtomicInteger(random.nextInt());
-        this.brokerIndex = new AtomicInteger(random.nextInt());
+        this.queueIndex = new AtomicInteger(ThreadLocalRandom.current().nextInt());
+        this.brokerIndex = new AtomicInteger(ThreadLocalRandom.current().nextInt());
 
         if (priorityProvider == null) {
             priorityProvider = new DefaultMessageQueuePriorityProvider();

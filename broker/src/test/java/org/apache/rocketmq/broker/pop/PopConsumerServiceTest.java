@@ -133,6 +133,22 @@ public class PopConsumerServiceTest {
     }
 
     @Test
+    public void reviveAfterEnablingBufferWithoutCacheTest() throws IllegalAccessException {
+        BrokerConfig brokerConfig = brokerController.getBrokerConfig();
+        brokerConfig.setEnablePopBufferMerge(false);
+        consumerService = new PopConsumerService(brokerController);
+        Assert.assertNull(FieldUtils.readField(consumerService, "popConsumerCache", true));
+        consumerService.getPopConsumerStore().start();
+        try {
+            Assert.assertEquals(0, consumerService.revive(new AtomicLong(), 1));
+            brokerConfig.setEnablePopBufferMerge(true);
+            Assert.assertEquals(0, consumerService.revive(new AtomicLong(), 1));
+        } finally {
+            consumerService.shutdown();
+        }
+    }
+
+    @Test
     public void isPopShouldStopTest() throws IllegalAccessException {
         Assert.assertFalse(consumerService.isPopShouldStop(groupId, topicId, queueId));
         PopConsumerCache consumerCache = (PopConsumerCache) FieldUtils.readField(

@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
@@ -52,7 +53,7 @@ public class LiteMetadataUtil {
         }
         SubscriptionGroupConfig groupConfig =
             brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
-        return null != groupConfig && groupConfig.getLiteBindTopic() != null;
+        return null != groupConfig && StringUtils.isNotBlank(groupConfig.getLiteBindTopic());
     }
 
     public static String getLiteBindTopic(String group, BrokerController brokerController) {
@@ -135,7 +136,7 @@ public class LiteMetadataUtil {
             brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable();
 
         return groupTable.entrySet().stream()
-            .filter(entry -> entry.getValue().getLiteBindTopic() != null)
+            .filter(entry -> StringUtils.isNotBlank(entry.getValue().getLiteBindTopic()))
             .collect(Collectors.groupingBy(
                 entry -> entry.getValue().getLiteBindTopic(),
                 Collectors.mapping(Map.Entry::getKey, Collectors.toSet())

@@ -116,7 +116,8 @@ public class ClientActivity extends AbstractMessagingActivity {
                 }
                 case PUSH_CONSUMER:
                 case LITE_PUSH_CONSUMER:
-                case SIMPLE_CONSUMER: {
+                case SIMPLE_CONSUMER:
+                case LITE_SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
                     String consumerGroup = request.getGroup().getName();
                     this.registerConsumer(ctx, consumerGroup, clientSettings.getClientType(), clientSettings.getSubscription().getSubscriptionsList(), false);
@@ -155,19 +156,21 @@ public class ClientActivity extends AbstractMessagingActivity {
             }
 
             switch (clientSettings.getClientType()) {
-                case PRODUCER:
-                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = topic.getName();
-                        GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
-                        if (channel != null) {
-                            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                case PRODUCER: {
+                    GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
+                    if (channel != null) {
+                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                        for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
+                            String topicName = topic.getName();
                             this.messagingProcessor.unRegisterProducer(ctx, topicName, clientChannelInfo);
                         }
                     }
                     break;
+                }
                 case PUSH_CONSUMER:
                 case LITE_PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
+                case LITE_SIMPLE_CONSUMER:
                     validateConsumerGroup(request.getGroup());
                     String consumerGroup = request.getGroup().getName();
                     GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
@@ -427,6 +430,7 @@ public class ClientActivity extends AbstractMessagingActivity {
 
     protected GrpcClientChannel registerConsumer(ProxyContext ctx, String consumerGroup, ClientType clientType,
         List<SubscriptionEntry> subscriptionEntryList, boolean updateSubscription) {
+        ctx.setClientType(clientType.name());
         String clientId = ctx.getClientID();
         LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
 
@@ -516,6 +520,7 @@ public class ClientActivity extends AbstractMessagingActivity {
     protected ConsumeType buildConsumeType(ClientType clientType) {
         switch (clientType) {
             case SIMPLE_CONSUMER:
+            case LITE_SIMPLE_CONSUMER:
                 return ConsumeType.CONSUME_ACTIVELY;
             case PUSH_CONSUMER:
             case LITE_PUSH_CONSUMER:
@@ -526,7 +531,7 @@ public class ClientActivity extends AbstractMessagingActivity {
     }
 
     protected MessageModel buildMessageModel(ClientType clientType) {
-        if (clientType == ClientType.LITE_PUSH_CONSUMER) {
+        if (ClientType.LITE_PUSH_CONSUMER == clientType || ClientType.LITE_SIMPLE_CONSUMER == clientType) {
             return MessageModel.LITE_SELECTIVE;
         }
         return MessageModel.CLUSTERING;

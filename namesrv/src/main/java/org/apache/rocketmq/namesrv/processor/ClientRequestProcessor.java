@@ -51,12 +51,18 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         final RemotingCommand request) throws Exception {
+        if (namesrvController.isShutdown()) {
+            return createNotReadyResponse();
+        }
         return this.getRouteInfoByTopic(ctx, request);
+    }
+
+    private static RemotingCommand createNotReadyResponse() {
+        return RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "name server not ready");
     }
 
     public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
@@ -64,11 +70,10 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
 
         if (namesrvController.getNamesrvConfig().isNeedWaitForService() && !namesrvReady) {
             log.warn("name server not ready. request code {} ", request.getCode());
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("name server not ready");
-            return response;
+            return createNotReadyResponse();
         }
 
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
         if (topicRouteData != null) {

@@ -19,10 +19,12 @@ $ mvn clean install -DskipTests
 
 #### 1.2 构建 RocketMQ
 
+构建时需要从 `rocketmq-apis` 子模块生成协议类。如果已经克隆了仓库，请先在仓库根目录执行
+`git submodule update --init --recursive`，再运行 Maven。
+
 ```shell
-$ git clone https://github.com/apache/rocketmq.git
+$ git clone --recurse-submodules https://github.com/apache/rocketmq.git
 $ cd rocketmq
-$ git checkout -b store_with_dledger origin/store_with_dledger
 $ mvn -Prelease-all -DskipTests clean install -U
 ```
 

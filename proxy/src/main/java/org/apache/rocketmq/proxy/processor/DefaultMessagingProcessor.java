@@ -205,16 +205,6 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public CompletableFuture<PopResult> popLiteMessage(ProxyContext ctx, QueueSelector queueSelector,
-        String consumerGroup, String topic, int maxMsgNums, long invisibleTime, long pollTime,
-        SubscriptionData subscriptionData, PopMessageResultFilter popMessageResultFilter,
-        String attemptId, long timeoutMillis) {
-        return this.consumerProcessor.popLiteMessage(ctx, queueSelector,
-            consumerGroup, topic, maxMsgNums, invisibleTime, pollTime,
-            subscriptionData, popMessageResultFilter, attemptId, timeoutMillis);
-    }
-
-    @Override
     public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
         String consumerGroup, String topic, long timeoutMillis) {
         return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, null, timeoutMillis);
@@ -393,6 +383,10 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public MetadataService getMetadataService() {
         return this.serviceManager.getMetadataService();
+    }
+
+    public ServiceManager getServiceManager() {
+        return this.serviceManager;
     }
 
     @Override
