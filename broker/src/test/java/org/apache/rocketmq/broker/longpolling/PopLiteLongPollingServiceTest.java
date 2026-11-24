@@ -124,6 +124,30 @@ public class PopLiteLongPollingServiceTest {
     }
 
     @Test
+    public void testCheckSequenceAndCompensation() {
+        String clientId = "clientId";
+        String group = "group";
+        assertFalse(popLiteLongPollingService.notifyMessageArriving(clientId, true, 0, group));
+        assertTrue(pollingMap.isEmpty());
+        long baseline = popLiteLongPollingService.prepareNotificationSnapshot(clientId, group);
+        long otherClient = popLiteLongPollingService.prepareNotificationSnapshot("other", group);
+        assertFalse(popLiteLongPollingService.notifyMessageArriving(clientId, true, 0, group));
+        long notified = popLiteLongPollingService.prepareNotificationSnapshot(clientId, group);
+        assertTrue(notified != baseline);
+        assertEquals(otherClient, popLiteLongPollingService.prepareNotificationSnapshot("other", group));
+
+        Channel channel = mock(Channel.class);
+        when(ctx.channel()).thenReturn(channel);
+        when(channel.isActive()).thenReturn(true);
+        assertEquals(PollingResult.POLLING_SUC, popLiteLongPollingService.polling(ctx,
+            RemotingCommand.createRequestCommand(0, null), System.currentTimeMillis(), 10000, clientId, group, baseline));
+        verify(pullMessageExecutor).submit(any(Runnable.class));
+        assertEquals(notified, popLiteLongPollingService.prepareNotificationSnapshot(clientId, group));
+        assertTrue(pollingMap.get(clientId).isEmpty());
+        assertEquals(0, totalPollingNum.get());
+    }
+
+    @Test
     public void testWakeUp_nullRequest() {
         assertFalse(popLiteLongPollingService.wakeUp(null));
     }

@@ -226,6 +226,15 @@ public class PopLongPollingService extends ServiceThread {
 
     public boolean notifyMessageArriving(final String topic, final int queueId, final String cid, boolean force,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties, CommandCallback callback) {
+        PollingQueue checks = (PollingQueue) pollingMap.getIfPresent(KeyBuilder.buildPollingKey(topic, cid, -1));
+        if (checks != null) {
+            checks.notificationCount.incrementAndGet();
+        }
+        return notifyPollingRequests(topic, queueId, cid, force, tagsCode, msgStoreTime, filterBitMap, properties, callback);
+    }
+
+    private boolean notifyPollingRequests(String topic, int queueId, String cid, boolean force,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties, CommandCallback callback) {
         ConcurrentSkipListSet<PopRequest> remotingCommands = pollingMap.getIfPresent(KeyBuilder.buildPollingKey(topic, cid, queueId));
         if (remotingCommands == null || remotingCommands.isEmpty()) {
             return false;
@@ -311,8 +320,40 @@ public class PopLongPollingService extends ServiceThread {
         return this.polling(ctx, remotingCommand, requestHeader, null, null);
     }
 
+    /**
+     * Registers the notification route and snapshots the group-wide count before checking for messages.
+     * The snapshot remains valid only while the route and counting queue remain cached.
+     *
+     * @param topic the original topic
+     * @param cid the consumer group
+     * @return the current notification count across all queues
+     */
+    public long prepareNotificationSnapshot(String topic, String cid) {
+        ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic, key -> new ConcurrentHashMap<>());
+        cids.putIfAbsent(cid, Byte.MIN_VALUE);
+        return ((PollingQueue) pollingMap.get(KeyBuilder.buildPollingKey(topic, cid, -1), key -> new PollingQueue()))
+            .notificationCount.get();
+    }
+
     public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand,
         final PollingHeader requestHeader, SubscriptionData subscriptionData, MessageFilter messageFilter) {
+        return polling(ctx, remotingCommand, requestHeader, subscriptionData, messageFilter, Long.MIN_VALUE);
+    }
+
+    /**
+     * Registers a request and retries waiter notification if the count changed after the message check began.
+     *
+     * @param ctx the request channel context
+     * @param remotingCommand the request command
+     * @param requestHeader the polling parameters
+     * @param subscriptionData the subscription used for notification filtering
+     * @param messageFilter the message filter
+     * @param notifications the pre-check snapshot, or {@link Long#MIN_VALUE} to disable compensation
+     * @return the polling registration result
+     */
+    public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand,
+        final PollingHeader requestHeader, SubscriptionData subscriptionData, MessageFilter messageFilter,
+        long notifications) {
         if (requestHeader.getPollTime() <= 0 || this.isStopped()) {
             return NOT_POLLING;
         }
@@ -334,7 +375,7 @@ public class PopLongPollingService extends ServiceThread {
         }
         String key = KeyBuilder.buildPollingKey(requestHeader.getTopic(), requestHeader.getConsumerGroup(),
             requestHeader.getQueueId());
-        ConcurrentSkipListSet<PopRequest> queue = pollingMap.get(key, k -> new ConcurrentSkipListSet<>(PopRequest.COMPARATOR));
+        ConcurrentSkipListSet<PopRequest> queue = pollingMap.get(key, k -> new PollingQueue());
         int size = queue.size();
         if (size > brokerController.getBrokerConfig().getPopPollingSize()) {
             POP_LOGGER.info("polling {}, result POLLING_FULL, singleSize:{}", remotingCommand, size);
@@ -346,6 +387,11 @@ public class PopLongPollingService extends ServiceThread {
             totalPollingNum.incrementAndGet();
             if (brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("polling {}, result POLLING_SUC", remotingCommand);
+            }
+            if (notifications != Long.MIN_VALUE && notifications != prepareNotificationSnapshot(requestHeader.getTopic(),
+                requestHeader.getConsumerGroup())) {
+                notifyPollingRequests(requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getConsumerGroup(),
+                    true, null, 0L, null, null, null);
             }
             return POLLING_SUC;
         } else {
@@ -415,6 +461,17 @@ public class PopLongPollingService extends ServiceThread {
         }
 
         lastCleanTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Keeps arrival notifications observable even while no request is waiting in the queue.
+     */
+    public static class PollingQueue extends ConcurrentSkipListSet<PopRequest> {
+        public final AtomicLong notificationCount = new AtomicLong();
+
+        public PollingQueue() {
+            super(PopRequest.COMPARATOR);
+        }
     }
 
     private PopRequest pollRemotingCommands(ConcurrentSkipListSet<PopRequest> remotingCommands) {
