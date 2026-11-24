@@ -98,23 +98,23 @@ public class NamesrvStartup {
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
-                InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)));
-                properties = new Properties();
-                properties.load(in);
-                MixAll.properties2Object(properties, namesrvConfig);
-                MixAll.properties2Object(properties, nettyServerConfig);
-                MixAll.properties2Object(properties, nettyClientConfig);
-                if (namesrvConfig.isEnableControllerInNamesrv()) {
-                    controllerConfig = new ControllerConfig();
-                    JraftConfig jraftConfig = new JraftConfig();
-                    controllerConfig.setJraftConfig(jraftConfig);
-                    MixAll.properties2Object(properties, controllerConfig);
-                    MixAll.properties2Object(properties, jraftConfig);
-                }
-                namesrvConfig.setConfigStorePath(file);
+                try (InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)))) {
+                    properties = new Properties();
+                    properties.load(in);
+                    MixAll.properties2Object(properties, namesrvConfig);
+                    MixAll.properties2Object(properties, nettyServerConfig);
+                    MixAll.properties2Object(properties, nettyClientConfig);
+                    if (namesrvConfig.isEnableControllerInNamesrv()) {
+                        controllerConfig = new ControllerConfig();
+                        JraftConfig jraftConfig = new JraftConfig();
+                        controllerConfig.setJraftConfig(jraftConfig);
+                        MixAll.properties2Object(properties, controllerConfig);
+                        MixAll.properties2Object(properties, jraftConfig);
+                    }
+                    namesrvConfig.setConfigStorePath(file);
 
-                System.out.printf("load config properties file OK, %s%n", file);
-                in.close();
+                    System.out.printf("load config properties file OK, %s%n", file);
+                }
             }
         }
 

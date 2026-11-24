@@ -84,16 +84,16 @@ public class ControllerStartup {
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
-                InputStream in = new BufferedInputStream(new FileInputStream(file));
-                properties = new Properties();
-                properties.load(in);
-                MixAll.properties2Object(properties, controllerConfig);
-                MixAll.properties2Object(properties, jraftConfig);
-                MixAll.properties2Object(properties, nettyServerConfig);
-                MixAll.properties2Object(properties, nettyClientConfig);
+                try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+                    properties = new Properties();
+                    properties.load(in);
+                    MixAll.properties2Object(properties, controllerConfig);
+                    MixAll.properties2Object(properties, jraftConfig);
+                    MixAll.properties2Object(properties, nettyServerConfig);
+                    MixAll.properties2Object(properties, nettyClientConfig);
 
-                System.out.printf("load config properties file OK, %s%n", file);
-                in.close();
+                    System.out.printf("load config properties file OK, %s%n", file);
+                }
             }
         }
 
