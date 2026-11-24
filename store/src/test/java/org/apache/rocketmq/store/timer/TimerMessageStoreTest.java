@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -885,6 +886,69 @@ public class TimerMessageStoreTest {
         assertEquals(2, roundLatches.size());
         assertEquals(0, roundLatches.get(0).getCount());
         assertEquals(0, roundLatches.get(1).getCount());
+    }
+
+    @Test
+    public void testEnqueueStopDuringBackoffDoesNotAdvanceCommitOffset() throws Exception {
+        String rootDir = StoreTestUtils.createBaseDir();
+        baseDirs.add(rootDir);
+        TimerCheckpoint timerCheckpoint =
+            new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
+        TimerMetrics timerMetrics =
+            new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics");
+
+        final AtomicInteger enqueueCalls = new AtomicInteger(0);
+        final AtomicBoolean stopRequested = new AtomicBoolean(false);
+        final List<CountDownLatch> roundLatches = new ArrayList<>();
+
+        TimerMessageStore timerMessageStore =
+            new TimerMessageStore(messageStore, storeConfig, timerCheckpoint, timerMetrics, null) {
+                @Override
+                public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime,
+                    MessageExt messageExt, boolean isFromTimeline) {
+                    enqueueCalls.incrementAndGet();
+                    return false;
+                }
+
+                @Override
+                public void checkDequeueLatch(CountDownLatch latch, long delayedTime) {
+                    roundLatches.add(latch);
+                }
+
+                @Override
+                public void holdMomentForUnknownError() {
+                    // Model the enqueue service stopping while it backs off before the retry
+                    stopRequested.set(true);
+                }
+            };
+        messageStore.setTimerMessageStore(timerMessageStore);
+        timerStores.add(timerMessageStore);
+        timerMessageStore.setShouldRunningDequeue(false);
+        timerMessageStore.maybeMoveWriteTime();
+
+        long delayTime = timerMessageStore.currWriteTimeMs + precisionMs;
+        TimerRequest req = new TimerRequest(100L, msgBody.length, delayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        MessageExtBrokerInner msg = buildMessage(delayTime, "TimerTest_enqueueStopBackoff", false);
+        msg.setQueueOffset(1);
+        req.setMsg(msg);
+        timerMessageStore.enqueuePutQueue.put(req);
+
+        TimerMessageStore.TimerEnqueuePutService service =
+            timerMessageStore.new TimerEnqueuePutService() {
+                @Override
+                public boolean isStopped() {
+                    return stopRequested.get();
+                }
+            };
+        service.fetchAndPutTimerRequest();
+
+        // The single attempt failed and the service stopped before retrying it
+        assertEquals(1, enqueueCalls.get());
+        assertFalse(req.isSucc());
+        assertEquals(1, roundLatches.size());
+        // The failed request must not be acknowledged
+        assertEquals(0, timerMessageStore.getCommitQueueOffset());
     }
 
     @After

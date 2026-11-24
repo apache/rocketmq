@@ -1582,7 +1582,11 @@ public class TimerMessageStore {
                 }
                 holdMomentForUnknownError();
             }
-            commitQueueOffset = trs.get(trs.size() - 1).getMsg().getQueueOffset();
+            // The batch is acknowledged only when every request has succeeded. A stop during the
+            // retry backoff must not advance the offset past requests that were not enqueued.
+            if (trs.stream().allMatch(TimerRequest::isSucc)) {
+                commitQueueOffset = trs.get(trs.size() - 1).getMsg().getQueueOffset();
+            }
             maybeMoveWriteTime();
         }
 
