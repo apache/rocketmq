@@ -124,6 +124,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         long popTime = System.currentTimeMillis();
         long invisibleTime = requestHeader.getInvisibleTime();
 
+        long notifications = requestHeader.getPollTime() > 0 ? popLiteLongPollingService.prepareNotificationSnapshot(clientId, group) : 0;
         Pair<StringBuilder, GetMessageResult> rst = popByClientId(channel.remoteAddress().toString(), parentTopic,
             group, clientId, popTime, invisibleTime, maxNum, requestHeader.getAttemptId());
 
@@ -141,7 +142,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         } else {
             response.setRemark(GetMessageStatus.NO_MESSAGE_IN_QUEUE.name());
             PollingResult pollingResult = popLiteLongPollingService.polling(ctx, request, requestHeader.getBornTime(),
-                requestHeader.getPollTime(), clientId, group);
+                requestHeader.getPollTime(), clientId, group, notifications);
             if (PollingResult.POLLING_SUC.equals(pollingResult)) {
                 return null;
             } else if (PollingResult.POLLING_FULL.equals(pollingResult)) {

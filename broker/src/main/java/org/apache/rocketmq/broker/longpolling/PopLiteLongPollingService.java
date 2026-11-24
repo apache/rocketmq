@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.longpolling.PopLongPollingService.PollingQueue;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -147,7 +148,14 @@ public class PopLiteLongPollingService extends ServiceThread {
 
     public boolean notifyMessageArriving(final String clientId, boolean force, long msgStoreTime, String group) {
         String pollingKey = getPollingKey(clientId, group);
-        ConcurrentSkipListSet<PopRequest> remotingCommands = pollingMap.get(pollingKey);
+        PollingQueue queue = (PollingQueue) pollingMap.get(pollingKey);
+        if (queue != null) {
+            queue.notificationCount.incrementAndGet();
+        }
+        return notifyPollingRequests(queue);
+    }
+
+    private boolean notifyPollingRequests(ConcurrentSkipListSet<PopRequest> remotingCommands) {
         if (remotingCommands == null || remotingCommands.isEmpty()) {
             return false;
         }
@@ -194,8 +202,38 @@ public class PopLiteLongPollingService extends ServiceThread {
         return true;
     }
 
+    /**
+     * Ensures the client's polling queue exists and snapshots its count before checking for messages or events.
+     * The snapshot remains valid only while the counting queue remains in the map.
+     *
+     * @param clientId the client identifier
+     * @param group the consumer group
+     * @return the current notification count for the client
+     */
+    public long prepareNotificationSnapshot(String clientId, String group) {
+        return ((PollingQueue) pollingMap.computeIfAbsent(getPollingKey(clientId, group), key -> new PollingQueue()))
+            .notificationCount.get();
+    }
+
     public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand,
         long bornTime, long pollTime, String clientId, String group) {
+        return polling(ctx, remotingCommand, bornTime, pollTime, clientId, group, Long.MIN_VALUE);
+    }
+
+    /**
+     * Registers a request and retries waiter notification if the count changed after the message check began.
+     *
+     * @param ctx the request channel context
+     * @param remotingCommand the request command
+     * @param bornTime the request creation time in milliseconds
+     * @param pollTime the polling timeout in milliseconds
+     * @param clientId the client identifier
+     * @param group the consumer group
+     * @param notifications the pre-check snapshot, or {@link Long#MIN_VALUE} to disable compensation
+     * @return the polling registration result
+     */
+    public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand,
+        long bornTime, long pollTime, String clientId, String group, long notifications) {
         if (pollTime <= 0 || this.isStopped()) {
             return NOT_POLLING;
         }
@@ -217,11 +255,7 @@ public class PopLiteLongPollingService extends ServiceThread {
         String pollingKey = getPollingKey(clientId, group);
         ConcurrentSkipListSet<PopRequest> queue = pollingMap.get(pollingKey);
         if (queue == null) {
-            queue = new ConcurrentSkipListSet<>(PopRequest.COMPARATOR);
-            ConcurrentSkipListSet<PopRequest> old = pollingMap.putIfAbsent(pollingKey, queue);
-            if (old != null) {
-                queue = old;
-            }
+            queue = pollingMap.computeIfAbsent(pollingKey, key -> new PollingQueue());
         } else {
             // check size
             int size = queue.size();
@@ -235,6 +269,9 @@ public class PopLiteLongPollingService extends ServiceThread {
             totalPollingNum.incrementAndGet();
             if (brokerController.getBrokerConfig().isEnableLitePopLog()) {
                 LOGGER.info("lite polling {}, result POLLING_SUC", remotingCommand);
+            }
+            if (notifications != Long.MIN_VALUE && notifications != ((PollingQueue) queue).notificationCount.get()) {
+                notifyPollingRequests(queue);
             }
             return POLLING_SUC;
         } else {

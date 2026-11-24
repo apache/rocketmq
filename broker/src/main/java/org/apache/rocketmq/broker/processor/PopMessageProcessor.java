@@ -372,6 +372,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
         }
 
+        final long notifications = requestHeader.getPollTime() > 0
+            ? popLongPollingService.prepareNotificationSnapshot(requestHeader.getTopic(), requestHeader.getConsumerGroup()) : 0;
         GetMessageResult getMessageResult = new GetMessageResult(requestHeader.getMaxMsgNums());
         ExpressionMessageFilter finalMessageFilter = messageFilter;
         SubscriptionData finalSubscriptionData = subscriptionData;
@@ -408,7 +410,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         result.getPopTime(), result.getRestCount());
 
                     PollingResult pollingResult = popLongPollingService.polling(
-                        ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter);
+                        ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter, notifications);
 
                     if (PollingResult.POLLING_SUC == pollingResult) {
                         // recursive processing
@@ -575,7 +577,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 }
             } else {
                 PollingResult pollingResult = popLongPollingService.polling(
-                    ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter);
+                    ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter, notifications);
                 if (PollingResult.POLLING_SUC == pollingResult) {
                     if (restNum > 0) {
                         popLongPollingService.notifyMessageArriving(

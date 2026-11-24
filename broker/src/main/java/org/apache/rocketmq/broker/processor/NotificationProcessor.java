@@ -183,6 +183,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
             }
         }
 
+        long notifications = requestHeader.getPollTime() <= 0 ? 0 : isLiteConsumer
+            ? popLiteLongPollingService.prepareNotificationSnapshot(requestHeader.getClientId(), requestHeader.getConsumerGroup())
+            : popLongPollingService.prepareNotificationSnapshot(requestHeader.getTopic(), requestHeader.getConsumerGroup());
         if (isLiteConsumer) {
             hasMsg = hasMsgForLiteConsumer(requestHeader.getClientId());
         } else if (requestHeader.getQueueId() < 0) {
@@ -207,9 +210,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
             PollingResult pollingResult;
             if (isLiteConsumer) {
                 pollingResult = popLiteLongPollingService.polling(ctx, request, requestHeader.getBornTime(),
-                    requestHeader.getPollTime(), requestHeader.getClientId(), requestHeader.getConsumerGroup());
+                    requestHeader.getPollTime(), requestHeader.getClientId(), requestHeader.getConsumerGroup(), notifications);
             } else {
-                pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader), subscriptionData, messageFilter);
+                pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader), subscriptionData, messageFilter, notifications);
             }
             if (pollingResult == PollingResult.POLLING_SUC) {
                 return null;

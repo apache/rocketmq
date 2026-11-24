@@ -48,6 +48,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -155,6 +156,35 @@ public class PopLongPollingServiceTest {
         FieldUtils.writeDeclaredField(popLongPollingService, "pollingMap", pollingMap, true);
         boolean actual = popLongPollingService.notifyMessageArriving(defaultTopic, queueId, cid, null, 0, null, null);
         assertFalse(actual);
+    }
+
+    @Test
+    public void testCheckSequenceAndCompensation() {
+        String group = "group";
+        assertFalse(popLongPollingService.notifyMessageArriving(defaultTopic, 1, group, null, 0L, null, null));
+        assertTrue(popLongPollingService.getPollingMap().asMap().isEmpty());
+        long baseline = popLongPollingService.prepareNotificationSnapshot(defaultTopic, group);
+        long otherGroup = popLongPollingService.prepareNotificationSnapshot(defaultTopic, "other");
+        assertFalse(popLongPollingService.notifyMessageArriving(defaultTopic, 1, group, null, 0L, null, null));
+        long notified = popLongPollingService.prepareNotificationSnapshot(defaultTopic, group);
+        assertTrue(notified != baseline);
+        assertEquals(otherGroup, popLongPollingService.prepareNotificationSnapshot(defaultTopic, "other"));
+
+        Channel channel = mock(Channel.class);
+        when(ctx.channel()).thenReturn(channel);
+        when(channel.isActive()).thenReturn(true);
+        doReturn(true).when(popLongPollingService).wakeUp(any(), any());
+        PollingHeader header = mock(PollingHeader.class);
+        when(header.getTopic()).thenReturn(defaultTopic);
+        when(header.getConsumerGroup()).thenReturn(group);
+        when(header.getQueueId()).thenReturn(0);
+        when(header.getBornTime()).thenReturn(System.currentTimeMillis());
+        when(header.getPollTime()).thenReturn(10000L);
+        assertEquals(PollingResult.POLLING_SUC, popLongPollingService.polling(ctx,
+            RemotingCommand.createRequestCommand(0, null), header, null, null, baseline));
+        verify(popLongPollingService).wakeUp(any(), any());
+        assertEquals(notified, popLongPollingService.prepareNotificationSnapshot(defaultTopic, group));
+        assertTrue(popLongPollingService.getPollingMap().getIfPresent(KeyBuilder.buildPollingKey(defaultTopic, group, 0)).isEmpty());
     }
 
     @Test
