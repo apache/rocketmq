@@ -44,11 +44,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class BrokerMetricsManagerTest {
 
     private BrokerMetricsManager createTestBrokerMetricsManager() {
+        return createTestBrokerMetricsManager(new BrokerConfig());
+    }
+
+    private BrokerMetricsManager createTestBrokerMetricsManager(BrokerConfig brokerConfig) {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-"
                 + UUID.randomUUID();
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
-        BrokerConfig brokerConfig = new BrokerConfig();
 
         NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(0);
@@ -57,6 +60,28 @@ public class BrokerMetricsManagerTest {
                 new NettyClientConfig(), messageStoreConfig);
 
         return new BrokerMetricsManager(brokerController);
+    }
+
+    @Test
+    public void testShouldRecordValueWhenSuppressDisabled() {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setSuppressMinValueMetrics(false);
+        BrokerMetricsManager metricsManager = createTestBrokerMetricsManager(brokerConfig);
+        // default behavior: all values are recorded regardless of minValue
+        assertThat(metricsManager.shouldRecordValue(0, 0)).isTrue();
+        assertThat(metricsManager.shouldRecordValue(100, 0)).isTrue();
+    }
+
+    @Test
+    public void testShouldRecordValueWhenSuppressEnabled() {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setSuppressMinValueMetrics(true);
+        BrokerMetricsManager metricsManager = createTestBrokerMetricsManager(brokerConfig);
+        // values not greater than minValue are suppressed, greater ones are recorded
+        assertThat(metricsManager.shouldRecordValue(0, 0)).isFalse();
+        assertThat(metricsManager.shouldRecordValue(100, 0)).isTrue();
+        assertThat(metricsManager.shouldRecordValue(1000, 1000)).isFalse();
+        assertThat(metricsManager.shouldRecordValue(1001, 1000)).isTrue();
     }
 
     @Test

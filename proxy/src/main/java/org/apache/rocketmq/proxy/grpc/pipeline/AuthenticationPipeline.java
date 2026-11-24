@@ -17,7 +17,6 @@
 package org.apache.rocketmq.proxy.grpc.pipeline;
 
 import com.google.protobuf.GeneratedMessageV3;
-import io.grpc.Context;
 import io.grpc.Metadata;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
@@ -46,13 +45,17 @@ public class AuthenticationPipeline implements RequestPipeline {
 
     @Override
     public void execute(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
+        GrpcUtils.putHeader(headers, GrpcConstants.AUTHORIZATION_AK, null);
         if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
         try {
-            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
-            AuthenticationContext authenticationContext = newContext(context, metadata, request);
+            AuthenticationContext authenticationContext = newContext(context, headers, request);
             authenticationEvaluator.evaluate(authenticationContext);
+            if (authenticationContext != null
+                && authConfig.isAuthenticationRequired(authenticationContext.getRpcCode())) {
+                putAuthenticatedIdentity(headers, authenticationContext);
+            }
         } catch (AuthenticationException ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -70,13 +73,17 @@ public class AuthenticationPipeline implements RequestPipeline {
      * @return
      */
     protected AuthenticationContext newContext(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
-        AuthenticationContext result = AuthenticationFactory.newContext(authConfig, headers, request);
-        if (result instanceof DefaultAuthenticationContext) {
-            DefaultAuthenticationContext defaultAuthenticationContext = (DefaultAuthenticationContext) result;
+        return AuthenticationFactory.newContext(authConfig, headers, request);
+    }
+
+    private void putAuthenticatedIdentity(Metadata metadata, AuthenticationContext authenticationContext) {
+        if (authenticationContext instanceof DefaultAuthenticationContext) {
+            DefaultAuthenticationContext defaultAuthenticationContext =
+                (DefaultAuthenticationContext) authenticationContext;
             if (StringUtils.isNotBlank(defaultAuthenticationContext.getUsername())) {
-                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.AUTHORIZATION_AK, defaultAuthenticationContext.getUsername());
+                GrpcUtils.putHeader(metadata, GrpcConstants.AUTHORIZATION_AK,
+                    defaultAuthenticationContext.getUsername());
             }
         }
-        return result;
     }
 }

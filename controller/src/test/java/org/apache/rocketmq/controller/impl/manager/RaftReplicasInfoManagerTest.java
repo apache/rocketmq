@@ -35,8 +35,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -140,6 +143,39 @@ public class RaftReplicasInfoManagerTest {
         assertNotNull(result);
         assertEquals(ResponseCode.SUCCESS, result.getResponseCode());
         assertNotNull(result.getBody());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCheckNotActiveBrokerReportsInactiveMasterWithActiveSlave() throws IllegalAccessException {
+        String clusterName = "cluster";
+        String brokerName = "broker";
+        BrokerReplicaInfo brokerReplicaInfo = new BrokerReplicaInfo(clusterName, brokerName);
+        brokerReplicaInfo.addBroker(1L, "127.0.0.1:10911", "master");
+        brokerReplicaInfo.addBroker(2L, "127.0.0.1:10912", "slave");
+        Map<String, BrokerReplicaInfo> replicaInfoTable = (Map<String, BrokerReplicaInfo>)
+            FieldUtils.readField(raftReplicasInfoManager, "replicaInfoTable", true);
+        replicaInfoTable.put(brokerName, brokerReplicaInfo);
+
+        SyncStateInfo syncStateInfo = new SyncStateInfo(clusterName, brokerName);
+        syncStateInfo.updateMasterInfo(1L);
+        syncStateInfo.updateSyncStateSetInfo(new HashSet<>(Arrays.asList(1L, 2L)));
+        Map<String, SyncStateInfo> syncStateSetInfoTable = (Map<String, SyncStateInfo>)
+            FieldUtils.readField(raftReplicasInfoManager, "syncStateSetInfoTable", true);
+        syncStateSetInfoTable.put(brokerName, syncStateInfo);
+
+        Map<BrokerIdentityInfo, BrokerLiveInfo> brokerLiveTable = new HashMap<>();
+        brokerLiveTable.put(new BrokerIdentityInfo(clusterName, brokerName, 2L),
+            new BrokerLiveInfo(brokerName, "127.0.0.1:10912", 2L, System.currentTimeMillis(),
+                60_000L, null, 1, 100L, 1));
+        FieldUtils.writeDeclaredField(raftReplicasInfoManager, "brokerLiveTable", brokerLiveTable, true);
+
+        ControllerResult<CheckNotActiveBrokerResponse> result = raftReplicasInfoManager
+            .checkNotActiveBroker(new CheckNotActiveBrokerRequest());
+
+        assertEquals(ResponseCode.SUCCESS, result.getResponseCode());
+        assertTrue(new String(result.getBody(), StandardCharsets.UTF_8)
+            .contains("\"brokerName\":\"broker\""));
     }
 
     @Test

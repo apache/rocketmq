@@ -75,6 +75,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +92,6 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -143,14 +143,11 @@ public class DefaultMQAdminExtImplTest {
 
     @Test
     public void testExamineTopicStats() throws Exception {
-        TopicStatsTable topicStatsTable = mock(TopicStatsTable.class);
-        Map<MessageQueue, TopicOffset> offsetTable = new ConcurrentHashMap<>();
-        offsetTable.put(new MessageQueue(), new TopicOffset());
-        when(topicStatsTable.getOffsetTable()).thenReturn(offsetTable);
-        when(mqClientAPIImpl.getTopicStatsInfo(any(), any(), anyLong())).thenReturn(topicStatsTable);
-        TopicStatsTable actual = defaultMQAdminExtImpl.examineTopicStats(defaultTopic);
-        assertNotNull(actual);
-        assertEquals(offsetTable.size(), actual.getOffsetTable().size());
+        Map<String, TopicStatsTable> brokerStats = prepareTwoBrokerStats();
+        when(mqClientAPIImpl.getTopicStatsInfo(anyString(), anyString(), anyLong()))
+            .thenAnswer(call -> brokerStats.get(call.getArgument(0)));
+
+        assertMergedTopicStats(defaultMQAdminExtImpl.examineTopicStats(defaultTopic));
     }
 
     @Test
@@ -175,16 +172,22 @@ public class DefaultMQAdminExtImplTest {
 
     @Test
     public void testExamineTopicStatsConcurrent() throws Exception {
-        CountDownLatch latch = new CountDownLatch(1);
-        doAnswer(invocation -> {
-            latch.countDown();
-            return null;
-        }).when(mqClientAPIImpl).getTopicStatsInfo(any(), any(), anyLong());
-        latch.await(1000, TimeUnit.MILLISECONDS);
-        AdminToolResult<TopicStatsTable> actual = defaultMQAdminExtImpl.examineTopicStatsConcurrent(defaultTopic);
-        assertNotNull(actual);
-        assertEquals(AdminToolsResultCodeEnum.SUCCESS.getCode(), actual.getCode());
-        assertEquals(0, actual.getData().getOffsetTable().size());
+        Map<String, TopicStatsTable> brokerStats = prepareTwoBrokerStats();
+        CyclicBarrier bothRequests = new CyclicBarrier(2);
+        when(mqClientAPIImpl.getTopicStatsInfo(anyString(), anyString(), anyLong())).thenAnswer(call -> {
+            bothRequests.await(timeoutMillis, TimeUnit.MILLISECONDS);
+            return brokerStats.get(call.getArgument(0));
+        });
+
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            FieldUtils.writeDeclaredField(defaultMQAdminExtImpl, "threadPoolExecutor", workers, true);
+            AdminToolResult<TopicStatsTable> actual = defaultMQAdminExtImpl.examineTopicStatsConcurrent(defaultTopic);
+            assertEquals(AdminToolsResultCodeEnum.SUCCESS.getCode(), actual.getCode());
+            assertMergedTopicStats(actual.getData());
+        } finally {
+            workers.shutdownNow();
+        }
     }
 
     @Test
@@ -783,6 +786,33 @@ public class DefaultMQAdminExtImplTest {
                 .thenThrow(new MQBrokerException(ResponseCode.SYSTEM_ERROR, "Test Exception"));
         assertThrows(MQBrokerException.class,
                 () -> defaultMQAdminExtImpl.updateAndGetGroupReadForbidden(defaultBrokerAddr, defaultGroup, defaultTopic, true));
+    }
+
+    private Map<String, TopicStatsTable> prepareTwoBrokerStats() throws Exception {
+        String secondAddr = "127.0.0.2:10911";
+        HashMap<Long, String> secondBrokerAddrs = new HashMap<>();
+        secondBrokerAddrs.put(0L, secondAddr);
+        TopicRouteData route = createTopicRouteData();
+        route.getBrokerDatas().add(new BrokerData(defaultCluster, "broker2", secondBrokerAddrs));
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(any(), anyLong())).thenReturn(route);
+
+        TopicStatsTable first = new TopicStatsTable();
+        first.getOffsetTable().put(createMessageQueue(), new TopicOffset());
+        first.setTopicPutTps(12.5);
+        TopicStatsTable second = new TopicStatsTable();
+        second.getOffsetTable().put(new MessageQueue(defaultTopic, "broker2", 0), new TopicOffset());
+        second.setTopicPutTps(3.25);
+
+        Map<String, TopicStatsTable> stats = new HashMap<>();
+        stats.put(defaultBrokerAddr, first);
+        stats.put(secondAddr, second);
+        return stats;
+    }
+
+    private void assertMergedTopicStats(TopicStatsTable actual) {
+        MessageQueue secondQueue = new MessageQueue(defaultTopic, "broker2", 0);
+        assertEquals(15.75, actual.getTopicPutTps(), 0.0);
+        assertEquals(new HashSet<>(Arrays.asList(createMessageQueue(), secondQueue)), actual.getOffsetTable().keySet());
     }
 
     private HashMap<Long, String> createBrokerAddrs() {

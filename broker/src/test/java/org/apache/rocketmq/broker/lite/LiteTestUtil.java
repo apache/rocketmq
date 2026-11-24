@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -40,19 +41,31 @@ public class LiteTestUtil {
     public static MessageStore buildMessageStore(final BrokerConfig brokerConfig,
         MessageStoreConfig storeConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable,
         boolean isRocksDBStore) throws Exception {
+        return buildMessageStore(brokerConfig, storeConfig, topicConfigTable, isRocksDBStore, null);
+    }
+
+    public static MessageStore buildMessageStore(final BrokerConfig brokerConfig,
+        MessageStoreConfig storeConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable,
+        boolean isRocksDBStore, MessageArrivingListener messageArrivingListener) throws Exception {
 
         BrokerStatsManager brokerStatsManager = new BrokerStatsManager(brokerConfig);
         MessageStore messageStore;
         if (isRocksDBStore) {
-            messageStore = new RocksDBMessageStore(storeConfig, brokerStatsManager, null, brokerConfig, topicConfigTable);
+            messageStore = new RocksDBMessageStore(storeConfig, brokerStatsManager, messageArrivingListener, brokerConfig, topicConfigTable);
         } else {
-            messageStore = new DefaultMessageStore(storeConfig, brokerStatsManager, null, brokerConfig, topicConfigTable);
+            messageStore = new DefaultMessageStore(storeConfig, brokerStatsManager, messageArrivingListener, brokerConfig, topicConfigTable);
         }
         return messageStore;
     }
 
     public static MessageStore buildMessageStore(String storePathRootDir, final BrokerConfig brokerConfig,
         final ConcurrentMap<String, TopicConfig> topicConfigTable, boolean isRocksDBStore) throws Exception {
+        return buildMessageStore(storePathRootDir, brokerConfig, topicConfigTable, isRocksDBStore, null);
+    }
+
+    public static MessageStore buildMessageStore(String storePathRootDir, final BrokerConfig brokerConfig,
+        final ConcurrentMap<String, TopicConfig> topicConfigTable, boolean isRocksDBStore,
+        MessageArrivingListener messageArrivingListener) throws Exception {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
         storeConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
@@ -65,7 +78,7 @@ public class LiteTestUtil {
         storeConfig.setEnableMultiDispatch(true);
         storeConfig.setStorePathRootDir(storePathRootDir);
 
-        return buildMessageStore(brokerConfig, storeConfig, topicConfigTable, isRocksDBStore);
+        return buildMessageStore(brokerConfig, storeConfig, topicConfigTable, isRocksDBStore, messageArrivingListener);
     }
 
     public static MessageExtBrokerInner buildMessage(String parentTopic, String liteTopic) {

@@ -28,6 +28,7 @@ import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
 import org.apache.rocketmq.auth.authorization.model.Acl;
+import org.apache.rocketmq.auth.authorization.model.Environment;
 import org.apache.rocketmq.auth.authorization.model.Policy;
 import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
@@ -338,6 +339,31 @@ public class AclAuthorizationHandlerTest {
             }
         });
         Assert.assertEquals("User:user has no permission to access Topic:t1 from 127.0.0.1, the decision is deny.", authorizationException.getMessage());
+    }
+
+    @Test
+    public void testNullSourceIpWithEnvironmentConstraint() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        User user = User.of("user", "pwd");
+        authenticationMetadataManager.createUser(user).join();
+
+        PolicyEntry allowFromSubnet = PolicyEntry.of(
+                Resource.of(ResourceType.TOPIC, "t1", ResourcePattern.LITERAL),
+                Collections.singletonList(Action.SUB), Environment.of("192.168.1.0/24"), Decision.ALLOW);
+        Policy policy = Policy.of(PolicyType.CUSTOM, Collections.singletonList(allowFromSubnet));
+        authorizationMetadataManager.createAcl(Acl.of(user, policy)).join();
+
+        DefaultAuthorizationContext ctx = buildContext(user, Resource.ofTopic("t1"), Action.SUB, null);
+        AuthorizationException authorizationException = Assert.assertThrows(AuthorizationException.class, () -> {
+            try {
+                handler.handle(ctx, nextChain).join();
+            } catch (Throwable e) {
+                AuthTestHelper.handleException(e);
+            }
+        });
+        Assert.assertEquals("User:user has no permission to access Topic:t1 from null, no matched policies.", authorizationException.getMessage());
     }
 
     private DefaultAuthorizationContext buildContext(Subject subject, Resource resource, Action action, String sourceIp) {

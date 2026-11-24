@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -57,7 +58,13 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
     public HeartbeatSyncer(TopicRouteService topicRouteService, AdminService adminService,
                            ConsumerManager consumerManager, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
-        super(topicRouteService, adminService, mqClientAPIFactory, rpcHook);
+        this(topicRouteService, adminService, consumerManager, mqClientAPIFactory, rpcHook, null);
+    }
+
+    public HeartbeatSyncer(TopicRouteService topicRouteService, AdminService adminService,
+        ConsumerManager consumerManager, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook,
+        ExecutorService consumeExecutor) {
+        super(topicRouteService, adminService, mqClientAPIFactory, rpcHook, consumeExecutor);
         this.consumerManager = consumerManager;
         this.localProxyId = buildLocalProxyId();
         this.init();
@@ -195,7 +202,13 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                 }
 
                 RemoteChannel decodedChannel = RemoteChannel.decode(data.getChannelData());
-                RemoteChannel channel = remoteChannelMap.computeIfAbsent(buildKey(data.getGroup(), decodedChannel), key -> decodedChannel);
+                String key = buildKey(data.getGroup(), decodedChannel);
+                RemoteChannel channel;
+                if (data.getHeartbeatType().equals(HeartbeatType.REGISTER)) {
+                    channel = remoteChannelMap.computeIfAbsent(key, k -> decodedChannel);
+                } else {
+                    channel = remoteChannelMap.getOrDefault(key, decodedChannel);
+                }
                 channel.setExtendAttribute(decodedChannel.getChannelExtendAttribute());
                 ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                     channel,

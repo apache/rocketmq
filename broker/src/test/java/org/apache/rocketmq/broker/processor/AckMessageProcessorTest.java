@@ -22,10 +22,15 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
+import org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager;
+import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.pop.PopConsumerLockService;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -42,6 +47,7 @@ import org.apache.rocketmq.remoting.protocol.body.BatchAckMessageRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -62,13 +68,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -364,6 +374,49 @@ public class AckMessageProcessorTest {
 
             assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         }
+    }
+
+    @Test
+    public void testAckLite_dispatchAfterUnlock() {
+        String liteTopic = "liteTopic";
+        String lmqName = LiteUtil.toLmqName(topic, liteTopic);
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteBindTopic(topic);
+        brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put(group, groupConfig);
+        AbstractLiteLifecycleManager liteLifecycleManager = mock(AbstractLiteLifecycleManager.class);
+        when(liteLifecycleManager.getMaxOffsetInQueue(lmqName)).thenReturn(10L);
+        doReturn(liteLifecycleManager).when(brokerController).getLiteLifecycleManager();
+
+        // A pop woken by the ack's dispatch must be able to take the pop lock of this lmq.
+        PopConsumerLockService lockService = brokerController.getPopLiteMessageProcessor().getLockService();
+        String lockKey = KeyBuilder.buildPopLiteLockKey(group, lmqName);
+        AtomicBoolean lockFreeOnDispatch = new AtomicBoolean(false);
+        LiteEventDispatcher liteEventDispatcher = mock(LiteEventDispatcher.class);
+        doAnswer(invocation -> {
+            if (lockService.tryLock(lockKey)) {
+                lockFreeOnDispatch.set(true);
+                lockService.unlock(lockKey);
+            }
+            return null;
+        }).when(liteEventDispatcher).dispatch(group, lmqName, 0, 1L, -1L);
+        doReturn(liteEventDispatcher).when(brokerController).getLiteEventDispatcher();
+
+        AckMessageRequestHeader requestHeader = new AckMessageRequestHeader();
+        requestHeader.setConsumerGroup(group);
+        requestHeader.setTopic(topic);
+        requestHeader.setLiteTopic(liteTopic);
+        requestHeader.setQueueId(0);
+        requestHeader.setOffset(0L);
+        requestHeader.setExtraInfo(ExtraInfoUtil.buildExtraInfo(0, System.currentTimeMillis(), 60000L,
+            KeyBuilder.POP_ORDER_REVIVE_QUEUE, topic, "brokerName", 0));
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        ackMessageProcessor.ackLite(requestHeader, null, response, channel);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(liteEventDispatcher).dispatch(group, lmqName, 0, 1L, -1L);
+        assertThat(lockFreeOnDispatch.get()).isTrue();
     }
 
 }

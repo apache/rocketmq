@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
@@ -652,12 +653,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         try {
             // Valid topics
+            Set<String> topicNameSet = new HashSet<>(topicConfigList.size());
+            List<TopicConfig> needUpdateTopicConfigList = new ArrayList<>(topicConfigList.size());
             for (TopicConfig topicConfig : topicConfigList) {
                 String topic = topicConfig.getTopicName();
                 TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
                 if (!result.isValid()) {
                     response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark(result.getRemark());
+                    return response;
+                }
+                if (!topicNameSet.add(topic)) {
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
+                    response.setRemark("The topic[" + topic + "] is duplicated in topic list.");
                     return response;
                 }
                 if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
@@ -680,18 +688,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
                     LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
                         topic, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    response.setCode(ResponseCode.SUCCESS);
-                    return response;
+                    continue;
                 }
+                needUpdateTopicConfigList.add(topicConfig);
             }
 
-            this.brokerController.getTopicConfigManager().updateTopicConfigList(topicConfigList);
-            if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
-                for (TopicConfig topicConfig : topicConfigList) {
-                    this.brokerController.registerSingleTopicAll(topicConfig);
+            if (!needUpdateTopicConfigList.isEmpty()) {
+                this.brokerController.getTopicConfigManager().updateTopicConfigList(needUpdateTopicConfigList);
+                if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
+                    for (TopicConfig topicConfig : needUpdateTopicConfigList) {
+                        this.brokerController.registerSingleTopicAll(topicConfig);
+                    }
+                } else {
+                    this.brokerController.registerIncrementBrokerData(needUpdateTopicConfigList, this.brokerController.getTopicConfigManager().getDataVersion());
                 }
-            } else {
-                this.brokerController.registerIncrementBrokerData(topicConfigList, this.brokerController.getTopicConfigManager().getDataVersion());
             }
             response.setCode(ResponseCode.SUCCESS);
         } catch (Exception e) {
@@ -761,7 +771,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private synchronized RemotingCommand deleteTopic(ChannelHandlerContext ctx,
+    private RemotingCommand deleteTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         DeleteTopicRequestHeader requestHeader =
@@ -970,7 +980,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand getTimerCheckPoint(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, "Unknown");
-        TimerCheckpoint timerCheckpoint = this.brokerController.getTimerCheckpoint();
+        TimerCheckpoint timerCheckpoint = this.brokerController.getTimerMessageStore().getTimerCheckpoint();
         if (null == timerCheckpoint) {
             LOGGER.error("AdminBrokerProcessor#getTimerCheckPoint: checkpoint is null, caller={}", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -1177,8 +1187,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerConfigResponseHeader.class);
         final GetBrokerConfigResponseHeader responseHeader = (GetBrokerConfigResponseHeader) response.readCustomHeader();
 
-        String content = this.brokerController.getConfiguration().getAllConfigsFormatString();
-        if (content != null && content.length() > 0) {
+        String content = sanitizeConfigForResponse(
+            this.brokerController.getConfiguration().getAllConfigsSnapshot());
+        if (content == null) {
+            LOGGER.error("AdminBrokerProcessor#getBrokerConfig: failed to sanitize broker config, caller={}",
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Failed to sanitize broker config");
+            return response;
+        }
+        if (content.length() > 0) {
             try {
                 content = MixAll.adjustConfigForPlatform(content);
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
@@ -1197,6 +1215,26 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
+    }
+
+    // sensitive config keys that must never be returned by config query interfaces
+    private static final String[] SENSITIVE_CONFIG_KEYS = new String[] {
+        "initAuthenticationUser", "innerClientAuthenticationCredentials"
+    };
+
+    /**
+     * Remove sensitive entries from a snapshot of the broker configuration.
+     */
+    static String sanitizeConfigForResponse(Properties source) {
+        if (source == null) {
+            return null;
+        }
+        Properties properties = new Properties();
+        properties.putAll(source);
+        for (String key : SENSITIVE_CONFIG_KEYS) {
+            properties.remove(key);
+        }
+        return MixAll.properties2String(properties, true);
     }
 
     private RemotingCommand rewriteRequestForStaticTopic(SearchOffsetRequestHeader requestHeader,
@@ -3031,6 +3069,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             selectMappedBufferResult = this.brokerController.getMessageStore()
                 .selectOneMessageByOffset(messageId.getOffset());
             MessageExt msg = MessageDecoder.decode(selectMappedBufferResult.getByteBuffer(), true, false);
+            if (!Objects.equals(requestHeader.getTopic(),
+                msg.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC))) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("The topic does not match the transaction message");
+                return response;
+            }
             msg.putUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, String.valueOf(0));
             PutMessageResult putMessageResult = this.brokerController.getMessageStore()
                 .putMessage(toMessageExtBrokerInner(msg));
@@ -3349,6 +3393,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 if (user != null) {
                     UserInfo userInfo = UserConverter.convertUser(user);
+                    if (canReadUserPassword(request, requestHeader.getUsername())) {
+                        userInfo.setPassword(user.getPassword());
+                    }
                     response.setBody(JSON.toJSONString(userInfo).getBytes(StandardCharsets.UTF_8));
                 }
             })
@@ -3522,6 +3569,27 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         return !this.brokerController.getAuthenticationMetadataManager()
             .isSuperUser(accessKey).join();
+    }
+
+    private boolean canReadUserPassword(RemotingCommand request, String username) {
+        if (this.brokerController.getAuthConfig() == null
+            || !this.brokerController.getAuthConfig()
+            .isAuthenticationRequired(String.valueOf(request.getCode()))) {
+            return false;
+        }
+        String accessKey = getAccessKey(request);
+        if (StringUtils.isEmpty(accessKey)) {
+            return false;
+        }
+        if (StringUtils.equals(accessKey, username)) {
+            return true;
+        }
+        return this.brokerController.getAuthenticationMetadataManager()
+            .isSuperUser(accessKey).join();
+    }
+
+    private String getAccessKey(RemotingCommand request) {
+        return request.getExtFields() == null ? null : request.getExtFields().get("AccessKey");
     }
 
     private Void handleAuthException(RemotingCommand response, Throwable ex) {

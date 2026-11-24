@@ -64,7 +64,7 @@ public class CopyUsersSubCommand implements SubCommand {
     public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = createAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
@@ -84,7 +84,16 @@ public class CopyUsersSubCommand implements SubCommand {
                         }
                     }
                 } else {
-                    userInfos = defaultMQAdminExt.listUser(sourceBroker, null);
+                    List<UserInfo> listedUserInfos = defaultMQAdminExt.listUser(sourceBroker, null);
+                    if (CollectionUtils.isNotEmpty(listedUserInfos)) {
+                        for (UserInfo listedUserInfo : listedUserInfos) {
+                            UserInfo userInfo = defaultMQAdminExt.getUser(
+                                sourceBroker, listedUserInfo.getUsername());
+                            if (userInfo != null) {
+                                userInfos.add(userInfo);
+                            }
+                        }
+                    }
                 }
 
                 if (CollectionUtils.isEmpty(userInfos)) {
@@ -92,6 +101,10 @@ public class CopyUsersSubCommand implements SubCommand {
                 }
 
                 for (UserInfo userInfo : userInfos) {
+                    if (StringUtils.isBlank(userInfo.getPassword())) {
+                        throw new IllegalStateException("Password is unavailable for user "
+                            + userInfo.getUsername() + ". Use a source broker super user to copy users.");
+                    }
                     if (defaultMQAdminExt.getUser(targetBroker, userInfo.getUsername()) == null) {
                         defaultMQAdminExt.createUser(targetBroker, userInfo);
                     } else {
@@ -109,5 +122,9 @@ public class CopyUsersSubCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
+    }
+
+    DefaultMQAdminExt createAdminExt(RPCHook rpcHook) {
+        return new DefaultMQAdminExt(rpcHook);
     }
 }

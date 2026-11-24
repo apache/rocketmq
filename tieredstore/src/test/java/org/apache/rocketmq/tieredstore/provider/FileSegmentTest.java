@@ -462,8 +462,11 @@ public class FileSegmentTest {
                 .thenReturn(CompletableFuture.supplyAsync(() -> {
                     throw new RuntimeException("Runtime Error for Test");
                 }));
-            Mockito.when(fileSpySegment.getSize()).thenReturn(0L);
             Assert.assertFalse(fileSpySegment.commitAsync().join());
+            // handleCommitException runs on the thread that completed the future, which is a netty IO
+            // thread for a network provider, so it must not do a remote size lookup there. An unknown
+            // length is reconciled by the next commitAsync instead.
+            Mockito.verify(fileSpySegment, Mockito.never()).getSize();
         }
     }
 }

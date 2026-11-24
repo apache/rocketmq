@@ -706,10 +706,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             for (Map.Entry<Integer, MessageQueueOpContext> entry : deleteContext.entrySet()) {
                 MessageQueueOpContext mqContext = entry.getValue();
                 //no msg in contextQueue
-                if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0 ||
-                        // wait for the interval
-                        mqContext.getTotalSize().get() < maxSize &&
-                                startTime - mqContext.getLastWriteTimestamp() < interval) {
+                if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0) {
+                    // wait for the interval
+                    continue;
+                }
+
+                if (mqContext.getTotalSize().get() < maxSize &&
+                    startTime - mqContext.getLastWriteTimestamp() < interval) {
                     firstTimestamp = Math.min(firstTimestamp, mqContext.getLastWriteTimestamp());
                     continue;
                 }

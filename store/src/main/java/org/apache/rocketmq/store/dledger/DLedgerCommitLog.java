@@ -58,7 +58,10 @@ import org.rocksdb.RocksDBException;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
+ *
+ * @deprecated Use Controller mode for automatic Broker failover in new deployments.
  */
+@Deprecated
 public class DLedgerCommitLog extends CommitLog {
 
     static {

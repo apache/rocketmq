@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.offset;
 
 import java.io.File;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -27,6 +28,7 @@ import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -327,6 +329,36 @@ public class RocksDBConsumerOffsetManagerTest {
         consumerOffsetManager.stop();
         consumerOffsetManager.load();
         Assert.assertEquals(10, consumerOffsetManager.getDataVersion().getCounter().get());
+    }
+
+    @Test
+    public void testQueryMinOffsetInAllGroupPreservesRocksDBOffsets() {
+        MessageStore messageStore = Mockito.mock(MessageStore.class);
+        Mockito.when(brokerController.getMessageStore()).thenReturn(messageStore);
+        Mockito.when(messageStore.getMinOffsetInQueue(Mockito.anyString(), Mockito.anyInt())).thenReturn(0L);
+
+        String filteredGroup = UUID.randomUUID().toString();
+        String activeGroup = UUID.randomUUID().toString();
+        String topic1 = UUID.randomUUID().toString();
+        String topic2 = UUID.randomUUID().toString();
+        String key1 = topic1 + TOPIC_GROUP_SEPARATOR + filteredGroup;
+        String key2 = topic2 + TOPIC_GROUP_SEPARATOR + filteredGroup;
+
+        consumerOffsetManager.commitOffset("ClientID", filteredGroup, topic1, 0, 10L);
+        consumerOffsetManager.commitOffset("ClientID", filteredGroup, topic2, 0, 15L);
+        consumerOffsetManager.commitOffset("ClientID", activeGroup, topic1, 0, 25L);
+        consumerOffsetManager.persist();
+
+        Map<Integer, Long> minOffsets = consumerOffsetManager.queryMinOffsetInAllGroup(topic1, filteredGroup);
+        assertThat(minOffsets).containsEntry(0, 25L);
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key1));
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key2));
+
+        consumerOffsetManager.stop();
+        consumerOffsetManager.getOffsetTable().clear();
+        consumerOffsetManager.load();
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key1));
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key2));
     }
 
     private static void skipMacIfNecessary() {

@@ -18,10 +18,12 @@ $ mvn clean install -DskipTests
 
 #### 1.2 Build RocketMQ
 
+The build generates protocol classes from the `rocketmq-apis` submodule. If you already cloned the repository, run
+`git submodule update --init --recursive` from its root before running Maven.
+
 ```shell
-$ git clone https://github.com/apache/rocketmq.git
+$ git clone --recurse-submodules https://github.com/apache/rocketmq.git
 $ cd rocketmq
-$ git checkout -b store_with_dledger origin/store_with_dledger
 $ mvn -Prelease-all -DskipTests clean install -U
 ```
 

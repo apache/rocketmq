@@ -189,7 +189,7 @@ public class PerfCounter {
     }
 
     public int getMax() {
-        for (int i = count.length - 1; i > 0; i--) {
+        for (int i = count.length - 1; i >= 0; i--) {
             if (count[i].get() > 0) {
                 return convert(i);
             }

@@ -33,6 +33,9 @@ import java.util.Set;
 
 public class ConsumeMessageCommand implements SubCommand {
 
+    // Keep each pull bounded; the pull API takes an int and brokers cap batches at 32/8.
+    private static final int PULL_BATCH_SIZE = 32;
+
     private String topic = null;
     private long messageCount = 128;
     private DefaultMQPullConsumer defaultMQPullConsumer;
@@ -217,7 +220,9 @@ public class ConsumeMessageCommand implements SubCommand {
         for (long offset = minOffset; offset <= maxOffset; ) {
             PullResult pullResult = null;
             try {
-                pullResult = defaultMQPullConsumer.pull(mq, "*", offset, (int)(maxOffset - offset + 1));
+                long remaining = maxOffset - offset;
+                int maxNums = remaining >= PULL_BATCH_SIZE ? PULL_BATCH_SIZE : (int) (remaining + 1);
+                pullResult = defaultMQPullConsumer.pull(mq, "*", offset, maxNums);
             } catch (Exception e) {
                 e.printStackTrace();
                 return;
@@ -267,7 +272,7 @@ public class ConsumeMessageCommand implements SubCommand {
                     maxOffset = minOffset + countLeft - 1;
                     countLeft = 0;
                 } else {
-                    countLeft = countLeft - (maxOffset - minOffset) - 1;
+                    countLeft = countLeft - (maxOffset - minOffset);
                 }
 
                 pullMessageByQueue(mq, minOffset, maxOffset);

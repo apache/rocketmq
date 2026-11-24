@@ -51,6 +51,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.common.utils.IPAddressUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -242,7 +243,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
-        nettyEventExecutor.start();
+        if (channelEventListener != null) {
+            nettyEventExecutor.start();
+        }
 
         TimerTask timerTaskScanResponseTable = new TimerTask() {
             @Override
@@ -283,9 +286,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return null;
         }
         String[] hostAndPort = this.getHostAndPort(addr);
+        // ipInCIDR only understands IPv4 literals, so a hostname or IPv6 host can only match the catch-all CIDR
+        boolean isIPv4Host = IPAddressUtils.isValidIPv4(hostAndPort[0]);
         for (Map.Entry<String, SocksProxyConfig> entry : proxyMap.entrySet()) {
             String cidr = entry.getKey();
-            if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
+            if (RemotingHelper.DEFAULT_CIDR_ALL.equals(cidr) || isIPv4Host && RemotingHelper.ipInCIDR(hostAndPort[0], cidr)) {
                 return entry;
             }
         }
@@ -434,7 +439,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (null == prevCW) {
                         LOGGER.info("closeChannel: the channel[addr={}, id={}] has been removed from the channel table before", addrRemote, channel.id());
                         removeItemFromTable = false;
-                    } else if (prevCW.isWrapperOf(channel)) {
+                    } else if (!prevCW.isWrapperOf(channel)) {
                         LOGGER.info("closeChannel: the channel[addr={}, id={}] has been closed before, and has been created again, nothing to do.",
                             addrRemote, channel.id());
                         removeItemFromTable = false;
@@ -1085,16 +1090,25 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         public void close() {
+            // Snapshot the channels under the read lock, then close them without holding
+            // any wrapper lock. Holding the wrapper lock across closeChannel would take
+            // lockChannelTables while inside the wrapper lock, which inverts the
+            // lockChannelTables -> wrapper lock order used by createChannelAsync and
+            // closeChannel (via tryClose).
+            ChannelFuture current;
+            ChannelFuture toClose;
+            lock.readLock().lock();
             try {
-                lock.writeLock().lock();
-                if (channelFuture != null) {
-                    closeChannel(channelFuture.channel());
-                }
-                if (channelToClose != null) {
-                    closeChannel(channelToClose.channel());
-                }
+                current = this.channelFuture;
+                toClose = this.channelToClose;
             } finally {
-                lock.writeLock().unlock();
+                lock.readLock().unlock();
+            }
+            if (current != null) {
+                closeChannel(channelAddress, current.channel());
+            }
+            if (toClose != null) {
+                closeChannel(channelAddress, toClose.channel());
             }
         }
     }

@@ -96,6 +96,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -699,6 +700,17 @@ public class DefaultMQPushConsumerImplTest {
         defaultMQPushConsumerImpl.setServiceState(ServiceState.RUNNING);
         defaultMQPushConsumerImpl.shutdown();
         assertEquals(ServiceState.SHUTDOWN_ALREADY, defaultMQPushConsumerImpl.getServiceState());
+    }
+
+    @Test
+    public void testShutdownStopsThePopConsumeService() throws Exception {
+        ConsumeMessageService popService = mock(ConsumeMessageService.class);
+        FieldUtils.writeDeclaredField(defaultMQPushConsumerImpl, "consumeMessagePopService", popService, true);
+
+        defaultMQPushConsumerImpl.setServiceState(ServiceState.RUNNING);
+        defaultMQPushConsumerImpl.shutdown();
+
+        verify(popService, times(1)).shutdown(anyLong());
     }
 
     @Test

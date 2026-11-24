@@ -20,6 +20,8 @@ package org.apache.rocketmq.test.client.consumer.pop;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
@@ -38,15 +40,16 @@ import org.junit.runners.Parameterized;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.PRIORITY_FACTOR_ATTRIBUTE;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
@@ -61,7 +64,7 @@ public class PopPriorityIT extends BasePopNormally {
         this.priorityOrderAsc = priorityOrderAsc;
     }
 
-    @Parameterized.Parameters
+    @Parameterized.Parameters(name = "kv={0}, ascending={1}")
     public static List<Object[]> params() {
         List<Object[]> result = new ArrayList<>();
         result.add(new Object[] {false, true});
@@ -120,10 +123,9 @@ public class PopPriorityIT extends BasePopNormally {
                 producer.send(message);
             }
         }
-        Assert.assertTrue(awaitDispatchMs(2000));
+        awaitStoredMessages(topic, writeQueueNum * msgNumPerQueue);
         for (int i = 0; i < msgNumPerQueue; i++) {
-            PopResult popResult = popMessageAsync(Duration.ofSeconds(600).toMillis(), 1, 30000).get();
-            TestUtil.waitForMonment(20); // wait lock release
+            PopResult popResult = popMessages(Duration.ofSeconds(600).toMillis(), 1, 30000);
             assertEquals(PopStatus.FOUND, popResult.getPopStatus());
             MessageExt message = popResult.getMsgFoundList().get(0);
             assertEquals(maxPriority, message.getPriority()); // not a coincidence
@@ -136,9 +138,9 @@ public class PopPriorityIT extends BasePopNormally {
             Message message = mockMessage(topic, i, String.valueOf(i));
             producer.send(message);
         }
-        Assert.assertTrue(awaitDispatchMs(2000));
+        awaitStoredMessages(topic, writeQueueNum);
         for (int i = 0; i < writeQueueNum; i++) {
-            PopResult popResult = popMessageAsync(Duration.ofSeconds(30).toMillis(), 1, 30000).get();
+            PopResult popResult = popMessages(Duration.ofSeconds(600).toMillis(), 1, 30000);
             assertEquals(PopStatus.FOUND, popResult.getPopStatus());
             MessageExt message = popResult.getMsgFoundList().get(0);
             int expectPriority = priorityOrderAsc ? writeQueueNum - 1 - i : i;
@@ -162,12 +164,11 @@ public class PopPriorityIT extends BasePopNormally {
                 producer.send(message);
             }
         }
-        Assert.assertTrue(awaitDispatchMs(2000));
+        awaitStoredMessages(topic, writeQueueNum * msgNumPerQueue);
         int sampleCount = 800;
         int[] queueIdCount = new int[writeQueueNum];
         for (int i = 0; i < sampleCount; i++) {
-            PopResult popResult = popMessageAsync(Duration.ofSeconds(600).toMillis(), 1, 30000).get();
-            TestUtil.waitForMonment(10); // wait lock release
+            PopResult popResult = popMessages(Duration.ofSeconds(600).toMillis(), 1, 30000);
             assertEquals(PopStatus.FOUND, popResult.getPopStatus());
             MessageExt message = popResult.getMsgFoundList().get(0);
             queueIdCount[message.getQueueId()] = queueIdCount[message.getQueueId()] + 1;
@@ -175,7 +176,8 @@ public class PopPriorityIT extends BasePopNormally {
 
         double expectAverage = (double) sampleCount / writeQueueNum;
         for (int count : queueIdCount) {
-            assertTrue(Math.abs(count - expectAverage) < expectAverage * 0.4);
+            assertTrue("Unexpected queue distribution: " + Arrays.toString(queueIdCount),
+                Math.abs(count - expectAverage) < expectAverage * 0.4);
         }
     }
 
@@ -184,22 +186,22 @@ public class PopPriorityIT extends BasePopNormally {
         // retry as lowest by default
         int count = 100;
         for (int i = 0; i < count; i++) {
-            Message message = mockMessage(topic, new Random().nextInt(writeQueueNum), String.valueOf(i));
+            Message message = mockMessage(topic, i % writeQueueNum, String.valueOf(i));
             producer.send(message);
         }
+        awaitStoredMessages(topic, count);
         int invisibleTime = 3;
-        PopResult popResult = popMessageAsync(Duration.ofSeconds(invisibleTime).toMillis(), 1, 30000).get();
+        PopResult popResult = popMessages(Duration.ofSeconds(invisibleTime).toMillis(), 1, 30000);
         assertEquals(PopStatus.FOUND, popResult.getPopStatus());
         String retryId = popResult.getMsgFoundList().get(0).getMsgId();
-        TestUtil.waitForSeconds(invisibleTime + 3);
-        Assert.assertTrue(awaitDispatchMs(2000));
+        awaitRetryMessages(1);
 
         List<MessageExt> collect = new ArrayList<>();
         await()
             .pollInterval(1, TimeUnit.SECONDS)
             .atMost(35, TimeUnit.SECONDS)
             .until(() -> {
-                PopResult result = popMessageAsync(Duration.ofSeconds(600).toMillis(), 32, 5000).get();
+                PopResult result = popMessages(Duration.ofSeconds(600).toMillis(), 32, 5000);
                 if (PopStatus.FOUND.equals(result.getPopStatus())) {
                     collect.addAll(result.getMsgFoundList());
                 }
@@ -215,22 +217,22 @@ public class PopPriorityIT extends BasePopNormally {
         brokerController1.getBrokerConfig().setPopFromRetryProbabilityForPriority(100);
         int count = 100;
         for (int i = 0; i < count; i++) {
-            Message message = mockMessage(topic, new Random().nextInt(writeQueueNum), String.valueOf(i));
+            Message message = mockMessage(topic, i % writeQueueNum, String.valueOf(i));
             producer.send(message);
         }
+        awaitStoredMessages(topic, count);
         int invisibleTime = 3;
-        PopResult popResult = popMessageAsync(Duration.ofSeconds(invisibleTime).toMillis(), 1, 30000).get();
+        PopResult popResult = popMessages(Duration.ofSeconds(invisibleTime).toMillis(), 1, 30000);
         assertEquals(PopStatus.FOUND, popResult.getPopStatus());
         String retryId = popResult.getMsgFoundList().get(0).getMsgId();
-        TestUtil.waitForSeconds(invisibleTime + 3);
-        Assert.assertTrue(awaitDispatchMs(2000));
+        awaitRetryMessages(1);
 
         List<MessageExt> collect = new ArrayList<>();
         await()
             .pollInterval(1, TimeUnit.SECONDS)
             .atMost(35, TimeUnit.SECONDS)
             .until(() -> {
-                PopResult result = popMessageAsync(Duration.ofSeconds(600).toMillis(), 32, 5000).get();
+                PopResult result = popMessages(Duration.ofSeconds(600).toMillis(), 32, 5000);
                 if (PopStatus.FOUND.equals(result.getPopStatus())) {
                     collect.addAll(result.getMsgFoundList());
                 }
@@ -249,19 +251,19 @@ public class PopPriorityIT extends BasePopNormally {
             Message message = mockMessage(topic, i, String.valueOf(i));
             producer.send(message);
         }
-        Assert.assertTrue(awaitDispatchMs(2000));
+        awaitStoredMessages(topic, writeQueueNum);
         int invisibleTime = 3;
-        PopResult popResult = popMessageAsync(Duration.ofSeconds(invisibleTime).toMillis(), writeQueueNum, 30000).get();
+        PopResult popResult = popMessages(Duration.ofSeconds(invisibleTime).toMillis(), writeQueueNum, 30000);
         assertEquals(PopStatus.FOUND, popResult.getPopStatus());
         assertEquals(writeQueueNum, popResult.getMsgFoundList().size());
-        TestUtil.waitForSeconds(invisibleTime + 3);
+        awaitRetryMessages(writeQueueNum);
 
         List<MessageExt> collect = new ArrayList<>();
         await()
             .pollInterval(1, TimeUnit.SECONDS)
             .atMost(35, TimeUnit.SECONDS)
             .until(() -> {
-                PopResult result = popMessageAsync(Duration.ofSeconds(600).toMillis(), 32, 5000).get();
+                PopResult result = popMessages(Duration.ofSeconds(600).toMillis(), 32, 5000);
                 if (PopStatus.FOUND.equals(result.getPopStatus())) {
                     collect.addAll(result.getMsgFoundList());
                 }
@@ -313,6 +315,53 @@ public class PopPriorityIT extends BasePopNormally {
         assertEquals(priorityOrderAsc ? 0 : writeQueueNum / 2 - 1, msgList.get(msgList.size() - 1).getPriority());
         assertEquals(1, msgList.get(msgList.size() - 1).getReconsumeTimes());
         assertEquals(0, msgList.get(msgList.size() - 1).getQueueOffset()); // means a separate retry queue
+    }
+
+    private void awaitStoredMessages(String storedTopic, int expectedCount) {
+        await().alias("consume queues for " + storedTopic)
+            .pollInterval(10, TimeUnit.MILLISECONDS)
+            .atMost(30, TimeUnit.SECONDS)
+            .untilAsserted(() -> {
+                TopicConfig topicConfig = brokerController1.getTopicConfigManager().selectTopicConfig(storedTopic);
+                assertNotNull("Topic has not been created: " + storedTopic, topicConfig);
+                long storedCount = 0;
+                for (int queueId = 0; queueId < topicConfig.getReadQueueNums(); queueId++) {
+                    storedCount += brokerController1.getMessageStore().getMaxOffsetInQueue(storedTopic, queueId);
+                }
+                assertEquals("Messages dispatched to " + storedTopic, expectedCount, storedCount);
+            });
+    }
+
+    private void awaitRetryMessages(int expectedCount) {
+        // Expiration alone does not mean the retry has been revived and dispatched to its consume queue.
+        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, group,
+            brokerController1.getBrokerConfig().isEnableRetryTopicV2());
+        awaitStoredMessages(retryTopic, expectedCount);
+    }
+
+    private PopResult popMessages(long invisibleTime, int maxNums, long timeout) throws Exception {
+        // A response can reach the client before the previous request's queue-lock completion callback runs.
+        await().alias("previous POP locks released")
+            .pollDelay(0, TimeUnit.MILLISECONDS)
+            .pollInterval(10, TimeUnit.MILLISECONDS)
+            .atMost(10, TimeUnit.SECONDS)
+            .until(() -> {
+                if (popConsumerKVServiceEnable) {
+                    if (!brokerController1.getPopConsumerService().getConsumerLockService().tryLock(group, topic)) {
+                        return false;
+                    }
+                    brokerController1.getPopConsumerService().getConsumerLockService().unlock(group, topic);
+                } else {
+                    for (int queueId = 0; queueId < writeQueueNum; queueId++) {
+                        if (!brokerController1.getPopMessageProcessor().getQueueLockManager().tryLock(topic, group, queueId)) {
+                            return false;
+                        }
+                        brokerController1.getPopMessageProcessor().getQueueLockManager().unLock(topic, group, queueId);
+                    }
+                }
+                return true;
+            });
+        return popMessageAsync(invisibleTime, maxNums, timeout).get();
     }
 
     private static Message mockMessage(String topic, int priority, String key) {

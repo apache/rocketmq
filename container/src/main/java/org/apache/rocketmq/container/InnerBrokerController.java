@@ -47,18 +47,19 @@ public class InnerBrokerController extends BrokerController {
     @Override
     protected void initializeRemotingServer() {
         RemotingServer remotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort());
-        RemotingServer fastRemotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2);
 
         if (this.brokerMetricsManager != null && remotingServer instanceof NettyRemotingServer) {
             ((NettyRemotingServer) remotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
         }
 
-        if (this.brokerMetricsManager != null && fastRemotingServer instanceof NettyRemotingServer) {
-            ((NettyRemotingServer) fastRemotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
-        }
-
         setRemotingServer(remotingServer);
-        setFastRemotingServer(fastRemotingServer);
+        if (this.brokerConfig.isEnableFastRemotingServer()) {
+            RemotingServer fastRemotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2);
+            if (this.brokerMetricsManager != null && fastRemotingServer instanceof NettyRemotingServer) {
+                ((NettyRemotingServer) fastRemotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+            }
+            setFastRemotingServer(fastRemotingServer);
+        }
     }
 
     @Override

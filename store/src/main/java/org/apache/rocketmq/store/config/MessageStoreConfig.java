@@ -112,7 +112,6 @@ public class MessageStoreConfig {
     private long timerRocksDBPrecisionMs = 1000L;
     private double timerRocksDBRollMaxTps = 8000.0;
     private double timerRocksDBTimeExpiredMaxTps = 200000.0;
-    private int timerRocksDBRollIntervalHours = 1;
     private int timerRocksDBRollRangeHours = 2;
     private boolean timerRecallToTimeWheelEnable = true;
     private boolean timerRecallToTimelineEnable = true;
@@ -909,10 +908,18 @@ public class MessageStoreConfig {
         this.storePathCommitLog = storePathCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getStorePathDLedgerCommitLog() {
         return storePathDLedgerCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
         this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
     }
@@ -1381,50 +1388,98 @@ public class MessageStoreConfig {
         this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getdLegerGroup() {
         return dLegerGroup;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setdLegerGroup(String dLegerGroup) {
         this.dLegerGroup = dLegerGroup;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getdLegerPeers() {
         return dLegerPeers;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setdLegerPeers(String dLegerPeers) {
         this.dLegerPeers = dLegerPeers;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getdLegerSelfId() {
         return dLegerSelfId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setdLegerSelfId(String dLegerSelfId) {
         this.dLegerSelfId = dLegerSelfId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public boolean isEnableDLegerCommitLog() {
         return enableDLegerCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setEnableDLegerCommitLog(boolean enableDLegerCommitLog) {
         this.enableDLegerCommitLog = enableDLegerCommitLog;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public String getPreferredLeaderId() {
         return preferredLeaderId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setPreferredLeaderId(String preferredLeaderId) {
         this.preferredLeaderId = preferredLeaderId;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public boolean isEnableBatchPush() {
         return enableBatchPush;
     }
 
+    /**
+     * @deprecated Broker DLedger mode is deprecated. Use Controller mode for new deployments.
+     */
+    @Deprecated
     public void setEnableBatchPush(boolean enableBatchPush) {
         this.enableBatchPush = enableBatchPush;
     }
@@ -2340,14 +2395,6 @@ public class MessageStoreConfig {
 
     public int getTimerReputServiceQueueCapacity() {
         return timerReputServiceQueueCapacity;
-    }
-
-    public int getTimerRocksDBRollIntervalHours() {
-        return timerRocksDBRollIntervalHours;
-    }
-
-    public void setTimerRocksDBRollIntervalHours(int timerRocksDBRollIntervalHours) {
-        this.timerRocksDBRollIntervalHours = timerRocksDBRollIntervalHours;
     }
 
     public int getTimerRocksDBRollRangeHours() {

@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.auth.authorization.model;
 
+import java.util.Collections;
+import org.apache.rocketmq.auth.authorization.enums.Decision;
+import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.junit.Assert;
@@ -48,6 +51,32 @@ public class ResourceTest {
 
     @Test
     public void isMatch() {
+        Resource topicAny = Resource.of("Topic:*");
+        Resource groupAny = Resource.of("Group:*");
+        Resource topicListResource = Resource.of(ResourceType.TOPIC, null, ResourcePattern.ANY);
+        Resource groupListResource = Resource.of(ResourceType.GROUP, null, ResourcePattern.ANY);
 
+        Assert.assertTrue(topicAny.isMatch(topicListResource));
+        Assert.assertTrue(groupAny.isMatch(groupListResource));
+        Assert.assertFalse(topicAny.isMatch(groupListResource));
+        Assert.assertFalse(Resource.ofTopic("orders").isMatch(topicListResource));
+        Assert.assertFalse(Resource.ofCluster("DefaultCluster").isMatch(topicListResource));
+    }
+
+    @Test
+    public void typedAnyListPolicyMatch() {
+        Resource topicListResource = Resource.of(ResourceType.TOPIC, null, ResourcePattern.ANY);
+        Resource groupListResource = Resource.of(ResourceType.GROUP, null, ResourcePattern.ANY);
+        PolicyEntry topicListPolicy = PolicyEntry.of(
+            Resource.of("Topic:*"), Collections.singletonList(Action.LIST), null, Decision.ALLOW);
+        PolicyEntry literalTopicPolicy = PolicyEntry.of(
+            Resource.ofTopic("orders"), Collections.singletonList(Action.LIST), null, Decision.ALLOW);
+
+        Assert.assertTrue(topicListPolicy.isMatchResource(topicListResource));
+        Assert.assertTrue(topicListPolicy.isMatchAction(Collections.singletonList(Action.LIST)));
+        Assert.assertTrue(topicListPolicy.isMatchResource(Resource.ofTopic("orders")));
+        Assert.assertFalse(topicListPolicy.isMatchResource(groupListResource));
+        Assert.assertFalse(literalTopicPolicy.isMatchResource(topicListResource));
+        Assert.assertFalse(topicListPolicy.isMatchAction(Collections.singletonList(Action.GET)));
     }
 }
