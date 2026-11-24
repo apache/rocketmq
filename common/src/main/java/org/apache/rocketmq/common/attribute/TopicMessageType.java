@@ -18,6 +18,7 @@
 package org.apache.rocketmq.common.attribute;
 
 import com.google.common.collect.Sets;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -67,6 +68,6 @@ public enum TopicMessageType {
     }
 
     public String getMetricsValue() {
-        return value.toLowerCase();
+        return value.toLowerCase(Locale.ROOT);
     }
 }

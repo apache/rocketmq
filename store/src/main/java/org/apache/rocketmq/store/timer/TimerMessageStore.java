@@ -1445,7 +1445,8 @@ public class TimerMessageStore {
         LinkedList<SelectMappedBufferResult> sbrs = new LinkedList<>();
         boolean hasError = false;
         try {
-            while (true) {
+            // Long.MAX_VALUE means no eligible slot in the timer wheel, skip the scan but still revise the metrics
+            while (currOffsetPy != Long.MAX_VALUE) {
                 SelectMappedBufferResult timeSbr = timerLog.getWholeBuffer(currOffsetPy);
                 if (timeSbr == null) {
                     break;

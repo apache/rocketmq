@@ -41,6 +41,32 @@ public class RunningFlags {
         return flagBits;
     }
 
+    /**
+     * Render the current flag bits as readable names, e.g. {@code DISK_FULL} or
+     * {@code NOT_READABLE|DISK_FULL}, so that a log line is actionable without looking up the
+     * constants. Returns {@code NONE} when no bit is set.
+     */
+    public String getFlagBitsString() {
+        StringBuilder sb = new StringBuilder();
+        appendFlag(sb, NOT_READABLE_BIT, "NOT_READABLE");
+        appendFlag(sb, NOT_WRITEABLE_BIT, "NOT_WRITEABLE");
+        appendFlag(sb, WRITE_LOGICS_QUEUE_ERROR_BIT, "WRITE_LOGICS_QUEUE_ERROR");
+        appendFlag(sb, WRITE_INDEX_FILE_ERROR_BIT, "WRITE_INDEX_FILE_ERROR");
+        appendFlag(sb, DISK_FULL_BIT, "DISK_FULL");
+        appendFlag(sb, FENCED_BIT, "FENCED");
+        appendFlag(sb, LOGIC_DISK_FULL_BIT, "LOGIC_DISK_FULL");
+        return sb.length() == 0 ? "NONE" : sb.toString();
+    }
+
+    private void appendFlag(StringBuilder sb, int bit, String flagName) {
+        if ((this.flagBits & bit) != 0) {
+            if (sb.length() > 0) {
+                sb.append('|');
+            }
+            sb.append(flagName);
+        }
+    }
+
     public boolean getAndMakeReadable() {
         boolean result = this.isReadable();
         if (!result) {

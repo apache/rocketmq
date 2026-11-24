@@ -17,15 +17,17 @@
 
 package org.apache.rocketmq.broker.offset;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.mockito.Mockito;
 
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
@@ -120,5 +122,48 @@ public class ConsumerOffsetManagerTest {
         consumerOffsetManager.eraseResetOffset(topic, group, 1);
         Assert.assertFalse(consumerOffsetManager.hasOffsetReset(topic, group, 1));
         Assert.assertFalse(consumerOffsetManager.resetOffsetTable.containsKey(key));
+    }
+
+    @Test
+    public void testQueryMinOffsetInAllGroupPreservesFilteredGroups() {
+        MessageStore messageStore = Mockito.mock(MessageStore.class);
+        Mockito.when(brokerController.getMessageStore()).thenReturn(messageStore);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(messageStore.getMinOffsetInQueue(Mockito.anyString(), Mockito.anyInt())).thenReturn(0L);
+
+        AtomicInteger removeHookCalls = new AtomicInteger(0);
+        ConsumerOffsetManager manager = new ConsumerOffsetManager(brokerController) {
+            @Override
+            public void removeConsumerOffset(String topicAtGroup) {
+                removeHookCalls.incrementAndGet();
+            }
+        };
+
+        manager.commitOffset("127.0.0.1", "GroupKeep1", "TopicA", 0, 50L);
+        manager.commitOffset("127.0.0.1", "GroupKeep1", "TopicA", 1, 80L);
+        manager.commitOffset("127.0.0.1", "GroupKeep2", "TopicA", 0, 30L);
+        manager.commitOffset("127.0.0.1", "GroupKeep2", "TopicA", 1, 120L);
+        manager.commitOffset("127.0.0.1", "GroupFiltered1", "TopicA", 0, 10L);
+        manager.commitOffset("127.0.0.1", "GroupFiltered1", "TopicA", 1, 10L);
+        manager.commitOffset("127.0.0.1", "GroupFiltered2", "TopicA", 0, 5L);
+        manager.commitOffset("127.0.0.1", "GroupFiltered2", "TopicA", 1, 5L);
+        manager.commitOffset("127.0.0.1", "GroupFiltered1", "TopicB", 0, 99L);
+
+        ConcurrentMap<Integer, Long> malformedEntry = new ConcurrentHashMap<>();
+        malformedEntry.put(0, 1L);
+        manager.getOffsetTable().put("MalformedKeyWithoutSeparator", malformedEntry);
+
+        Map<Integer, Long> minOffsets = manager.queryMinOffsetInAllGroup("TopicA", "GroupFiltered1,GroupFiltered2");
+        assertThat(minOffsets).containsEntry(0, 30L).containsEntry(1, 80L);
+        assertThat(removeHookCalls.get()).isEqualTo(0);
+
+        assertThat(manager.queryOffset("GroupFiltered1", "TopicA", 0)).isEqualTo(10L);
+        assertThat(manager.queryOffset("GroupFiltered1", "TopicA", 1)).isEqualTo(10L);
+        assertThat(manager.queryOffset("GroupFiltered2", "TopicA", 0)).isEqualTo(5L);
+        assertThat(manager.queryOffset("GroupFiltered1", "TopicB", 0)).isEqualTo(99L);
+        assertThat(manager.getOffsetTable()).containsKey("MalformedKeyWithoutSeparator");
+
+        Map<Integer, Long> unfilteredMinOffsets = manager.queryMinOffsetInAllGroup("TopicA", "");
+        assertThat(unfilteredMinOffsets).containsEntry(0, 5L).containsEntry(1, 5L);
     }
 }

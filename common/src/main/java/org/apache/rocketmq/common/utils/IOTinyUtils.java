@@ -30,6 +30,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,6 +82,9 @@ public class IOTinyUtils {
             throw new IllegalArgumentException("source file does not exist.");
         }
         File tf = new File(target);
+        if (tf.exists() && Files.isSameFile(sf.toPath(), tf.toPath())) {
+            throw new IOException("source and target refer to the same file");
+        }
         tf.getParentFile().mkdirs();
         if (!tf.exists() && !tf.createNewFile()) {
             throw new RuntimeException("failed to create target file.");

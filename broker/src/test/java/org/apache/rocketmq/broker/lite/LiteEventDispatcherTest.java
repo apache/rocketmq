@@ -546,6 +546,97 @@ public class LiteEventDispatcherTest {
     }
 
     @Test
+    public void testScanIdleEmptyEventSetNotBlacklisted() {
+        String clientId = "idleClient";
+        String group = "wildcardGroup";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setWildcardLiteGroup(true);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        LiteEventDispatcher.ClientEventSet eventSet = liteEventDispatcher.new ClientEventSet(group);
+        liteEventDispatcher.clientEventMap.put(clientId, eventSet);
+        ageLastAccessTime(eventSet, LiteEventDispatcher.CLIENT_LONG_POLLING_INTERVAL + 1000);
+
+        liteEventDispatcher.scan();
+
+        assertNull(liteEventDispatcher.clientEventMap.get(clientId));
+        assertTrue(liteEventDispatcher.fullDispatchSet.isEmpty());
+
+        // A new message right after the idle removal must dispatch immediately, not wait for blacklist expiry
+        List<ClientGroup> clients = Collections.singletonList(new ClientGroup(clientId, group));
+        assertTrue(liteEventDispatcher.selectAndDispatch("lmqName", clients, null));
+        assertEquals(1, liteEventDispatcher.clientEventMap.get(clientId).size());
+    }
+
+    @Test
+    public void testScanBlockedClientWithEventsBlacklistedAndRedispatched() {
+        String clientId = "blockedClient";
+        String otherClient = "otherClient";
+        String group = "wildcardGroup";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setWildcardLiteGroup(true);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        List<ClientGroup> clients = Arrays.asList(
+            new ClientGroup(clientId, group), new ClientGroup(otherClient, group));
+        Map<String, List<ClientGroup>> subscriberMap = new HashMap<>();
+        subscriberMap.put(group, clients);
+        when(liteSubscriptionRegistry.getAllSubscribers(group, "lmqName")).thenReturn(subscriberMap);
+
+        LiteEventDispatcher.ClientEventSet eventSet = liteEventDispatcher.new ClientEventSet(group);
+        eventSet.offer("lmqName");
+        liteEventDispatcher.clientEventMap.put(clientId, eventSet);
+        ageLastAccessTime(eventSet, LiteEventDispatcher.CLIENT_LONG_POLLING_INTERVAL + 1000);
+
+        liteEventDispatcher.scan();
+
+        // Pending events are re-dispatched to the other client
+        assertEquals(1, liteEventDispatcher.clientEventMap.get(otherClient).size());
+        // The blocked client remains blacklisted: dispatch to it as the sole candidate fails
+        List<ClientGroup> sole = Collections.singletonList(new ClientGroup(clientId, group));
+        assertFalse(liteEventDispatcher.selectAndDispatch("anotherLmq", sole, null));
+        assertFalse(liteEventDispatcher.fullDispatchSet.isEmpty());
+    }
+
+    @Test
+    public void testScanBlockedSoleWildcardClientStillThrottled() {
+        String clientId = "blockedClient";
+        String group = "wildcardGroup";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setWildcardLiteGroup(true);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        List<ClientGroup> clients = Collections.singletonList(new ClientGroup(clientId, group));
+        Map<String, List<ClientGroup>> subscriberMap = new HashMap<>();
+        subscriberMap.put(group, clients);
+        when(liteSubscriptionRegistry.getAllSubscribers(group, "lmqName")).thenReturn(subscriberMap);
+
+        LiteEventDispatcher.ClientEventSet eventSet = liteEventDispatcher.new ClientEventSet(group);
+        eventSet.offer("lmqName");
+        liteEventDispatcher.clientEventMap.put(clientId, eventSet);
+        ageLastAccessTime(eventSet, LiteEventDispatcher.CLIENT_LONG_POLLING_INTERVAL + 1000);
+
+        liteEventDispatcher.scan();
+
+        // Re-dispatch falls back to the excluded sole client itself
+        assertEquals(1, liteEventDispatcher.clientEventMap.get(clientId).size());
+        // New arrivals during the blacklist window are still throttled (behavior unchanged)
+        assertFalse(liteEventDispatcher.selectAndDispatch("anotherLmq", clients, null));
+        assertFalse(liteEventDispatcher.fullDispatchSet.isEmpty());
+    }
+
+    private void ageLastAccessTime(LiteEventDispatcher.ClientEventSet eventSet, long ageMillis) {
+        try {
+            java.lang.reflect.Field lastAccessTimeField =
+                LiteEventDispatcher.ClientEventSet.class.getDeclaredField("lastAccessTime");
+            lastAccessTimeField.setAccessible(true);
+            lastAccessTimeField.setLong(eventSet, System.currentTimeMillis() - ageMillis);
+        } catch (Exception e) {
+            fail("Failed to manipulate lastAccessTime");
+        }
+    }
+
+    @Test
     public void testDoFullDispatchForWildcardGroup_dispatchesLmqs() {
         String group = "wildcardGroup";
         String parentTopic = "parentTopic";

@@ -653,12 +653,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         try {
             // Valid topics
+            Set<String> topicNameSet = new HashSet<>(topicConfigList.size());
+            List<TopicConfig> needUpdateTopicConfigList = new ArrayList<>(topicConfigList.size());
             for (TopicConfig topicConfig : topicConfigList) {
                 String topic = topicConfig.getTopicName();
                 TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
                 if (!result.isValid()) {
                     response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark(result.getRemark());
+                    return response;
+                }
+                if (!topicNameSet.add(topic)) {
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
+                    response.setRemark("The topic[" + topic + "] is duplicated in topic list.");
                     return response;
                 }
                 if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
@@ -681,18 +688,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
                     LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
                         topic, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                    response.setCode(ResponseCode.SUCCESS);
-                    return response;
+                    continue;
                 }
+                needUpdateTopicConfigList.add(topicConfig);
             }
 
-            this.brokerController.getTopicConfigManager().updateTopicConfigList(topicConfigList);
-            if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
-                for (TopicConfig topicConfig : topicConfigList) {
-                    this.brokerController.registerSingleTopicAll(topicConfig);
+            if (!needUpdateTopicConfigList.isEmpty()) {
+                this.brokerController.getTopicConfigManager().updateTopicConfigList(needUpdateTopicConfigList);
+                if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
+                    for (TopicConfig topicConfig : needUpdateTopicConfigList) {
+                        this.brokerController.registerSingleTopicAll(topicConfig);
+                    }
+                } else {
+                    this.brokerController.registerIncrementBrokerData(needUpdateTopicConfigList, this.brokerController.getTopicConfigManager().getDataVersion());
                 }
-            } else {
-                this.brokerController.registerIncrementBrokerData(topicConfigList, this.brokerController.getTopicConfigManager().getDataVersion());
             }
             response.setCode(ResponseCode.SUCCESS);
         } catch (Exception e) {
