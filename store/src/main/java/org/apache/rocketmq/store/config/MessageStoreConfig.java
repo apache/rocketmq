@@ -397,6 +397,13 @@ public class MessageStoreConfig {
     private boolean allAckInSyncStateSet = false;
 
     /**
+     * Whether to allow a slave to truncate its commitlog below the local confirmOffset when resolving a
+     * consistent point with the master in auto-switch HA mode. Enabling this may drop messages that were
+     * already confirmed to producers, so it should only be used for manual disaster recovery.
+     */
+    private boolean enableTruncateBelowConfirmOffset = false;
+
+    /**
      * Dynamically adjust in-sync replicas to provide higher availability, the real time in-sync replicas
      * will smaller than inSyncReplicas config.
      */
@@ -1690,6 +1697,14 @@ public class MessageStoreConfig {
 
     public void setAllAckInSyncStateSet(boolean allAckInSyncStateSet) {
         this.allAckInSyncStateSet = allAckInSyncStateSet;
+    }
+
+    public boolean isEnableTruncateBelowConfirmOffset() {
+        return enableTruncateBelowConfirmOffset;
+    }
+
+    public void setEnableTruncateBelowConfirmOffset(boolean enableTruncateBelowConfirmOffset) {
+        this.enableTruncateBelowConfirmOffset = enableTruncateBelowConfirmOffset;
     }
 
     public boolean isEnableAutoInSyncReplicas() {
