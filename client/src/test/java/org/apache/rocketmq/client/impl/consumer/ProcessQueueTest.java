@@ -92,6 +92,18 @@ public class ProcessQueueTest {
     }
 
     @Test
+    public void testRemoveMessageWithOutOfOrderBatches() {
+        ProcessQueue pq = new ProcessQueue();
+        final MessageExt message10 = createMessage(10L);
+        final MessageExt message5 = createMessage(5L);
+
+        pq.putMessage(Lists.list(message10));
+        pq.putMessage(Lists.list(message5));
+
+        assertThat(pq.removeMessage(Lists.list(message10, message5))).isEqualTo(11L);
+    }
+
+    @Test
     public void testContainsMessage() {
         ProcessQueue pq = new ProcessQueue();
         final List<MessageExt> messageList = createMessageList(2);
