@@ -27,6 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * CountDownLatch2 Unit Test
@@ -44,7 +45,8 @@ public class CountDownLatch2Test {
     public void testConstructorError() {
         int count = -1;
         try {
-            CountDownLatch2 latch = new CountDownLatch2(count);
+            new CountDownLatch2(count);
+            fail("Expected IllegalArgumentException for a negative count");
         } catch (IllegalArgumentException e) {
             assertThat(e.getMessage(), is("count < 0"));
         }
@@ -119,5 +121,81 @@ public class CountDownLatch2Test {
         // coverage Sync#tryReleaseShared, c==0
         latch.countDown();
         assertEquals("Expected equal", 0, latch.getCount());
+    }
+
+    /**
+     * Tests that a latch initialized with zero is already released.
+     *
+     * @see CountDownLatch2#CountDownLatch2(int)
+     */
+    @Test
+    public void testConstructorWithZeroCount() throws InterruptedException {
+        CountDownLatch2 latch = new CountDownLatch2(0);
+
+        assertEquals("Expected zero count", 0, latch.getCount());
+        assertTrue("Expected an initially released latch",
+                latch.await(0, TimeUnit.MILLISECONDS));
+    }
+
+    /**
+     * Tests that a zero timeout returns false while the count is positive.
+     *
+     * @see CountDownLatch2#await(long, TimeUnit)
+     */
+    @Test
+    public void testAwaitWithZeroTimeout() throws InterruptedException {
+        CountDownLatch2 latch = new CountDownLatch2(1);
+
+        assertFalse("Expected false while the count is positive",
+                latch.await(0, TimeUnit.MILLISECONDS));
+        assertEquals("Expected the count to remain unchanged", 1, latch.getCount());
+    }
+
+    /**
+     * Tests that a negative timeout returns false while the count is positive.
+     *
+     * @see CountDownLatch2#await(long, TimeUnit)
+     */
+    @Test
+    public void testAwaitWithNegativeTimeout() throws InterruptedException {
+        CountDownLatch2 latch = new CountDownLatch2(1);
+
+        assertFalse("Expected false for a negative timeout",
+                latch.await(-1, TimeUnit.MILLISECONDS));
+        assertEquals("Expected the count to remain unchanged", 1, latch.getCount());
+    }
+
+    /**
+     * Tests that a fully released latch can be reset and used again.
+     *
+     * @see CountDownLatch2#reset()
+     */
+    @Test
+    public void testResetAfterCountReachesZero() throws InterruptedException {
+        CountDownLatch2 latch = new CountDownLatch2(2);
+
+        // Complete the first countdown.
+        latch.countDown();
+        latch.countDown();
+        assertEquals("Expected zero count", 0, latch.getCount());
+        assertTrue("Expected the first countdown to be complete",
+                latch.await(0, TimeUnit.MILLISECONDS));
+
+        // Reset the released latch to its initial count.
+        latch.reset();
+        assertEquals("Expected the initial count after reset", 2, latch.getCount());
+        assertFalse("Expected the latch to require another countdown",
+                latch.await(0, TimeUnit.MILLISECONDS));
+
+        // Verify that the latch can be used for another countdown.
+        latch.countDown();
+        assertEquals("Expected one remaining count", 1, latch.getCount());
+        assertFalse("Expected the second countdown to be incomplete",
+                latch.await(0, TimeUnit.MILLISECONDS));
+
+        latch.countDown();
+        assertEquals("Expected zero count again", 0, latch.getCount());
+        assertTrue("Expected the second countdown to be complete",
+                latch.await(0, TimeUnit.MILLISECONDS));
     }
 }
