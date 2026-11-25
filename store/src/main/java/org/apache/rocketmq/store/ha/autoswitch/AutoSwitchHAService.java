@@ -141,11 +141,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         }
 
         // Append new epoch to epochFile
-        final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
-        if (this.epochCache.lastEpoch() >= masterEpoch) {
-            this.epochCache.truncateSuffixByEpoch(masterEpoch);
-        }
-        this.epochCache.appendEntry(newEpochEntry);
+        final EpochEntry newEpochEntry = appendEpochEntry(masterEpoch);
 
         // Waiting consume queue dispatch
         while (defaultMessageStore.dispatchBehindBytes() > 0) {
@@ -209,16 +205,43 @@ public class AutoSwitchHAService extends DefaultHAService {
             return false;
         }
         // Append new epoch to epochFile
-        final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
-        if (this.epochCache.lastEpoch() >= masterEpoch) {
-            this.epochCache.truncateSuffixByEpoch(masterEpoch);
-        }
-        this.epochCache.appendEntry(newEpochEntry);
+        final EpochEntry newEpochEntry = appendEpochEntry(masterEpoch);
 
         this.defaultMessageStore.setStateMachineVersion(masterEpoch);
         LOGGER.info("Change ha to master success, last role is master, newMasterEpoch:{}, startOffset:{}",
             masterEpoch, newEpochEntry.getStartOffset());
         return true;
+    }
+
+    /**
+     * Append the master epoch to the epoch file. If the epoch already exists locally, keep the original entry
+     * instead of rewriting its start offset with the current max physical offset. A broker that restarts and is
+     * elected as the master again with the same epoch would otherwise move the start offset of the epoch, and the
+     * slave holding the original start offset could never find a consistent point, so it would never rejoin the
+     * sync state set.
+     * <p>
+     * The entry is only reused if its start offset is within the local commitlog. The epoch file is not trimmed
+     * against the recovered commitlog on startup, so after an unclean shutdown the recorded start offset may be
+     * greater than the recovered max physical offset. Reusing such an entry would make the slave treat its own
+     * tail as consistent with the master, and the two replicas would silently diverge.
+     */
+    private EpochEntry appendEpochEntry(final int masterEpoch) {
+        final int lastEpoch = this.epochCache.lastEpoch();
+        if (lastEpoch == masterEpoch) {
+            final EpochEntry existingEntry = this.epochCache.lastEntry();
+            final long maxPhyOffset = this.defaultMessageStore.getMaxPhyOffset();
+            if (existingEntry.getStartOffset() <= maxPhyOffset) {
+                LOGGER.info("Epoch entry already exists locally, keep the original startOffset. epoch:{}, startOffset:{}",
+                    existingEntry.getEpoch(), existingEntry.getStartOffset());
+                return existingEntry;
+            }
+            LOGGER.warn("Epoch {} startOffset {} exceeds maxPhyOffset {}, rewrite the entry",
+                masterEpoch, existingEntry.getStartOffset(), maxPhyOffset);
+            this.epochCache.truncateSuffixByEpoch(masterEpoch);
+        }
+        final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
+        this.epochCache.appendEntry(newEpochEntry);
+        return newEpochEntry;
     }
 
     @Override

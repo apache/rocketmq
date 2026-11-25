@@ -524,6 +524,34 @@ public class AutoSwitchHATest {
         UtilAll.deleteFile(file);
     }
 
+    @Test
+    public void testSlaveRejoinAfterMasterRestartWithSameEpoch() throws Exception {
+        init(defaultMappedFileSize);
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
+        assertTrue(changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10));
+        checkMessage(this.messageStore2, 10, 0);
+
+        // Restart the master, the controller elects it as master again with the same epoch
+        this.messageStore1 = shutdownStore(this.messageStore1);
+        storeConfig1.setBrokerRole(BrokerRole.SYNC_MASTER);
+        messageStore1 = buildMessageStore(storeConfig1, 1L);
+        assertTrue(messageStore1.load());
+        messageStore1.start();
+        AutoSwitchHAService masterHaService = (AutoSwitchHAService) messageStore1.getHaService();
+        masterHaService.setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
+        assertTrue(masterHaService.changeToMaster(1));
+        assertEquals(0L, masterHaService.getEpochEntries().get(0).getStartOffset());
+
+        // The old slave should reconnect, be added back to the sync state set and continue to replicate
+        await().atMost(30, TimeUnit.SECONDS).until(() -> masterHaService.getConnectionCount().get() > 0);
+        await().atMost(30, TimeUnit.SECONDS).until(() -> masterHaService.isSynchronizingSyncStateSet());
+
+        for (int i = 0; i < 5; i++) {
+            assertTrue(messageStore1.putMessage(buildMessage()).isOk());
+        }
+        checkMessage(this.messageStore2, 15, 0);
+    }
+
     private DefaultMessageStore shutdownStore(DefaultMessageStore messageStore) {
         if (messageStore != null) {
             messageStore.shutdown();
