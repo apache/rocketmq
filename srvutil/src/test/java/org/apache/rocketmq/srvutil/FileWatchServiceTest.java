@@ -93,6 +93,26 @@ public class FileWatchServiceTest {
     }
 
     @Test
+    public void watchFiles_IgnoreNullOrEmptyPath() throws Exception {
+        final File file = tempFolder.newFile();
+        final Semaphore waitSemaphore = new Semaphore(0);
+        FileWatchService fileWatchService = new FileWatchService(
+            new String[] {null, "", file.getAbsolutePath()}, path -> {
+                assertThat(path).isEqualTo(file.getAbsolutePath());
+                waitSemaphore.release();
+            });
+        fileWatchService.start();
+        fileWatchService.awaitStarted(1000);
+        try {
+            modifyFile(file);
+            boolean result = waitSemaphore.tryAcquire(1, 2000, TimeUnit.MILLISECONDS);
+            assertThat(result).isTrue();
+        } finally {
+            fileWatchService.shutdown();
+        }
+    }
+
+    @Test
     public void watchTwoFile_FileDeleted() throws Exception {
         File fileA = tempFolder.newFile();
         File fileB = tempFolder.newFile();
