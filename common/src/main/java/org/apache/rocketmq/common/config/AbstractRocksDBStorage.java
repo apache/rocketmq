@@ -507,6 +507,7 @@ public abstract class AbstractRocksDBStorage {
     }
 
     public synchronized boolean shutdown() {
+        boolean interrupted = false;
         try {
             if (!this.loaded) {
                 LOGGER.info("RocksDBStorage is not loaded, shutdown OK. dbPath={}, readOnly={}", this.dbPath, this.readOnly);
@@ -515,7 +516,15 @@ public abstract class AbstractRocksDBStorage {
 
             manualCompactionThread.shutdownNow();
 
-            manualCompactionThread.awaitTermination(30, TimeUnit.SECONDS);
+            try {
+                manualCompactionThread.awaitTermination(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // Do not restore the interrupt flag yet: the remaining cleanup still waits for
+                // worker threads (see ServiceThread#shutdown), and a set flag would make those
+                // joins throw immediately, releasing the DB while its writers are still running.
+                interrupted = true;
+                LOGGER.warn("Interrupted while waiting for the compaction thread. dbPath={}", this.dbPath, e);
+            }
 
             final FlushOptions flushOptions = new FlushOptions();
             flushOptions.setWaitForFlush(true);
@@ -527,10 +536,18 @@ public abstract class AbstractRocksDBStorage {
                 flushOptions.close();
             }
             this.db.cancelAllBackgroundWork(true);
-            this.db.pauseBackgroundWork();
+            try {
+                this.db.pauseBackgroundWork();
+            } catch (Throwable e) {
+                LOGGER.error("rocksdb pause background work failed when shutdown", e);
+            }
             //The close order matters.
             //1. close column family handles
-            preShutdown();
+            try {
+                preShutdown();
+            } catch (Throwable e) {
+                LOGGER.error("rocksdb preShutdown failed when shutdown", e);
+            }
 
             if (this.defaultCFHandle.isOwningHandle()) {
                 this.defaultCFHandle.close();
@@ -594,6 +611,10 @@ public abstract class AbstractRocksDBStorage {
         } catch (Exception e) {
             LOGGER.error("RocksDB shutdown failed. {}", this.dbPath, e);
             return false;
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
         return true;
     }
