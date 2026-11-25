@@ -541,6 +541,40 @@ public class DefaultMQProducerTest {
     }
 
     @Test
+    public void testAutoBatch_unbatchableMessageReleasesHoldSize() throws Exception {
+        producer.setAutoBatch(true);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        long before = accumulator().getCurrentlyHoldSize();
+
+        Message delayMessage = new Message(topic, "delay message body".getBytes());
+        delayMessage.setDelayTimeLevel(1);
+        SendResult sendResult = producer.send(delayMessage);
+
+        assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+        assertThat(accumulator().getCurrentlyHoldSize()).isEqualTo(before);
+        producer.setAutoBatch(false);
+    }
+
+    @Test
+    public void testAutoBatch_invalidMessageReleasesHoldSize() throws Exception {
+        producer.setAutoBatch(true);
+        producer.setMaxMessageSize(4);
+        long before = accumulator().getCurrentlyHoldSize();
+        try {
+            producer.send(bigMessage);
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("the message body size over max value");
+        }
+        assertThat(accumulator().getCurrentlyHoldSize()).isEqualTo(before);
+        producer.setAutoBatch(false);
+    }
+
+    private ProduceAccumulator accumulator() throws NoSuchFieldException, IllegalAccessException {
+        return getField(producer, "produceAccumulator", ProduceAccumulator.class);
+    }
+
+    @Test
     public void testBatchSendMessageSync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         producer.setAutoBatch(true);
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
