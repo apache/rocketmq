@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import com.google.common.base.Stopwatch;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -235,8 +236,9 @@ public abstract class NettyRemotingAbstract {
         if (response == null) {
             return;
         }
+        final Stopwatch processTimer = request.getProcessTimer();
         final AttributesBuilder attributesBuilder;
-        if (remotingMetricsManager != null) {
+        if (remotingMetricsManager != null && processTimer != null) {
             attributesBuilder = remotingMetricsManager.newAttributesBuilder();
             attributesBuilder.put(LABEL_IS_LONG_POLLING, request.isSuspended())
                 .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
@@ -247,7 +249,7 @@ public abstract class NettyRemotingAbstract {
         if (request.isOnewayRPC()) {
             if (attributesBuilder != null) {
                 attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
-                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                remotingMetricsManager.getRpcLatency().record(processTimer.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
             }
             return;
         }
@@ -262,9 +264,9 @@ public abstract class NettyRemotingAbstract {
                     log.error("Failed to write response[request code: {}, response code: {}, opaque: {}] to channel{}",
                         request.getCode(), response.getCode(), response.getOpaque(), channel, future.cause());
                 }
-                if (remotingMetricsManager != null) {
+                if (attributesBuilder != null) {
                     attributesBuilder.put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future));
-                    remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                    remotingMetricsManager.getRpcLatency().record(processTimer.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
                 }
                 if (callback != null) {
                     callback.accept(future);
@@ -274,9 +276,9 @@ public abstract class NettyRemotingAbstract {
             log.error("process request over, but response failed", e);
             log.error(request.toString());
             log.error(response.toString());
-            if (remotingMetricsManager != null) {
+            if (attributesBuilder != null) {
                 attributesBuilder.put(LABEL_RESULT, RESULT_WRITE_CHANNEL_FAILED);
-                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                remotingMetricsManager.getRpcLatency().record(processTimer.elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
             }
         }
 
