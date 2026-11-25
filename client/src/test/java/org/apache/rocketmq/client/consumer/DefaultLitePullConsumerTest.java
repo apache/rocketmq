@@ -134,6 +134,61 @@ public class DefaultLitePullConsumerTest {
     }
 
     @Test
+    public void testAssignPreservesCallerQueuesWithNamespace() throws IllegalAccessException {
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer("demo", consumerGroup, null);
+        MessageQueue queue = new MessageQueue("orders", "broker-a", 0);
+        Set<MessageQueue> queues = new HashSet<>(Collections.singleton(queue));
+
+        consumer.assign(queues);
+
+        assertThat(queues.contains(queue)).isTrue();
+        assertThat(queue.getTopic()).isEqualTo("orders");
+        assertThat(assignedMessageQueues(consumer).getAssignedMessageQueues())
+            .containsExactly(new MessageQueue("demo%orders", "broker-a", 0));
+    }
+
+    @Test
+    public void testPausePreservesCallerQueuesWithNamespace() throws IllegalAccessException {
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer("demo", consumerGroup, null);
+        MessageQueue internalQueue = new MessageQueue("demo%orders", "broker-a", 0);
+        consumer.assign(Collections.singleton(internalQueue));
+        AssignedMessageQueue assigned = assignedMessageQueues(consumer);
+        assertThat(assigned.isPaused(internalQueue)).isFalse();
+        MessageQueue queue = new MessageQueue("orders", "broker-a", 0);
+        Set<MessageQueue> queues = new HashSet<>(Collections.singleton(queue));
+
+        consumer.pause(queues);
+
+        assertThat(queues.contains(queue)).isTrue();
+        assertThat(queue.getTopic()).isEqualTo("orders");
+        assertThat(assigned.isPaused(internalQueue)).isTrue();
+    }
+
+    @Test
+    public void testResumePreservesCallerQueuesWithNamespace() throws IllegalAccessException {
+        DefaultLitePullConsumer consumer = new DefaultLitePullConsumer("demo", consumerGroup, null);
+        MessageQueue internalQueue = new MessageQueue("demo%orders", "broker-a", 0);
+        consumer.assign(Collections.singleton(internalQueue));
+        consumer.pause(Collections.singleton(internalQueue));
+        AssignedMessageQueue assigned = assignedMessageQueues(consumer);
+        assertThat(assigned.isPaused(internalQueue)).isTrue();
+        MessageQueue queue = new MessageQueue("orders", "broker-a", 0);
+        Set<MessageQueue> queues = new HashSet<>(Collections.singleton(queue));
+
+        consumer.resume(queues);
+
+        assertThat(queues.contains(queue)).isTrue();
+        assertThat(queue.getTopic()).isEqualTo("orders");
+        assertThat(assigned.isPaused(internalQueue)).isFalse();
+    }
+
+    private AssignedMessageQueue assignedMessageQueues(DefaultLitePullConsumer consumer) throws IllegalAccessException {
+        DefaultLitePullConsumerImpl impl = (DefaultLitePullConsumerImpl) FieldUtils.readDeclaredField(
+            consumer, "defaultLitePullConsumerImpl", true);
+        return impl.getAssignedMessageQueue();
+    }
+
+    @Test
     public void testAssign_PollMessageSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
         try {

@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -278,7 +280,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
-        defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
+        defaultLitePullConsumerImpl.assign(wrapQueuesWithNamespace(messageQueues));
     }
 
     @Override
@@ -303,12 +305,19 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void pause(Collection<MessageQueue> messageQueues) {
-        this.defaultLitePullConsumerImpl.pause(queuesWithNamespace(messageQueues));
+        this.defaultLitePullConsumerImpl.pause(wrapQueuesWithNamespace(messageQueues));
     }
 
     @Override
     public void resume(Collection<MessageQueue> messageQueues) {
-        this.defaultLitePullConsumerImpl.resume(queuesWithNamespace(messageQueues));
+        this.defaultLitePullConsumerImpl.resume(wrapQueuesWithNamespace(messageQueues));
+    }
+
+    private Collection<MessageQueue> wrapQueuesWithNamespace(Collection<MessageQueue> messageQueues) {
+        if (StringUtils.isEmpty(getNamespace())) {
+            return messageQueues;
+        }
+        return messageQueues.stream().map(this::queueWithNamespace).collect(Collectors.toList());
     }
 
     @Override
