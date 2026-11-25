@@ -24,11 +24,14 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
+import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.junit.Test;
@@ -38,11 +41,15 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -67,6 +74,42 @@ public class RebalancePushImplTest {
         when(consumerImpl.getOffsetStore()).thenReturn(offsetStore);
         rebalanceImpl.setmQClientFactory(client);
         when(client.getMQAdminImpl()).thenReturn(admin);
+    }
+
+    @Test
+    public void testLockRpcUsesDefaultTimeout() throws Exception {
+        assertLockRpcTimeout(1000);
+    }
+
+    @Test
+    public void testLockRpcUsesConfiguredTimeout() throws Exception {
+        consumer.setLockRpcTimeoutMillis(2500);
+        assertLockRpcTimeout(2500);
+    }
+
+    @Test
+    public void testLockRpcTimeoutMustBePositive() {
+        assertThatThrownBy(() -> consumer.setLockRpcTimeoutMillis(0))
+            .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> consumer.setLockRpcTimeoutMillis(-1))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private void assertLockRpcTimeout(long expectedTimeout) throws Exception {
+        String address = "127.0.0.1:10911";
+        MQClientAPIImpl api = mock(MQClientAPIImpl.class);
+        when(client.getMQClientAPIImpl()).thenReturn(api);
+        when(client.getBrokerNameFromMessageQueue(mq)).thenReturn(mq.getBrokerName());
+        when(client.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true))
+            .thenReturn(new FindBrokerResult(address, false));
+        when(api.lockBatchMQ(eq(address), any(LockBatchRequestBody.class), anyLong()))
+            .thenReturn(Collections.singleton(mq));
+        rebalanceImpl.getProcessQueueTable().put(mq, new ProcessQueue());
+
+        assertThat(rebalanceImpl.lock(mq)).isTrue();
+        rebalanceImpl.lockAll();
+
+        verify(api, times(2)).lockBatchMQ(eq(address), any(LockBatchRequestBody.class), eq(expectedTimeout));
     }
 
     @Test
