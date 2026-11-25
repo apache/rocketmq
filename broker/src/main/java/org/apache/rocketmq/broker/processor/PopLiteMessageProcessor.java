@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
 import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
@@ -43,6 +44,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -61,10 +63,13 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
@@ -79,13 +84,21 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOP
 public class PopLiteMessageProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
     private static final String BORN_TIME = "bornTime";
+    private static final String ARRIVE_TIME = "liteArriveTime";
+    // idle time before the record of a client is cleaned
+    @VisibleForTesting
+    static final long ATTEMPT_TTL = TimeUnit.MINUTES.toNanos(3);
+    // max time a retry waits for queue locks to release its leases
+    private static final long RELEASE_LOCK_TIMEOUT = TimeUnit.MILLISECONDS.toNanos(200);
 
     private final BrokerController brokerController;
     private final PopLiteLongPollingService popLiteLongPollingService;
     private final PopConsumerLockService lockService;
     private final LiteEventDispatcher liteEventDispatcher;
-    private final ConsumerOrderInfoManager consumerOrderInfoManager;
+    private final MemoryConsumerOrderInfoManager consumerOrderInfoManager;
     private final PopLiteLockManager popLiteLockManager;
+    // clientId -> the latest request of the client, assuming at most one pop with an attemptId in flight per client
+    private final Map<String, Attempt> attempts = new ConcurrentHashMap<>();
 
     public PopLiteMessageProcessor(final BrokerController brokerController, LiteEventDispatcher liteEventDispatcher) {
         this.brokerController = brokerController;
@@ -120,12 +133,34 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         String clientId = requestHeader.getClientId();
         String group = requestHeader.getConsumerGroup();
         String parentTopic = requestHeader.getTopic();
-        int maxNum = requestHeader.getMaxMsgNum();
-        long popTime = System.currentTimeMillis();
         long invisibleTime = requestHeader.getInvisibleTime();
 
+        String attemptId = requestHeader.getAttemptId();
+        long arriveTime = Long.MAX_VALUE;
+        if (StringUtils.isNotEmpty(attemptId)) {
+            if (request.isSuspended()) {
+                arriveTime = Long.parseLong(request.getExtFields().get(ARRIVE_TIME));
+                if (hasNewerRequest(clientId, arriveTime)) {
+                    // the client has given up this request, pass the wake-up on to its latest one
+                    popLiteLongPollingService.notifyMessageArriving(clientId, true, -1, group);
+                    response.setCode(ResponseCode.POLLING_TIMEOUT);
+                    response.setRemark(GetMessageStatus.NO_MESSAGE_IN_QUEUE.name());
+                    return response;
+                }
+            } else {
+                // overwrite any value carried in by the request
+                arriveTime = System.nanoTime();
+                request.addExtField(ARRIVE_TIME, String.valueOf(arriveTime));
+                if (!onArrival(group, clientId, attemptId, arriveTime)) {
+                    response.setCode(ResponseCode.SYSTEM_BUSY);
+                    response.setRemark("Lite attempt lease recovery is incomplete or superseded");
+                    return response;
+                }
+            }
+        }
+        long popTime = System.currentTimeMillis();
         Pair<StringBuilder, GetMessageResult> rst = popByClientId(channel.remoteAddress().toString(), parentTopic,
-            group, clientId, popTime, invisibleTime, maxNum, requestHeader.getAttemptId());
+            group, clientId, popTime, invisibleTime, requestHeader.getMaxMsgNum(), attemptId, arriveTime);
 
         final GetMessageResult getMessageResult = rst.getObject2();
         if (getMessageResult != null && getMessageResult.getMessageCount() > 0) {
@@ -187,7 +222,8 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
 
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
-            LOGGER.error("The parentTopic {} not exist, consumer: {} ", requestHeader.getTopic());
+            LOGGER.error("The parentTopic {} not exist, consumer: {} ", requestHeader.getTopic(),
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic [%s] not exist, apply first please! %s", requestHeader.getTopic(),
                 FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
@@ -196,7 +232,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
 
         if (!PermName.isReadable(topicConfig.getPerm())) {
             response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark(String.format("the topic [%s] peeking message is forbidden", requestHeader.getTopic()));
+            response.setRemark(String.format("the topic [%s] pop message is forbidden", requestHeader.getTopic()));
             return response;
         }
 
@@ -243,8 +279,9 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         return byteBuffer.array();
     }
 
-    public Pair<StringBuilder, GetMessageResult> popByClientId(String clientHost, String parentTopic, String group,
-        String clientId, long popTime, long invisibleTime, int maxNum, String attemptId) {
+    @VisibleForTesting
+    Pair<StringBuilder, GetMessageResult> popByClientId(String clientHost, String parentTopic, String group,
+        String clientId, long popTime, long invisibleTime, int maxNum, String attemptId, long arriveTime) {
         GetMessageResult getMessageResult = new GetMessageResult();
         StringBuilder orderCountInfoAll = new StringBuilder();
         AtomicLong total = new AtomicLong(0);
@@ -255,6 +292,11 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         while (total.get() < maxNum && iterator.hasNext()) {
             String lmqName = iterator.next(); // here event represents a lmq name
             if (null == lmqName) {
+                break;
+            }
+            if (hasNewerRequest(clientId, arriveTime)) {
+                // may be an event re-dispatched by the newer request, so it is passed on rather than dropped
+                redispatch(group, lmqName);
                 break;
             }
             if (processed.contains(lmqName)) {
@@ -268,7 +310,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
                 continue;
             }
             Pair<StringBuilder, GetMessageResult> pair = popLiteTopic(parentTopic, clientHost, group, lmqName,
-                maxNum - total.get(), popTime, invisibleTime, attemptId, processed);
+                maxNum - total.get(), popTime, invisibleTime, attemptId, processed, clientId, arriveTime);
             if (null == pair || pair.getObject2().getMessageCount() <= 0) {
                 continue;
             }
@@ -283,33 +325,187 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             orderCountInfoAll.append(pair.getObject1());
             collectLiteConsumerLagMetrics(group, parentTopic, lmqName, singleResult, maxNum, total);
         }
+
         return new Pair<>(orderCountInfoAll, getMessageResult);
+    }
+
+    /**
+     * Record a request as the latest of its client. A retry of the recorded attempt proves its response was lost, so
+     * the leases it took are released first.
+     */
+    @VisibleForTesting
+    boolean onArrival(String group, String clientId, String attemptId, long arriveTime) {
+        Attempt[] retried = new Attempt[1];
+        attempts.compute(clientId, (key, old) -> {
+            if (old != null && old.arriveTime > arriveTime) {
+                return old;
+            }
+            Attempt latest = new Attempt(group, attemptId, arriveTime);
+            if (old != null && attemptId.equals(old.attemptId) && group.equals(old.group)) {
+                // take over the leases left by an unfinished release
+                latest.lmqNames.addAll(old.lmqNames);
+                old.takenOver = true;
+                retried[0] = latest;
+            }
+            return latest;
+        });
+        if (retried[0] != null && !releaseAttempt(retried[0], clientId)) {
+            return false;
+        }
+        return !hasNewerRequest(clientId, arriveTime);
+    }
+
+    @VisibleForTesting
+    boolean hasNewerRequest(String clientId, long arriveTime) {
+        Attempt latest = attempts.get(clientId);
+        return latest != null && latest.arriveTime > arriveTime;
+    }
+
+    /**
+     * Called under the queue lock of the lease just taken.
+     *
+     * @return true if a newer request of the client has arrived, so the caller releases the lease itself
+     */
+    private boolean registerAttempt(String clientId, String group, String attemptId, String lmqName,
+        long arriveTime) {
+        Attempt latest = attempts.computeIfPresent(clientId, (key, attempt) -> {
+            if (attemptId.equals(attempt.attemptId) && group.equals(attempt.group)
+                && attempt.arriveTime <= arriveTime) {
+                attempt.lmqNames.add(lmqName);
+            }
+            return attempt;
+        });
+        return latest != null && latest.arriveTime > arriveTime;
+    }
+
+    /**
+     * Release the leases of an attempt and re-dispatch them. It stops once a newer retry of the same attempt takes
+     * over, or a queue lock is not taken in time, leaving the rest recorded.
+     */
+    private boolean releaseAttempt(Attempt attempt, String clientId) {
+        long deadline = System.nanoTime() + RELEASE_LOCK_TIMEOUT;
+        for (String lmqName : attempt.lmqNames) {
+            String lockKey = KeyBuilder.buildPopLiteLockKey(attempt.group, lmqName);
+            if (!lockUntil(lockKey, deadline)) {
+                break;
+            }
+            boolean released;
+            try {
+                // the newer retry may already have re-taken this lease
+                if (attempt.takenOver) {
+                    break;
+                }
+                released = consumerOrderInfoManager.releaseQueue(lmqName, attempt.group, 0, attempt.attemptId);
+                attempt.lmqNames.remove(lmqName);
+            } finally {
+                lockService.unlock(lockKey);
+            }
+            LOGGER.info("lite attempt release lease. clientId={}, group={}, attemptId={}, lmqName={}, released={}",
+                clientId, attempt.group, attempt.attemptId, lmqName, released);
+            if (released) {
+                redispatch(attempt.group, lmqName);
+            }
+        }
+        if (!attempt.lmqNames.isEmpty()) {
+            LOGGER.info("lite attempt release stopped. clientId={}, group={}, attemptId={}, takenOver={}, remaining={}",
+                clientId, attempt.group, attempt.attemptId, attempt.takenOver, attempt.lmqNames);
+        }
+        return !attempt.takenOver && attempt.lmqNames.isEmpty();
+    }
+
+    private boolean lockUntil(String lockKey, long deadline) {
+        while (!lockService.tryLock(lockKey)) {
+            if (System.nanoTime() - deadline > 0) {
+                return false;
+            }
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+        }
+        return true;
+    }
+
+    // a failed notification must not fail the pop that has read messages
+    private void redispatch(String group, String lmqName) {
+        try {
+            liteEventDispatcher.dispatch(group, lmqName, 0, -1, -1);
+        } catch (Exception e) {
+            LOGGER.error("lite redispatch error. group={}, lmqName={}", group, lmqName, e);
+        }
+    }
+
+    /**
+     * Only the records are cleaned, the leases are left to ack or expiry as the batch may still be consumed.
+     */
+    @VisibleForTesting
+    void cleanAttempts(long now) {
+        attempts.forEach((clientId, attempt) -> {
+            if (now - attempt.arriveTime > ATTEMPT_TTL) {
+                attempts.remove(clientId, attempt);
+            }
+        });
+    }
+
+    private static final class Attempt {
+        private final String group;
+        private final String attemptId;
+        private final long arriveTime;
+        // leases taken and not released yet
+        private final Set<String> lmqNames = ConcurrentHashMap.newKeySet();
+        // set once a newer retry of the same attempt inherits the leases
+        private volatile boolean takenOver;
+
+        private Attempt(String group, String attemptId, long arriveTime) {
+            this.group = group;
+            this.attemptId = attemptId;
+            this.arriveTime = arriveTime;
+        }
     }
 
     @VisibleForTesting
     Pair<StringBuilder, GetMessageResult> popLiteTopic(String parentTopic, String clientHost, String group,
-        String lmqName, long maxNum, long popTime, long invisibleTime, String attemptId, Set<String> processed) {
+        String lmqName, long maxNum, long popTime, long invisibleTime, String attemptId, Set<String> processed,
+        String clientId, long arriveTime) {
         String lockKey = KeyBuilder.buildPopLiteLockKey(group, lmqName);
         if (!lockService.tryLock(lockKey)) {
             return null;
         }
+        boolean redispatch = false;
+        GetMessageResult result = null;
         try {
+            if (hasNewerRequest(clientId, arriveTime)) {
+                // the newer request may already hold this lease
+                redispatch = true;
+                return null;
+            }
             if (isFifoBlocked(attemptId, group, lmqName, invisibleTime)) {
                 // Leave this lmq unmarked so a later ack-unblock re-dispatch is retried, not deduped away.
                 return null;
             }
             final long consumeOffset = getPopOffset(group, lmqName);
-            GetMessageResult result = getMessage(clientHost, group, lmqName, consumeOffset, (int) maxNum);
+            result = getMessage(clientHost, group, lmqName, consumeOffset, (int) maxNum);
             if (result != null && result.getMessageCount() > 0) {
                 // Mark only after messages are read: an empty read (e.g. CQ entry not yet committed) must not
                 // dedup away a later re-dispatch of this lmq within the same pop.
                 processed.add(lmqName);
             }
-            return handleGetMessageResult(result, parentTopic, group, lmqName, popTime, invisibleTime, attemptId);
+            Pair<StringBuilder, GetMessageResult> pair =
+                handleGetMessageResult(result, parentTopic, group, lmqName, popTime, invisibleTime, attemptId);
+            if (null != pair && pair.getObject2().getMessageCount() > 0 && StringUtils.isNotEmpty(attemptId)
+                && registerAttempt(clientId, group, attemptId, lmqName, arriveTime)) {
+                // the queue lock proves the lease is still the one just taken
+                redispatch = true;
+                consumerOrderInfoManager.releaseQueue(lmqName, group, 0, attemptId);
+            }
+            return pair;
         } catch (Throwable e) {
             LOGGER.error("popLiteTopic error. {}, {}", group, lmqName, e);
+            if (result != null) {
+                result.release();
+            }
         } finally {
             lockService.unlock(lockKey);
+            if (redispatch) {
+                redispatch(group, lmqName);
+            }
         }
         return null;
     }
@@ -465,8 +661,9 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
                 try {
                     waitForRunning(60000);
                     lockService.removeTimeout();
+                    cleanAttempts(System.nanoTime());
                     if (System.currentTimeMillis() - lastCleanTime >= AUTO_CLEAN_INTERVAL) {
-                        ((MemoryConsumerOrderInfoManager) consumerOrderInfoManager).autoClean();
+                        consumerOrderInfoManager.autoClean();
                         lastCleanTime = System.currentTimeMillis();
                     }
                 } catch (Exception ignored) {

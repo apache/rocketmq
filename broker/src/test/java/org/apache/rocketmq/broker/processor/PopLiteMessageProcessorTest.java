@@ -25,8 +25,8 @@ import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
 import org.apache.rocketmq.broker.lite.LiteSubscriptionRegistry;
 import org.apache.rocketmq.broker.longpolling.PopLiteLongPollingService;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
-import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -91,7 +91,7 @@ public class PopLiteMessageProcessorTest {
     @Mock
     private PopConsumerLockService lockService;
     @Mock
-    private ConsumerOrderInfoManager consumerOrderInfoManager;
+    private MemoryConsumerOrderInfoManager consumerOrderInfoManager;
     @Mock
     private ConsumerOffsetManager consumerOffsetManager;
     @Mock
@@ -214,7 +214,7 @@ public class PopLiteMessageProcessorTest {
         when(liteEventDispatcher.getEventIterator("clientId")).thenReturn(mockIterator);
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
-            "clientHost", "parentTopic", "group", "clientId", System.currentTimeMillis(), 6000L, 32, "attemptId");
+            "clientHost", "parentTopic", "group", "clientId", System.currentTimeMillis(), 6000L, 32, "attemptId", System.nanoTime());
 
         assertEquals(0, result.getObject1().length());
         assertEquals(0, result.getObject2().getMessageCount());
@@ -235,14 +235,14 @@ public class PopLiteMessageProcessorTest {
         when(liteEventDispatcher.getEventIterator("clientId")).thenReturn(mockIterator);
         doReturn(new Pair<>(new StringBuilder("0"), mockResult))
             .when(popLiteMessageProcessor)
-            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet());
+            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet(), anyString(), anyLong());
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
-            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 32, "attemptId");
+            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 32, "attemptId", System.nanoTime());
 
         assertEquals(msgCount, result.getObject2().getMessageCount());
         verify(mockIterator, times(2)).hasNext();
-        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event), eq(32L), eq(pollTime), eq(6000L), eq("attemptId"), anySet());
+        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event), eq(32L), eq(pollTime), eq(6000L), eq("attemptId"), anySet(), eq("clientId"), anyLong());
     }
 
     @SuppressWarnings("unchecked")
@@ -260,16 +260,16 @@ public class PopLiteMessageProcessorTest {
         when(liteEventDispatcher.getEventIterator("clientId")).thenReturn(mockIterator);
         doReturn(new Pair<>(new StringBuilder("0"), mockResult))
             .when(popLiteMessageProcessor)
-            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet());
+            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet(), anyString(), anyLong());
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
-            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 2, "attemptId");
+            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 2, "attemptId", System.nanoTime());
 
         assertEquals(2, result.getObject2().getMessageCount());
         assertEquals("0;0", result.getObject1().toString());
         verify(mockIterator, times(2)).hasNext();
-        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event1), eq(2L), eq(pollTime), eq(6000L), eq("attemptId"), anySet());
-        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event2), eq(1L), eq(pollTime), eq(6000L), eq("attemptId"), anySet());
+        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event1), eq(2L), eq(pollTime), eq(6000L), eq("attemptId"), anySet(), eq("clientId"), anyLong());
+        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event2), eq(1L), eq(pollTime), eq(6000L), eq("attemptId"), anySet(), eq("clientId"), anyLong());
     }
 
     @SuppressWarnings("unchecked")
@@ -293,16 +293,16 @@ public class PopLiteMessageProcessorTest {
             processed.add(invocation.getArgument(3));
             return new Pair<>(new StringBuilder("0"), mockResult);
         }).when(popLiteMessageProcessor)
-            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet());
+            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet(), anyString(), anyLong());
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
-            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 32, "attemptId");
+            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 32, "attemptId", System.nanoTime());
 
         assertEquals(2, result.getObject2().getMessageCount());
         assertEquals("0;0", result.getObject1().toString());
         verify(mockIterator, times(4)).hasNext();
-        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event1), eq(32L), eq(pollTime), eq(6000L), eq("attemptId"), anySet());
-        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event2), eq(31L), eq(pollTime), eq(6000L), eq("attemptId"), anySet());
+        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event1), eq(32L), eq(pollTime), eq(6000L), eq("attemptId"), anySet(), eq("clientId"), anyLong());
+        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq("group"), eq(event2), eq(31L), eq(pollTime), eq(6000L), eq("attemptId"), anySet(), eq("clientId"), anyLong());
     }
 
     @SuppressWarnings("unchecked")
@@ -324,7 +324,7 @@ public class PopLiteMessageProcessorTest {
         when(messageStore.getMessage("group", event, 0, 0, 32, null)).thenReturn(emptyResult, foundResult);
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
-            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 32, "attemptId");
+            "clientHost", "parentTopic", "group", "clientId", pollTime, 6000L, 32, "attemptId", System.nanoTime());
 
         assertEquals(1, result.getObject2().getMessageCount());
         verify(messageStore, times(2)).getMessage("group", event, 0, 0, 32, null);
@@ -397,7 +397,7 @@ public class PopLiteMessageProcessorTest {
 
         Set<String> processed = new HashSet<>();
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popLiteTopic("parentTopic",
-            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed);
+            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed, "clientId", 0L);
 
         assertNull(result);
         assertFalse(processed.contains("lmqName"));
@@ -413,7 +413,7 @@ public class PopLiteMessageProcessorTest {
 
         Set<String> processed = new HashSet<>();
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popLiteTopic("parentTopic",
-            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed);
+            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed, "clientId", 0L);
 
         assertThat(result).isNull();
         assertFalse(processed.contains("lmqName"));
@@ -431,7 +431,7 @@ public class PopLiteMessageProcessorTest {
 
         Set<String> processed = new HashSet<>();
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popLiteTopic("parentTopic",
-            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed);
+            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed, "clientId", 0L);
 
         assertEquals(mockResult, result.getObject2());
         assertTrue(processed.contains("lmqName"));
@@ -449,7 +449,7 @@ public class PopLiteMessageProcessorTest {
 
         Set<String> processed = new HashSet<>();
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popLiteTopic("parentTopic",
-            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed);
+            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId", processed, "clientId", 0L);
 
         assertEquals(0, result.getObject2().getMessageCount());
         assertFalse(processed.contains("lmqName"));
@@ -565,13 +565,13 @@ public class PopLiteMessageProcessorTest {
         when(liteEventDispatcher.getEventIterator(clientId)).thenReturn(mockIterator);
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
-            "clientHost", "parentTopic", group, clientId, System.currentTimeMillis(), 6000L, 32, "attemptId");
+            "clientHost", "parentTopic", group, clientId, System.currentTimeMillis(), 6000L, 32, "attemptId", System.nanoTime());
 
         // Should return empty result since tombstone blocks the pull
         assertEquals(0, result.getObject2().getMessageCount());
         // popLiteTopic should never be called for the tombstoned lmqName
         verify(popLiteMessageProcessor, never())
-            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet());
+            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet(), anyString(), anyLong());
     }
 
     @SuppressWarnings("unchecked")
@@ -599,13 +599,13 @@ public class PopLiteMessageProcessorTest {
         when(liteEventDispatcher.getEventIterator(clientId)).thenReturn(mockIterator);
         doReturn(new Pair<>(new StringBuilder("0"), mockResult))
             .when(popLiteMessageProcessor)
-            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet());
+            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString(), anySet(), anyString(), anyLong());
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
-            "clientHost", "parentTopic", group, clientId, pollTime, 6000L, 32, "attemptId");
+            "clientHost", "parentTopic", group, clientId, pollTime, 6000L, 32, "attemptId", System.nanoTime());
 
         // Should return the message since no tombstone blocks
         assertEquals(msgCount, result.getObject2().getMessageCount());
-        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq(group), eq(lmqName), eq(32L), eq(pollTime), eq(6000L), eq("attemptId"), anySet());
+        verify(popLiteMessageProcessor).popLiteTopic(eq("parentTopic"), eq("clientHost"), eq(group), eq(lmqName), eq(32L), eq(pollTime), eq(6000L), eq("attemptId"), anySet(), eq("clientId"), anyLong());
     }
 }
