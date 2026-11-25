@@ -191,7 +191,7 @@ public class TimerMessageStore {
             if (snapOffset >= 0) {
                 LOGGER.info("found timerWheel snapshot offset {}", snapOffset);
             } else {
-                LOGGER.info("not found timerWheel snapshot, recover from base + checkpoint", snapOffset);
+                LOGGER.info("not found timerWheel snapshot, recover from base + checkpoint");
             }
         }
 
