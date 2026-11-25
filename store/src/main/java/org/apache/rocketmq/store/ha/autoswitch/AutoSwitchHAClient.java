@@ -459,6 +459,13 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
                 return false;
             }
+            final long confirmOffset = this.messageStore.getConfirmOffset();
+            if (truncateOffset < confirmOffset) {
+                LOGGER.error("Refuse to truncate slave log to {} because it is smaller than local confirmOffset {}. "
+                    + "masterEpoch:{}, slaveEpoch:{}", truncateOffset, confirmOffset, masterEpochEntries,
+                    localEpochEntries);
+                return false;
+            }
             if (!this.messageStore.truncateFiles(truncateOffset)) {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
