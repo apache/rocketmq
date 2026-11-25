@@ -114,7 +114,7 @@ public class BroadcastOffsetManager extends ServiceThread {
                 brokerController.getConsumerOffsetManager().queryOffset(broadcastGroupId(groupId), topic, queueId);
         }
         if (storeOffset < 0) {
-            if (this.brokerController.getMessageStore().checkInMemByConsumeOffset(topic, queueId, 0, 1)) {
+            if (this.brokerController.getMessageStore().shouldInitConsumeOffsetToZero(topic, queueId)) {
                 storeOffset = 0;
             } else {
                 storeOffset = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId, true);

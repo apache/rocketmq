@@ -538,6 +538,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         while (!consumerLockService.tryLock(lockKey)) {
         }
 
+        long dispatchOffset = -1L;
         try {
             oldOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
             if (ackOffset < oldOffset) {
@@ -549,7 +550,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                     consumerOffsetManager.commitOffset("AckLiteHost", group, lmqName, 0, nextOffset);
                 }
                 if (!consumerOrderInfoManager.checkBlock(null, lmqName, group, 0, invisibleTime)) {
-                    this.brokerController.getLiteEventDispatcher().dispatch(group, lmqName, 0, nextOffset, -1);
+                    dispatchOffset = nextOffset;
                 }
             }
             if (nextOffset == -1) {
@@ -560,6 +561,10 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             }
         } finally {
             consumerLockService.unlock(lockKey);
+        }
+        if (dispatchOffset > -1L) {
+            // Dispatch after unlock, so a pop woken by this event does not fail on the lock still held here.
+            this.brokerController.getLiteEventDispatcher().dispatch(group, lmqName, 0, dispatchOffset, -1);
         }
 
         this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);

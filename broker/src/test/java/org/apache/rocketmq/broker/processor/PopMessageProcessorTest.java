@@ -216,6 +216,26 @@ public class PopMessageProcessorTest {
     }
 
     @Test
+    public void testGetInitOffset_normalTopic_initToZeroWhenFirstMsgInMem() throws RemotingCommandException, ConsumeQueueException {
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        // First message (offset 0) is still in memory: init the consume offset to 0 rather than the
+        // queue tail, so a message arriving during the init race is not skipped.
+        when(messageStore.shouldInitConsumeOffsetToZero(topic, 0)).thenReturn(true);
+        String newGroup = group + "-" + System.currentTimeMillis();
+        GetMessageResult getMessageResult = createGetMessageResult(0);
+        when(messageStore.getMessageAsync(eq(newGroup), anyString(), anyInt(), anyLong(), anyInt(), any()))
+                .thenReturn(CompletableFuture.completedFuture(getMessageResult));
+
+        long offset = brokerController.getConsumerOffsetManager().queryOffset(newGroup, topic, 0);
+        assertEquals(-1, offset);
+
+        RemotingCommand request = createPopMsgCommand(newGroup, topic, 0, ConsumeInitMode.MAX);
+        popMessageProcessor.processRequest(handlerContext, request);
+        offset = brokerController.getConsumerOffsetManager().queryOffset(newGroup, topic, 0);
+        assertEquals(0, offset);
+    }
+
+    @Test
     public void testBuildCkMsgJsonParsing() {
         PopCheckPoint ck = new PopCheckPoint();
         ck.setTopic("TestTopic");

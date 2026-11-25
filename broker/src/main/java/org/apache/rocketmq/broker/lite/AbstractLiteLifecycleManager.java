@@ -331,6 +331,8 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
             brokerController.getLiteSubscriptionRegistry().cleanSubscription(lmqName, false);
             brokerController.getConsumerOffsetManager().getPullOffsetTable().remove(
                 lmqName + TOPIC_GROUP_SEPARATOR + MixAll.TOOLS_CONSUMER_GROUP);
+            brokerController.getBrokerMetricsManager().getLiteConsumerLagCalculator()
+                .removeLagInfoByLmq(parentTopic, lmqName);
             removeInvalidCount(lmqName);
             onLmqDelete(lmqName);
             LOGGER.info("delete lmq finish. {}, sharding:{}", lmqName, sharding);

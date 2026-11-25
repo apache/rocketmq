@@ -83,7 +83,7 @@ public class TimerMessageStore {
     public static final int INITIAL = 0, RUNNING = 1, HAULT = 2, SHUTDOWN = 3;
     private volatile int state = INITIAL;
 
-    public static final String TIMER_TOPIC = TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer";
+    public static final String TIMER_TOPIC = TopicValidator.RMQ_SYS_WHEEL_TIMER_TOPIC;
     public static final String TIMER_OUT_MS = MessageConst.PROPERTY_TIMER_OUT_MS;
     public static final String TIMER_ENQUEUE_MS = MessageConst.PROPERTY_TIMER_ENQUEUE_MS;
     public static final String TIMER_DEQUEUE_MS = MessageConst.PROPERTY_TIMER_DEQUEUE_MS;
@@ -1339,7 +1339,8 @@ public class TimerMessageStore {
         LinkedList<SelectMappedBufferResult> sbrs = new LinkedList<>();
         boolean hasError = false;
         try {
-            while (true) {
+            // Long.MAX_VALUE means no eligible slot in the timer wheel, skip the scan but still revise the metrics
+            while (currOffsetPy != Long.MAX_VALUE) {
                 SelectMappedBufferResult timeSbr = timerLog.getWholeBuffer(currOffsetPy);
                 if (timeSbr == null) {
                     break;

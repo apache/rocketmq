@@ -28,6 +28,8 @@ import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.metrics.LiteConsumerLagCalculator;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -82,6 +84,10 @@ public class AbstractLiteLifecycleManagerTest {
     private ConsumerOrderInfoManager consumerOrderInfoManager;
     @Mock
     private LiteSubscriptionRegistry liteSubscriptionRegistry;
+    @Mock
+    private BrokerMetricsManager brokerMetricsManager;
+    @Mock
+    private LiteConsumerLagCalculator liteConsumerLagCalculator;
 
     private TestLiteLifecycleManager lifecycleManager;
     private BrokerConfig brokerConfig;
@@ -102,6 +108,8 @@ public class AbstractLiteLifecycleManagerTest {
         when(brokerController.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessor);
         when(popLiteMessageProcessor.getConsumerOrderInfoManager()).thenReturn(consumerOrderInfoManager);
         when(brokerController.getLiteSubscriptionRegistry()).thenReturn(liteSubscriptionRegistry);
+        when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+        when(brokerMetricsManager.getLiteConsumerLagCalculator()).thenReturn(liteConsumerLagCalculator);
 
         topicConfig.getAttributes().put(
             TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TopicMessageType.LITE.getValue());
@@ -215,6 +223,7 @@ public class AbstractLiteLifecycleManagerTest {
         verify(messageStore).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry).cleanSubscription(EXIST_LMQ_NAME, false);
         verify(consumerOrderInfoManager, times(1)).remove(EXIST_LMQ_NAME, GROUP);
+        verify(liteConsumerLagCalculator, times(1)).removeLagInfoByLmq(PARENT_TOPIC, EXIST_LMQ_NAME);
 
         // not sharding to this broker
         when(liteSharding.shardingByLmqName(PARENT_TOPIC, EXIST_LMQ_NAME)).thenReturn("otherBrokerName");
@@ -239,6 +248,7 @@ public class AbstractLiteLifecycleManagerTest {
         verify(consumerOffsetManager).removeConsumerOffset(removeKey);
         verify(messageStore).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry).cleanSubscription(EXIST_LMQ_NAME, false);
+        verify(liteConsumerLagCalculator).removeLagInfoByLmq(PARENT_TOPIC, EXIST_LMQ_NAME);
     }
 
     @Test

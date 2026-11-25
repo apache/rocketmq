@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
@@ -75,6 +76,24 @@ public class BrokerContainerTest {
         assertThat(brokerController.initialize()).isTrue();
         brokerController.start();
         brokerController.shutdown();
+    }
+
+    @Test
+    public void testShutdownStopsTheScheduledExecutorTest() throws Exception {
+        BrokerContainer brokerContainer = new BrokerContainer(
+            new BrokerContainerConfig(),
+            new NettyServerConfig(),
+            new NettyClientConfig());
+        assertThat(brokerContainer.initialize()).isTrue();
+        Field field = BrokerContainer.class.getDeclaredField("scheduledExecutorService");
+        field.setAccessible(true);
+        ScheduledExecutorService scheduledExecutorService = (ScheduledExecutorService) field.get(brokerContainer);
+
+        brokerContainer.shutdown();
+
+        // initialize() schedules the five-second refreshMetadata task on this executor; a shutdown
+        // that leaves it running keeps calling the brokerOuterAPI after it has been closed.
+        assertThat(scheduledExecutorService.isShutdown()).isTrue();
     }
 
     @Test

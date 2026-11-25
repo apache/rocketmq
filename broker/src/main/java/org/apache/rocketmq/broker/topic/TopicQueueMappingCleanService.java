@@ -294,7 +294,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                             continue;
                         }
                         List<LogicQueueMappingItem> items = remoteMappingDetail.getHostedQueues().get(qId);
-                        if (items.isEmpty()) {
+                        if (items == null || items.isEmpty()) {
                             continue;
                         }
                         LogicQueueMappingItem leaderItem = items.get(items.size() - 1);

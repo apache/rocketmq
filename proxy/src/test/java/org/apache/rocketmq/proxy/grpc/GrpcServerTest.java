@@ -33,6 +33,10 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.ServerCalls;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -78,19 +82,98 @@ public class GrpcServerTest extends InitConfigTest {
 
     @Test
     public void testDefaultOwnedGroupsTerminate() throws Exception {
-        checkOwnedGroups(GrpcServerBuilder.newBuilder(executor, 0, certificates), 2, 3);
+        checkOwnedGroups(GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(0), certificates), 2, 3);
     }
 
     @Test
     public void testExplicitOwnedGroupCounts() throws Exception {
-        checkOwnedGroups(GrpcServerBuilder.newBuilder(executor, 0, certificates, 1, 1), 1, 1);
+        checkOwnedGroups(GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(0), certificates, 1, 1), 1, 1);
     }
 
     @Test
     public void testEpollOwnedGroupsTerminate() throws Exception {
         Assume.assumeTrue(Epoll.isAvailable());
         ConfigurationManager.getProxyConfig().setEnableGrpcEpoll(true);
-        checkOwnedGroups(GrpcServerBuilder.newBuilder(executor, 0, certificates, 1, 1), 1, 1);
+        checkOwnedGroups(GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(0), certificates, 1, 1), 1, 1);
+    }
+
+    @Test
+    public void testWildcardBindAddress() throws Exception {
+        GrpcServer server = GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(0), certificates, 1, 1)
+            .addService(service()).build();
+        try {
+            server.start();
+            Server delegate = (Server) field(server, "server");
+            InetSocketAddress address = (InetSocketAddress) delegate.getListenSockets().get(0);
+            assertThat(address.getAddress().isAnyLocalAddress()).isTrue();
+            ping(server);
+        } finally {
+            server.shutdown();
+        }
+        assertTerminated((EventLoopGroup) field(server, "ownedBossGroup"),
+            (EventLoopGroup) field(server, "ownedWorkerGroup"));
+    }
+
+    @Test
+    public void testExplicitIpv4BindAddress() throws Exception {
+        checkBindAddress("127.0.0.1");
+    }
+
+    @Test
+    public void testExplicitIpv4BindAddressWithEpoll() throws Exception {
+        Assume.assumeTrue(Epoll.isAvailable());
+        ConfigurationManager.getProxyConfig().setEnableGrpcEpoll(true);
+        checkBindAddress("127.0.0.1");
+    }
+
+    @Test
+    public void testExplicitIpv6BindAddress() throws Exception {
+        assumeIpv6Available();
+        checkBindAddress("::1");
+    }
+
+    @Test
+    public void testExplicitIpv6BindAddressWithEpoll() throws Exception {
+        Assume.assumeTrue(Epoll.isAvailable());
+        assumeIpv6Available();
+        ConfigurationManager.getProxyConfig().setEnableGrpcEpoll(true);
+        checkBindAddress("::1");
+    }
+
+    private void assumeIpv6Available() {
+        try (ServerSocket socket = new ServerSocket()) {
+            socket.bind(new InetSocketAddress("::1", 0));
+        } catch (IOException e) {
+            Assume.assumeNoException(e);
+        }
+    }
+
+    private void checkBindAddress(String host) throws Exception {
+        GrpcServer server = GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(host, 0), certificates, 1, 1)
+            .addService(service()).build();
+        try {
+            server.start();
+            Server delegate = (Server) field(server, "server");
+            assertThat(delegate.getListenSockets()).hasSize(1);
+            InetSocketAddress listening = (InetSocketAddress) delegate.getListenSockets().get(0);
+            assertThat(listening.getAddress()).isEqualTo(InetAddress.getByName(host));
+            ping(server, host);
+            // A listener on one loopback address must not accept traffic on another address.
+            String otherAddress = host.equals("::1") ? "127.0.0.1" : "127.0.0.2";
+            try (Socket socket = new Socket()) {
+                assertThatThrownBy(() -> socket.connect(new InetSocketAddress(otherAddress, port(server)), 1000))
+                    .isInstanceOf(IOException.class);
+            }
+        } finally {
+            server.shutdown();
+        }
+        assertTerminated((EventLoopGroup) field(server, "ownedBossGroup"),
+            (EventLoopGroup) field(server, "ownedWorkerGroup"));
+    }
+
+    @Test
+    public void testExplicitAddressUsesConfiguredGroups() throws Exception {
+        checkOwnedGroups(GrpcServerBuilder.newBuilder(executor, new InetSocketAddress("127.0.0.1", 0), certificates), 2, 3);
     }
 
     private void checkOwnedGroups(GrpcServerBuilder builder, int bossThreads, int workerThreads) throws Exception {
@@ -113,9 +196,9 @@ public class GrpcServerTest extends InitConfigTest {
     public void testBorrowedGroupsSurviveShutdownAndBindFailure() throws Exception {
         EventLoopGroup boss = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup(1);
-        GrpcServer first = GrpcServerBuilder.newBuilder(executor, 0, certificates, boss, worker)
+        GrpcServer first = GrpcServerBuilder.newBuilder(executor, new InetSocketAddress("127.0.0.1", 0), certificates, boss, worker)
             .addService(service()).build();
-        GrpcServer second = GrpcServerBuilder.newBuilder(executor, 0, certificates, boss, worker)
+        GrpcServer second = GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(0), certificates, boss, worker)
             .addService(service()).build();
         GrpcServer failed = null;
         try {
@@ -128,7 +211,7 @@ public class GrpcServerTest extends InitConfigTest {
             assertThat(boss.isShuttingDown()).isFalse();
             assertThat(worker.isShuttingDown()).isFalse();
 
-            failed = GrpcServerBuilder.newBuilder(executor, port(second), certificates, boss, worker).build();
+            failed = GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(port(second)), certificates, boss, worker).build();
             assertThatThrownBy(failed::start).isInstanceOf(IOException.class);
             ping(second);
             assertThat(boss.isShuttingDown()).isFalse();
@@ -147,11 +230,11 @@ public class GrpcServerTest extends InitConfigTest {
 
     @Test
     public void testOwnedGroupsTerminateAfterBindFailure() throws Exception {
-        GrpcServer running = GrpcServerBuilder.newBuilder(executor, 0, certificates, 1, 1).build();
+        GrpcServer running = GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(0), certificates, 1, 1).build();
         GrpcServer failed = null;
         try {
             running.start();
-            failed = GrpcServerBuilder.newBuilder(executor, port(running), certificates, 1, 1).build();
+            failed = GrpcServerBuilder.newBuilder(executor, new InetSocketAddress(port(running)), certificates, 1, 1).build();
             assertThatThrownBy(failed::start).isInstanceOf(IOException.class);
             assertTerminated((EventLoopGroup) field(failed, "ownedBossGroup"),
                 (EventLoopGroup) field(failed, "ownedWorkerGroup"));
@@ -208,7 +291,11 @@ public class GrpcServerTest extends InitConfigTest {
     }
 
     private void ping(GrpcServer server) throws Exception {
-        ManagedChannel channel = NettyChannelBuilder.forAddress("127.0.0.1", port(server)).usePlaintext().build();
+        ping(server, "127.0.0.1");
+    }
+
+    private void ping(GrpcServer server, String host) throws Exception {
+        ManagedChannel channel = NettyChannelBuilder.forAddress(host, port(server)).usePlaintext().build();
         try {
             assertThat(ClientCalls.blockingUnaryCall(channel, METHOD,
                 CallOptions.DEFAULT.withDeadlineAfter(5, TimeUnit.SECONDS), StringValue.of("ping")))

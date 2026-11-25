@@ -26,6 +26,11 @@ public class TopicStatsTable extends RemotingSerializable {
 
     private Map<MessageQueue, TopicOffset> offsetTable = new ConcurrentHashMap<>();
 
+    public synchronized void merge(TopicStatsTable brokerStats) {
+        offsetTable.putAll(brokerStats.getOffsetTable());
+        topicPutTps += brokerStats.getTopicPutTps();
+    }
+
     public Map<MessageQueue, TopicOffset> getOffsetTable() {
         return offsetTable;
     }

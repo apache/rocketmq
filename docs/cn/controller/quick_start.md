@@ -12,8 +12,11 @@
 
 ## 编译 RocketMQ 源码
 
+构建时需要从 `rocketmq-apis` 子模块生成协议类。如果已经克隆了仓库，请先在仓库根目录执行
+`git submodule update --init --recursive`，再运行 Maven。
+
 ```shell
-$ git clone https://github.com/apache/rocketmq.git
+$ git clone --recurse-submodules https://github.com/apache/rocketmq.git
 
 $ cd rocketmq
 

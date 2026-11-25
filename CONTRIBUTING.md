@@ -11,6 +11,9 @@ Recommend reading:
 
 ## Contributing code
 
+For local source debugging with JDK 17 in IntelliJ IDEA, see the
+[NameServer and Broker run configurations](dev/idea/README.md).
+
 To submit a change for inclusion, please do the following:
 
 #### If the change is non-trivial please include some unit tests that cover the new functionality.

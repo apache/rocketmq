@@ -852,7 +852,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
   <td class=xl68 width=87 style='width:65pt'>timestamp at start, refer to -h to get format开</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-d</td>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-e</td>
   <td class=xl68 width=87 style='width:65pt'>timestamp at the end</td>
  </tr>
  <tr height=39 style='height:29.0pt'>

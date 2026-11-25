@@ -53,6 +53,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -112,6 +113,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -228,6 +230,11 @@ public class DefaultMessageStore implements MessageStore {
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
         final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
+        if (!brokerConfig.isEnableHAService()
+            && (messageStoreConfig.getBrokerRole() != BrokerRole.ASYNC_MASTER
+                || brokerConfig.isEnableControllerMode() || brokerConfig.isEnableSlaveActingMaster())) {
+            throw new IllegalArgumentException("Disabling HA service requires ASYNC_MASTER without controller or slave-acting-master mode");
+        }
         stateMachine = new MessageStoreStateMachine(LOGGER);
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
@@ -420,7 +427,7 @@ public class DefaultMessageStore implements MessageStore {
      */
     @Override
     public void start() throws Exception {
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
+        if (this.haService != null) {
             this.haService.init(this);
         }
 
@@ -1974,6 +1981,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void initializeHAService() {
+        if (!brokerConfig.isEnableHAService()) {
+            return;
+        }
         if (!this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             if (brokerConfig.isEnableControllerMode()) {
                 this.haService = new AutoSwitchHAService();
@@ -2301,11 +2311,21 @@ public class DefaultMessageStore implements MessageStore {
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
+
+        /**
+         * Allowed range of {@code diskSpaceWarningLevelRatio}. A configured value outside this range is
+         * silently replaced, which is why the effective value is logged once when it happens.
+         */
+        static final double MIN_DISK_SPACE_WARNING_LEVEL_RATIO = 0.35;
+        static final double MAX_DISK_SPACE_WARNING_LEVEL_RATIO = 0.90;
+
         private final String diskSpaceWarningLevelRatio =
             System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "");
 
         private final String diskSpaceCleanForciblyRatio =
             System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "");
+
+        private final AtomicBoolean warningLevelRatioClampedWarned = new AtomicBoolean(false);
         private long lastRedeleteTimestamp = 0;
 
         private final AtomicInteger manualDeleteFileSeveralTimes = new AtomicInteger();
@@ -2322,14 +2342,18 @@ public class DefaultMessageStore implements MessageStore {
                 finalDiskSpaceWarningLevelRatio = Double.parseDouble(diskSpaceWarningLevelRatio);
             }
 
-            if (finalDiskSpaceWarningLevelRatio > 0.90) {
-                finalDiskSpaceWarningLevelRatio = 0.90;
-            }
-            if (finalDiskSpaceWarningLevelRatio < 0.35) {
-                finalDiskSpaceWarningLevelRatio = 0.35;
+            boolean outOfRange = finalDiskSpaceWarningLevelRatio < MIN_DISK_SPACE_WARNING_LEVEL_RATIO
+                || finalDiskSpaceWarningLevelRatio > MAX_DISK_SPACE_WARNING_LEVEL_RATIO;
+            double clampedRatio = Math.min(Math.max(finalDiskSpaceWarningLevelRatio,
+                MIN_DISK_SPACE_WARNING_LEVEL_RATIO), MAX_DISK_SPACE_WARNING_LEVEL_RATIO);
+            if (outOfRange && warningLevelRatioClampedWarned.compareAndSet(false, true)) {
+                DefaultMessageStore.LOGGER.warn("diskSpaceWarningLevelRatio={} is out of the allowed range [{}, {}], "
+                        + "so it is clamped to {}; the store is marked read-only once the disk usage exceeds {}",
+                    finalDiskSpaceWarningLevelRatio, MIN_DISK_SPACE_WARNING_LEVEL_RATIO,
+                    MAX_DISK_SPACE_WARNING_LEVEL_RATIO, clampedRatio, clampedRatio);
             }
 
-            return finalDiskSpaceWarningLevelRatio;
+            return clampedRatio;
         }
 
         double getDiskSpaceCleanForciblyRatio() {
@@ -2448,7 +2472,8 @@ public class DefaultMessageStore implements MessageStore {
                 boolean diskFull = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                 if (diskFull) {
                     DefaultMessageStore.LOGGER.error("physic disk maybe full soon " + minPhysicRatio +
-                        ", so mark disk full, storePathPhysic=" + minStorePath);
+                        ", so mark disk full, storePathPhysic=" + minStorePath +
+                        ", diskSpaceWarningLevelRatio=" + getDiskSpaceWarningLevelRatio());
                 }
 
                 cleanImmediately = true;
@@ -2642,13 +2667,24 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest) {
+        // keeps original parameters and behavior by always passing true here
+        notifyMessageArrive(dispatchRequest, true);
+    }
+
+    /**
+     * Notify message arrival, optionally including the multi-queue (LMQ) part.
+     * @param notifyMultiQueue whether to also notify the multi-queue arrival
+     */
+    private void notifyMessageArrive(DispatchRequest dispatchRequest, boolean notifyMultiQueue) {
         if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
             && DefaultMessageStore.this.messageArrivingListener != null) {
             DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
                 dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
                 dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
                 dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+            if (notifyMultiQueue) {
+                DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+            }
         }
     }
 
@@ -2745,7 +2781,10 @@ public class DefaultMessageStore implements MessageStore {
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                 if (isNotifyMessageArriveWhenReput()) {
-                                    notifyMessageArriveIfNecessary(dispatchRequest);
+                                    // only notify multi-queue when we do real LMQ dispatch action.
+                                    boolean notifyMultiQueue = MultiDispatchUtils.checkMultiDispatchQueue(
+                                        DefaultMessageStore.this.messageStoreConfig, dispatchRequest);
+                                    notifyMessageArrive(dispatchRequest, notifyMultiQueue);
                                 }
 
                                 this.reputFromOffset += size;
@@ -2929,7 +2968,9 @@ public class DefaultMessageStore implements MessageStore {
                     for (DispatchRequest dispatchRequest : dispatchRequests) {
                         DefaultMessageStore.this.doDispatch(dispatchRequest);
                         // wake up long-polling
-                        DefaultMessageStore.this.notifyMessageArriveIfNecessary(dispatchRequest);
+                        boolean notifyMultiQueue = MultiDispatchUtils.checkMultiDispatchQueue(
+                            DefaultMessageStore.this.messageStoreConfig, dispatchRequest);
+                        notifyMessageArrive(dispatchRequest, notifyMultiQueue);
 
                         if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
                             DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {

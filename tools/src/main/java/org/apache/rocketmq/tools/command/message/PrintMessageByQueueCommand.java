@@ -156,9 +156,13 @@ public class PrintMessageByQueueCommand implements SubCommand {
         return options;
     }
 
+    DefaultMQPullConsumer createConsumer(RPCHook rpcHook) {
+        return new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
+    }
+
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
+        DefaultMQPullConsumer consumer = createConsumer(rpcHook);
 
         try {
             String charsetName =
@@ -198,17 +202,22 @@ public class PrintMessageByQueueCommand implements SubCommand {
             for (long offset = minOffset; offset < maxOffset; ) {
                 try {
                     PullResult pullResult = consumer.pull(mq, subExpression, offset, 32);
-                    offset = pullResult.getNextBeginOffset();
+                    long nextOffset = pullResult.getNextBeginOffset();
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
                             calculateByTag(pullResult.getMsgFoundList(), tagCalmap, calByTag);
                             printMessage(pullResult.getMsgFoundList(), charsetName, printMsg, printBody);
                             break;
                         case NO_MATCHED_MSG:
+                            if (nextOffset <= offset) {
+                                break READQ;
+                            }
+                            break;
                         case NO_NEW_MSG:
                         case OFFSET_ILLEGAL:
                             break READQ;
                     }
+                    offset = nextOffset;
                 } catch (Exception e) {
                     e.printStackTrace();
                     break;
@@ -250,7 +259,11 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
         @Override
         public int compareTo(final TagCountBean o) {
-            return (int) (o.getCount().get() - this.count.get());
+            // Tag counts are longs that may exceed Integer.MAX_VALUE; the previous
+            // (int) (o.count - this.count) form truncated the difference, which
+            // inverted the order and violated the Comparable contract used by
+            // Collections.sort. Long.compare keeps the full 64-bit ordering.
+            return Long.compare(o.getCount().get(), this.count.get());
         }
     }
 }

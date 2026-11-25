@@ -202,7 +202,13 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                 }
 
                 RemoteChannel decodedChannel = RemoteChannel.decode(data.getChannelData());
-                RemoteChannel channel = remoteChannelMap.computeIfAbsent(buildKey(data.getGroup(), decodedChannel), key -> decodedChannel);
+                String key = buildKey(data.getGroup(), decodedChannel);
+                RemoteChannel channel;
+                if (data.getHeartbeatType().equals(HeartbeatType.REGISTER)) {
+                    channel = remoteChannelMap.computeIfAbsent(key, k -> decodedChannel);
+                } else {
+                    channel = remoteChannelMap.getOrDefault(key, decodedChannel);
+                }
                 channel.setExtendAttribute(decodedChannel.getChannelExtendAttribute());
                 ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                     channel,

@@ -32,9 +32,13 @@ import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -93,5 +97,19 @@ public class RocksDBTopicConfigManagerTest {
 
         assertNull(rocksDBTopicConfigManager.putTopicConfig(newTopicConfig));
         verify(rocksDBConfigManager, times(1)).put(any(byte[].class), any(byte[].class));
+    }
+
+    @Test
+    public void testPersistPropagatesDataVersionWriteFailure() throws Exception {
+        Exception writeFailure = new Exception("version write failed");
+        doThrow(writeFailure).when(rocksDBConfigManager).persistKvDataVersion();
+
+        try {
+            rocksDBTopicConfigManager.persist();
+            fail("Expected the version write failure to be propagated");
+        } catch (RuntimeException e) {
+            assertSame(writeFailure, e.getCause());
+        }
+        verify(rocksDBConfigManager, never()).flushWAL();
     }
 }
