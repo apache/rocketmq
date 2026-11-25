@@ -21,16 +21,22 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AutoSwitchHAStateValidationTest {
@@ -89,6 +95,59 @@ public class AutoSwitchHAStateValidationTest {
             HAConnectionState.HANDSHAKE.ordinal(), AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE));
         assertFalse(processMasterState(
             HAConnectionState.TRANSFER.ordinal(), AutoSwitchHAConnection.TRANSFER_HEADER_SIZE));
+    }
+
+    @Test
+    public void testTruncateSlaveLogProtectsConfirmOffset() throws Exception {
+        AutoSwitchHAService haService = mock(AutoSwitchHAService.class);
+        DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
+        when(haService.getDefaultMessageStore()).thenReturn(messageStore);
+        when(messageStore.getBrokerConfig()).thenReturn(new BrokerConfig());
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        when(messageStore.getConfirmOffset()).thenReturn(1024L);
+
+        AutoSwitchHAClient client = new AutoSwitchHAClient(haService, messageStore, new EpochFileCache(), 1L);
+        try {
+            assertFalse(client.truncateSlaveLog(1023L));
+            verify(messageStore, never()).truncateFiles(anyLong());
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    @Test
+    public void testClientHandshakeAtConfirmOffset() throws Exception {
+        long confirmOffset = 1024L;
+        int epoch = 1;
+        AutoSwitchHAService haService = mock(AutoSwitchHAService.class);
+        DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
+        when(haService.getDefaultMessageStore()).thenReturn(messageStore);
+        when(messageStore.getBrokerConfig()).thenReturn(new BrokerConfig());
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        when(messageStore.getConfirmOffset()).thenReturn(confirmOffset);
+        when(messageStore.getMaxPhyOffset()).thenReturn(confirmOffset);
+        when(messageStore.truncateFiles(confirmOffset)).thenReturn(true);
+        EpochFileCache epochCache = new EpochFileCache();
+        epochCache.initCacheFromEntries(Collections.singletonList(new EpochEntry(epoch, 0L)));
+
+        AutoSwitchHAClient client = new AutoSwitchHAClient(haService, messageStore, epochCache, 1L);
+        try {
+            client.changeCurrentState(HAConnectionState.HANDSHAKE);
+            ByteBuffer frame = ByteBuffer.allocate(AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE
+                + AutoSwitchHAConnection.EPOCH_ENTRY_SIZE);
+            frame.putInt(HAConnectionState.HANDSHAKE.ordinal());
+            frame.putInt(AutoSwitchHAConnection.EPOCH_ENTRY_SIZE);
+            frame.putLong(confirmOffset);
+            frame.putInt(epoch);
+            frame.putInt(epoch);
+            frame.putLong(0L);
+
+            assertTrue(client.new HAClientReader().processReadResult(frame));
+            assertEquals(HAConnectionState.TRANSFER, client.getCurrentState());
+            verify(messageStore).truncateFiles(confirmOffset);
+        } finally {
+            client.shutdown();
+        }
     }
 
     private boolean processMasterState(int stateOrdinal, int headerSize) throws Exception {

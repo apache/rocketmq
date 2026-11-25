@@ -40,6 +40,7 @@ import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.store.ha.io.AbstractHAReader;
 import org.apache.rocketmq.store.ha.io.HAWriter;
+import org.rocksdb.RocksDBException;
 
 public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
@@ -459,8 +460,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
                 return false;
             }
-            if (!this.messageStore.truncateFiles(truncateOffset)) {
-                LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
+            if (!truncateSlaveLog(truncateOffset)) {
                 return false;
             }
             final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
@@ -473,6 +473,20 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         }
         if (!reportSlaveMaxOffset(HAConnectionState.TRANSFER)) {
             LOGGER.error("AutoSwitchHAClient report max offset to master failed");
+            return false;
+        }
+        return true;
+    }
+
+    boolean truncateSlaveLog(long truncateOffset) throws RocksDBException {
+        final long confirmOffset = this.messageStore.getConfirmOffset();
+        if (truncateOffset < confirmOffset) {
+            LOGGER.error("Refusing to truncate slave log below confirmOffset: brokerId={}, masterHaAddress={}, truncateOffset={}, confirmOffset={}",
+                this.brokerId, getHaMasterAddress(), truncateOffset, confirmOffset);
+            return false;
+        }
+        if (!this.messageStore.truncateFiles(truncateOffset)) {
+            LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
             return false;
         }
         return true;
