@@ -85,10 +85,13 @@ public class AutoSwitchHAService extends DefaultHAService {
     @Override
     public void init(final DefaultMessageStore defaultMessageStore) throws IOException {
         final Path epochFilePath = Paths.get(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile()).toAbsolutePath();
-        if (epochFilePath.getFileName() == null || epochFilePath.getParent() == null) {
+        final Path parent = epochFilePath.getParent();
+        if (epochFilePath.getFileName() == null || parent == null) {
             throw new IOException("Invalid epoch file path: " + epochFilePath);
         }
-        Files.createDirectories(epochFilePath.getParent());
+        if (!Files.isDirectory(parent)) {
+            Files.createDirectories(parent);
+        }
         this.epochCache = new EpochFileCache(epochFilePath.toString());
         if (!this.epochCache.initCacheFromFile()) {
             throw new IOException("Failed to load epoch history: " + epochFilePath);

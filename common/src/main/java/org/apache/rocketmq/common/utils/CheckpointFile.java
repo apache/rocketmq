@@ -222,7 +222,10 @@ public class CheckpointFile<T> {
         if (path.getFileName() == null || parent == null) {
             throw new IOException("Invalid checkpoint path: " + this.filePath);
         }
-        Files.createDirectories(parent);
+        // createDirectories rejects a directory symlink in the last component, such as /tmp on macOS.
+        if (!Files.isDirectory(parent)) {
+            Files.createDirectories(parent);
+        }
         final Path temporaryFile = Files.createTempFile(parent, "checkpoint-", ".tmp");
         try {
             try (FileChannel channel = FileChannel.open(temporaryFile, StandardOpenOption.WRITE)) {

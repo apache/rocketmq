@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -46,6 +47,27 @@ public class AutoSwitchHAServiceTest {
 
     @Rule
     public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    @Test
+    public void testEpochCheckpointUnderSymlinkedDirectory() throws Exception {
+        final Path directory = tempFolder.newFolder("store").toPath();
+        final Path link = directory.resolveSibling("link");
+        try {
+            Files.createSymbolicLink(link, directory);
+        } catch (IOException | UnsupportedOperationException e) {
+            Assume.assumeNoException("Symbolic links are unavailable on this filesystem", e);
+        }
+        final AutoSwitchHAService service = new AutoSwitchHAService();
+        service.init(mockMessageStore(link.resolve("epoch").toString(), 0));
+        try {
+            assertTrue(service.changeToMaster(1));
+        } finally {
+            service.shutdown();
+        }
+        final EpochFileCache reloaded = new EpochFileCache(directory.resolve("epoch").toString());
+        assertTrue(reloaded.initCacheFromFile());
+        assertEquals(new EpochEntry(1, 0), reloaded.lastEntry());
+    }
 
     @Test
     public void testChangeToMasterWithSameEpochKeepsOriginalStartOffset() throws Exception {
