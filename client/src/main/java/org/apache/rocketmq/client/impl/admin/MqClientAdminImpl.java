@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.MqClientAdmin;
@@ -84,7 +85,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         CompletableFuture<List<MessageExt>> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_MESSAGE, requestHeader);
         request.addExtField(MixAll.UNIQUE_MSG_QUERY_FLAG, String.valueOf(uniqueKeyFlag));
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 List<MessageExt> wrappers = MessageDecoder.decodesBatch(ByteBuffer.wrap(response.getBody()), true, decompressBody, true);
                 future.complete(filterMessages(wrappers, requestHeader.getTopic(), requestHeader.getKey(), uniqueKeyFlag));
@@ -105,7 +106,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         GetTopicStatsInfoRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<TopicStatsTable> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_STATS_INFO, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 TopicStatsTable topicStatsTable = TopicStatsTable.decode(response.getBody(), TopicStatsTable.class);
                 future.complete(topicStatsTable);
@@ -122,7 +123,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         QueryConsumeTimeSpanRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<List<QueueTimeSpan>> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUME_TIME_SPAN, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 QueryConsumeTimeSpanBody consumeTimeSpanBody = GroupList.decode(response.getBody(), QueryConsumeTimeSpanBody.class);
                 future.complete(consumeTimeSpanBody.getConsumeTimeSpanSet());
@@ -139,7 +140,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 future.complete(null);
             } else {
@@ -157,7 +158,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
         byte[] body = RemotingSerializable.encode(config);
         request.setBody(body);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 future.complete(null);
             } else {
@@ -173,7 +174,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_BROKER, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 future.complete(null);
             } else {
@@ -189,7 +190,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_TOPIC_IN_NAMESRV, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 future.complete(null);
             } else {
@@ -205,7 +206,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_KV_CONFIG, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 future.complete(null);
             } else {
@@ -221,7 +222,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 future.complete(null);
             } else {
@@ -237,7 +238,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         ResetOffsetRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<Map<MessageQueue, Long>> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS && null != response.getBody()) {
                 Map<MessageQueue, Long> offsetTable = ResetOffsetBody.decode(response.getBody(), ResetOffsetBody.class).getOffsetTable();
                 future.complete(offsetTable);
@@ -256,7 +257,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         long timeoutMillis) {
         CompletableFuture<MessageExt> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
                 MessageExt messageExt = MessageDecoder.clientDecode(byteBuffer, true);
@@ -273,7 +274,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
     public CompletableFuture<ClusterInfo> getBrokerClusterInfo(String address, long timeoutMillis) {
         CompletableFuture<ClusterInfo> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_INFO, null);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 ClusterInfo clusterInfo = ClusterInfo.decode(response.getBody(), ClusterInfo.class);
                 future.complete(clusterInfo);
@@ -290,7 +291,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         GetConsumerConnectionListRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<ConsumerConnection> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_CONNECTION_LIST, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 ConsumerConnection consumerConnection = ConsumerConnection.decode(response.getBody(), ConsumerConnection.class);
                 future.complete(consumerConnection);
@@ -307,7 +308,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         QueryTopicsByConsumerRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<TopicList> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_TOPICS_BY_CONSUMER, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 TopicList topicList = TopicList.decode(response.getBody(), TopicList.class);
                 future.complete(topicList);
@@ -324,7 +325,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         QuerySubscriptionByConsumerRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<SubscriptionData> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_SUBSCRIPTION_BY_CONSUMER, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 QuerySubscriptionResponseBody subscriptionResponseBody =
                     QuerySubscriptionResponseBody.decode(response.getBody(), QuerySubscriptionResponseBody.class);
@@ -342,7 +343,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         long timeoutMillis) {
         CompletableFuture<ConsumeStats> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUME_STATS, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 ConsumeStats consumeStats = ConsumeStats.decode(response.getBody(), ConsumeStats.class);
                 future.complete(consumeStats);
@@ -359,7 +360,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         QueryTopicConsumeByWhoRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<GroupList> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_TOPIC_CONSUME_BY_WHO, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 GroupList groupList = GroupList.decode(response.getBody(), GroupList.class);
                 future.complete(groupList);
@@ -376,7 +377,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         GetConsumerRunningInfoRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<ConsumerRunningInfo> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 ConsumerRunningInfo info = ConsumerRunningInfo.decode(response.getBody(), ConsumerRunningInfo.class);
                 future.complete(info);
@@ -393,7 +394,7 @@ public class MqClientAdminImpl implements MqClientAdmin {
         ConsumeMessageDirectlyResultRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<ConsumeMessageDirectlyResult> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, requestHeader);
-        remotingClient.invoke(address, request, timeoutMillis).thenAccept(response -> {
+        handleResponse(remotingClient.invoke(address, request, timeoutMillis), future, response -> {
             if (response.getCode() == ResponseCode.SUCCESS) {
                 ConsumeMessageDirectlyResult info = ConsumeMessageDirectlyResult.decode(response.getBody(), ConsumeMessageDirectlyResult.class);
                 future.complete(info);
@@ -403,6 +404,21 @@ public class MqClientAdminImpl implements MqClientAdmin {
             }
         });
         return future;
+    }
+
+    private <T> void handleResponse(CompletableFuture<RemotingCommand> responseFuture,
+        CompletableFuture<T> resultFuture, Consumer<RemotingCommand> responseHandler) {
+        responseFuture.whenComplete((response, throwable) -> {
+            if (throwable != null) {
+                resultFuture.completeExceptionally(throwable);
+                return;
+            }
+            try {
+                responseHandler.accept(response);
+            } catch (Throwable t) {
+                resultFuture.completeExceptionally(t);
+            }
+        });
     }
 
     private List<MessageExt> filterMessages(List<MessageExt> messageFoundList, String topic, String key,
