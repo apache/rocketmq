@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -71,6 +72,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private volatile boolean isSynchronizingSyncStateSet = false;
 
     private EpochFileCache epochCache;
+    private HistoryIncident incident;
     private AutoSwitchHAClient haClient;
 
     private Long localBrokerId = null;
@@ -83,6 +85,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.epochCache = new EpochFileCache(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile());
         this.epochCache.initCacheFromFile();
         this.defaultMessageStore = defaultMessageStore;
+        this.incident = new HistoryIncident(Paths.get(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir()));
         this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
@@ -129,6 +132,10 @@ public class AutoSwitchHAService extends DefaultHAService {
         // Stop ha client if needed
         if (this.haClient != null) {
             this.haClient.shutdown();
+        }
+
+        if (isHistoryIsolated()) {
+            return false;
         }
 
         // Truncate dirty file
@@ -199,6 +206,9 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     @Override
     public boolean changeToMasterWhenLastRoleIsMaster(int masterEpoch) {
+        if (isHistoryIsolated()) {
+            return false;
+        }
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
@@ -210,6 +220,18 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.defaultMessageStore.setStateMachineVersion(masterEpoch);
         LOGGER.info("Change ha to master success, last role is master, newMasterEpoch:{}, startOffset:{}",
             masterEpoch, newEpochEntry.getStartOffset());
+        return true;
+    }
+
+    private boolean isHistoryIsolated() {
+        try {
+            if (!incident.isolated()) {
+                return false;
+            }
+            LOGGER.error("Isolated replica cannot become master");
+        } catch (IOException e) {
+            LOGGER.error("Cannot verify local HA history before promotion", e);
+        }
         return true;
     }
 

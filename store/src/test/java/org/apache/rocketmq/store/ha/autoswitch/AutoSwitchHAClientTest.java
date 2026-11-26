@@ -16,15 +16,17 @@
  */
 package org.apache.rocketmq.store.ha.autoswitch;
 
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.List;
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAConnectionState;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -36,19 +38,90 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AutoSwitchHAClientTest {
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    @Test
+    public void testHandshakeMustRetainRefusalAfterClientRestart() throws Exception {
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathRootDir(temporaryFolder.newFolder().getAbsolutePath());
+        DefaultMessageStore store = mock(DefaultMessageStore.class);
+        when(store.getMessageStoreConfig()).thenReturn(config);
+        when(store.getMaxPhyOffset()).thenReturn(3280L);
+        when(store.getConfirmOffset()).thenReturn(3280L);
+        when(store.truncateFiles(3280L)).thenReturn(true);
+
+        AutoSwitchHAClient first = createClient(store);
+        try {
+            first.changeCurrentState(HAConnectionState.HANDSHAKE);
+            assertFalse(first.new HAClientReader().processReadResult(handshake(1580L)));
+            assertEquals(HAConnectionState.HANDSHAKE, first.getCurrentState());
+            verify(store, never()).truncateFiles(anyLong());
+        } finally {
+            first.shutdown();
+        }
+
+        // Recreate the client against the same storage directory. A higher end offset
+        // in the same epoch cannot prove that the previously rejected history is safe.
+        AutoSwitchHAClient restarted = createClient(store);
+        try {
+            restarted.changeCurrentState(HAConnectionState.HANDSHAKE);
+            assertFalse(restarted.new HAClientReader().processReadResult(handshake(4190L)));
+            assertEquals(HAConnectionState.HANDSHAKE, restarted.getCurrentState());
+            verify(store, never()).truncateFiles(anyLong());
+        } finally {
+            restarted.shutdown();
+        }
+    }
+
+    private ByteBuffer handshake(long masterEndOffset) {
+        ByteBuffer frame = ByteBuffer.allocate(AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE
+            + AutoSwitchHAConnection.EPOCH_ENTRY_SIZE);
+        frame.putInt(HAConnectionState.HANDSHAKE.ordinal());
+        frame.putInt(AutoSwitchHAConnection.EPOCH_ENTRY_SIZE);
+        frame.putLong(masterEndOffset);
+        frame.putInt(1);
+        frame.putInt(1);
+        frame.putLong(0L);
+        return frame;
+    }
+
+    @Test
+    public void testCorruptIsolationStateRefusesHandshake() throws Exception {
+        File directory = temporaryFolder.newFolder();
+        Files.write(new File(directory, "ha-history-incident").toPath(), new byte[] {1, 2});
+        DefaultMessageStore store = mock(DefaultMessageStore.class);
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathRootDir(directory.getAbsolutePath());
+        when(store.getMessageStoreConfig()).thenReturn(config);
+        when(store.getMaxPhyOffset()).thenReturn(100L);
+        when(store.truncateFiles(100L)).thenReturn(true);
+        AutoSwitchHAClient client = createClient(store);
+        try {
+            client.changeCurrentState(HAConnectionState.HANDSHAKE);
+            assertFalse(client.new HAClientReader().processReadResult(handshake(100L)));
+            assertEquals(HAConnectionState.HANDSHAKE, client.getCurrentState());
+            verify(store, never()).truncateFiles(anyLong());
+        } finally {
+            client.shutdown();
+        }
+    }
 
     @Test
     public void testDoTruncateRejectsOffsetBelowConfirmOffset() throws Exception {
         DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
-        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathRootDir(temporaryFolder.newFolder().getAbsolutePath());
+        when(messageStore.getMessageStoreConfig()).thenReturn(config);
         when(messageStore.getMaxPhyOffset()).thenReturn(200L, 100L);
         when(messageStore.getConfirmOffset()).thenReturn(150L);
         when(messageStore.truncateFiles(100L)).thenReturn(true);
 
         AutoSwitchHAClient client = createClient(messageStore);
         try {
-            assertFalse(invokeDoTruncate(client, 100L));
-            assertEquals(HAConnectionState.READY, client.getCurrentState());
+            client.changeCurrentState(HAConnectionState.HANDSHAKE);
+            assertFalse(client.new HAClientReader().processReadResult(handshake(100L)));
+            assertEquals(HAConnectionState.HANDSHAKE, client.getCurrentState());
             verify(messageStore, never()).truncateFiles(anyLong());
         } finally {
             client.shutdown();
@@ -58,14 +131,17 @@ public class AutoSwitchHAClientTest {
     @Test
     public void testDoTruncateAllowsOffsetAtConfirmOffset() throws Exception {
         DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
-        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathRootDir(temporaryFolder.newFolder().getAbsolutePath());
+        when(messageStore.getMessageStoreConfig()).thenReturn(config);
         when(messageStore.getMaxPhyOffset()).thenReturn(200L, 100L);
         when(messageStore.getConfirmOffset()).thenReturn(100L);
         when(messageStore.truncateFiles(100L)).thenReturn(true);
 
         AutoSwitchHAClient client = createClient(messageStore);
         try {
-            assertTrue(invokeDoTruncate(client, 100L));
+            client.changeCurrentState(HAConnectionState.HANDSHAKE);
+            assertTrue(client.new HAClientReader().processReadResult(handshake(100L)));
             assertEquals(HAConnectionState.TRANSFER, client.getCurrentState());
             verify(messageStore).truncateFiles(100L);
         } finally {
@@ -82,9 +158,4 @@ public class AutoSwitchHAClientTest {
         return new AutoSwitchHAClient(haService, messageStore, epochCache, 1L);
     }
 
-    private boolean invokeDoTruncate(AutoSwitchHAClient client, long masterEndOffset) throws Exception {
-        Method method = AutoSwitchHAClient.class.getDeclaredMethod("doTruncate", List.class, long.class);
-        method.setAccessible(true);
-        return (boolean) method.invoke(client, Collections.singletonList(new EpochEntry(1, 0L)), masterEndOffset);
-    }
 }

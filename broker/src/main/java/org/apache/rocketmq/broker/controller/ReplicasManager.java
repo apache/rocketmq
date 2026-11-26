@@ -238,13 +238,14 @@ public class ReplicasManager {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
-                this.masterEpoch = newMasterEpoch;
                 if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
+                    if (!this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch)) {
+                        throw new IllegalStateException("Store refused master epoch " + newMasterEpoch);
+                    }
+                    this.masterEpoch = newMasterEpoch;
                     // Change SyncStateSet
                     final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                     changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
-                    // if master doesn't change
-                    this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch);
                     this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
                     this.executorService.submit(this::checkSyncStateSetAndDoReport);
                     registerBrokerWhenRoleChange();
@@ -255,11 +256,12 @@ public class ReplicasManager {
                 final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                 changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
 
-                // Handle the slave synchronise
-                handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
-
                 // Notify ha service, change to master
-                this.haService.changeToMaster(newMasterEpoch);
+                if (!this.haService.changeToMaster(newMasterEpoch)) {
+                    throw new IllegalStateException("Store refused promotion to master epoch " + newMasterEpoch);
+                }
+                this.masterEpoch = newMasterEpoch;
+                handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);

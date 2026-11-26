@@ -852,8 +852,12 @@ public class DefaultMessageStore implements MessageStore {
             return true;
         }
 
-        DispatchRequest dispatchRequest = this.commitLog.checkMessageAndReturnSize(mappedBufferResult.getByteBuffer(), true, false);
-        return dispatchRequest.isSuccess();
+        try {
+            DispatchRequest dispatchRequest = this.commitLog.checkMessageAndReturnSize(mappedBufferResult.getByteBuffer(), true, false);
+            return dispatchRequest.isSuccess();
+        } finally {
+            mappedBufferResult.release();
+        }
     }
 
     @Override

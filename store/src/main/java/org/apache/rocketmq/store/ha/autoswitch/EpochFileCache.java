@@ -18,6 +18,10 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -258,6 +262,29 @@ public class EpochFileCache {
     public void truncateSuffixByOffset(final long truncateOffset) {
         Predicate<EpochEntry> predict = entry -> entry.getStartOffset() >= truncateOffset;
         doTruncateSuffix(predict);
+    }
+
+    void truncateForRecovery(long offset, Path path) throws IOException {
+        writeLock.lock();
+        try {
+            epochMap.entrySet().removeIf(entry -> entry.getValue().getStartOffset() >= offset);
+            // The ordinary checkpoint tolerates write errors and reads a backup.
+            // Neither a failed write nor a stale backup may undo this repair.
+            CheckpointFile<EpochEntry> file = new CheckpointFile<>(path.toString(), new EpochEntrySerializer());
+            if (epochMap.isEmpty()) {
+                Files.deleteIfExists(path);
+            } else {
+                epochMap.lastEntry().getValue().setEndOffset(Long.MAX_VALUE);
+                file.write(new ArrayList<>(epochMap.values()));
+                try (FileChannel channel = FileChannel.open(path, StandardOpenOption.WRITE)) {
+                    channel.force(true);
+                }
+            }
+            Files.deleteIfExists(path.resolveSibling(path.getFileName() + ".bak"));
+            HistoryIncident.forceDirectory(path.toAbsolutePath().getParent());
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private void doTruncateSuffix(Predicate<EpochEntry> predict) {

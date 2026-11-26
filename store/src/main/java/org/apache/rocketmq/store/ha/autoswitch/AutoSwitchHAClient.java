@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -112,6 +113,9 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
     private final DefaultMessageStore messageStore;
     private final EpochFileCache epochCache;
+    private final HistoryIncident incident;
+    private String connectedAddress;
+    private boolean checkingHistory;
 
     private final Long brokerId;
 
@@ -142,6 +146,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         this.haService = haService;
         this.messageStore = defaultMessageStore;
         this.epochCache = epochCache;
+        this.incident = new HistoryIncident(Paths.get(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir()));
         this.brokerId = brokerId;
         init();
     }
@@ -238,6 +243,14 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     @Override
     public void closeMaster() {
+        if (checkingHistory) {
+            checkingHistory = false;
+            try {
+                incident.clear();
+            } catch (IOException e) {
+                LOGGER.error("Cannot clear unfinished HA connection probe", e);
+            }
+        }
         if (null != this.socketChannel) {
             try {
                 SelectionKey sk = this.socketChannel.keyFor(this.selector);
@@ -306,9 +319,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     private void handshakeWithMaster() throws IOException {
+        prepareHistoryCheck();
         boolean result = this.sendHandshakeHeader();
         if (!result) {
             closeMasterAndWait();
+            return;
         }
 
         this.selector.select(5000);
@@ -345,6 +360,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 SocketAddress socketAddress = NetworkUtil.string2SocketAddress(addr);
                 this.socketChannel = RemotingHelper.connect(socketAddress);
                 if (this.socketChannel != null) {
+                    this.connectedAddress = addr;
                     this.socketChannel.register(this.selector, SelectionKey.OP_READ);
                     LOGGER.info("AutoSwitchHAClient connect to master {}", addr);
                     changeCurrentState(HAConnectionState.HANDSHAKE);
@@ -389,7 +405,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         return;
                     case READY:
                         // Truncate invalid msg first
-                        final long truncateOffset = AutoSwitchHAClient.this.haService.truncateInvalidMsg();
+                        final long truncateOffset = incident.isolated() ? -1 : AutoSwitchHAClient.this.haService.truncateInvalidMsg();
                         if (truncateOffset >= 0) {
                             AutoSwitchHAClient.this.epochCache.truncateSuffixByOffset(truncateOffset);
                         }
@@ -429,11 +445,27 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         LOGGER.info(this.getServiceName() + " service end");
     }
 
-    /**
-     * Compare the master and slave's epoch file, find consistent point, do truncate.
-     */
+    // Reserve durable storage before asking the master for its history. If
+    // persistence fails while recording a refusal, the reservation survives.
+    private void prepareHistoryCheck() throws IOException {
+        if (!checkingHistory && !incident.isolated()) {
+            incident.begin();
+            checkingHistory = true;
+        }
+    }
+
     private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws Exception {
-        if (this.epochCache.getEntrySize() == 0) {
+        prepareHistoryCheck();
+        boolean fresh = checkingHistory;
+        checkingHistory = false;
+        final long localEnd = this.messageStore.getMaxPhyOffset();
+        boolean empty = this.epochCache.getEntrySize() == 0;
+        if (fresh && empty) {
+            incident.clear();
+            if (localEnd > 0) {
+                LOGGER.error("Replica has data but no epoch history");
+                return false;
+            }
             // If epochMap is empty, means the broker is a new replicas
             LOGGER.info("Slave local epochCache is empty, skip truncate log");
             changeCurrentState(HAConnectionState.TRANSFER);
@@ -445,33 +477,44 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             final List<EpochEntry> localEpochEntries = this.epochCache.getAllEntries();
             final EpochFileCache localEpochCache = new EpochFileCache();
             localEpochCache.initCacheFromEntries(localEpochEntries);
-            localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
+            localEpochCache.setLastEpochEntryEndOffset(localEnd);
 
             LOGGER.info("master epoch entries is {}", masterEpochCache.getAllEntries());
             LOGGER.info("local epoch entries is {}", localEpochEntries);
 
-            final long truncateOffset = localEpochCache.findConsistentPoint(masterEpochCache);
+            final long point = empty && localEnd == 0 ? 0 : localEpochCache.findConsistentPoint(masterEpochCache);
 
-            LOGGER.info("truncateOffset is {}", truncateOffset);
+            LOGGER.info("Consistent point is {}", point);
 
-            if (truncateOffset < 0) {
+            if (point < 0 || point > masterEndOffset || point > localEnd) {
+                if (fresh) {
+                    incident.clear();
+                }
                 // If truncateOffset < 0, means we can't find a consistent point
                 LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
                 return false;
             }
             final long confirmOffset = this.messageStore.getConfirmOffset();
-            if (truncateOffset < confirmOffset) {
-                LOGGER.error("Refuse to truncate slave log to {} because it is smaller than local confirmOffset {}. "
-                    + "masterEpoch:{}, slaveEpoch:{}", truncateOffset, confirmOffset, masterEpochEntries,
+            final String source = HistoryIncident.source(String.valueOf(connectedAddress), masterEpochEntries);
+            final HistoryIncident.Cut cut = incident.authorize(point, confirmOffset, localEnd, source, fresh);
+            if (cut == null) {
+                LOGGER.error("Refuse to truncate isolated replica. Consistent point {}, local confirmOffset {}. "
+                    + "masterEpoch:{}, slaveEpoch:{}", point, confirmOffset, masterEpochEntries,
                     localEpochEntries);
                 return false;
             }
-            if (!this.messageStore.truncateFiles(truncateOffset)) {
+            final long truncateOffset = cut.offset;
+            if (!fresh) {
+                if (connectedAddress == null) {
+                    throw new IOException("Recovery requires a connected master");
+                }
+                DurableHistoryTruncation.apply(messageStore, epochCache, cut);
+                incident.clear();
+            } else if (!this.messageStore.truncateFiles(truncateOffset)) {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
             }
-            final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
-            if (truncateOffset < maxPhyOffset) {
+            if (fresh && truncateOffset < localEnd) {
                 this.epochCache.truncateSuffixByOffset(truncateOffset);
                 LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
             }
@@ -524,20 +567,31 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         boolean isComplete = true;
                         switch (AutoSwitchHAClient.this.currentState) {
                             case HANDSHAKE: {
-                                if (diff < AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE + bodySize) {
+                                int entrySize = AutoSwitchHAConnection.EPOCH_ENTRY_SIZE;
+                                if (bodySize < 0 || bodySize % entrySize != 0 || masterOffset < 0) {
+                                    return false;
+                                }
+                                if (diff - AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE < bodySize) {
                                     // The received HANDSHAKE data is not complete
                                     isComplete = false;
                                     break;
                                 }
                                 AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE;
                                 // Truncate log
-                                int entrySize = AutoSwitchHAConnection.EPOCH_ENTRY_SIZE;
                                 final int entryNums = bodySize / entrySize;
                                 final ArrayList<EpochEntry> epochEntries = new ArrayList<>(entryNums);
                                 for (int i = 0; i < entryNums; i++) {
                                     int epoch = byteBufferRead.getInt(AutoSwitchHAClient.this.processPosition + i * entrySize);
                                     long startOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + i * entrySize + 4);
+                                    if (startOffset < 0 || startOffset > masterOffset
+                                        || i > 0 && (epoch <= epochEntries.get(i - 1).getEpoch()
+                                        || startOffset <= epochEntries.get(i - 1).getStartOffset())) {
+                                        return false;
+                                    }
                                     epochEntries.add(new EpochEntry(epoch, startOffset));
+                                }
+                                if (entryNums > 0 && epochEntries.get(entryNums - 1).getEpoch() != masterEpoch) {
+                                    return false;
                                 }
                                 byteBufferRead.position(readSocketPos);
                                 AutoSwitchHAClient.this.processPosition += bodySize;
@@ -606,6 +660,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 }
             } catch (final Exception e) {
                 LOGGER.error("Error when ha client process read request", e);
+                return false;
             }
             return true;
         }
