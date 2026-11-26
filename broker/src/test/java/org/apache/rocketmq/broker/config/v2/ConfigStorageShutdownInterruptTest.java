@@ -18,11 +18,11 @@
 package org.apache.rocketmq.broker.config.v2;
 
 import java.lang.reflect.Field;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
@@ -35,14 +35,22 @@ import org.junit.rules.TemporaryFolder;
 /**
  * Regression test for the shutdown ordering issue reported on PR #11606.
  *
- * <p>When the shutdown caller is interrupted while waiting for the manual compaction executor, the
- * interrupt flag must not be restored until every remaining cleanup step has run. Restoring it too
- * early makes the downstream {@code Thread.join()} in {@code ServiceThread#shutdown()} throw
- * immediately, so the flush thread is never waited for while the RocksDB handle is still released.
+ * <p>{@code AbstractRocksDBStorage#shutdown()} must not release the RocksDB handle until every
+ * thread it stopped has actually exited. The last such wait is the {@code Thread.join()} inside
+ * {@code ServiceThread#shutdown()}, reached through {@code ConfigStorage#preShutdown()}. That join
+ * returns immediately when the caller's interrupt flag is still set, and {@code ServiceThread}
+ * swallows the {@code InterruptedException}, so the worker keeps running while the DB is closed.
+ *
+ * <p>The tests therefore hold a real {@link ServiceThread} in its run loop for longer than a
+ * {@code join()} that returns early can take, and assert that it has exited once
+ * {@code preShutdown()} returns. They cover both ways the flag can still be set at that point: the
+ * caller is interrupted before {@code shutdown()} is entered while the compaction pool is idle
+ * (so {@code awaitTermination()} never observes the flag), and the caller is interrupted while
+ * {@code awaitTermination()} is blocked.
  */
 public class ConfigStorageShutdownInterruptTest {
 
-    private static final String FLUSH_THREAD_NAME = "FlushSyncService";
+    private static final long FLUSH_WORKER_EXIT_DELAY_MILLIS = 500L;
 
     @Rule
     public TemporaryFolder tf = new TemporaryFolder();
@@ -61,6 +69,7 @@ public class ConfigStorageShutdownInterruptTest {
         config.setStorePathRootDir(tf.newFolder("store").getAbsolutePath());
         storage = new ObservingConfigStorage(config);
         Assert.assertTrue("config storage failed to start", storage.start());
+        storage.startFlushWorker();
     }
 
     @After
@@ -70,24 +79,35 @@ public class ConfigStorageShutdownInterruptTest {
         }
     }
 
+    /**
+     * The compaction pool is idle, so {@code awaitTermination()} returns {@code true} without ever
+     * checking the interrupt flag. Without clearing the flag on entry it is still set when the
+     * flush worker is joined, and the flush worker outlives the DB handle.
+     */
     @Test
-    public void testInterruptedShutdownWaitsForFlushThread() throws Exception {
+    public void testInterruptBeforeShutdownStillWaitsForFlushWorker() throws Exception {
+        AtomicBoolean shutdownResult = new AtomicBoolean(false);
+        AtomicBoolean interruptStatusAtExit = new AtomicBoolean(false);
+
+        Thread caller = shutdownCaller(shutdownResult, interruptStatusAtExit, true);
+        caller.start();
+
+        caller.join(TimeUnit.SECONDS.toMillis(60));
+        assertShutdownWaitedForFlushWorker(caller, shutdownResult, interruptStatusAtExit);
+    }
+
+    /**
+     * The caller is interrupted while it is blocked waiting for the compaction executor, the
+     * scenario described in the review.
+     */
+    @Test
+    public void testInterruptDuringCompactionWaitStillWaitsForFlushWorker() throws Exception {
         ThreadPoolExecutor compactionPool = compactionPoolOf(storage);
         CountDownLatch taskStarted = new CountDownLatch(1);
         AtomicBoolean shutdownResult = new AtomicBoolean(false);
         AtomicBoolean interruptStatusAtExit = new AtomicBoolean(false);
 
-        final Thread caller = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    shutdownResult.set(storage.shutdown());
-                } finally {
-                    interruptStatusAtExit.set(Thread.currentThread().isInterrupted());
-                }
-            }
-        }, "config-storage-shutdown-caller");
-        caller.setDaemon(true);
+        Thread caller = shutdownCaller(shutdownResult, interruptStatusAtExit, false);
 
         synchronized (compactionGate) {
             // Occupy the compaction executor so that awaitTermination really blocks.
@@ -111,12 +131,36 @@ public class ConfigStorageShutdownInterruptTest {
         }
 
         caller.join(TimeUnit.SECONDS.toMillis(60));
+        assertShutdownWaitedForFlushWorker(caller, shutdownResult, interruptStatusAtExit);
+    }
+
+    private Thread shutdownCaller(AtomicBoolean shutdownResult, AtomicBoolean interruptStatusAtExit,
+        boolean interruptBeforeShutdown) {
+        final Thread caller = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (interruptBeforeShutdown) {
+                    Thread.currentThread().interrupt();
+                }
+                try {
+                    shutdownResult.set(storage.shutdown());
+                } finally {
+                    interruptStatusAtExit.set(Thread.currentThread().isInterrupted());
+                }
+            }
+        }, "config-storage-shutdown-caller");
+        caller.setDaemon(true);
+        return caller;
+    }
+
+    private void assertShutdownWaitedForFlushWorker(Thread caller, AtomicBoolean shutdownResult,
+        AtomicBoolean interruptStatusAtExit) {
         Assert.assertFalse("shutdown caller did not finish", caller.isAlive());
         Assert.assertTrue("shutdown should still complete successfully", shutdownResult.get());
+        Assert.assertFalse("flush worker must have exited before the DB handle is released",
+            storage.flushWorkerAliveAfterJoin);
         Assert.assertFalse("interrupt flag must not be set while cleanup is still running",
             storage.interruptedSeenInPreShutdown);
-        Assert.assertFalse("flush thread must have exited before the DB handle is released",
-            storage.flushThreadAliveAfterJoin);
         Assert.assertTrue("interrupt status must be restored when shutdown returns",
             interruptStatusAtExit.get());
     }
@@ -139,33 +183,70 @@ public class ConfigStorageShutdownInterruptTest {
         return (ThreadPoolExecutor) field.get(target);
     }
 
-    private static boolean isFlushThreadAlive() {
-        for (Map.Entry<Thread, StackTraceElement[]> entry : Thread.getAllStackTraces().entrySet()) {
-            Thread thread = entry.getKey();
-            if (FLUSH_THREAD_NAME.equals(thread.getName()) && thread.isAlive()) {
-                return true;
+    /**
+     * A real {@link ServiceThread} that stays alive for a fixed delay after it is started, so that
+     * a {@code join()} returning early is guaranteed to observe it still running.
+     */
+    static class BlockingFlushWorker extends ServiceThread {
+
+        private final CountDownLatch entered = new CountDownLatch(1);
+        private volatile long exitAtNanos;
+
+        @Override
+        public String getServiceName() {
+            return "test-flush-worker";
+        }
+
+        @Override
+        public void run() {
+            exitAtNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(FLUSH_WORKER_EXIT_DELAY_MILLIS);
+            entered.countDown();
+            while (System.nanoTime() < exitAtNanos) {
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException ignored) {
+                    // A flush worker keeps draining until it observes the stop flag.
+                }
             }
         }
-        return false;
+
+        boolean awaitEntered(long timeout, TimeUnit unit) throws InterruptedException {
+            return entered.await(timeout, unit);
+        }
+
+        boolean workerAlive() {
+            Thread workerThread = this.thread;
+            return workerThread != null && workerThread.isAlive();
+        }
     }
 
     /**
-     * Records what the shutdown thread observes right before and right after the flush service join.
+     * Records what the shutdown thread observes right before and right after the flush worker join.
      */
     static class ObservingConfigStorage extends ConfigStorage {
 
+        private final BlockingFlushWorker flushWorker = new BlockingFlushWorker();
+
         volatile boolean interruptedSeenInPreShutdown;
-        volatile boolean flushThreadAliveAfterJoin;
+        volatile boolean flushWorkerAliveAfterJoin;
 
         ObservingConfigStorage(MessageStoreConfig messageStoreConfig) {
             super(messageStoreConfig);
         }
 
+        void startFlushWorker() throws InterruptedException {
+            flushWorker.start();
+            Assert.assertTrue("flush worker did not start", flushWorker.awaitEntered(5, TimeUnit.SECONDS));
+        }
+
         @Override
         protected void preShutdown() {
             interruptedSeenInPreShutdown = Thread.currentThread().isInterrupted();
+            // Same contract as flushSyncService.shutdown(): a ServiceThread join that a set
+            // interrupt flag can cut short.
+            flushWorker.shutdown();
+            flushWorkerAliveAfterJoin = flushWorker.workerAlive();
             super.preShutdown();
-            flushThreadAliveAfterJoin = isFlushThreadAlive();
         }
     }
 }

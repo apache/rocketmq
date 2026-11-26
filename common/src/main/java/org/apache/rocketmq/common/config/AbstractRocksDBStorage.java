@@ -507,7 +507,12 @@ public abstract class AbstractRocksDBStorage {
     }
 
     public synchronized boolean shutdown() {
-        boolean interrupted = false;
+        // Record and clear the interrupt flag before any cleanup that has to wait for a worker
+        // thread. ServiceThread#shutdown() swallows InterruptedException and returns without the
+        // worker having exited, so a flag that is still set here makes the join() inside
+        // preShutdown() return immediately and lets the DB be released while the flush thread is
+        // still running. The flag is restored in the outermost finally below.
+        boolean interrupted = Thread.interrupted();
         try {
             if (!this.loaded) {
                 LOGGER.info("RocksDBStorage is not loaded, shutdown OK. dbPath={}, readOnly={}", this.dbPath, this.readOnly);
