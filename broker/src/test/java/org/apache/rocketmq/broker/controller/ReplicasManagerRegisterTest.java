@@ -125,7 +125,7 @@ public class ReplicasManagerRegisterTest {
         this.mockedMessageStore = Mockito.mock(DefaultMessageStore.class);
         this.mockedBrokerOuterAPI = Mockito.mock(BrokerOuterAPI.class);
         this.mockedAutoSwitchHAService = Mockito.mock(AutoSwitchHAService.class);
-        when(mockedAutoSwitchHAService.changeToMaster(1)).thenReturn(true);
+        when(mockedAutoSwitchHAService.changeToMaster(1, syncStateSet)).thenReturn(true);
         TopicConfigManager mockedTopicConfigManager = new TopicConfigManager();
         when(mockedBrokerController.getBrokerOuterAPI()).thenReturn(mockedBrokerOuterAPI);
         when(mockedBrokerController.getMessageStore()).thenReturn(mockedMessageStore);
@@ -151,8 +151,11 @@ public class ReplicasManagerRegisterTest {
             assertThatThrownBy(() -> manager.changeToMaster(2, 1, syncStateSet)).isInstanceOf(IllegalStateException.class);
             assertEquals(0, manager.getMasterEpoch());
             assertEquals(2, config.getBrokerId());
+            assertEquals(0, manager.getSyncStateSet().getSyncStateSetEpoch());
+            assertTrue(manager.getSyncStateSet().getSyncStateSet().isEmpty());
+            Mockito.verify(mockedAutoSwitchHAService, Mockito.never()).setSyncStateSet(Mockito.anySet());
             assertEquals(BrokerRole.SLAVE, mockedBrokerController.getMessageStoreConfig().getBrokerRole());
-            Mockito.verify(mockedAutoSwitchHAService).changeToMaster(2);
+            Mockito.verify(mockedAutoSwitchHAService).changeToMaster(2, syncStateSet);
         } finally {
             manager.shutdown();
         }

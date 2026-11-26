@@ -152,6 +152,7 @@ public class AutoSwitchHAServiceTest {
     private DefaultMessageStore mockMessageStore(final String epochFilePath, final long maxPhyOffset) {
         final DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
         final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(tempFolder.getRoot().getAbsolutePath());
         messageStoreConfig.setStorePathEpochFile(epochFilePath);
         when(messageStore.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         when(messageStore.getBrokerConfig()).thenReturn(new BrokerConfig());

@@ -17,7 +17,10 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
+import java.io.DataInputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -62,6 +65,46 @@ public class HistoryRecoveryStoreTest {
         }
         if (source != null) {
             source.shutdown();
+        }
+    }
+
+    @Test
+    public void restartWhileAwaitingFirstReplyRetainsIdenticalNonzeroPrefix() throws Exception {
+        Path directory = temporaryFolder.newFolder().toPath();
+        source = open(temporaryFolder.newFolder().toPath(), 1);
+        replica = open(directory, 2);
+        long base = 64 * 1024;
+        ((AutoSwitchHAService) source.getHaService()).setLocalBrokerId(1L);
+        ((AutoSwitchHAService) source.getHaService()).setSyncStateSet(Collections.singleton(1L));
+        assertTrue(source.getHaService().changeToMaster(1));
+        assertTrue(replica.getHaService().changeToMaster(1));
+        source.getCommitLog().getMappedFileQueue().getLastMappedFile(base);
+        replica.getCommitLog().getMappedFileQueue().getLastMappedFile(base);
+        write(source, "identical");
+        byte[] retained = bytes(source, base);
+        assertTrue(replica.appendToCommitLog(base, retained, 0, retained.length));
+        replica.setConfirmOffset(source.getMaxPhyOffset());
+        try (ServerSocket silent = new ServerSocket(0)) {
+            silent.setSoTimeout(15000);
+            EpochFileCache epochs = new EpochFileCache(replica.getMessageStoreConfig().getStorePathEpochFile());
+            assertTrue(epochs.initCacheFromFile());
+            client = new AutoSwitchHAClient((AutoSwitchHAService) replica.getHaService(), replica, epochs, 2L);
+            client.updateHaMasterAddress("127.0.0.1:" + silent.getLocalPort());
+            client.start();
+            try (Socket socket = silent.accept()) {
+                socket.setSoTimeout(15000);
+                new DataInputStream(socket.getInputStream()).readFully(new byte[AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE]);
+                // Keep the unanswered connection open across Store reload so
+                // graceful disconnect cleanup cannot hide a durable marker.
+                replica.shutdown();
+                replica = open(directory, 2, BrokerRole.SLAVE);
+                assertEquals(base, replica.getMinPhyOffset());
+                assertTrue(replica.getHaService().changeToSlave("127.0.0.1", 1, 2L));
+                replica.getHaService().updateHaMasterAddress("127.0.0.1:" + source.getMessageStoreConfig().getHaListenPort());
+                await().atMost(20, TimeUnit.SECONDS).until(() ->
+                    replica.getHaService().getHAClient().getCurrentState() == HAConnectionState.TRANSFER);
+                assertArrayEquals(retained, bytes(replica, base));
+            }
         }
     }
 
@@ -119,6 +162,26 @@ public class HistoryRecoveryStoreTest {
         assertFalse(client.new HAClientReader().processReadResult(handshake(newEpoch, cut)));
         assertArrayEquals(former, bytes(replica, cut));
         client.shutdown();
+
+        if (newEpoch) {
+            AutoSwitchHAService slave = (AutoSwitchHAService) replica.getHaService();
+            slave.setLocalBrokerId(2L);
+            slave.setSyncStateSet(Collections.singleton(2L));
+            assertTrue(slave.changeToSlave("127.0.0.1", 2, 2L));
+            slave.updateHaMasterAddress("127.0.0.1:" + source.getMessageStoreConfig().getHaListenPort());
+            AutoSwitchHAClient running = (AutoSwitchHAClient) slave.getHAClient();
+            await().atMost(20, TimeUnit.SECONDS).until(() -> running.getCurrentState() == HAConnectionState.HANDSHAKE);
+            assertFalse(slave.changeToMaster(3, Collections.singleton(9L)));
+            assertFalse(running.isStopped());
+            assertEquals(Collections.singleton(2L), slave.getLocalSyncStateSet());
+            assertEquals(confirmed, replica.getConfirmOffset());
+            assertTrue(slave.changeToSlaveWhenMasterNotChange("127.0.0.1", 4));
+            Files.copy(directory.resolve("ha-history-incident"), directory.resolve("ha-history-approval"));
+            await().atMost(30, TimeUnit.SECONDS).until(() -> replica.getConfirmOffset() == source.getMaxPhyOffset());
+            assertArrayEquals(bytes(source, 0), bytes(replica, 0));
+            assertArrayEquals("chosen".getBytes(StandardCharsets.UTF_8), replica.lookMessageByOffset(cut).getBody());
+            return;
+        }
 
         Files.copy(directory.resolve("ha-history-incident"), directory.resolve("ha-history-approval"));
         client = connect();

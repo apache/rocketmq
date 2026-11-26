@@ -123,19 +123,25 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     @Override
     public boolean changeToMaster(int masterEpoch) throws RocksDBException {
+        return changeToMaster(masterEpoch, null);
+    }
+
+    public boolean changeToMaster(int masterEpoch, Set<Long> newSyncStateSet) throws RocksDBException {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
             return false;
         }
+        if (!reserveMasterRole()) {
+            return false;
+        }
+        if (newSyncStateSet != null) {
+            setSyncStateSet(newSyncStateSet);
+        }
         destroyConnections();
         // Stop ha client if needed
         if (this.haClient != null) {
             this.haClient.shutdown();
-        }
-
-        if (isHistoryIsolated()) {
-            return false;
         }
 
         // Truncate dirty file
@@ -206,12 +212,12 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     @Override
     public boolean changeToMasterWhenLastRoleIsMaster(int masterEpoch) {
-        if (isHistoryIsolated()) {
-            return false;
-        }
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
+            return false;
+        }
+        if (!reserveMasterRole()) {
             return false;
         }
         // Append new epoch to epochFile
@@ -223,16 +229,19 @@ public class AutoSwitchHAService extends DefaultHAService {
         return true;
     }
 
-    private boolean isHistoryIsolated() {
+    private boolean reserveMasterRole() {
         try {
-            if (!incident.isolated()) {
-                return false;
+            // reservePromotion and doTruncate share the client's monitor.
+            // After acceptance no handshake can create a new incident while
+            // shutdown joins the reader outside that monitor.
+            if (haClient == null ? !incident.isolated() : haClient.reservePromotion()) {
+                return true;
             }
             LOGGER.error("Isolated replica cannot become master");
         } catch (IOException e) {
             LOGGER.error("Cannot verify local HA history before promotion", e);
         }
-        return true;
+        return false;
     }
 
     /**

@@ -17,8 +17,10 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -30,6 +32,7 @@ import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -84,6 +87,70 @@ public class AutoSwitchHAClientTest {
         frame.putInt(1);
         frame.putLong(0L);
         return frame;
+    }
+
+    @Test
+    public void testSmallerObservationInvalidatesApprovalEvenIfDiskBecomesUnavailable() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        Path offline = root.resolveSibling("unmounted");
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathRootDir(root.toString());
+        DefaultMessageStore store = mock(DefaultMessageStore.class);
+        when(store.getMessageStoreConfig()).thenReturn(config);
+        when(store.getMaxPhyOffset()).thenReturn(200L);
+        when(store.getConfirmOffset()).thenReturn(200L);
+        AutoSwitchHAClient first = createClient(store);
+        try {
+            first.changeCurrentState(HAConnectionState.HANDSHAKE);
+            assertFalse(first.new HAClientReader().processReadResult(handshake(100)));
+        } finally {
+            first.shutdown();
+        }
+        Files.copy(root.resolve("ha-history-incident"), root.resolve("ha-history-approval"));
+        AutoSwitchHAClient second = createClient(store);
+        try {
+            second.changeCurrentState(HAConnectionState.HANDSHAKE);
+            // The selected source has regressed further. Lose the filesystem
+            // between computing the new point and publishing the restriction.
+            when(store.getConfirmOffset()).thenAnswer(invocation -> {
+                Files.move(root, offline);
+                return 200L;
+            });
+            assertFalse(second.new HAClientReader().processReadResult(handshake(60)));
+            assertTrue(Files.isDirectory(offline));
+        } finally {
+            second.shutdown();
+            Files.move(offline, root);
+        }
+        HistoryIncident restarted = new HistoryIncident(root);
+        assertNull(restarted.authorize(200, 200, 200, "null 1@0", false));
+    }
+
+    @Test
+    public void testCrashBeforeFirstReplyAllowsPositiveRetainedMinimum() throws Exception {
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathRootDir(temporaryFolder.newFolder().getAbsolutePath());
+        DefaultMessageStore store = mock(DefaultMessageStore.class);
+        when(store.getMessageStoreConfig()).thenReturn(config);
+        when(store.getMinPhyOffset()).thenReturn(1024L);
+        when(store.getMaxPhyOffset()).thenReturn(2048L);
+        when(store.getConfirmOffset()).thenReturn(2048L);
+        when(store.truncateFiles(2048L)).thenReturn(true);
+        AutoSwitchHAClient waiting = createClient(store);
+        AutoSwitchHAClient restarted = createClient(store);
+        try {
+            Method prepare = AutoSwitchHAClient.class.getDeclaredMethod("prepareHistoryCheck");
+            prepare.setAccessible(true);
+            prepare.invoke(waiting);
+            // A fresh process sees only durable state. Never close the first
+            // connection gracefully before the recreated client has checked.
+            restarted.changeCurrentState(HAConnectionState.HANDSHAKE);
+            assertTrue(restarted.new HAClientReader().processReadResult(handshake(2048)));
+            assertEquals(HAConnectionState.TRANSFER, restarted.getCurrentState());
+        } finally {
+            restarted.shutdown();
+            waiting.shutdown();
+        }
     }
 
     @Test

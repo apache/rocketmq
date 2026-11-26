@@ -116,6 +116,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     private final HistoryIncident incident;
     private String connectedAddress;
     private boolean checkingHistory;
+    private boolean promotionReserved;
 
     private final Long brokerId;
 
@@ -152,6 +153,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     public void init() throws IOException {
+        this.promotionReserved = false;
         this.selector = NetworkUtil.openSelector();
         this.flowMonitor = new FlowMonitor(this.messageStore.getMessageStoreConfig());
         this.haReader = new HAClientReader();
@@ -246,7 +248,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         if (checkingHistory) {
             checkingHistory = false;
             try {
-                incident.clear();
+                incident.finishInspection();
             } catch (IOException e) {
                 LOGGER.error("Cannot clear unfinished HA connection probe", e);
             }
@@ -445,23 +447,31 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         LOGGER.info(this.getServiceName() + " service end");
     }
 
-    // Reserve durable storage before asking the master for its history. If
-    // persistence fails while recording a refusal, the reservation survives.
-    private void prepareHistoryCheck() throws IOException {
-        if (!checkingHistory && !incident.isolated()) {
-            incident.begin();
-            checkingHistory = true;
+    synchronized boolean reservePromotion() throws IOException {
+        if (incident.isolated()) {
+            return false;
+        }
+        promotionReserved = true;
+        return true;
+    }
+
+    private synchronized void prepareHistoryCheck() throws IOException {
+        if (!checkingHistory && !promotionReserved) {
+            checkingHistory = incident.beginInspection();
         }
     }
 
-    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws Exception {
+    private synchronized boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws Exception {
+        if (promotionReserved) {
+            return false;
+        }
         prepareHistoryCheck();
-        boolean fresh = checkingHistory;
+        boolean ownsInspection = checkingHistory;
         checkingHistory = false;
+        boolean fresh = !incident.isolated();
         final long localEnd = this.messageStore.getMaxPhyOffset();
         boolean empty = this.epochCache.getEntrySize() == 0;
         if (fresh && empty) {
-            incident.clear();
             if (localEnd > 0) {
                 LOGGER.error("Replica has data but no epoch history");
                 return false;
@@ -487,19 +497,23 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             LOGGER.info("Consistent point is {}", point);
 
             if (point < 0 || point > masterEndOffset || point > localEnd) {
-                if (fresh) {
-                    incident.clear();
+                if (ownsInspection) {
+                    incident.finishInspection();
                 }
                 // If truncateOffset < 0, means we can't find a consistent point
                 LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
                 return false;
             }
-            final long confirmOffset = this.messageStore.getConfirmOffset();
             final String source = HistoryIncident.source(String.valueOf(connectedAddress), masterEpochEntries);
-            final HistoryIncident.Cut cut = incident.authorize(point, confirmOffset, localEnd, source, fresh);
+            final HistoryIncident.Cut cut = fresh
+                ? incident.firstDecision(point, messageStore::getConfirmOffset, localEnd, source)
+                : incident.authorize(point, messageStore.getConfirmOffset(), localEnd, source, ownsInspection);
+            if (!fresh) {
+                incident.finishInspection();
+            }
             if (cut == null) {
-                LOGGER.error("Refuse to truncate isolated replica. Consistent point {}, local confirmOffset {}. "
-                    + "masterEpoch:{}, slaveEpoch:{}", point, confirmOffset, masterEpochEntries,
+                LOGGER.error("Refuse to truncate isolated replica. Consistent point {}. "
+                    + "masterEpoch:{}, slaveEpoch:{}", point, masterEpochEntries,
                     localEpochEntries);
                 return false;
             }

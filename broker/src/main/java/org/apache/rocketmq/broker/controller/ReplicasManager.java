@@ -252,13 +252,12 @@ public class ReplicasManager {
                     return;
                 }
 
-                // Change SyncStateSet
-                final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
-                changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
-
-                // Notify ha service, change to master
-                if (!this.haService.changeToMaster(newMasterEpoch)) {
+                Set<Long> proposed = syncStateSetEpoch > this.syncStateSetEpoch ? new HashSet<>(syncStateSet) : null;
+                if (!this.haService.changeToMaster(newMasterEpoch, proposed)) {
                     throw new IllegalStateException("Store refused promotion to master epoch " + newMasterEpoch);
+                }
+                if (proposed != null) {
+                    recordSyncStateSet(proposed, syncStateSetEpoch);
                 }
                 this.masterEpoch = newMasterEpoch;
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
@@ -339,12 +338,16 @@ public class ReplicasManager {
     private void changeSyncStateSet(final Set<Long> newSyncStateSet, final int newSyncStateSetEpoch) {
         synchronized (this) {
             if (newSyncStateSetEpoch > this.syncStateSetEpoch) {
-                LOGGER.info("SyncStateSet changed from {} to {}", this.syncStateSet, newSyncStateSet);
-                this.syncStateSetEpoch = newSyncStateSetEpoch;
-                this.syncStateSet = new HashSet<>(newSyncStateSet);
+                recordSyncStateSet(newSyncStateSet, newSyncStateSetEpoch);
                 this.haService.setSyncStateSet(newSyncStateSet);
             }
         }
+    }
+
+    private void recordSyncStateSet(Set<Long> newSyncStateSet, int newSyncStateSetEpoch) {
+        LOGGER.info("SyncStateSet changed from {} to {}", this.syncStateSet, newSyncStateSet);
+        this.syncStateSetEpoch = newSyncStateSetEpoch;
+        this.syncStateSet = new HashSet<>(newSyncStateSet);
     }
 
     private void handleSlaveSynchronize(final BrokerRole role) {
