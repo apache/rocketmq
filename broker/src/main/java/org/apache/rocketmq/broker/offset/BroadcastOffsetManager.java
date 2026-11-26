@@ -85,11 +85,8 @@ public class BroadcastOffsetManager extends ServiceThread {
         }
 
         final AtomicLong offset = new AtomicLong(-1L);
-        BroadcastTimedOffsetStore offsetStore = broadcastOffsetData.clientOffsetStore.get(clientId);
-        if (offsetStore == null) {
-            offsetStore = new BroadcastTimedOffsetStore(fromProxy);
-            broadcastOffsetData.clientOffsetStore.put(clientId, offsetStore);
-        }
+        BroadcastTimedOffsetStore offsetStore = broadcastOffsetData.clientOffsetStore.computeIfAbsent(
+            clientId, key -> new BroadcastTimedOffsetStore(fromProxy));
 
         if (offsetStore.fromProxy && requestOffset < 0) {
             // when from proxy and requestOffset is -1
