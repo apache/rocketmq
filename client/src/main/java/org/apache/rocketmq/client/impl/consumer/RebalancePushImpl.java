@@ -52,6 +52,11 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
+    protected long getLockRpcTimeoutMillis() {
+        return this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getLockRpcTimeoutMillis();
+    }
+
+    @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
         /*
          * When rebalance result changed, should update subscription's version to notify broker.

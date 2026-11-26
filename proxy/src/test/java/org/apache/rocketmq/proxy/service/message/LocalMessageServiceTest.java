@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.message;
 
+import apache.rocketmq.v2.Code;
 import io.netty.channel.Channel;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -41,6 +42,7 @@ import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -58,6 +60,7 @@ import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
@@ -400,6 +403,15 @@ public class LocalMessageServiceTest extends InitConfigTest {
         assertThat(exception.getCause()).isInstanceOf(ProxyException.class);
         assertThat(((ProxyException) exception.getCause()).getCode()).isEqualTo(ProxyExceptionCode.INTERNAL_SERVER_ERROR);
         assertThat(exception.getCause()).hasMessage("lite failure");
+    }
+
+    @Test
+    public void testPopLiteMessageSystemBusy() throws Exception {
+        ExecutionException exception = catchThrowableOfType(() -> invokeLiteResponse(
+            RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_BUSY, "busy")), ExecutionException.class);
+        assertThat(exception.getCause()).isInstanceOf(MQBrokerException.class);
+        assertThat(((MQBrokerException) exception.getCause()).getResponseCode()).isEqualTo(ResponseCode.SYSTEM_BUSY);
+        assertThat(ResponseBuilder.getInstance().buildStatus(exception.getCause()).getCode()).isEqualTo(Code.TOO_MANY_REQUESTS);
     }
 
     @Test

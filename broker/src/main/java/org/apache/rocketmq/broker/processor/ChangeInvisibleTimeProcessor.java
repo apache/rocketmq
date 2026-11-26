@@ -494,6 +494,11 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             if (requestHeader.getOffset() < oldOffset) {
                 return CompletableFuture.completedFuture(response);
             }
+            if (!consumerOrderInfoManager.isPopTimeMatched(lmqName, group, 0, popTime)) {
+                response.setCode(ResponseCode.NO_MESSAGE);
+                response.setRemark("The lite receipt handle belongs to an expired lease");
+                return CompletableFuture.completedFuture(response);
+            }
             long visibilityTimeout = System.currentTimeMillis() + requestHeader.getInvisibleTime();
             if (requestHeader.isSuspend()) {
                 consumerOrderInfoManager.suspendQueue(lmqName, group, 0, popTime, visibilityTimeout);

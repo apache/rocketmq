@@ -18,7 +18,6 @@
 package org.apache.rocketmq.srvutil;
 
 import com.google.common.base.Strings;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -49,7 +48,9 @@ public class FileWatchService extends LifecycleAwareServiceThread {
         this.listener = listener;
         this.watchInterval = watchInterval;
         for (String file : watchFiles) {
-            if (!Strings.isNullOrEmpty(file) && new File(file).exists()) {
+            if (!Strings.isNullOrEmpty(file)) {
+                // Register files that do not exist yet as well. They may be created after startup, for example a
+                // certificate provisioned later, and only registered paths are checked on every watch round.
                 currentHash.put(file, md5Digest(file));
             }
         }

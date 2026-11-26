@@ -23,15 +23,15 @@ public class BrokerLiveInfo implements Serializable {
     private static final long serialVersionUID = 3612173344946510993L;
     private final String brokerName;
 
-    private String brokerAddr;
-    private long heartbeatTimeoutMillis;
-    private Channel channel;
-    private long brokerId;
-    private long lastUpdateTimestamp;
-    private int epoch;
-    private long maxOffset;
-    private long confirmOffset;
-    private Integer electionPriority;
+    private volatile String brokerAddr;
+    private volatile long heartbeatTimeoutMillis;
+    private volatile Channel channel;
+    private volatile long brokerId;
+    private volatile long lastUpdateTimestamp;
+    private volatile int epoch;
+    private volatile long maxOffset;
+    private volatile long confirmOffset;
+    private volatile Integer electionPriority;
 
     public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
         long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority) {

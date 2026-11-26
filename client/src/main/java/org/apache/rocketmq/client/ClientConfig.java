@@ -232,6 +232,7 @@ public class ClientConfig {
         this.namespace = cc.namespace;
         this.language = cc.language;
         this.mqClientApiTimeout = cc.mqClientApiTimeout;
+        this.maxPageSizeInGetMetadata = cc.maxPageSizeInGetMetadata;
         this.decodeReadBody = cc.decodeReadBody;
         this.decodeDecompressBody = cc.decodeDecompressBody;
         this.enableStreamRequestType = cc.enableStreamRequestType;
@@ -266,6 +267,7 @@ public class ClientConfig {
         cc.namespace = namespace;
         cc.language = language;
         cc.mqClientApiTimeout = mqClientApiTimeout;
+        cc.maxPageSizeInGetMetadata = maxPageSizeInGetMetadata;
         cc.decodeReadBody = decodeReadBody;
         cc.decodeDecompressBody = decodeDecompressBody;
         cc.enableStreamRequestType = enableStreamRequestType;

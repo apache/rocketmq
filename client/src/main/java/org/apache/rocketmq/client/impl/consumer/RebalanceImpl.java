@@ -149,6 +149,10 @@ public abstract class RebalanceImpl {
         return result;
     }
 
+    protected long getLockRpcTimeoutMillis() {
+        return 1000;
+    }
+
     public boolean lock(final MessageQueue mq) {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(this.mQClientFactory.getBrokerNameFromMessageQueue(mq), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
@@ -159,7 +163,8 @@ public abstract class RebalanceImpl {
 
             try {
                 Set<MessageQueue> lockedMq =
-                    this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
+                    this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(
+                        findBrokerResult.getBrokerAddr(), requestBody, getLockRpcTimeoutMillis());
                 for (MessageQueue mmqq : lockedMq) {
                     ProcessQueue processQueue = this.processQueueTable.get(mmqq);
                     if (processQueue != null) {
@@ -201,7 +206,8 @@ public abstract class RebalanceImpl {
 
                 try {
                     Set<MessageQueue> lockOKMQSet =
-                        this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
+                        this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(
+                            findBrokerResult.getBrokerAddr(), requestBody, getLockRpcTimeoutMillis());
 
                     for (MessageQueue mq : mqs) {
                         ProcessQueue processQueue = this.processQueueTable.get(mq);
