@@ -19,12 +19,18 @@ package org.apache.rocketmq.store.timer;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TimerCheckPointTest {
 
@@ -116,6 +122,33 @@ public class TimerCheckPointTest {
         assertEquals(first.getDataVersion().getStateVersion(), 1400);
         assertEquals(first.getDataVersion().getTimestamp(), 1500);
         assertEquals(first.getDataVersion().getCounter().get(), 1600);
+    }
+
+    @Test
+    public void flushUsesCheckpointMonitorTest() throws Exception {
+        TimerCheckpoint checkpoint = new TimerCheckpoint(baseDir + File.separator + "timercheck-monitor");
+        CountDownLatch flushStarted = new CountDownLatch(1);
+        FutureTask<Void> flushTask = new FutureTask<>(() -> {
+            flushStarted.countDown();
+            checkpoint.flush();
+            return null;
+        });
+        Thread flushThread = new Thread(flushTask, "timer-checkpoint-flush-test");
+        flushThread.setDaemon(true);
+        try {
+            synchronized (checkpoint) {
+                flushThread.start();
+                assertTrue(flushStarted.await(5, TimeUnit.SECONDS));
+                await().atMost(5, TimeUnit.SECONDS).until(() -> flushThread.getState() == Thread.State.BLOCKED);
+                assertFalse(flushTask.isDone());
+            }
+            flushTask.get(5, TimeUnit.SECONDS);
+        } finally {
+            flushTask.cancel(true);
+            flushThread.join(TimeUnit.SECONDS.toMillis(5));
+            assertFalse("Flush thread did not terminate", flushThread.isAlive());
+            checkpoint.shutdown();
+        }
     }
 
     @After

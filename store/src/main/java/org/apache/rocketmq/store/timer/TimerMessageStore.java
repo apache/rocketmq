@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.RunningFlags;
@@ -164,6 +165,11 @@ public class TimerMessageStore {
 
     private final Object lockWhenFlush = new Object();
 
+    // captured at construction; mode switches require a restart, hot updates must not mismatch mmap state.
+    private final boolean timerWheelSnapshotMode;
+    private final long loadedSnapshotOffset;
+    private volatile boolean recoveryCompleted;
+
     public TimerMessageStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerCheckpoint timerCheckpoint, TimerMetrics timerMetrics,
         final BrokerStatsManager brokerStatsManager) throws IOException {
@@ -178,15 +184,14 @@ public class TimerMessageStore {
         this.slotsTotal = TIMER_WHEEL_TTL_DAY * DAY_SECS;
 
         String timerWheelPath = getTimerWheelPath(storeConfig.getStorePathRootDir());
+        this.timerWheelSnapshotMode = storeConfig.isTimerWheelSnapshotFlush();
         long snapOffset = -1;
-        if (storeConfig.isTimerWheelSnapshotFlush()) {
+        if (this.timerWheelSnapshotMode) {
             snapOffset = TimerWheel.getMaxSnapshotFlag(timerWheelPath);
-            if (snapOffset > 0) {
-                // correct recover offset
-                timerCheckpoint.setLastTimerLogFlushPos(snapOffset);
+            if (snapOffset >= 0) {
                 LOGGER.info("found timerWheel snapshot offset {}", snapOffset);
             } else {
-                LOGGER.info("not found timerWheel snapshot", snapOffset);
+                LOGGER.info("not found timerWheel snapshot, recover from base + checkpoint");
             }
         }
 
@@ -196,11 +201,12 @@ public class TimerMessageStore {
         }
 
         this.timerWheel = new TimerWheel(
-            timerWheelPath, this.slotsTotal, precisionMs, snapOffset);
+            timerWheelPath, this.slotsTotal, precisionMs, snapOffset, this.timerWheelSnapshotMode);
         this.timerLog = new TimerLog(getTimerLogPath(storeConfig.getStorePathRootDir()), timerLogFileSize,
             runningFlags, storeConfig.isWriteWithoutMmap());
         this.timerMetrics = timerMetrics;
         this.timerCheckpoint = timerCheckpoint;
+        this.loadedSnapshotOffset = snapOffset;
         this.lastBrokerRole = storeConfig.getBrokerRole();
 
         if (messageStore instanceof DefaultMessageStore) {
@@ -264,11 +270,49 @@ public class TimerMessageStore {
 
     public boolean load() {
         this.initService();
-        boolean load = timerLog.load();
-        load = load && this.timerMetrics.load();
+        if (!timerLog.load() || !this.timerMetrics.load()) {
+            return false;
+        }
+        if (!hasSnapshotLogCoverage()) {
+            LOGGER.error("Cannot recover timer snapshot at {}: timerlog files do not cover its replay range",
+                loadedSnapshotOffset);
+            return false;
+        }
         recover();
+        recoveryCompleted = true;
+        if (loadedSnapshotOffset >= 0) {
+            try {
+                timerFlushService.flush(true);
+            } catch (IOException e) {
+                LOGGER.error("Failed to commit recovered timer wheel", e);
+                return false;
+            }
+        }
         calcTimerDistribution();
-        return load;
+        return true;
+    }
+
+    private boolean hasSnapshotLogCoverage() {
+        if (loadedSnapshotOffset < 0) {
+            return true;
+        }
+        List<MappedFile> files = timerLog.getMappedFileQueue().getMappedFiles();
+        if (files.isEmpty()) {
+            return loadedSnapshotOffset == 0;
+        }
+        long nextOffset = loadedSnapshotOffset - loadedSnapshotOffset % timerLogFileSize;
+        for (MappedFile file : files) {
+            if (file.getFileFromOffset() < nextOffset) {
+                continue;
+            }
+            if (file.getFileFromOffset() != nextOffset) {
+                return false;
+            }
+            nextOffset += file.getFileSize();
+        }
+        MappedFile lastFile = files.get(files.size() - 1);
+        return nextOffset > loadedSnapshotOffset ||
+            lastFile.getFileFromOffset() + lastFile.getFileSize() == loadedSnapshotOffset;
     }
 
     public static String getTimerWheelPath(final String rootDir) {
@@ -301,7 +345,8 @@ public class TimerMessageStore {
     @SuppressWarnings("NonAtomicOperationOnVolatileField")
     public void recover() {
         //recover timerLog
-        long lastFlushPos = timerCheckpoint.getLastTimerLogFlushPos();
+        long lastFlushPos = loadedSnapshotOffset >= 0 ?
+            loadedSnapshotOffset : timerCheckpoint.getLastTimerLogFlushPos();
         MappedFile lastFile = timerLog.getMappedFileQueue().getLastMappedFile();
         if (null != lastFile) {
             lastFlushPos = lastFlushPos - lastFile.getFileSize();
@@ -580,16 +625,15 @@ public class TimerMessageStore {
             }
         }
 
-        //first save checkpoint
-        if (timerCheckpoint != null) {
-            prepareTimerCheckPoint();
-        }
-
         if (timerFlushService != null) {
             timerFlushService.shutdown();
         }
 
         if (timerCheckpoint != null) {
+            // Failed recovery must not overwrite the existing checkpoint with uninitialized progress.
+            if (recoveryCompleted) {
+                prepareTimerCheckPoint();
+            }
             timerCheckpoint.shutdown();
         }
 
@@ -860,6 +904,17 @@ public class TimerMessageStore {
                 recallToTimeline(delayedTime, offsetPy, sizePy, messageExt);
             }
         }
+        if (timerWheelSnapshotMode) {
+            synchronized (lockWhenFlush) {
+                return appendToTimerWheel(offsetPy, sizePy, delayedTime, tmpWriteTimeMs, magic, messageExt);
+            }
+        }
+        return appendToTimerWheel(offsetPy, sizePy, delayedTime, tmpWriteTimeMs, magic, messageExt);
+    }
+
+    private boolean appendToTimerWheel(long offsetPy, int sizePy, long delayedTime,
+        long tmpWriteTimeMs, int magic, MessageExt messageExt) {
+        boolean isDelete = needDelete(magic);
         String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
         Slot slot = timerWheel.getSlot(delayedTime);
         ByteBuffer tmpBuffer = timerLogBuffer;
@@ -1516,13 +1571,7 @@ public class TimerMessageStore {
                 CountDownLatch latch = new CountDownLatch(trs.size());
                 for (TimerRequest req : trs) {
                     req.setLatch(latch);
-                    if (storeConfig.isTimerWheelSnapshotFlush()) {
-                        synchronized (lockWhenFlush) {
-                            this.putMessageToTimerWheel(req);
-                        }
-                    } else {
-                        this.putMessageToTimerWheel(req);
-                    }
+                    this.putMessageToTimerWheel(req);
                 }
                 checkDequeueLatch(latch, -1);
                 boolean allSuccess = trs.stream().allMatch(TimerRequest::isSucc);
@@ -1853,15 +1902,39 @@ public class TimerMessageStore {
         long lastSnapshotTime = System.currentTimeMillis();
 
         public void flush() throws IOException {
-            if (storeConfig.isTimerWheelSnapshotFlush()) {
-                synchronized (lockWhenFlush) {
-                    prepareTimerCheckPoint();
-                    timerLog.getMappedFileQueue().flush(0);
-                    if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
-                        lastSnapshotTime = System.currentTimeMillis();
-                        timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
+            flush(false);
+        }
+
+        private void flush(boolean forceSnapshot) throws IOException {
+            if (timerWheelSnapshotMode) {
+                MappedFileQueue logQueue = timerLog.getMappedFileQueue();
+                prepareTimerCheckPoint();
+                long snapshotPos = -1;
+                if (forceSnapshot || System.currentTimeMillis() -
+                    lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
+                    synchronized (lockWhenFlush) {
+                        timerWheel.copyForSnapshot();
+                        snapshotPos = logQueue.getMaxWrotePosition();
                     }
-                    timerCheckpoint.flush();
+                }
+                logQueue.flush(0);
+                if (snapshotPos >= 0) {
+                    while (logQueue.getFlushedWhere() < snapshotPos) {
+                        long flushedWhere = logQueue.getFlushedWhere();
+                        logQueue.flush(0);
+                        if (logQueue.getFlushedWhere() == flushedWhere) {
+                            throw new IOException("Timer snapshot flush stalled at " + flushedWhere + " behind " + snapshotPos);
+                        }
+                    }
+                }
+                if (snapshotPos >= 0) {
+                    timerWheel.backup(snapshotPos);
+                    timerWheel.promoteToBase(snapshotPos);
+                    timerCheckpoint.setLastTimerLogFlushPos(snapshotPos);
+                }
+                timerCheckpoint.flush();
+                if (snapshotPos >= 0) {
+                    lastSnapshotTime = System.currentTimeMillis();
                 }
             } else {
                 prepareTimerCheckPoint();
@@ -1946,7 +2019,10 @@ public class TimerMessageStore {
     }
 
     public void prepareTimerCheckPoint() {
-        timerCheckpoint.setLastTimerLogFlushPos(timerLog.getMappedFileQueue().getFlushedWhere());
+        // Snapshot mode advances the log watermark only after the base is durable.
+        if (!timerWheelSnapshotMode) {
+            timerCheckpoint.setLastTimerLogFlushPos(timerLog.getMappedFileQueue().getFlushedWhere());
+        }
         timerCheckpoint.setLastReadTimeMs(commitReadTimeMs);
         if (shouldRunningDequeue) {
             timerCheckpoint.setMasterTimerQueueOffset(commitQueueOffset);
