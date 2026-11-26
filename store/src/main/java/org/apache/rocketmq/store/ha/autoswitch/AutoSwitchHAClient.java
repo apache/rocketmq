@@ -137,6 +137,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Current epoch
      */
     private volatile int currentReceivedEpoch;
+    private int handshakeMasterEpoch = -1;
 
     public AutoSwitchHAClient(AutoSwitchHAService haService, DefaultMessageStore defaultMessageStore,
         EpochFileCache epochCache, Long brokerId) throws IOException {
@@ -391,8 +392,10 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                     case READY:
                         // Truncate invalid msg first
                         final long truncateOffset = AutoSwitchHAClient.this.haService.truncateInvalidMsg();
-                        if (truncateOffset >= 0) {
-                            AutoSwitchHAClient.this.epochCache.truncateSuffixByOffset(truncateOffset);
+                        if (truncateOffset >= 0 && !AutoSwitchHAClient.this.epochCache.truncateSuffixByOffset(truncateOffset)) {
+                            LOGGER.error("Failed to persist recovered epoch history, postpone HA connection");
+                            waitForRunning(1000 * 5);
+                            continue;
                         }
                         if (!connectMaster()) {
                             LOGGER.warn("AutoSwitchHAClient connect to master {} failed", this.masterHaAddress.get());
@@ -434,7 +437,26 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
      * Compare the master and slave's epoch file, find consistent point, do truncate.
      */
     private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws Exception {
+        if (this.haService.getConfirmedOffsetGuard().isBlocked()) {
+            this.haService.getConfirmedOffsetGuard().ensurePersisted();
+            LOGGER.error("Refusing HA handshake after a confirmed-offset conflict: {}. Rebuild this replica from an explicitly selected history",
+                this.haService.getConfirmedOffsetGuard().describe());
+            return false;
+        }
+        final long localMaxOffset = this.messageStore.getMaxPhyOffset();
+        final EpochEntry lastLocalEpoch = this.epochCache.lastEntry();
+        // An epoch can be durable before its first message. Remove such a tail using the
+        // recovered log end before computing a position that we can acknowledge.
+        if (lastLocalEpoch != null && lastLocalEpoch.getStartOffset() >= localMaxOffset
+            && !this.epochCache.truncateSuffixByOffset(localMaxOffset)) {
+            LOGGER.error("Failed to persist recovered replica epoch history at {}", localMaxOffset);
+            return false;
+        }
         if (this.epochCache.getEntrySize() == 0) {
+            if (this.messageStore.getMaxPhyOffset() != 0 || this.messageStore.getConfirmOffset() > 0) {
+                LOGGER.error("Refusing HA handshake: a nonempty replica has no epoch history");
+                return false;
+            }
             // If epochMap is empty, means the broker is a new replicas
             LOGGER.info("Slave local epochCache is empty, skip truncate log");
             changeCurrentState(HAConnectionState.TRANSFER);
@@ -446,7 +468,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             final List<EpochEntry> localEpochEntries = this.epochCache.getAllEntries();
             final EpochFileCache localEpochCache = new EpochFileCache();
             localEpochCache.initCacheFromEntries(localEpochEntries);
-            localEpochCache.setLastEpochEntryEndOffset(this.messageStore.getMaxPhyOffset());
+            localEpochCache.setLastEpochEntryEndOffset(localMaxOffset);
 
             LOGGER.info("master epoch entries is {}", masterEpochCache.getAllEntries());
             LOGGER.info("local epoch entries is {}", localEpochEntries);
@@ -460,12 +482,20 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 LOGGER.error("Failed to find a consistent point between masterEpoch:{} and slaveEpoch:{}", masterEpochEntries, localEpochEntries);
                 return false;
             }
-            if (!truncateSlaveLog(truncateOffset)) {
+            if (truncateOffset > localMaxOffset || truncateOffset > masterEndOffset) {
+                LOGGER.error("Refusing impossible consistent offset {}, local end {}, master end {}",
+                    truncateOffset, localMaxOffset, masterEndOffset);
                 return false;
             }
             final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
+            if (!truncateSlaveLog(truncateOffset)) {
+                return false;
+            }
+            if (!this.epochCache.truncateSuffixByOffset(truncateOffset)) {
+                LOGGER.error("Failed to persist slave epoch history after truncation to {}", truncateOffset);
+                return false;
+            }
             if (truncateOffset < maxPhyOffset) {
-                this.epochCache.truncateSuffixByOffset(truncateOffset);
                 LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
             }
             changeCurrentState(HAConnectionState.TRANSFER);
@@ -478,11 +508,16 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         return true;
     }
 
-    boolean truncateSlaveLog(long truncateOffset) throws RocksDBException {
+    boolean truncateSlaveLog(long truncateOffset) throws RocksDBException, IOException {
+        final ConfirmedOffsetGuard guard = this.haService.getConfirmedOffsetGuard();
+        if (guard.isBlocked()) {
+            guard.ensurePersisted();
+            return false;
+        }
         final long confirmOffset = this.messageStore.getConfirmOffset();
         if (truncateOffset < confirmOffset) {
-            LOGGER.error("Refusing to truncate slave log below confirmOffset: brokerId={}, masterHaAddress={}, truncateOffset={}, confirmOffset={}",
-                this.brokerId, getHaMasterAddress(), truncateOffset, confirmOffset);
+            guard.recordRefusal(getHaMasterAddress(), this.handshakeMasterEpoch, truncateOffset, confirmOffset);
+            LOGGER.error("Refusing to truncate confirmed data: brokerId={}, {}", this.brokerId, guard.describe());
             return false;
         }
         if (!this.messageStore.truncateFiles(truncateOffset)) {
@@ -536,6 +571,12 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     isComplete = false;
                                     break;
                                 }
+                                final long expectedMasterEpoch = AutoSwitchHAClient.this.messageStore.getStateMachineVersion();
+                                if (expectedMasterEpoch > 0 && masterEpoch != expectedMasterEpoch) {
+                                    LOGGER.error("Refusing handshake from epoch {}, expected controller epoch {}", masterEpoch, expectedMasterEpoch);
+                                    return false;
+                                }
+                                AutoSwitchHAClient.this.handshakeMasterEpoch = masterEpoch;
                                 AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.HANDSHAKE_HEADER_SIZE;
                                 // Truncate log
                                 int entrySize = AutoSwitchHAConnection.EPOCH_ENTRY_SIZE;
@@ -578,12 +619,22 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
                                 // If epoch changed
                                 if (masterEpoch != AutoSwitchHAClient.this.currentReceivedEpoch) {
+                                    final EpochEntry existingEntry = AutoSwitchHAClient.this.epochCache.getEntry(masterEpoch);
+                                    if (existingEntry == null) {
+                                        if (!AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterEpochStartOffset))) {
+                                            return false;
+                                        }
+                                    } else if (existingEntry.getStartOffset() != masterEpochStartOffset) {
+                                        LOGGER.error("Received conflicting epoch start: {} at {}", masterEpoch, masterEpochStartOffset);
+                                        return false;
+                                    }
                                     AutoSwitchHAClient.this.currentReceivedEpoch = masterEpoch;
-                                    AutoSwitchHAClient.this.epochCache.appendEntry(new EpochEntry(masterEpoch, masterEpochStartOffset));
                                 }
 
                                 if (bodySize > 0) {
-                                    AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length);
+                                    if (!AutoSwitchHAClient.this.messageStore.appendToCommitLog(masterOffset, bodyData, 0, bodyData.length)) {
+                                        return false;
+                                    }
                                 }
 
                                 haService.getDefaultMessageStore().setConfirmOffset(Math.min(confirmOffset, messageStore.getMaxPhyOffset()));
@@ -613,6 +664,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 }
             } catch (final Exception e) {
                 LOGGER.error("Error when ha client process read request", e);
+                return false;
             }
             return true;
         }

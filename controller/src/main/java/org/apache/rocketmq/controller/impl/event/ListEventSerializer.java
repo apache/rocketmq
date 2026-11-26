@@ -111,6 +111,9 @@ public class ListEventSerializer {
                         case UPDATE_BROKER_ADDRESS:
                             eventMessages.add(SERIALIZER.deserialize(data, UpdateBrokerAddressEvent.class));
                             break;
+                        case REGISTER_BROKER_STARTUP_EVENT:
+                            eventMessages.add(SERIALIZER.deserialize(data, RegisterBrokerStartupEvent.class));
+                            break;
                         default:
                             log.error("deserialize event message error, event id: {}, data: {}", eventId, data);
                             break;

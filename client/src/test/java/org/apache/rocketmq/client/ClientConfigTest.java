@@ -65,6 +65,24 @@ public class ClientConfigTest {
         assertEquals("lmq%defaultTopic", messageQueues.iterator().next().getTopic());
     }
 
+    @Test
+    public void testCloneClientConfigPreservesMetadataPageSize() {
+        clientConfig.setMaxPageSizeInGetMetadata(100);
+
+        assertEquals(100, clientConfig.cloneClientConfig().getMaxPageSizeInGetMetadata());
+    }
+
+    @Test
+    public void testResetClientConfigCopiesMetadataPageSize() {
+        clientConfig.setMaxPageSizeInGetMetadata(100);
+        ClientConfig target = new ClientConfig();
+        target.setMaxPageSizeInGetMetadata(300);
+
+        target.resetClientConfig(clientConfig);
+
+        assertEquals(100, target.getMaxPageSizeInGetMetadata());
+    }
+
     private ClientConfig createClientConfig() {
         ClientConfig result = new ClientConfig();
         result.setUnitName("unitName");

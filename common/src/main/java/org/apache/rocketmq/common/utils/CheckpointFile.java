@@ -20,8 +20,15 @@ package org.apache.rocketmq.common.utils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
@@ -150,6 +157,90 @@ public class CheckpointFile<T> {
             return result;
         } catch (IOException e) {
             return this.read(this.getBackFilePath());
+        }
+    }
+
+    /**
+     * Read the primary checkpoint without falling back to an older backup. Callers that use the
+     * checkpoint as a durable history boundary must not silently restore an earlier boundary.
+     */
+    public synchronized List<T> readStrict() throws IOException {
+        final Path path = Paths.get(this.filePath);
+        final List<T> result = new ArrayList<>();
+        try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            final int expectedLines = Integer.parseInt(reader.readLine());
+            final int expectedCrc32 = Integer.parseInt(reader.readLine());
+            if (expectedLines < 0) {
+                throw new IOException("Invalid checkpoint entry count: " + this.filePath);
+            }
+            final StringBuilder content = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append(System.lineSeparator());
+                final T entry = this.serializer.fromLine(line);
+                if (entry == null) {
+                    throw new IOException("Invalid checkpoint entry: " + this.filePath);
+                }
+                result.add(entry);
+            }
+            if (result.size() != expectedLines) {
+                throw new IOException("Checkpoint entry count does not match: " + this.filePath);
+            }
+            final int actualCrc32 = UtilAll.crc32(content.toString().getBytes(StandardCharsets.UTF_8));
+            if (actualCrc32 != expectedCrc32) {
+                throw new IOException("Checkpoint checksum does not match: " + this.filePath);
+            }
+            return result;
+        } catch (NoSuchFileException e) {
+            if (Files.exists(Paths.get(getBackFilePath()))) {
+                throw new IOException("Primary checkpoint is missing while a backup exists: " + this.filePath, e);
+            }
+            return result;
+        } catch (RuntimeException e) {
+            throw new IOException("Invalid checkpoint: " + this.filePath, e);
+        }
+    }
+
+    /**
+     * Replace a checkpoint only after its complete contents have been forced to disk. Empty lists
+     * are persisted as well, so a removed history cannot reappear from an earlier checkpoint.
+     */
+    public synchronized void writeAtomically(final List<T> entries) throws IOException {
+        final StringBuilder entryContent = new StringBuilder();
+        for (T entry : entries) {
+            final String line = this.serializer.toLine(entry);
+            if (line == null || line.isEmpty() || line.indexOf('\n') >= 0 || line.indexOf('\r') >= 0) {
+                throw new IOException("Invalid checkpoint entry: " + this.filePath);
+            }
+            entryContent.append(line).append(System.lineSeparator());
+        }
+        final int crc32 = UtilAll.crc32(entryContent.toString().getBytes(StandardCharsets.UTF_8));
+        final byte[] data = (entries.size() + System.lineSeparator() + crc32 + System.lineSeparator()
+            + entryContent).getBytes(StandardCharsets.UTF_8);
+        final Path path = Paths.get(this.filePath).toAbsolutePath();
+        final Path parent = path.getParent();
+        if (path.getFileName() == null || parent == null) {
+            throw new IOException("Invalid checkpoint path: " + this.filePath);
+        }
+        Files.createDirectories(parent);
+        final Path temporaryFile = Files.createTempFile(parent, "checkpoint-", ".tmp");
+        try {
+            try (FileChannel channel = FileChannel.open(temporaryFile, StandardOpenOption.WRITE)) {
+                final ByteBuffer buffer = ByteBuffer.wrap(data);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
+                channel.force(true);
+            }
+            Files.move(temporaryFile, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            MixAll.fsyncDirectory(parent);
+        } catch (IOException e) {
+            try {
+                Files.deleteIfExists(temporaryFile);
+            } catch (IOException cleanupException) {
+                e.addSuppressed(cleanupException);
+            }
+            throw e;
         }
     }
 }

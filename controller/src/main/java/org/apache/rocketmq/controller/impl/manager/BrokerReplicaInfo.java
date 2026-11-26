@@ -40,15 +40,21 @@ public class BrokerReplicaInfo implements Serializable {
 
     private final Map<Long/*brokerId*/, Pair<String/*ipAddress*/, String/*registerCheckCode*/>> brokerIdInfo;
 
+    private Map<Long/*brokerId*/, Pair<Long/*generation*/, String/*startupId*/>> brokerStartupInfo;
+
     public BrokerReplicaInfo(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.nextAssignBrokerId = new AtomicLong(MixAll.FIRST_BROKER_CONTROLLER_ID);
         this.brokerIdInfo = new ConcurrentHashMap<>();
+        this.brokerStartupInfo = new ConcurrentHashMap<>();
     }
 
     public void removeBrokerId(final Long brokerId) {
         this.brokerIdInfo.remove(brokerId);
+        if (this.brokerStartupInfo != null) {
+            this.brokerStartupInfo.remove(brokerId);
+        }
     }
 
     public Long getNextAssignBrokerId() {
@@ -113,5 +119,23 @@ public class BrokerReplicaInfo implements Serializable {
         if (oldPair != null) {
             this.brokerIdInfo.put(brokerId, new Pair<>(brokerAddress, oldPair.getObject2()));
         }
+    }
+
+    public long getBrokerStartupGeneration(final Long brokerId) {
+        final Pair<Long, String> startup = this.brokerStartupInfo == null ? null : this.brokerStartupInfo.get(brokerId);
+        return startup == null ? 0 : startup.getObject1();
+    }
+
+    public String getBrokerStartupId(final Long brokerId) {
+        final Pair<Long, String> startup = this.brokerStartupInfo == null ? null : this.brokerStartupInfo.get(brokerId);
+        return startup == null ? null : startup.getObject2();
+    }
+
+    public void updateBrokerStartup(final Long brokerId, final long generation, final String startupId) {
+        // Older controller snapshots do not contain startup identities.
+        if (this.brokerStartupInfo == null) {
+            this.brokerStartupInfo = new ConcurrentHashMap<>();
+        }
+        this.brokerStartupInfo.put(brokerId, new Pair<>(generation, startupId));
     }
 }

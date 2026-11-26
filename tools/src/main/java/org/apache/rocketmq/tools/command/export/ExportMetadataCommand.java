@@ -109,6 +109,16 @@ public class ExportMetadataCommand implements SubCommand {
                         brokerAddr, 10000L);
                     MixAll.string2FileNotSafe(JSON.toJSONString(subscriptionGroupWrapper, JSONWriter.Feature.PrettyFormat), filePath);
                     System.out.printf("export %s success", filePath);
+                } else {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("topicConfigTable", defaultMQAdminExt.getUserTopicConfig(brokerAddr, specialTopic, 10000L)
+                        .getTopicConfigTable());
+                    result.put("subscriptionGroupTable", defaultMQAdminExt.getUserSubscriptionGroup(brokerAddr, 10000L)
+                        .getSubscriptionGroupTable());
+                    result.put("exportTime", System.currentTimeMillis());
+                    filePath = filePath + "/metadata.json";
+                    MixAll.string2FileNotSafe(JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat), filePath);
+                    System.out.printf("export %s success%n", filePath);
                 }
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();

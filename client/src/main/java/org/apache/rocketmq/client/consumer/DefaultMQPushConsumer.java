@@ -266,6 +266,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private long consumeTimeout = 15;
 
+    private long lockRpcTimeoutMillis = 1000;
+
     /**
      * Maximum amount of invisible time in millisecond of a message, rang is [5000, 300000]
      */
@@ -983,6 +985,30 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setConsumeTimeout(final long consumeTimeout) {
         this.consumeTimeout = consumeTimeout;
+    }
+
+    /**
+     * Returns the timeout in milliseconds for acquiring or renewing a broker-side queue lock.
+     *
+     * @return the timeout in milliseconds, 1000 by default
+     */
+    public long getLockRpcTimeoutMillis() {
+        return lockRpcTimeoutMillis;
+    }
+
+    /**
+     * Sets the timeout for each lock RPC used by orderly consumption before the consumer starts.
+     * Higher values may lengthen a lock renewal round because requests are made one broker at a time.
+     * This setting leaves the lock lifetime and renewal interval unchanged.
+     *
+     * @param lockRpcTimeoutMillis the timeout in milliseconds
+     * @throws IllegalArgumentException if the timeout is not positive
+     */
+    public void setLockRpcTimeoutMillis(final long lockRpcTimeoutMillis) {
+        if (lockRpcTimeoutMillis <= 0) {
+            throw new IllegalArgumentException("lockRpcTimeoutMillis must be positive");
+        }
+        this.lockRpcTimeoutMillis = lockRpcTimeoutMillis;
     }
 
     public long getPopInvisibleTime() {

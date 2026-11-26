@@ -71,6 +71,8 @@ public class EventSerializer {
                         return this.serializer.deserialize(data, CleanBrokerDataEvent.class);
                     case UPDATE_BROKER_ADDRESS:
                         return this.serializer.deserialize(data, UpdateBrokerAddressEvent.class);
+                    case REGISTER_BROKER_STARTUP_EVENT:
+                        return this.serializer.deserialize(data, RegisterBrokerStartupEvent.class);
                     default:
                         break;
                 }

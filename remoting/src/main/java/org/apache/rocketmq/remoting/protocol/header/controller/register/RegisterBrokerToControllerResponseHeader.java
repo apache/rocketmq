@@ -34,6 +34,10 @@ public class RegisterBrokerToControllerResponseHeader implements CommandCustomHe
 
     private Integer syncStateSetEpoch;
 
+    private Long brokerStartupGeneration;
+
+    private String brokerStartupId;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -93,5 +97,21 @@ public class RegisterBrokerToControllerResponseHeader implements CommandCustomHe
 
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
+    }
+
+    public Long getBrokerStartupGeneration() {
+        return brokerStartupGeneration;
+    }
+
+    public void setBrokerStartupGeneration(Long brokerStartupGeneration) {
+        this.brokerStartupGeneration = brokerStartupGeneration;
+    }
+
+    public String getBrokerStartupId() {
+        return brokerStartupId;
+    }
+
+    public void setBrokerStartupId(String brokerStartupId) {
+        this.brokerStartupId = brokerStartupId;
     }
 }
