@@ -44,6 +44,28 @@ public class FileSegmentInputStreamTest {
     private final static Random RANDOM = new Random();
 
     @Test
+    public void testConsumeQueueSingleReadAfterBulkReadAtBufferBoundary() throws IOException {
+        verifySingleReadAfterBulkReadAtBufferBoundary(FileSegmentType.CONSUME_QUEUE);
+    }
+
+    @Test
+    public void testCommitLogSingleReadAfterBulkReadAtBufferBoundary() throws IOException {
+        verifySingleReadAfterBulkReadAtBufferBoundary(FileSegmentType.COMMIT_LOG);
+    }
+
+    private void verifySingleReadAfterBulkReadAtBufferBoundary(FileSegmentType fileType) throws IOException {
+        List<ByteBuffer> buffers = Arrays.asList(
+            ByteBuffer.wrap(new byte[] {1, 2}), ByteBuffer.wrap(new byte[] {3, 4}));
+        InputStream stream = FileSegmentInputStreamFactory.build(fileType, 0, buffers, null, 4);
+        byte[] first = new byte[2];
+        Assert.assertEquals(2, stream.read(first));
+        Assert.assertArrayEquals(new byte[] {1, 2}, first);
+        Assert.assertEquals(3, stream.read());
+        Assert.assertEquals(4, stream.read());
+        Assert.assertEquals(-1, stream.read());
+    }
+
+    @Test
     public void testCommitLogTypeInputStream() {
         List<ByteBuffer> uploadBufferList = new ArrayList<>();
         int bufferSize = 0;
