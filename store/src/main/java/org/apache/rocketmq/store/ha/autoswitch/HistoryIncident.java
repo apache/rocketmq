@@ -71,7 +71,13 @@ final class HistoryIncident {
 
     boolean beginInspection() throws IOException {
         replayReceived();
-        if (read(inspecting) != null || read(state) == null) {
+        if (read(inspecting) != null) {
+            // A failed force can leave the marker visible only in memory.
+            // Retry the force without taking ownership of that inspection.
+            forceDirectory(inspecting.getParent());
+            return false;
+        }
+        if (read(state) == null) {
             return false;
         }
         // Keep the old incident available to operators, but make its approval

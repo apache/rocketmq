@@ -19,9 +19,13 @@ package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -83,6 +87,7 @@ public class HistoryIncidentTest {
         Files.write(root.resolve("ha-history-approval"), stale);
         assertTrue(restarted.beginInspection());
         restarted = new HistoryIncident(root);
+        assertFalse(restarted.beginInspection());
         assertNull(restarted.authorize(100, 100, 100, "a 1@0", false));
         restarted.finishInspection();
         Files.write(root.resolve("ha-history-approval"), stale);
@@ -116,6 +121,21 @@ public class HistoryIncidentTest {
                 Files.copy(root.resolve("ha-history-incident"), root.resolve("ha-history-approval"));
                 assertEquals(point, restarted.authorize(110, 100, 110, "a 1@0", false).offset);
             }
+        }
+    }
+
+    @Test
+    public void retryMustForceAlreadyVisibleInspectionMarker() throws IOException {
+        Path archive = temp.newFolder().toPath().resolve("store.zip");
+        // ZipFS permits creating and reading a file but cannot open its
+        // directory as a FileChannel for force(true).
+        try (FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + archive.toUri()),
+            Collections.singletonMap("create", "true"))) {
+            Path root = Files.createDirectory(fs.getPath("/store"));
+            Files.createFile(root.resolve("ha-history-incident"));
+            assertThatThrownBy(new HistoryIncident(root)::beginInspection).isInstanceOf(IOException.class);
+            assertTrue(Files.exists(root.resolve("ha-history-inspecting")));
+            assertThatThrownBy(new HistoryIncident(root)::beginInspection).isInstanceOf(IOException.class);
         }
     }
 
