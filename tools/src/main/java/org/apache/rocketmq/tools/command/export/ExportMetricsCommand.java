@@ -118,7 +118,7 @@ public class ExportMetricsCommand implements SubCommand {
 
                     // runtime version
                     brokerInfo.put("runtimeVersion",
-                        getRuntimeVersion(defaultMQAdminExt, subscriptionGroupWrapper));
+                        getRuntimeVersion(defaultMQAdminExt, subscriptionGroupWrapper, kvTable.getTable().get("brokerVersionDesc")));
 
                     evaluateReportMap.put(brokerName, brokerInfo);
                 }
@@ -146,7 +146,7 @@ public class ExportMetricsCommand implements SubCommand {
     }
 
     private Map<String, Object> getRuntimeVersion(DefaultMQAdminExt defaultMQAdminExt,
-        SubscriptionGroupWrapper subscriptionGroupWrapper) {
+        SubscriptionGroupWrapper subscriptionGroupWrapper, String brokerVersion) {
         Map<String, Object> runtimeVersionMap = new HashMap();
 
         Set<String> clientInfoSet = new HashSet<>();
@@ -163,7 +163,7 @@ public class ExportMetricsCommand implements SubCommand {
                 continue;
             }
         }
-        runtimeVersionMap.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+        runtimeVersionMap.put("rocketmqVersion", brokerVersion);
         runtimeVersionMap.put("clientInfo", clientInfoSet);
         return runtimeVersionMap;
     }
