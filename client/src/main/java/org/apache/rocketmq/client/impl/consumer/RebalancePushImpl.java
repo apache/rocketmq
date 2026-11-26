@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -257,9 +258,21 @@ public class RebalancePushImpl extends RebalanceImpl {
         final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         if (ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET == consumeFromWhere) {
             return ConsumeInitMode.MIN;
+        } else if (ConsumeFromWhere.CONSUME_FROM_TIMESTAMP == consumeFromWhere) {
+            return ConsumeInitMode.TIMESTAMP;
         } else {
             return ConsumeInitMode.MAX;
         }
+    }
+
+    @Override
+    public Long getConsumeInitTimestamp() {
+        String consumeTimestamp = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp();
+        Date date = UtilAll.parseDate(consumeTimestamp, UtilAll.YYYYMMDDHHMMSS);
+        if (null == date) {
+            throw new IllegalArgumentException("invalid consumeTimestamp: " + consumeTimestamp);
+        }
+        return date.getTime();
     }
 
     @Override

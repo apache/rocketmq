@@ -27,6 +27,7 @@ public class PopRequest implements MessageRequest {
     private PopProcessQueue popProcessQueue;
     private boolean lockedFirst = false;
     private int initMode = ConsumeInitMode.MAX;
+    private Long timestamp;
 
     public boolean isLockedFirst() {
         return lockedFirst;
@@ -74,6 +75,14 @@ public class PopRequest implements MessageRequest {
 
     public void setInitMode(int initMode) {
         this.initMode = initMode;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
     }
 
     @Override

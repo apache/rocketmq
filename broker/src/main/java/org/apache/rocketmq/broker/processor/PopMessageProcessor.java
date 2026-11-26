@@ -33,6 +33,7 @@ import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.broker.pop.PopConsumerContext;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
@@ -685,7 +686,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         long offset;
         try {
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
-                false, lockKey, false);
+                requestHeader.getTimestamp(), false, lockKey, false);
         } catch (ConsumeQueueException e) {
             CompletableFuture<Long> failure = new CompletableFuture<>();
             failure.completeExceptionally(e);
@@ -720,7 +721,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         try {
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
-                true, lockKey, true);
+                requestHeader.getTimestamp(), true, lockKey, true);
 
             // Current requests would calculate the total number of messages
             // waiting to be filtered for new message arrival notifications in
@@ -883,12 +884,12 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             brokerController.getPopInflightMessageCounter().getGroupPopInFlightMessageNum(topic, group, queueId) > brokerController.getBrokerConfig().getPopInflightMessageThreshold();
     }
 
-    private long getPopOffset(String topic, String group, int queueId, int initMode, boolean init, String lockKey,
-        boolean checkResetOffset) throws ConsumeQueueException {
+    private long getPopOffset(String topic, String group, int queueId, int initMode, Long timestamp, boolean init,
+        String lockKey, boolean checkResetOffset) throws ConsumeQueueException {
 
         long offset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         if (offset < 0) {
-            offset = this.getInitOffset(topic, group, queueId, initMode, init);
+            offset = this.getInitOffset(topic, group, queueId, initMode, init, timestamp);
         }
 
         if (checkResetOffset) {
@@ -908,9 +909,22 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
     public long getInitOffset(String topic, String group, int queueId, int initMode, boolean init)
         throws ConsumeQueueException {
+        return getInitOffset(topic, group, queueId, initMode, init, null);
+    }
+
+    public long getInitOffset(String topic, String group, int queueId, int initMode, boolean init, Long timestamp)
+        throws ConsumeQueueException {
         long offset;
         if (ConsumeInitMode.MIN == initMode || topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
+        } else if (ConsumeInitMode.TIMESTAMP == initMode && null != timestamp) {
+            if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem()
+                && this.brokerController.getMessageStore().shouldInitConsumeOffsetToZero(topic, queueId)) {
+                offset = 0;
+            } else {
+                offset = this.brokerController.getMessageStore()
+                    .getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
+            }
         } else {
             if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem()
                 && this.brokerController.getMessageStore().shouldInitConsumeOffsetToZero(topic, queueId)) {

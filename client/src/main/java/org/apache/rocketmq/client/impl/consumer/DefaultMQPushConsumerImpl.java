@@ -611,7 +611,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
             this.pullAPIWrapper.popAsync(popRequest.getMessageQueue(), invisibleTime, this.defaultMQPushConsumer.getPopBatchNums(),
                 popRequest.getConsumerGroup(), BROKER_SUSPEND_MAX_TIME_MILLIS, popCallback, true, popRequest.getInitMode(),
-                false, subscriptionData.getExpressionType(), subscriptionData.getSubString());
+                false, subscriptionData.getExpressionType(), subscriptionData.getSubString(), popRequest.getTimestamp());
         } catch (Exception e) {
             log.error("popAsync exception", e);
             this.executePopPullRequestLater(popRequest, pullTimeDelayMillsWhenException);

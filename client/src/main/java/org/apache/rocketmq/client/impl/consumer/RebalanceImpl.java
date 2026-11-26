@@ -33,6 +33,7 @@ import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.message.MessageRequestMode;
@@ -674,6 +675,17 @@ public abstract class RebalanceImpl {
             List<PopRequest> popRequestList = new ArrayList<>();
             for (MessageQueue mq : mq2PopAssignment.keySet()) {
                 if (!this.popProcessQueueTable.containsKey(mq)) {
+                    int initMode;
+                    Long initTimestamp = null;
+                    try {
+                        initMode = getConsumeInitMode();
+                        if (ConsumeInitMode.TIMESTAMP == initMode) {
+                            initTimestamp = getConsumeInitTimestamp();
+                        }
+                    } catch (Exception e) {
+                        log.info("doRebalance, {}, compute pop init offset failed, {}", consumerGroup, mq);
+                        continue;
+                    }
                     PopProcessQueue pq = createPopProcessQueue();
                     PopProcessQueue pre = this.popProcessQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {
@@ -685,7 +697,8 @@ public abstract class RebalanceImpl {
                         popRequest.setConsumerGroup(consumerGroup);
                         popRequest.setMessageQueue(mq);
                         popRequest.setPopProcessQueue(pq);
-                        popRequest.setInitMode(getConsumeInitMode());
+                        popRequest.setInitMode(initMode);
+                        popRequest.setTimestamp(initTimestamp);
                         popRequestList.add(popRequest);
                         changed = true;
                     }
@@ -723,6 +736,8 @@ public abstract class RebalanceImpl {
     public abstract long computePullFromWhereWithException(final MessageQueue mq) throws MQClientException;
 
     public abstract int getConsumeInitMode();
+
+    public abstract Long getConsumeInitTimestamp();
 
     public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList, final long delay);
 

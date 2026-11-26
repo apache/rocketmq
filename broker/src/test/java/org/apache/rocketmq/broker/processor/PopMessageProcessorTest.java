@@ -22,6 +22,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.TopicConfig;
@@ -57,6 +58,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -236,6 +238,72 @@ public class PopMessageProcessorTest {
     }
 
     @Test
+    public void testGetInitOffset_timestamp() throws RemotingCommandException, ConsumeQueueException {
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        long timestamp = System.currentTimeMillis();
+        long searchOffset = 500L;
+        when(messageStore.getOffsetInQueueByTime(topic, 0, timestamp, BoundaryType.LOWER)).thenReturn(searchOffset);
+        String newGroup = group + "-" + System.currentTimeMillis();
+        GetMessageResult getMessageResult = createGetMessageResult(0);
+        when(messageStore.getMessageAsync(eq(newGroup), anyString(), anyInt(), anyLong(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(getMessageResult));
+
+        long offset = brokerController.getConsumerOffsetManager().queryOffset(newGroup, topic, 0);
+        assertEquals(-1, offset);
+
+        RemotingCommand request = createPopMsgCommand(newGroup, topic, 0, ConsumeInitMode.TIMESTAMP, timestamp);
+        popMessageProcessor.processRequest(handlerContext, request);
+        offset = brokerController.getConsumerOffsetManager().queryOffset(newGroup, topic, 0);
+        assertEquals(searchOffset, offset);
+
+        when(messageStore.getOffsetInQueueByTime(topic, 0, timestamp, BoundaryType.LOWER)).thenReturn(searchOffset * 2);
+        popMessageProcessor.processRequest(handlerContext, request);
+        offset = brokerController.getConsumerOffsetManager().queryOffset(newGroup, topic, 0);
+        assertEquals(searchOffset, offset); // will not entry getInitOffset() again
+        messageStore.getOffsetInQueueByTime(topic, 0, timestamp, BoundaryType.LOWER); // prevent UnnecessaryStubbingException
+    }
+
+    @Test
+    public void testGetInitOffset_timestamp_initToZeroWhenFirstMsgInMem() throws RemotingCommandException, ConsumeQueueException {
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        // New queue whose first message is still in memory keeps the "start from 0" semantics,
+        // consistent with the pull path, regardless of the requested timestamp.
+        when(messageStore.shouldInitConsumeOffsetToZero(topic, 0)).thenReturn(true);
+        String newGroup = group + "-" + System.currentTimeMillis();
+        GetMessageResult getMessageResult = createGetMessageResult(0);
+        when(messageStore.getMessageAsync(eq(newGroup), anyString(), anyInt(), anyLong(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(getMessageResult));
+
+        RemotingCommand request = createPopMsgCommand(newGroup, topic, 0, ConsumeInitMode.TIMESTAMP, System.currentTimeMillis());
+        popMessageProcessor.processRequest(handlerContext, request);
+        long offset = brokerController.getConsumerOffsetManager().queryOffset(newGroup, topic, 0);
+        assertEquals(0, offset);
+    }
+
+    @Test
+    public void testGetInitOffset_timestamp_committedOffsetWins() throws RemotingCommandException {
+        when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        String newGroup = group + "-" + System.currentTimeMillis();
+        brokerController.getConsumerOffsetManager().commitOffset("test", newGroup, topic, 0, 300L);
+        GetMessageResult getMessageResult = createGetMessageResult(0);
+        when(messageStore.getMessageAsync(eq(newGroup), anyString(), anyInt(), anyLong(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(getMessageResult));
+
+        RemotingCommand request = createPopMsgCommand(newGroup, topic, 0, ConsumeInitMode.TIMESTAMP, System.currentTimeMillis());
+        popMessageProcessor.processRequest(handlerContext, request);
+        long offset = brokerController.getConsumerOffsetManager().queryOffset(newGroup, topic, 0);
+        assertEquals(300L, offset);
+    }
+
+    @Test
+    public void testPopMessage_timestampRequiredForTimestampInitMode() {
+        RemotingCommand request = createPopMsgCommand(group, topic, 0, ConsumeInitMode.TIMESTAMP, null);
+        assertThatThrownBy(() -> popMessageProcessor.processRequest(handlerContext, request))
+            .isInstanceOf(RemotingCommandException.class)
+            .hasMessageContaining("timestamp is required");
+    }
+
+    @Test
     public void testBuildCkMsgJsonParsing() {
         PopCheckPoint ck = new PopCheckPoint();
         ck.setTopic("TestTopic");
@@ -267,6 +335,10 @@ public class PopMessageProcessorTest {
     }
 
     private RemotingCommand createPopMsgCommand(String group, String topic, int queueId, int initMode) {
+        return createPopMsgCommand(group, topic, queueId, initMode, null);
+    }
+
+    private RemotingCommand createPopMsgCommand(String group, String topic, int queueId, int initMode, Long timestamp) {
         PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
         requestHeader.setConsumerGroup(group);
         requestHeader.setMaxMsgNums(30);
@@ -274,6 +346,7 @@ public class PopMessageProcessorTest {
         requestHeader.setTopic(topic);
         requestHeader.setInvisibleTime(10_000);
         requestHeader.setInitMode(initMode);
+        requestHeader.setTimestamp(timestamp);
         requestHeader.setOrder(false);
         requestHeader.setPollTime(15_000);
         requestHeader.setBornTime(System.currentTimeMillis());

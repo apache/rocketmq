@@ -364,7 +364,7 @@ public class PullAPIWrapper {
      * @throws InterruptedException
      */
     public void popAsync(MessageQueue mq, long invisibleTime, int maxNums, String consumerGroup,
-                         long timeout, PopCallback popCallback, boolean poll, int initMode, boolean order, String expressionType, String expression)
+                         long timeout, PopCallback popCallback, boolean poll, int initMode, boolean order, String expressionType, String expression, Long timestamp)
         throws MQClientException, RemotingException, InterruptedException {
         FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (null == findBrokerResult) {
@@ -379,6 +379,7 @@ public class PullAPIWrapper {
             requestHeader.setMaxMsgNums(maxNums);
             requestHeader.setInvisibleTime(invisibleTime);
             requestHeader.setInitMode(initMode);
+            requestHeader.setTimestamp(timestamp);
             requestHeader.setExpType(expressionType);
             requestHeader.setExp(expression);
             requestHeader.setOrder(order);
