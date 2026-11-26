@@ -134,11 +134,15 @@ public class IndexStoreServiceTest {
 
     @Test
     public void concurrentPutTest() throws InterruptedException {
+        putKeysConcurrently(new IndexStoreService(fileAllocator, filePath));
+    }
+
+    private void putKeysConcurrently(IndexStoreService service) throws InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(
             4, new ThreadFactoryImpl("ConcurrentPutTest"));
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(500);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = service;
         indexService.start();
         long timestamp = System.currentTimeMillis();
 
@@ -170,33 +174,50 @@ public class IndexStoreServiceTest {
 
     @Test
     public void doCompactionTest() throws InterruptedException {
-        concurrentPutTest();
-        IndexFile indexFile = indexService.getNextSealedFile();
-        Assert.assertEquals(IndexFile.IndexStatusEnum.SEALED, indexFile.getFileStatus());
+        Object backgroundRunLock = new Object();
+        IndexStoreService controlledService = new IndexStoreService(fileAllocator, filePath) {
+            @Override
+            public void run() {
+                synchronized (backgroundRunLock) {
+                    super.run();
+                }
+            }
+        };
+        // Keep background compaction out of the manual compaction assertions.
+        synchronized (backgroundRunLock) {
+            try {
+                putKeysConcurrently(controlledService);
+                IndexFile indexFile = indexService.getNextSealedFile();
+                Assert.assertEquals(IndexFile.IndexStatusEnum.SEALED, indexFile.getFileStatus());
 
-        indexService.doCompactThenUploadFile(indexFile);
-        indexService.setCompactTimestamp(indexFile.getTimestamp());
-        indexFile.destroy();
+                Assert.assertTrue(indexService.doCompactThenUploadFile(indexFile));
+                indexService.setCompactTimestamp(indexFile.getTimestamp());
+                indexFile.destroy();
 
-        List<IndexFile> files = new ArrayList<>(indexService.getTimeStoreTable().values());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(0).getFileStatus());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.SEALED, files.get(1).getFileStatus());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UNSEALED, files.get(2).getFileStatus());
+                List<IndexFile> files = new ArrayList<>(indexService.getTimeStoreTable().values());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(0).getFileStatus());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.SEALED, files.get(1).getFileStatus());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UNSEALED, files.get(2).getFileStatus());
 
-        indexFile = indexService.getNextSealedFile();
-        indexService.doCompactThenUploadFile(indexFile);
-        indexService.setCompactTimestamp(indexFile.getTimestamp());
-        files = new ArrayList<>(indexService.getTimeStoreTable().values());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(0).getFileStatus());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(1).getFileStatus());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UNSEALED, files.get(2).getFileStatus());
+                indexFile = indexService.getNextSealedFile();
+                Assert.assertTrue(indexService.doCompactThenUploadFile(indexFile));
+                indexService.setCompactTimestamp(indexFile.getTimestamp());
+                files = new ArrayList<>(indexService.getTimeStoreTable().values());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(0).getFileStatus());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(1).getFileStatus());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UNSEALED, files.get(2).getFileStatus());
 
-        indexFile = indexService.getNextSealedFile();
-        Assert.assertNull(indexFile);
-        files = new ArrayList<>(indexService.getTimeStoreTable().values());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(0).getFileStatus());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(1).getFileStatus());
-        Assert.assertEquals(IndexFile.IndexStatusEnum.UNSEALED, files.get(2).getFileStatus());
+                indexFile = indexService.getNextSealedFile();
+                Assert.assertNull(indexFile);
+                files = new ArrayList<>(indexService.getTimeStoreTable().values());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(0).getFileStatus());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD, files.get(1).getFileStatus());
+                Assert.assertEquals(IndexFile.IndexStatusEnum.UNSEALED, files.get(2).getFileStatus());
+            } finally {
+                // Allow run() to perform its normal shutdown cleanup after releasing the lock.
+                controlledService.makeStop();
+            }
+        }
     }
 
     @Test
