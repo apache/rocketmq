@@ -18,11 +18,14 @@ package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.embedded.EmbeddedChannel;
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.util.Map;
-
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Before;
@@ -163,6 +166,82 @@ public class ProducerManagerTest {
         assertThat(channel1).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
         assertThat(channel1).isEqualTo(channel);
+    }
+
+    @Test
+    public void registerProducerShouldNotPublishEmptyGroupDuringConcurrentScan() throws Exception {
+        CountDownLatch hashEntered = new CountDownLatch(1);
+        CountDownLatch releaseHash = new CountDownLatch(1);
+        AtomicInteger hashCalls = new AtomicInteger();
+        Channel blockingChannel = (Channel) Proxy.newProxyInstance(
+            Channel.class.getClassLoader(), new Class<?>[] {Channel.class}, (proxy, method, args) -> {
+                switch (method.getName()) {
+                    case "hashCode":
+                        if (hashCalls.incrementAndGet() == 1) {
+                            hashEntered.countDown();
+                            if (!releaseHash.await(10, TimeUnit.SECONDS)) {
+                                throw new AssertionError("Timed out waiting to release Channel.hashCode()");
+                            }
+                        }
+                        return System.identityHashCode(proxy);
+                    case "equals":
+                        return proxy == args[0];
+                    case "toString":
+                        return "blockingChannel";
+                    default:
+                        throw new UnsupportedOperationException(method.getName());
+                }
+            });
+        String clientId = "concurrent-client";
+        ClientChannelInfo concurrentClientInfo =
+            new ClientChannelInfo(blockingChannel, clientId, LanguageCode.JAVA, 0);
+        AtomicInteger groupUnregisterCount = new AtomicInteger();
+        producerManager.appendProducerChangeListener((event, changedGroup, info) -> {
+            if (event == ProducerGroupEvent.GROUP_UNREGISTER && group.equals(changedGroup)) {
+                groupUnregisterCount.incrementAndGet();
+            }
+        });
+        AtomicReference<Throwable> registrationFailure = new AtomicReference<>();
+        Thread registerThread = new Thread(() -> {
+            try {
+                producerManager.registerProducer(group, concurrentClientInfo);
+            } catch (Throwable t) {
+                registrationFailure.set(t);
+            }
+        });
+
+        registerThread.start();
+        try {
+            assertThat(hashEntered.await(10, TimeUnit.SECONDS)).isTrue();
+            producerManager.scanNotActiveChannel();
+        } finally {
+            releaseHash.countDown();
+            registerThread.join(10_000);
+        }
+
+        assertThat(registerThread.isAlive()).isFalse();
+        assertThat(registrationFailure.get()).isNull();
+        assertThat(producerManager.getGroupChannelTable().get(group))
+            .containsEntry(blockingChannel, concurrentClientInfo);
+        assertThat(producerManager.findChannel(clientId)).isSameAs(blockingChannel);
+        assertThat(groupUnregisterCount.get()).isZero();
+    }
+
+    @Test
+    public void registerProducerShouldAddFastChannelAttributeOnlyOnce() {
+        brokerConfig.setEnableFastChannelEventProcess(true);
+        EmbeddedChannel fastChannel = new EmbeddedChannel();
+        try {
+            ClientChannelInfo fastClientInfo =
+                new ClientChannelInfo(fastChannel, "fast-client", LanguageCode.JAVA, 0);
+
+            producerManager.registerProducer(group, fastClientInfo);
+            producerManager.registerProducer(group, fastClientInfo);
+
+            assertThat(ClientChannelAttributeHelper.getProducerGroups(fastChannel)).containsExactly(group);
+        } finally {
+            fastChannel.finishAndReleaseAll();
+        }
     }
 
     @Test
