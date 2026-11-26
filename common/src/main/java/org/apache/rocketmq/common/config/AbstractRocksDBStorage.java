@@ -507,11 +507,7 @@ public abstract class AbstractRocksDBStorage {
     }
 
     public synchronized boolean shutdown() {
-        // Record and clear the interrupt flag before any cleanup that has to wait for a worker
-        // thread. ServiceThread#shutdown() swallows InterruptedException and returns without the
-        // worker having exited, so a flag that is still set here makes the join() inside
-        // preShutdown() return immediately and lets the DB be released while the flush thread is
-        // still running. The flag is restored in the outermost finally below.
+        // Clear the flag so the joins in the cleanup below really wait; restored in the finally.
         boolean interrupted = Thread.interrupted();
         try {
             if (!this.loaded) {
@@ -524,9 +520,6 @@ public abstract class AbstractRocksDBStorage {
             try {
                 manualCompactionThread.awaitTermination(30, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
-                // Do not restore the interrupt flag yet: the remaining cleanup still waits for
-                // worker threads (see ServiceThread#shutdown), and a set flag would make those
-                // joins throw immediately, releasing the DB while its writers are still running.
                 interrupted = true;
                 LOGGER.warn("Interrupted while waiting for the compaction thread. dbPath={}", this.dbPath, e);
             }

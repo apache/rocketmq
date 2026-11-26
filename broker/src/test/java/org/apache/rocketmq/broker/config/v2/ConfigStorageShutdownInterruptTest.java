@@ -33,20 +33,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * Regression test for the shutdown ordering issue reported on PR #11606.
- *
- * <p>{@code AbstractRocksDBStorage#shutdown()} must not release the RocksDB handle until every
- * thread it stopped has actually exited. The last such wait is the {@code Thread.join()} inside
- * {@code ServiceThread#shutdown()}, reached through {@code ConfigStorage#preShutdown()}. That join
- * returns immediately when the caller's interrupt flag is still set, and {@code ServiceThread}
- * swallows the {@code InterruptedException}, so the worker keeps running while the DB is closed.
- *
- * <p>The tests therefore hold a real {@link ServiceThread} in its run loop for longer than a
- * {@code join()} that returns early can take, and assert that it has exited once
- * {@code preShutdown()} returns. They cover both ways the flag can still be set at that point: the
- * caller is interrupted before {@code shutdown()} is entered while the compaction pool is idle
- * (so {@code awaitTermination()} never observes the flag), and the caller is interrupted while
- * {@code awaitTermination()} is blocked.
+ * Regression test for PR #11606: the RocksDB handle must not be released before the threads
+ * stopped by {@code shutdown()} have exited, including when the caller is interrupted.
  */
 public class ConfigStorageShutdownInterruptTest {
 
@@ -55,10 +43,7 @@ public class ConfigStorageShutdownInterruptTest {
     @Rule
     public TemporaryFolder tf = new TemporaryFolder();
 
-    /**
-     * Held by the test thread to keep the compaction executor busy. A monitor wait cannot be
-     * cancelled by {@code Thread.interrupt()}, which is what makes {@code awaitTermination} block.
-     */
+    /** Holds the compaction executor busy; a monitor wait is not interruptible. */
     private final Object compactionGate = new Object();
 
     private ObservingConfigStorage storage;
@@ -79,11 +64,7 @@ public class ConfigStorageShutdownInterruptTest {
         }
     }
 
-    /**
-     * The compaction pool is idle, so {@code awaitTermination()} returns {@code true} without ever
-     * checking the interrupt flag. Without clearing the flag on entry it is still set when the
-     * flush worker is joined, and the flush worker outlives the DB handle.
-     */
+    /** The pool is idle, so awaitTermination() returns without checking the flag. */
     @Test
     public void testInterruptBeforeShutdownStillWaitsForFlushWorker() throws Exception {
         AtomicBoolean shutdownResult = new AtomicBoolean(false);
@@ -96,10 +77,7 @@ public class ConfigStorageShutdownInterruptTest {
         assertShutdownWaitedForFlushWorker(caller, shutdownResult, interruptStatusAtExit);
     }
 
-    /**
-     * The caller is interrupted while it is blocked waiting for the compaction executor, the
-     * scenario described in the review.
-     */
+    /** The caller is interrupted while blocked in awaitTermination(), as in the review. */
     @Test
     public void testInterruptDuringCompactionWaitStillWaitsForFlushWorker() throws Exception {
         ThreadPoolExecutor compactionPool = compactionPoolOf(storage);
@@ -183,10 +161,7 @@ public class ConfigStorageShutdownInterruptTest {
         return (ThreadPoolExecutor) field.get(target);
     }
 
-    /**
-     * A real {@link ServiceThread} that stays alive for a fixed delay after it is started, so that
-     * a {@code join()} returning early is guaranteed to observe it still running.
-     */
+    /** A real ServiceThread that stays alive long enough for a premature join() to observe it. */
     static class BlockingFlushWorker extends ServiceThread {
 
         private final CountDownLatch entered = new CountDownLatch(1);
@@ -205,7 +180,6 @@ public class ConfigStorageShutdownInterruptTest {
                 try {
                     Thread.sleep(5);
                 } catch (InterruptedException ignored) {
-                    // A flush worker keeps draining until it observes the stop flag.
                 }
             }
         }
@@ -220,9 +194,7 @@ public class ConfigStorageShutdownInterruptTest {
         }
     }
 
-    /**
-     * Records what the shutdown thread observes right before and right after the flush worker join.
-     */
+    /** Records what the shutdown thread sees around the flush worker join. */
     static class ObservingConfigStorage extends ConfigStorage {
 
         private final BlockingFlushWorker flushWorker = new BlockingFlushWorker();
@@ -242,8 +214,6 @@ public class ConfigStorageShutdownInterruptTest {
         @Override
         protected void preShutdown() {
             interruptedSeenInPreShutdown = Thread.currentThread().isInterrupted();
-            // Same contract as flushSyncService.shutdown(): a ServiceThread join that a set
-            // interrupt flag can cut short.
             flushWorker.shutdown();
             flushWorkerAliveAfterJoin = flushWorker.workerAlive();
             super.preShutdown();
