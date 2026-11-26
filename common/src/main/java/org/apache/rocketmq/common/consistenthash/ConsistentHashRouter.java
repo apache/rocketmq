@@ -21,7 +21,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.SortedMap;
+import java.util.Map;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 
 /**
@@ -30,7 +31,7 @@ import java.util.TreeMap;
  * algorithm
  */
 public class ConsistentHashRouter<T extends Node> {
-    private final SortedMap<Long, VirtualNode<T>> ring = new TreeMap<>();
+    private final NavigableMap<Long, VirtualNode<T>> ring = new TreeMap<>();
     private final HashFunction hashFunction;
 
     public ConsistentHashRouter(Collection<T> pNodes, int vNodeCount) {
@@ -94,9 +95,11 @@ public class ConsistentHashRouter<T extends Node> {
             return null;
         }
         Long hashVal = hashFunction.hash(objectKey);
-        SortedMap<Long, VirtualNode<T>> tailMap = ring.tailMap(hashVal);
-        Long nodeHashVal = !tailMap.isEmpty() ? tailMap.firstKey() : ring.firstKey();
-        return ring.get(nodeHashVal).getPhysicalNode();
+        Map.Entry<Long, VirtualNode<T>> entry = ring.ceilingEntry(hashVal);
+        if (entry == null) {
+            entry = ring.firstEntry();
+        }
+        return entry.getValue().getPhysicalNode();
     }
 
     public int getExistingReplicas(T pNode) {
