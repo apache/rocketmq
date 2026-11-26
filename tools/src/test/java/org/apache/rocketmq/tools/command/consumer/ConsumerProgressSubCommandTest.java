@@ -16,17 +16,31 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
+import io.netty.channel.ChannelHandlerContext;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
+import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.server.NameServerMocker;
@@ -66,6 +80,73 @@ public class ConsumerProgressSubCommandTest {
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                 cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
+    }
+
+    @Test
+    public void testExecuteWithLmqWithoutNameServerRoute() throws Exception {
+        String group = "test-lmq-group";
+        String lmq = "%LMQ%test-lmq";
+        ConsumeStats stats = new ConsumeStats();
+        OffsetWrapper offset = new OffsetWrapper();
+        offset.setBrokerOffset(80L);
+        offset.setConsumerOffset(50L);
+        offset.setPullOffset(60L);
+        stats.getOffsetTable().put(new MessageQueue(lmq, "mockBrokerName", 0), offset);
+        stats.setConsumeTps(12.5);
+        brokerMocker.shutdown();
+        brokerMocker = ServerResponseMocker.startServer(stats.encode());
+
+        TopicRouteData route = new TopicRouteData();
+        HashMap<Long, String> addresses = new HashMap<>();
+        addresses.put(MixAll.MASTER_ID, "127.0.0.1:" + brokerMocker.listenPort());
+        route.getBrokerDatas().add(new BrokerData("mockCluster", "mockBrokerName", addresses));
+        AtomicInteger lmqRouteRequests = new AtomicInteger();
+        NettyServerConfig config = new NettyServerConfig();
+        config.setListenPort(0);
+        config.setServerWorkerThreads(1);
+        config.setServerCallbackExecutorThreads(1);
+        NettyRemotingServer namesrv = new NettyRemotingServer(config);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        namesrv.registerDefaultProcessor(new NettyRequestProcessor() {
+            @Override
+            public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) {
+                String topic = request.getExtFields().get("topic");
+                if (MixAll.isLmq(topic)) {
+                    lmqRouteRequests.incrementAndGet();
+                    return RemotingCommand.createResponseCommand(ResponseCode.TOPIC_NOT_EXIST,
+                        "No topic route info in name server for the topic: " + topic);
+                }
+                RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
+                response.setBody(route.encode());
+                return response;
+            }
+
+            @Override
+            public boolean rejectRequest() {
+                return false;
+            }
+        }, executor);
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try (PrintStream capturedOut = new PrintStream(output, true, "UTF-8")) {
+            namesrv.start();
+            ConsumerProgressSubCommand cmd = new ConsumerProgressSubCommand();
+            Options options = cmd.buildCommandlineOptions(ServerUtil.buildCommandlineOptions(new Options()));
+            CommandLine commandLine = new DefaultParser().parse(options,
+                new String[] {"-g", group, "-n", "127.0.0.1:" + namesrv.localListenPort()});
+            System.setOut(capturedOut);
+            cmd.execute(commandLine, options, null);
+            String text = output.toString("UTF-8");
+            Assert.assertTrue(text, text.contains(lmq));
+            Assert.assertTrue(text, text.contains(String.format("Consume TPS: %.2f", 12.5)));
+            Assert.assertTrue(text, text.contains("Consume Diff Total: 30"));
+            Assert.assertTrue(text, text.contains("Consume Inflight Total: 10"));
+            Assert.assertEquals(0, lmqRouteRequests.get());
+        } finally {
+            System.setOut(originalOut);
+            namesrv.shutdown();
+            executor.shutdownNow();
+        }
     }
 
     private ServerResponseMocker startOneBroker() {
