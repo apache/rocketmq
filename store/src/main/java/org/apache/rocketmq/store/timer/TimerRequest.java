@@ -20,6 +20,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TimerRequest {
 
@@ -32,14 +34,19 @@ public class TimerRequest {
     private long enqueueTime;
     private MessageExt msg;
 
+    /**
+     * Completion state of the current attempt. A request may be put more than once when a batch
+     * has a partial failure, and every attempt must own its completion state: a late release from
+     * the previous attempt must not complete the attempt that replaced it.
+     */
+    private volatile Attempt attempt;
 
-    //optional would be a good choice, but it relies on JDK 8
-    private CountDownLatch latch;
-
-    private boolean released;
-
-    //whether the operation is successful
-    private boolean succ;
+    /**
+     * The attempt handed to the dequeue pipeline. It is captured when the request is handed over
+     * so that the pipeline owner releases the attempt it actually owns, even if the enqueue loop
+     * has already re-armed the request for a retry.
+     */
+    private volatile Attempt pipelineAttempt;
 
     private Set<String> deleteList;
 
@@ -92,26 +99,56 @@ public class TimerRequest {
         this.deleteList = deleteList;
     }
 
-    public void setLatch(CountDownLatch latch) {
-        this.latch = latch;
+    /**
+     * Start a new attempt and make it the current one. The previous attempt, if any, keeps its own
+     * completion state and is released by the owner that was handed the request.
+     */
+    public Attempt beginAttempt(CountDownLatch latch) {
+        Attempt newAttempt = new Attempt(latch);
+        this.attempt = newAttempt;
+        return newAttempt;
     }
+
+    public Attempt getAttempt() {
+        return attempt;
+    }
+
+    public Attempt getPipelineAttempt() {
+        return pipelineAttempt;
+    }
+
+    public void setPipelineAttempt(Attempt pipelineAttempt) {
+        this.pipelineAttempt = pipelineAttempt;
+    }
+
+    public void setLatch(CountDownLatch latch) {
+        beginAttempt(latch);
+    }
+
     public void setEnqueueTime(long enqueueTime) {
         this.enqueueTime = enqueueTime;
     }
+
     public void idempotentRelease() {
         idempotentRelease(true);
     }
 
     public void idempotentRelease(boolean succ) {
-        this.succ = succ;
-        if (!released && latch != null) {
-            released = true;
-            latch.countDown();
+        Attempt releasedAttempt = attempt;
+        if (releasedAttempt != null) {
+            releasedAttempt.release(succ);
+        }
+    }
+
+    public void idempotentRelease(Attempt releasedAttempt, boolean succ) {
+        if (releasedAttempt != null) {
+            releasedAttempt.release(succ);
         }
     }
 
     public boolean isSucc() {
-        return succ;
+        Attempt currentAttempt = attempt;
+        return currentAttempt != null && currentAttempt.isSucc();
     }
 
     @Override
@@ -123,10 +160,77 @@ public class TimerRequest {
             ", enqueueTime=" + enqueueTime +
             ", magic=" + magic +
             ", msg=" + msg +
-            ", latch=" + latch +
-            ", released=" + released +
-            ", succ=" + succ +
+            ", attempt=" + attempt +
+            ", pipelineAttempt=" + pipelineAttempt +
             ", deleteList=" + deleteList +
             '}';
+    }
+
+    /**
+     * Completion state of one enqueue attempt.
+     */
+    public static class Attempt {
+
+        private final CountDownLatch latch;
+        private final AtomicBoolean released = new AtomicBoolean(false);
+        private volatile boolean succ;
+        private volatile boolean handedToPipeline;
+        // Only attempts handed to the dequeue pipeline need a signal to wait on
+        private volatile CountDownLatch done;
+
+        Attempt(CountDownLatch latch) {
+            this.latch = latch;
+        }
+
+        public void release(boolean succ) {
+            this.succ = succ;
+            if (released.compareAndSet(false, true)) {
+                if (latch != null) {
+                    latch.countDown();
+                }
+                CountDownLatch doneSignal = done;
+                if (doneSignal != null) {
+                    doneSignal.countDown();
+                }
+            }
+        }
+
+        public boolean isSucc() {
+            return succ;
+        }
+
+        public boolean isDone() {
+            CountDownLatch doneSignal = done;
+            return doneSignal != null ? doneSignal.getCount() == 0 : released.get();
+        }
+
+        public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
+            CountDownLatch doneSignal = done;
+            return doneSignal != null ? doneSignal.await(timeout, unit) : released.get();
+        }
+
+        public void markHandedToPipeline() {
+            if (done == null) {
+                done = new CountDownLatch(1);
+            }
+            this.handedToPipeline = true;
+        }
+
+        public void clearHandedToPipeline() {
+            this.handedToPipeline = false;
+        }
+
+        public boolean isHandedToPipeline() {
+            return handedToPipeline;
+        }
+
+        @Override
+        public String toString() {
+            return "Attempt{" +
+                "succ=" + succ +
+                ", released=" + released +
+                ", handedToPipeline=" + handedToPipeline +
+                '}';
+        }
     }
 }

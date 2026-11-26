@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -696,6 +697,303 @@ public class TimerMessageStoreTest {
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
                              byte[] filterBitMap, Map<String, String> properties) {
         }
+    }
+
+    @Test
+    public void testEnqueueRetryReprocessesOnlyFailedRequests() throws Exception {
+        String rootDir = StoreTestUtils.createBaseDir();
+        baseDirs.add(rootDir);
+        TimerCheckpoint timerCheckpoint =
+            new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
+        TimerMetrics timerMetrics =
+            new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics");
+
+        final long failedOffsetPy = 100L;
+        final long succeededOffsetPy = 200L;
+        final Map<Long, AtomicInteger> enqueueCalls = new ConcurrentHashMap<>();
+        final List<CountDownLatch> roundLatches = new ArrayList<>();
+
+        TimerMessageStore timerMessageStore =
+            new TimerMessageStore(messageStore, storeConfig, timerCheckpoint, timerMetrics, null) {
+                @Override
+                public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime,
+                    MessageExt messageExt, boolean isFromTimeline) {
+                    int calls = enqueueCalls.computeIfAbsent(offsetPy, key -> new AtomicInteger()).incrementAndGet();
+                    // Simulate a transient TimerLog append failure for the first attempt only
+                    return !(offsetPy == failedOffsetPy && calls == 1);
+                }
+
+                @Override
+                public void checkDequeueLatch(CountDownLatch latch, long delayedTime) {
+                    // Dequeue is not involved here. Record the latch instead of waiting so that
+                    // every round has to complete its own latch.
+                    roundLatches.add(latch);
+                }
+            };
+        messageStore.setTimerMessageStore(timerMessageStore);
+        timerStores.add(timerMessageStore);
+        timerMessageStore.setShouldRunningDequeue(false);
+
+        timerMessageStore.maybeMoveWriteTime();
+        long delayTime = timerMessageStore.currWriteTimeMs + precisionMs;
+
+        TimerRequest failedReq = new TimerRequest(failedOffsetPy, msgBody.length, delayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        MessageExtBrokerInner failedMsg = buildMessage(delayTime, "TimerTest_enqueueRetryFailed", false);
+        failedMsg.setQueueOffset(1);
+        failedReq.setMsg(failedMsg);
+        TimerRequest succeededReq = new TimerRequest(succeededOffsetPy, msgBody.length, delayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        MessageExtBrokerInner succeededMsg = buildMessage(delayTime, "TimerTest_enqueueRetrySucceeded", false);
+        succeededMsg.setQueueOffset(2);
+        succeededReq.setMsg(succeededMsg);
+        timerMessageStore.enqueuePutQueue.put(failedReq);
+        timerMessageStore.enqueuePutQueue.put(succeededReq);
+
+        TimerMessageStore.TimerEnqueuePutService service = timerMessageStore.new TimerEnqueuePutService();
+        service.fetchAndPutTimerRequest();
+
+        // The request whose first attempt failed is retried and then succeeds
+        assertEquals(2, enqueueCalls.get(failedOffsetPy).get());
+        // The request that already succeeded in the first round must not be enqueued again
+        assertEquals(1, enqueueCalls.get(succeededOffsetPy).get());
+        // Each round completes its own latch, so the retry does not hit the checkDequeueLatch
+        // timeout path
+        assertEquals(2, roundLatches.size());
+        assertEquals(0, roundLatches.get(0).getCount());
+        assertEquals(0, roundLatches.get(1).getCount());
+        assertEquals(2, timerMessageStore.getCommitQueueOffset());
+    }
+
+    @Test
+    public void testEnqueueRetryWaitsForPreviousDequeueOwner() throws Exception {
+        String rootDir = StoreTestUtils.createBaseDir();
+        baseDirs.add(rootDir);
+        TimerCheckpoint timerCheckpoint =
+            new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
+        TimerMetrics timerMetrics =
+            new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics");
+
+        final long pipelineOffsetPy = 100L;
+        final long directOffsetPy = 200L;
+        final Map<Long, AtomicInteger> enqueueCalls = new ConcurrentHashMap<>();
+        final List<CountDownLatch> roundLatches = new ArrayList<>();
+
+        TimerMessageStore timerMessageStore =
+            new TimerMessageStore(messageStore, storeConfig, timerCheckpoint, timerMetrics, null) {
+                @Override
+                public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime,
+                    MessageExt messageExt, boolean isFromTimeline) {
+                    enqueueCalls.computeIfAbsent(offsetPy, key -> new AtomicInteger()).incrementAndGet();
+                    return true;
+                }
+
+                @Override
+                public void checkDequeueLatch(CountDownLatch latch, long delayedTime) {
+                    // Model checkDequeueLatch exiting as soon as dequeue stops running while the
+                    // previous pipeline owner is still finishing its work.
+                    roundLatches.add(latch);
+                }
+            };
+        messageStore.setTimerMessageStore(timerMessageStore);
+        timerStores.add(timerMessageStore);
+        timerMessageStore.setShouldRunningDequeue(true);
+        timerMessageStore.maybeMoveWriteTime();
+
+        // Expired request: the first attempt hands it to the dequeue pipeline
+        long pipelineDelayTime = timerMessageStore.currWriteTimeMs - precisionMs;
+        TimerRequest pipelineReq = new TimerRequest(pipelineOffsetPy, msgBody.length, pipelineDelayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        MessageExtBrokerInner pipelineMsg = buildMessage(pipelineDelayTime, "TimerTest_enqueueRetryPipeline", false);
+        pipelineMsg.setQueueOffset(1);
+        pipelineReq.setMsg(pipelineMsg);
+        // Future request: enqueued directly and succeeds in the first round
+        long directDelayTime = timerMessageStore.currWriteTimeMs + precisionMs;
+        TimerRequest directReq = new TimerRequest(directOffsetPy, msgBody.length, directDelayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        MessageExtBrokerInner directMsg = buildMessage(directDelayTime, "TimerTest_enqueueRetryDirect", false);
+        directMsg.setQueueOffset(2);
+        directReq.setMsg(directMsg);
+        timerMessageStore.enqueuePutQueue.put(pipelineReq);
+        timerMessageStore.enqueuePutQueue.put(directReq);
+
+        final Throwable[] failure = new Throwable[1];
+        Thread worker = new Thread(() -> {
+            try {
+                timerMessageStore.new TimerEnqueuePutService().fetchAndPutTimerRequest();
+            } catch (Throwable t) {
+                failure[0] = t;
+            }
+        }, "timer-enqueue-retry-test");
+        worker.setDaemon(true);
+        worker.start();
+
+        // Act as the previous dequeue owner and keep the request in flight
+        TimerRequest ownedRequest = timerMessageStore.dequeuePutQueue.poll(5, TimeUnit.SECONDS);
+        assertEquals(pipelineReq, ownedRequest);
+        final TimerRequest.Attempt ownerAttempt = ownedRequest.getPipelineAttempt();
+        assertNotNull(ownerAttempt);
+
+        // The retry round re-arms completion, but it must not reprocess the request while the
+        // previous owner still holds it.
+        await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> pipelineReq.getAttempt() != ownerAttempt);
+        assertTrue(worker.isAlive());
+        assertFalse(ownerAttempt.isDone());
+        assertEquals(0, enqueueCalls.getOrDefault(pipelineOffsetPy, new AtomicInteger()).get());
+        assertEquals(0, timerMessageStore.getCommitQueueOffset());
+
+        // The previous owner succeeds after the retry re-armed completion. Its release must
+        // complete only the attempt it owns, and the retry must not enqueue the message again.
+        ownerAttempt.release(true);
+        worker.join(5000);
+
+        assertFalse(worker.isAlive());
+        assertNull(failure[0]);
+        assertEquals(0, enqueueCalls.getOrDefault(pipelineOffsetPy, new AtomicInteger()).get());
+        assertEquals(1, enqueueCalls.get(directOffsetPy).get());
+        assertTrue(pipelineReq.isSucc());
+        assertTrue(pipelineReq.getAttempt().isDone());
+        assertEquals(2, timerMessageStore.getCommitQueueOffset());
+        assertEquals(2, roundLatches.size());
+        assertEquals(0, roundLatches.get(0).getCount());
+        assertEquals(0, roundLatches.get(1).getCount());
+    }
+
+    @Test
+    public void testEnqueueRetryAfterPreviousDequeueOwnerFails() throws Exception {
+        String rootDir = StoreTestUtils.createBaseDir();
+        baseDirs.add(rootDir);
+        TimerCheckpoint timerCheckpoint =
+            new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
+        TimerMetrics timerMetrics =
+            new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics");
+
+        final long pipelineOffsetPy = 100L;
+        final Map<Long, AtomicInteger> enqueueCalls = new ConcurrentHashMap<>();
+        final List<CountDownLatch> roundLatches = new ArrayList<>();
+
+        TimerMessageStore timerMessageStore =
+            new TimerMessageStore(messageStore, storeConfig, timerCheckpoint, timerMetrics, null) {
+                @Override
+                public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime,
+                    MessageExt messageExt, boolean isFromTimeline) {
+                    enqueueCalls.computeIfAbsent(offsetPy, key -> new AtomicInteger()).incrementAndGet();
+                    return true;
+                }
+
+                @Override
+                public void checkDequeueLatch(CountDownLatch latch, long delayedTime) {
+                    roundLatches.add(latch);
+                }
+            };
+        messageStore.setTimerMessageStore(timerMessageStore);
+        timerStores.add(timerMessageStore);
+        timerMessageStore.setShouldRunningDequeue(true);
+        timerMessageStore.maybeMoveWriteTime();
+
+        long pipelineDelayTime = timerMessageStore.currWriteTimeMs - precisionMs;
+        TimerRequest pipelineReq = new TimerRequest(pipelineOffsetPy, msgBody.length, pipelineDelayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        MessageExtBrokerInner pipelineMsg = buildMessage(pipelineDelayTime, "TimerTest_enqueueRetryOwnerFails", false);
+        pipelineMsg.setQueueOffset(1);
+        pipelineReq.setMsg(pipelineMsg);
+        timerMessageStore.enqueuePutQueue.put(pipelineReq);
+
+        final Throwable[] failure = new Throwable[1];
+        Thread worker = new Thread(() -> {
+            try {
+                timerMessageStore.new TimerEnqueuePutService().fetchAndPutTimerRequest();
+            } catch (Throwable t) {
+                failure[0] = t;
+            }
+        }, "timer-enqueue-retry-owner-fails-test");
+        worker.setDaemon(true);
+        worker.start();
+
+        TimerRequest ownedRequest = timerMessageStore.dequeuePutQueue.poll(5, TimeUnit.SECONDS);
+        assertEquals(pipelineReq, ownedRequest);
+        final TimerRequest.Attempt ownerAttempt = ownedRequest.getPipelineAttempt();
+        assertNotNull(ownerAttempt);
+        await().atMost(5000, TimeUnit.MILLISECONDS).until(() -> pipelineReq.getAttempt() != ownerAttempt);
+        assertEquals(0, enqueueCalls.getOrDefault(pipelineOffsetPy, new AtomicInteger()).get());
+
+        // The previous owner fails because dequeue stopped running, so the retry must enqueue the
+        // message exactly once through the direct path.
+        timerMessageStore.setShouldRunningDequeue(false);
+        ownerAttempt.release(false);
+        worker.join(5000);
+
+        assertFalse(worker.isAlive());
+        assertNull(failure[0]);
+        assertEquals(1, enqueueCalls.get(pipelineOffsetPy).get());
+        assertTrue(pipelineReq.isSucc());
+        assertEquals(1, timerMessageStore.getCommitQueueOffset());
+        assertEquals(2, roundLatches.size());
+        assertEquals(0, roundLatches.get(0).getCount());
+        assertEquals(0, roundLatches.get(1).getCount());
+    }
+
+    @Test
+    public void testEnqueueStopDuringBackoffDoesNotAdvanceCommitOffset() throws Exception {
+        String rootDir = StoreTestUtils.createBaseDir();
+        baseDirs.add(rootDir);
+        TimerCheckpoint timerCheckpoint =
+            new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
+        TimerMetrics timerMetrics =
+            new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics");
+
+        final AtomicInteger enqueueCalls = new AtomicInteger(0);
+        final AtomicBoolean stopRequested = new AtomicBoolean(false);
+        final List<CountDownLatch> roundLatches = new ArrayList<>();
+
+        TimerMessageStore timerMessageStore =
+            new TimerMessageStore(messageStore, storeConfig, timerCheckpoint, timerMetrics, null) {
+                @Override
+                public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime,
+                    MessageExt messageExt, boolean isFromTimeline) {
+                    enqueueCalls.incrementAndGet();
+                    return false;
+                }
+
+                @Override
+                public void checkDequeueLatch(CountDownLatch latch, long delayedTime) {
+                    roundLatches.add(latch);
+                }
+
+                @Override
+                public void holdMomentForUnknownError() {
+                    // Model the enqueue service stopping while it backs off before the retry
+                    stopRequested.set(true);
+                }
+            };
+        messageStore.setTimerMessageStore(timerMessageStore);
+        timerStores.add(timerMessageStore);
+        timerMessageStore.setShouldRunningDequeue(false);
+        timerMessageStore.maybeMoveWriteTime();
+
+        long delayTime = timerMessageStore.currWriteTimeMs + precisionMs;
+        TimerRequest req = new TimerRequest(100L, msgBody.length, delayTime,
+            System.currentTimeMillis(), TimerMessageStore.MAGIC_DEFAULT);
+        MessageExtBrokerInner msg = buildMessage(delayTime, "TimerTest_enqueueStopBackoff", false);
+        msg.setQueueOffset(1);
+        req.setMsg(msg);
+        timerMessageStore.enqueuePutQueue.put(req);
+
+        TimerMessageStore.TimerEnqueuePutService service =
+            timerMessageStore.new TimerEnqueuePutService() {
+                @Override
+                public boolean isStopped() {
+                    return stopRequested.get();
+                }
+            };
+        service.fetchAndPutTimerRequest();
+
+        // The single attempt failed and the service stopped before retrying it
+        assertEquals(1, enqueueCalls.get());
+        assertFalse(req.isSucc());
+        assertEquals(1, roundLatches.size());
+        // The failed request must not be acknowledged
+        assertEquals(0, timerMessageStore.getCommitQueueOffset());
     }
 
     @After
