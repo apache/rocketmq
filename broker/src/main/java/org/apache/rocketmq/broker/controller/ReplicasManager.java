@@ -618,15 +618,15 @@ public class ReplicasManager {
             if (responsePair == null)
                 return false;
             RegisterBrokerToControllerResponseHeader response = responsePair.getObject1();
-            if (!Objects.equals(this.brokerStartupGeneration, response.getBrokerStartupGeneration())
-                || !this.brokerStartupId.equals(response.getBrokerStartupId()) || response.getMasterEpoch() == null) {
-                LOGGER.error("Controller did not acknowledge this broker startup; upgrade the controller before starting this broker");
-                this.startupRegistered = false;
-                this.roleReady = false;
-                setFenced(true);
-                return false;
-            }
             synchronized (this) {
+                if (!Objects.equals(this.brokerStartupGeneration, response.getBrokerStartupGeneration())
+                    || !this.brokerStartupId.equals(response.getBrokerStartupId()) || response.getMasterEpoch() == null) {
+                    LOGGER.error("Controller did not acknowledge this broker startup; upgrade the controller before starting this broker");
+                    this.startupRegistered = false;
+                    this.roleReady = false;
+                    setFenced(true);
+                    return false;
+                }
                 this.startupMasterEpoch = Math.max(this.startupMasterEpoch, response.getMasterEpoch());
                 this.startupRegistered = true;
             }

@@ -390,6 +390,13 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                         this.flowMonitor.shutdown(true);
                         return;
                     case READY:
+                        final ConfirmedOffsetGuard guard = this.haService.getConfirmedOffsetGuard();
+                        if (guard.isBlocked()) {
+                            // Retry the local record without changing the refused follower's history.
+                            guard.ensurePersisted();
+                            waitForRunning(1000 * 5);
+                            continue;
+                        }
                         // Truncate invalid msg first
                         final long truncateOffset = AutoSwitchHAClient.this.haService.truncateInvalidMsg();
                         if (truncateOffset >= 0 && !AutoSwitchHAClient.this.epochCache.truncateSuffixByOffset(truncateOffset)) {

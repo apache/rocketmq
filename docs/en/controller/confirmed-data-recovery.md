@@ -4,7 +4,9 @@ In controller mode, a replica refuses a handshake that would truncate its log be
 `confirmOffset`. The refusal is saved beside `storePathEpochFile`, with the suffix
 `.confirmed-offset-guard`. Reconnecting, restarting, changing the master address or receiving a
 larger offset does not remove it. A damaged guard record stops initialization instead of enabling
-replication.
+replication. The refusal blocks the follower's HA handshake. It does not freeze the local store
+or stop normal retention. Stop the refused replica and preserve its store before attempting
+recovery.
 
 If saving a refusal fails, the running follower still refuses handshakes and retries saving the same
 evidence. Resolve the storage failure before restarting it: evidence which never reached durable
@@ -18,16 +20,19 @@ force that replica to join.
 
 ## Upgrade order and restart behavior
 
-Coordinate the upgrade across the controller group and its brokers. Upgrade every controller before
-starting an upgraded broker, and upgrade every broker in the affected group before relying on the
-new startup-epoch behavior. The guarantee does not apply to mixed-version deployments.
+Coordinate the upgrade across the controller group and its brokers. Upgrade every controller member,
+including controllers embedded in NameServers, before starting an upgraded broker. Do not let an
+older controller rejoin the group. A startup acknowledgment comes from the current leader and does
+not establish that the other members support the new registration. Upgrade every broker in the
+affected group before relying on the new startup-epoch behavior.
 
 Before upgrading, take consistent backups of the controller snapshots and logs and the corresponding
-broker stores and identities. After accepting a new startup registration, do not downgrade either
-component in place over the newer state. Older controllers do not apply the same startup metadata,
-and older brokers do not honor the new refusal guard or startup registration. Rollback requires
-coordinated recovery from compatible controller and broker backups and reconciliation of any writes
-since those backups.
+broker stores and identities. Once the first new startup registration commits, do not downgrade
+either component in place over the newer state. A timed-out request may still commit; if the outcome
+is unknown, treat it as committed for rollback decisions. Older controllers do not apply the same
+startup metadata, and older brokers do not honor the new refusal guard or startup registration.
+Rollback requires coordinated recovery from compatible controller and broker backups and
+reconciliation of any writes since those backups.
 
 Each broker startup persists a monotonically increasing generation beside `storePathBrokerIdentity`
 with the suffix `-startup`, and uses a fresh startup ID for registration. The controller persists the
@@ -36,9 +41,13 @@ with another startup ID, is refused. An upgraded broker stays fenced if the cont
 acknowledge its startup identity.
 
 When the current master restarts, the controller grants a new master epoch without reducing the
-SyncStateSet. The broker durably records that epoch at the recovered log end before enabling writes.
+SyncStateSet. The broker records that epoch at the recovered log end before enabling writes.
 Thus replacement messages cannot extend the previous epoch. A follower restart does not advance
 the group's master epoch. Duplicate grants in one startup retain the original epoch boundary.
+
+The broker replaces its startup, epoch, and refusal metadata files atomically on filesystems that
+support atomic replacement. On Windows, RocketMQ does not sync the parent directory; do not assume
+an atomic replacement will survive a power loss.
 
 Keep the broker identity and its startup metadata together. Restoring an old startup counter is not
 a supported way to rejoin an existing broker identity; the controller may correctly refuse it.
@@ -83,10 +92,11 @@ the refused member, clear its guard, or infer a rollback point from its first re
 4. Start the replacement as a follower of the selected group. It copies the master's retained
    CommitLog; it does not reconstruct expired or missing history. Keep the old replica stopped, so its
    address and broker identity cannot be reused concurrently.
-5. Check actual message contents and queue order over the required range, the epoch history,
-   `maxOffset`, `confirmOffset`, checkpoint and ConsumeQueue progress. Confirm that new messages also
-   replicate. Equal offsets alone are insufficient. Recheck after a normal restart of the new
-   replica before considering the replacement complete.
+5. Read and compare actual messages and queue order over the required range, and confirm that new
+   messages also replicate. Check the epoch history, `maxOffset`, `confirmOffset`, checkpoint and
+   ConsumeQueue progress separately. A matching maximum offset in runtime stats does not establish
+   the confirmed offset or the message contents. Recheck after a normal restart of the new replica
+   before considering the replacement complete.
 6. Retire the old stopped identity using the existing controller administration procedure only after
    the replacement is healthy. Retiring the identity does not remove the need to retain and reconcile
    the preserved data and refusal record.

@@ -97,6 +97,11 @@ The specific behavior is shown in the following table:
 
 ## Upgrade Considerations
 
+If your Controller-mode group already uses persistent BrokerIDs and you are upgrading to a version
+with confirmed-offset protection, follow the
+[Controller-first upgrade and rollback guide](confirmed-data-recovery.md#upgrade-order-and-restart-behavior).
+The older BrokerID migration below does not apply: keep the Controller data and broker epoch files.
+
 From the compatibility statements above, it can be seen that NameServer can be upgraded normally without compatibility issues. In the case where the Nameserver is not to be upgraded, the controller component can be deployed independently to obtain switching capabilities. For broker upgrades, there are two cases:
 
 1. Master-Slave deployment is upgraded to controller switching architecture
