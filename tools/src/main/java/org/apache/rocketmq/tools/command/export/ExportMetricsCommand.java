@@ -78,7 +78,7 @@ public class ExportMetricsCommand implements SubCommand {
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook)
         throws SubCommandException {
 
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = createAdmin(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
@@ -145,6 +145,10 @@ public class ExportMetricsCommand implements SubCommand {
 
     }
 
+    DefaultMQAdminExt createAdmin(RPCHook rpcHook) {
+        return new DefaultMQAdminExt(rpcHook);
+    }
+
     private Map<String, Object> getRuntimeVersion(DefaultMQAdminExt defaultMQAdminExt,
         SubscriptionGroupWrapper subscriptionGroupWrapper, String brokerVersion) {
         Map<String, Object> runtimeVersionMap = new HashMap();
@@ -163,7 +167,7 @@ public class ExportMetricsCommand implements SubCommand {
                 continue;
             }
         }
-        runtimeVersionMap.put("rocketmqVersion", brokerVersion);
+        runtimeVersionMap.put("rocketmqVersion", brokerVersion != null ? brokerVersion : "unknown");
         runtimeVersionMap.put("clientInfo", clientInfoSet);
         return runtimeVersionMap;
     }

@@ -39,17 +39,11 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.whenNew;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(ExportMetricsCommand.class)
 public class ExportMetricsCommandTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -57,17 +51,21 @@ public class ExportMetricsCommandTest {
     @Test
     public void exportsEachBrokersReportedVersion() throws Exception {
         DefaultMQAdminExt admin = mock(DefaultMQAdminExt.class);
-        whenNew(DefaultMQAdminExt.class).withParameterTypes(RPCHook.class)
-            .withArguments((RPCHook) null).thenReturn(admin);
         ClusterInfo cluster = new ClusterInfo();
         cluster.setBrokerAddrTable(new HashMap<>());
         addBroker(admin, cluster, "broker-a", "localhost:10911", "V5_3_2");
         addBroker(admin, cluster, "broker-b", "localhost:10912", "V5_4_0");
+        addBroker(admin, cluster, "broker-c", "localhost:10913", null);
         cluster.setClusterAddrTable(Collections.singletonMap("cluster", new HashSet<>(cluster.getBrokerAddrTable().keySet())));
         when(admin.examineBrokerClusterInfo()).thenReturn(cluster);
 
         Path directory = temporaryFolder.getRoot().toPath();
-        ExportMetricsCommand command = new ExportMetricsCommand();
+        ExportMetricsCommand command = new ExportMetricsCommand() {
+            @Override
+            DefaultMQAdminExt createAdmin(RPCHook rpcHook) {
+                return admin;
+            }
+        };
         Options options = command.buildCommandlineOptions(new Options());
         CommandLine args = new DefaultParser().parse(options, new String[] {"-c", "cluster", "-f", directory.toString()});
         command.execute(args, options, null);
@@ -75,6 +73,7 @@ public class ExportMetricsCommandTest {
         JSONObject report = JSON.parseObject(Files.readAllBytes(directory.resolve("metrics.json"))).getJSONObject("evaluateReport");
         assertEquals("V5_3_2", report.getJSONObject("broker-a").getJSONObject("runtimeVersion").getString("rocketmqVersion"));
         assertEquals("V5_4_0", report.getJSONObject("broker-b").getJSONObject("runtimeVersion").getString("rocketmqVersion"));
+        assertEquals("unknown", report.getJSONObject("broker-c").getJSONObject("runtimeVersion").getString("rocketmqVersion"));
     }
 
     private void addBroker(DefaultMQAdminExt admin, ClusterInfo cluster, String name, String address, String version)
@@ -88,7 +87,9 @@ public class ExportMetricsCommandTest {
             "msgPutTotalYesterdayMorning", "msgGetTotalTodayMorning", "msgGetTotalYesterdayMorning")) {
             metrics.getTable().put(key, "0");
         }
-        metrics.getTable().put("brokerVersionDesc", version);
+        if (version != null) {
+            metrics.getTable().put("brokerVersionDesc", version);
+        }
         when(admin.fetchBrokerRuntimeStats(address)).thenReturn(metrics);
         when(admin.getBrokerConfig(address)).thenReturn(new Properties());
         when(admin.getUserSubscriptionGroup(address, 10000)).thenReturn(new SubscriptionGroupWrapper());
