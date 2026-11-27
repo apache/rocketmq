@@ -114,6 +114,26 @@ public class ExclusiveEvictionTombstonesTest {
         assertEquals(1, tombstones.size());
     }
 
+    @Test
+    public void testRemoveExpired() throws Exception {
+        tombstones.add("client1", "lmq1");
+        tombstones.add("client2", "lmq2");
+
+        // a TTL far beyond the tombstones' age removes nothing
+        tombstones.removeExpired(60_000L);
+        assertEquals(2, tombstones.size());
+        assertTrue(tombstones.contains("client1", "lmq1"));
+        assertTrue(tombstones.contains("client2", "lmq2"));
+
+        // aging past the TTL removes the expired tombstones (10x margin: sleep never
+        // undershoots, so slow runners only age the tombstone further past the TTL)
+        Thread.sleep(200L);
+        tombstones.removeExpired(20L);
+        assertFalse(tombstones.contains("client1", "lmq1"));
+        assertFalse(tombstones.contains("client2", "lmq2"));
+        assertEquals(0, tombstones.size());
+    }
+
     /**
      * Verifies that real RocketMQ clientId formats (containing '@') and lmqName formats
      * (e.g. topic@group for wildcard) do not cause cross-client collisions.
