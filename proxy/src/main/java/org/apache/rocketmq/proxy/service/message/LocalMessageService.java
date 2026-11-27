@@ -450,7 +450,7 @@ public class LocalMessageService implements MessageService {
         String consumerGroup, String topic, long timeoutMillis) {
         SimpleChannel channel = channelManager.createChannel(ctx);
         ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
-        RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.BATCH_ACK_MESSAGE, null);
+        RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.BATCH_ACK_MESSAGE, null, ctx.getLanguage());
 
         Map<String, BatchAck> batchAckMap = new HashMap<>();
         for (ReceiptHandleMessage receiptHandleMessage : handleList) {

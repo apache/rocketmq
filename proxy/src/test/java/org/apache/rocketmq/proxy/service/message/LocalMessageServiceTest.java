@@ -65,6 +65,7 @@ import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -612,6 +613,28 @@ public class LocalMessageServiceTest extends InitConfigTest {
         AckMessageRequestHeader requestHeader = new AckMessageRequestHeader();
         CompletableFuture<AckResult> future = localMessageService.ackMessage(proxyContext, handle, messageId,
             requestHeader, 1000L);
+        AckResult ackResult = future.get();
+        assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
+    }
+
+    @Test
+    public void testBatchAckMessage() throws Exception {
+        String messageId = "messageId";
+        long popTime = System.currentTimeMillis();
+        long invisibleTime = 3000L;
+        int reviveQueueId = 1;
+        String extraInfo = ExtraInfoUtil.buildExtraInfo(0L, popTime, invisibleTime, reviveQueueId,
+            topic, brokerName, queueId, queueOffset);
+        ReceiptHandle handle = ReceiptHandle.decode(extraInfo);
+        proxyContext.withVal(ContextVariable.LANGUAGE, LanguageCode.GO.name());
+        RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
+        Mockito.when(ackMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.argThat(argument ->
+            argument instanceof LocalRemotingCommand
+                && argument.getCode() == RequestCode.BATCH_ACK_MESSAGE
+                && argument.getLanguage() == LanguageCode.GO
+                && argument.getProcessTimer() != null))).thenReturn(remotingCommand);
+        CompletableFuture<AckResult> future = localMessageService.batchAckMessage(proxyContext,
+            Collections.singletonList(new ReceiptHandleMessage(handle, messageId)), "group", topic, 1000L);
         AckResult ackResult = future.get();
         assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
     }
