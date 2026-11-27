@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RemotingClient;
@@ -95,6 +96,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("queryMessage getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
 
         return future;
@@ -113,6 +117,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("getTopicStatsInfo getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -130,6 +137,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("queryConsumerTimeSpan getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -146,6 +156,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("updateOrCreateTopic getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -164,6 +177,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("updateOrCreateSubscriptionGroup getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), config);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -180,6 +196,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("deleteTopicInBroker getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -196,6 +215,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("deleteTopicInNameserver getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -212,6 +234,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("deleteKvConfig getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -228,6 +253,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("deleteSubscriptionGroup getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -247,6 +275,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("invokeBrokerToResetOffset getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -265,6 +296,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("viewMessage getResponseCommand failed, {} {}, header={}", response.getCode(), response.getRemark(), requestHeader);
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -281,6 +315,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("getBrokerClusterInfo getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -298,6 +335,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("getConsumerConnectionList getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -315,6 +355,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("queryTopicsByConsumer getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -333,6 +376,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("querySubscriptionByConsumer getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -350,6 +396,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("getConsumeStats getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -367,6 +416,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("queryTopicConsumeByWho getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -384,6 +436,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("getConsumerRunningInfo getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }
@@ -401,6 +456,9 @@ public class MqClientAdminImpl implements MqClientAdmin {
                 log.warn("consumeMessageDirectly getResponseCommand failed, {} {}", response.getCode(), response.getRemark());
                 future.completeExceptionally(new MQClientException(response.getCode(), response.getRemark()));
             }
+        }).exceptionally(t -> {
+            future.completeExceptionally(ExceptionUtils.getRealException(t));
+            return null;
         });
         return future;
     }

@@ -185,7 +185,12 @@ public class DefaultAdminService implements AdminService {
     }
 
     protected TopicRouteData getTopicRouteDataDirectlyFromNameServer(String topic) throws Exception {
-        return this.getClient().getTopicRouteInfoFromNameServer(topic, ROUTE_TIMEOUT_MILLIS);
+        return this.getTopicRouteDataDirectlyFromNameServer(topic, ROUTE_TIMEOUT_MILLIS);
+    }
+
+    protected TopicRouteData getTopicRouteDataDirectlyFromNameServer(String topic, long timeoutMillis)
+        throws Exception {
+        return this.getClient().getTopicRouteInfoFromNameServer(topic, timeoutMillis);
     }
 
     protected MQClientAPIExt getClient() {
@@ -221,10 +226,10 @@ public class DefaultAdminService implements AdminService {
     }
 
     @Override
-    public CompletableFuture<TopicRouteData> getTopicRouteData(String topic) {
+    public CompletableFuture<TopicRouteData> getTopicRouteData(String topic, long timeoutMillis) {
         return supplyBlocking(() -> {
             try {
-                return this.getTopicRouteDataDirectlyFromNameServer(topic);
+                return this.getTopicRouteDataDirectlyFromNameServer(topic, timeoutMillis);
             } catch (Exception e) {
                 throw new java.util.concurrent.CompletionException(e);
             }

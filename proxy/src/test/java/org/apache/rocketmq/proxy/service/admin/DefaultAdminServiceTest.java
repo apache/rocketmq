@@ -122,10 +122,11 @@ public class DefaultAdminServiceTest {
         routeData.setOrderTopicConf("orderConf");
         when(mqClientAPIExt.getTopicRouteInfoFromNameServer(eq(TOPIC), anyLong())).thenReturn(routeData);
 
-        TopicRouteData result = get(adminService.getTopicRouteData(TOPIC));
+        TopicRouteData result = get(adminService.getTopicRouteData(TOPIC, 1234L));
 
         assertNotNull(result);
         assertEquals("orderConf", result.getOrderTopicConf());
+        verify(mqClientAPIExt).getTopicRouteInfoFromNameServer(TOPIC, 1234L);
     }
 
     @Test
@@ -134,7 +135,7 @@ public class DefaultAdminServiceTest {
             .thenThrow(new MQClientException("boom", null));
 
         try {
-            get(adminService.getTopicRouteData(TOPIC));
+            get(adminService.getTopicRouteData(TOPIC, 1234L));
             fail("expected getTopicRouteData to fail");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();

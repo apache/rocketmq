@@ -67,7 +67,7 @@ public interface AdminService extends StartAndShutdown {
 
     CompletableFuture<ClusterInfo> getBrokerClusterInfo(long timeoutMillis);
 
-    CompletableFuture<TopicRouteData> getTopicRouteData(String topic);
+    CompletableFuture<TopicRouteData> getTopicRouteData(String topic, long timeoutMillis);
 
     CompletableFuture<TopicConfig> getTopicConfig(String brokerAddr, String topic, long timeoutMillis);
 
