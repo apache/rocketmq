@@ -228,17 +228,21 @@ public class ConsumerLagCalculator {
 
     public void calculateLag(Consumer<CalculateLagResult> lagRecorder) {
 
-        List<CompletableFuture<CalculateLagResult>> futures = new ArrayList<>();
+        List<CompletableFuture<List<CalculateLagResult>>> futures = new ArrayList<>();
 
         BiConsumer<ConsumerLagCalculator.ProcessGroupInfo,
-            CompletableFuture<ConsumerLagCalculator.CalculateLagResult>> biConsumer =
-                (info, future) -> calculate(info, future::complete);
+            CompletableFuture<List<ConsumerLagCalculator.CalculateLagResult>>> biConsumer =
+                (info, future) -> {
+                    List<CalculateLagResult> results = new ArrayList<>();
+                    calculate(info, results::add);
+                    future.complete(results);
+                };
 
         processAllGroup(info -> {
             if (info.group == null || info.topic == null) {
                 return;
             }
-            CompletableFuture<CalculateLagResult> future = new CompletableFuture<>();
+            CompletableFuture<List<CalculateLagResult>> future = new CompletableFuture<>();
             if (info.isPop && brokerConfig.isEnableNotifyBeforePopCalculateLag()) {
                 if (popLongPollingService.notifyMessageArriving(info.topic, -1, info.group,
                     true, null, 0, null, null,
@@ -258,7 +262,7 @@ public class ConsumerLagCalculator {
 
             futures.forEach(future -> {
                 if (future.isDone() && !future.isCompletedExceptionally()) {
-                    lagRecorder.accept(future.join());
+                    future.join().forEach(lagRecorder);
                 }
             });
         } catch (Exception e) {
