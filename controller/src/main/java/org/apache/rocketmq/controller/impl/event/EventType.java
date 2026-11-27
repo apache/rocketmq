@@ -26,7 +26,8 @@ public enum EventType {
     READ_EVENT("ReadEvent", (short) 4),
     CLEAN_BROKER_DATA_EVENT("CleanBrokerDataEvent", (short) 5),
 
-    UPDATE_BROKER_ADDRESS("UpdateBrokerAddressEvent", (short) 6);
+    UPDATE_BROKER_ADDRESS("UpdateBrokerAddressEvent", (short) 6),
+    REGISTER_BROKER_STARTUP_EVENT("RegisterBrokerStartupEvent", (short) 7);
 
     private final String name;
     private final short id;
@@ -50,6 +51,8 @@ public enum EventType {
                 return CLEAN_BROKER_DATA_EVENT;
             case 6:
                 return UPDATE_BROKER_ADDRESS;
+            case 7:
+                return REGISTER_BROKER_STARTUP_EVENT;
         }
         return null;
     }

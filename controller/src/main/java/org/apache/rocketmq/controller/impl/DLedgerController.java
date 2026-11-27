@@ -25,6 +25,7 @@ import io.openmessaging.storage.dledger.MemberState;
 import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
 import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
 import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
+import io.openmessaging.storage.dledger.protocol.DLedgerResponseCode;
 import io.opentelemetry.api.common.AttributesBuilder;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,6 +75,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoReq
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_BROKER_SET;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_CLUSTER_NAME;
@@ -224,7 +226,9 @@ public class DLedgerController implements Controller {
 
     @Override
     public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
-        return this.scheduler.appendEvent("registerSuccess", () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
+        final Supplier<ControllerResult<RegisterBrokerToControllerResponseHeader>> registration =
+            () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate);
+        return this.scheduler.appendEvent("registerSuccess", registration, true, registration);
     }
 
     @Override
@@ -303,7 +307,13 @@ public class DLedgerController implements Controller {
                         attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
                     return false;
                 }
-                dLedgerFuture.get(5, TimeUnit.SECONDS);
+                final AppendEntryResponse response = dLedgerFuture.get(5, TimeUnit.SECONDS);
+                if (response == null || response.getCode() != DLedgerResponseCode.SUCCESS.getCode()) {
+                    log.error("DLedger did not commit the controller event: {}", response);
+                    ControllerMetricsManager.dLedgerOpTotal.add(1,
+                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
+                    return false;
+                }
                 ControllerMetricsManager.dLedgerOpTotal.add(1,
                     attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.SUCCESS.getLowerCaseName()).build());
                 ControllerMetricsManager.dLedgerOpLatency.record(stopwatch.elapsed(TimeUnit.MICROSECONDS),
@@ -401,6 +411,12 @@ public class DLedgerController implements Controller {
 
         public <T> CompletableFuture<RemotingCommand> appendEvent(final String name,
             final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent) {
+            return appendEvent(name, supplier, isWriteEvent, null);
+        }
+
+        public <T> CompletableFuture<RemotingCommand> appendEvent(final String name,
+            final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent,
+            final Supplier<ControllerResult<T>> responseSupplier) {
             if (isStopped() || !DLedgerController.this.roleHandler.isLeaderState()) {
                 final RemotingCommand command = RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "The controller is not in leader state");
                 final CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
@@ -408,7 +424,7 @@ public class DLedgerController implements Controller {
                 return future;
             }
 
-            final EventHandler<T> event = new ControllerEventHandler<>(name, supplier, isWriteEvent);
+            final EventHandler<T> event = new ControllerEventHandler<>(name, supplier, isWriteEvent, responseSupplier);
             int tryTimes = 0;
             while (true) {
                 try {
@@ -433,13 +449,15 @@ public class DLedgerController implements Controller {
     class ControllerEventHandler<T> implements EventHandler<T> {
         private final String name;
         private final Supplier<ControllerResult<T>> supplier;
+        private final Supplier<ControllerResult<T>> responseSupplier;
         private final CompletableFuture<RemotingCommand> future;
         private final boolean isWriteEvent;
 
         ControllerEventHandler(final String name, final Supplier<ControllerResult<T>> supplier,
-            final boolean isWriteEvent) {
+            final boolean isWriteEvent, final Supplier<ControllerResult<T>> responseSupplier) {
             this.name = name;
             this.supplier = supplier;
+            this.responseSupplier = responseSupplier;
             this.future = new CompletableFuture<>();
             this.isWriteEvent = isWriteEvent;
         }
@@ -481,12 +499,21 @@ public class DLedgerController implements Controller {
             }
 
             if (appendSuccess) {
-                final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(result.getResponseCode(), (CommandCustomHeader) result.getResponse());
-                if (result.getBody() != null) {
-                    response.setBody(result.getBody());
+                ControllerResult<T> responseResult = result;
+                if (this.responseSupplier != null) {
+                    // A timed-out append can still be applied before this append. Revalidate the
+                    // startup identity and return its committed epoch instead of the predicted epoch.
+                    responseResult = this.responseSupplier.get();
+                    if (!responseResult.getEvents().isEmpty()) {
+                        throw new IllegalStateException("Broker startup registration has not been applied");
+                    }
                 }
-                if (result.getRemark() != null) {
-                    response.setRemark(result.getRemark());
+                final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(responseResult.getResponseCode(), (CommandCustomHeader) responseResult.getResponse());
+                if (responseResult.getBody() != null) {
+                    response.setBody(responseResult.getBody());
+                }
+                if (responseResult.getRemark() != null) {
+                    response.setRemark(responseResult.getRemark());
                 }
                 this.future.complete(response);
             } else {

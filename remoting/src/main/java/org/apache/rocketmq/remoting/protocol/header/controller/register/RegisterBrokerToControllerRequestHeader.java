@@ -37,6 +37,10 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
 
     private String brokerAddress;
 
+    private Long brokerStartupGeneration;
+
+    private String brokerStartupId;
+
     private long invokeTime;
 
     public RegisterBrokerToControllerRequestHeader() {
@@ -93,5 +97,21 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
 
     public void setBrokerAddress(String brokerAddress) {
         this.brokerAddress = brokerAddress;
+    }
+
+    public Long getBrokerStartupGeneration() {
+        return brokerStartupGeneration;
+    }
+
+    public void setBrokerStartupGeneration(Long brokerStartupGeneration) {
+        this.brokerStartupGeneration = brokerStartupGeneration;
+    }
+
+    public String getBrokerStartupId() {
+        return brokerStartupId;
+    }
+
+    public void setBrokerStartupId(String brokerStartupId) {
+        this.brokerStartupId = brokerStartupId;
     }
 }

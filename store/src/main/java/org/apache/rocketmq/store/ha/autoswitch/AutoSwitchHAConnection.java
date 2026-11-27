@@ -612,18 +612,22 @@ public class AutoSwitchHAConnection implements HAConnection {
                     }
                 }
 
-                // We must ensure that the transmitted logs are within the same epoch
-                // If currentEpochEndOffset == -1, means that currentTransferEpoch = last epoch, so the endOffset = Long.max
-                final long currentEpochEndOffset = AutoSwitchHAConnection.this.currentTransferEpochEndOffset;
-                if (currentEpochEndOffset != -1 && this.nextTransferFromWhere + size > currentEpochEndOffset) {
+                // Choose the epoch for this batch's first byte. A batch ending at an epoch boundary
+                // still belongs to the old epoch; only the following batch uses the next epoch.
+                while (AutoSwitchHAConnection.this.currentTransferEpochEndOffset != -1
+                    && this.nextTransferFromWhere >= AutoSwitchHAConnection.this.currentTransferEpochEndOffset) {
                     final EpochEntry epochEntry = AutoSwitchHAConnection.this.epochCache.nextEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
                     if (epochEntry == null) {
                         LOGGER.error("Can't find a bigger epochEntry than epoch {}", AutoSwitchHAConnection.this.currentTransferEpoch);
+                        this.releaseData();
                         waitForRunning(100);
                         return;
                     }
-                    size = (int) (currentEpochEndOffset - this.nextTransferFromWhere);
                     changeTransferEpochToNext(epochEntry);
+                }
+                final long currentEpochEndOffset = AutoSwitchHAConnection.this.currentTransferEpochEndOffset;
+                if (currentEpochEndOffset != -1) {
+                    size = (int) Math.min(size, currentEpochEndOffset - this.nextTransferFromWhere);
                 }
 
                 this.transferOffset = this.nextTransferFromWhere;

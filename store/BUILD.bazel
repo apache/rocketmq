@@ -78,6 +78,7 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/store/dledger/DLedgerMultiPathTest",
     ],
     medium_tests = [
+        "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHAHistoryRecoveryTest",
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
         "src/test/java/org/apache/rocketmq/store/HATest",
         "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",

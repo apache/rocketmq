@@ -34,6 +34,7 @@ import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventType;
+import org.apache.rocketmq.controller.impl.event.RegisterBrokerStartupEvent;
 import org.apache.rocketmq.controller.impl.event.UpdateBrokerAddressEvent;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -349,16 +350,49 @@ public class ReplicasInfoManager {
             result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_NEED_TO_BE_REGISTERED, String.format("BrokerId: %d hasn't been registered in broker-set: %s", brokerId, brokerName));
             return result;
         }
+
+        final Long startupGeneration = request.getBrokerStartupGeneration();
+        final String startupId = request.getBrokerStartupId();
+        final long registeredGeneration = brokerReplicaInfo.getBrokerStartupGeneration(brokerId);
+        final boolean hasStartupIdentity = startupGeneration != null || startupId != null;
+        boolean newStartup = false;
+        if (hasStartupIdentity) {
+            if (startupGeneration == null || startupGeneration <= 0 || StringUtils.isBlank(startupId)) {
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Both a positive broker startup generation and a startup id are required");
+                return result;
+            }
+            if (startupGeneration < registeredGeneration || startupGeneration == registeredGeneration
+                && !startupId.equals(brokerReplicaInfo.getBrokerStartupId(brokerId))) {
+                result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Broker startup identity is stale or conflicts with an accepted startup");
+                return result;
+            }
+            newStartup = startupGeneration > registeredGeneration;
+            if (newStartup) {
+                if (brokerId.equals(syncStateInfo.getMasterBrokerId()) && syncStateInfo.getMasterEpoch() == Integer.MAX_VALUE) {
+                    result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "Master epoch cannot be advanced for the new broker startup");
+                    return result;
+                }
+                result.addEvent(new RegisterBrokerStartupEvent(brokerName, brokerId, brokerAddress, startupGeneration, startupId));
+            }
+            response.setBrokerStartupGeneration(startupGeneration);
+            response.setBrokerStartupId(startupId);
+        } else if (registeredGeneration > 0) {
+            result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_REQUEST, "A broker startup identity is required for this broker");
+            return result;
+        }
+
+        final boolean registeringMaster = brokerId.equals(syncStateInfo.getMasterBrokerId());
+        response.setMasterEpoch(syncStateInfo.getMasterEpoch() + (newStartup && registeringMaster ? 1 : 0));
+        response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
         if (syncStateInfo.isMasterExist() && alivePredicate.check(clusterName, brokerName, syncStateInfo.getMasterBrokerId())) {
             // if master still exist
             response.setMasterBrokerId(syncStateInfo.getMasterBrokerId());
-            response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(response.getMasterBrokerId()));
-            response.setMasterEpoch(syncStateInfo.getMasterEpoch());
-            response.setSyncStateSetEpoch(syncStateInfo.getSyncStateSetEpoch());
+            response.setMasterAddress(hasStartupIdentity && registeringMaster
+                ? brokerAddress : brokerReplicaInfo.getBrokerAddress(response.getMasterBrokerId()));
         }
         result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
         // if this broker's address has been changed, we need to update it
-        if (!brokerAddress.equals(brokerReplicaInfo.getBrokerAddress(brokerId))) {
+        if (!newStartup && !brokerAddress.equals(brokerReplicaInfo.getBrokerAddress(brokerId))) {
             final UpdateBrokerAddressEvent event = new UpdateBrokerAddressEvent(clusterName, brokerName, brokerAddress, brokerId);
             result.addEvent(event);
         }
@@ -506,6 +540,9 @@ public class ReplicasInfoManager {
             case UPDATE_BROKER_ADDRESS:
                 handleUpdateBrokerAddress((UpdateBrokerAddressEvent) event);
                 break;
+            case REGISTER_BROKER_STARTUP_EVENT:
+                handleRegisterBrokerStartup((RegisterBrokerStartupEvent) event);
+                break;
             default:
                 break;
         }
@@ -545,6 +582,26 @@ public class ReplicasInfoManager {
         final Long brokerId = event.getBrokerId();
         BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
         brokerReplicaInfo.updateBrokerAddress(brokerId, brokerAddress);
+    }
+
+    private void handleRegisterBrokerStartup(final RegisterBrokerStartupEvent event) {
+        final String brokerName = event.getBrokerName();
+        final Long brokerId = event.getBrokerId();
+        if (!isContainsBroker(brokerName)) {
+            return;
+        }
+        final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+        if (!brokerReplicaInfo.isBrokerExist(brokerId)
+            || event.getBrokerStartupGeneration() <= brokerReplicaInfo.getBrokerStartupGeneration(brokerId)) {
+            return;
+        }
+        brokerReplicaInfo.updateBrokerStartup(brokerId, event.getBrokerStartupGeneration(), event.getBrokerStartupId());
+        brokerReplicaInfo.updateBrokerAddress(brokerId, event.getBrokerAddress());
+        final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+        if (brokerId.equals(syncStateInfo.getMasterBrokerId())) {
+            // A recovered master needs a new log epoch, without reducing its existing sync state set.
+            syncStateInfo.updateMasterInfo(brokerId);
+        }
     }
 
     private void handleElectMaster(final ElectMasterEvent event) {

@@ -33,11 +33,13 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -223,6 +225,90 @@ public class DLedgerControllerTest {
             }
             return true;
         }, null));
+    }
+
+    @Test
+    public void testBrokerStartupRegistrationPersistsNewEpoch() throws Exception {
+        final String group = UUID.randomUUID().toString();
+        final String peers;
+        try (ServerSocket socket = new ServerSocket(0)) {
+            peers = "n0-127.0.0.1:" + socket.getLocalPort();
+        }
+        controllers.add(launchController(group, peers, "n0", false));
+        DLedgerController leader = waitLeader(controllers);
+        registerNewBroker(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L);
+
+        final RegisterBrokerToControllerRequestHeader firstStartup = new RegisterBrokerToControllerRequestHeader(
+            DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, DEFAULT_IP[0]);
+        firstStartup.setBrokerStartupGeneration(1L);
+        firstStartup.setBrokerStartupId(UUID.randomUUID().toString());
+        RemotingCommand response = leader.registerBroker(firstStartup).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        RegisterBrokerToControllerResponseHeader registration =
+            (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
+        assertEquals(firstStartup.getBrokerStartupGeneration(), registration.getBrokerStartupGeneration());
+        assertEquals(firstStartup.getBrokerStartupId(), registration.getBrokerStartupId());
+        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L, true);
+
+        response = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) response.readCustomHeader();
+        assertEquals(1, replicaInfo.getMasterEpoch().intValue());
+
+        final RegisterBrokerToControllerRequestHeader secondStartup = new RegisterBrokerToControllerRequestHeader(
+            DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, DEFAULT_IP[0]);
+        secondStartup.setBrokerStartupGeneration(2L);
+        secondStartup.setBrokerStartupId(UUID.randomUUID().toString());
+        for (int attempt = 0; attempt < 2; attempt++) {
+            response = leader.registerBroker(secondStartup).get(10, TimeUnit.SECONDS);
+            assertEquals(ResponseCode.SUCCESS, response.getCode());
+            registration = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
+            assertEquals(1L, registration.getMasterBrokerId().longValue());
+            assertEquals(2, registration.getMasterEpoch().intValue());
+            assertEquals(secondStartup.getBrokerStartupGeneration(), registration.getBrokerStartupGeneration());
+            assertEquals(secondStartup.getBrokerStartupId(), registration.getBrokerStartupId());
+        }
+
+        // Restart normally and replay the committed DLedger log from the same store directory.
+        final String storePath = leader.getControllerConfig().getControllerStorePath();
+        leader.shutdown();
+        controllers.remove(leader);
+        controllers.add(launchController(group, peers, "n0", false));
+        leader = waitLeader(controllers);
+        assertEquals(storePath, leader.getControllerConfig().getControllerStorePath());
+
+        response = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        replicaInfo = (GetReplicaInfoResponseHeader) response.readCustomHeader();
+        assertEquals(1L, replicaInfo.getMasterBrokerId().longValue());
+        assertEquals(2, replicaInfo.getMasterEpoch().intValue());
+
+        response = leader.registerBroker(secondStartup).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        registration = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
+        assertEquals(2, registration.getMasterEpoch().intValue());
+        assertEquals(secondStartup.getBrokerStartupGeneration(), registration.getBrokerStartupGeneration());
+        assertEquals(secondStartup.getBrokerStartupId(), registration.getBrokerStartupId());
+
+        response = leader.registerBroker(firstStartup).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.CONTROLLER_INVALID_REQUEST, response.getCode());
+
+        final RegisterBrokerToControllerRequestHeader thirdStartup = new RegisterBrokerToControllerRequestHeader(
+            DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, DEFAULT_IP[0]);
+        thirdStartup.setBrokerStartupGeneration(3L);
+        thirdStartup.setBrokerStartupId(UUID.randomUUID().toString());
+        response = leader.registerBroker(thirdStartup).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        registration = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
+        assertEquals(3, registration.getMasterEpoch().intValue());
+        assertEquals(thirdStartup.getBrokerStartupGeneration(), registration.getBrokerStartupGeneration());
+        assertEquals(thirdStartup.getBrokerStartupId(), registration.getBrokerStartupId());
+
+        response = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).get(10, TimeUnit.SECONDS);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        replicaInfo = (GetReplicaInfoResponseHeader) response.readCustomHeader();
+        assertEquals(1L, replicaInfo.getMasterBrokerId().longValue());
+        assertEquals(3, replicaInfo.getMasterEpoch().intValue());
     }
 
     @Test

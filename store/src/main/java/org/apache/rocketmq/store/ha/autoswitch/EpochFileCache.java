@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -56,8 +57,8 @@ public class EpochFileCache {
     public boolean initCacheFromFile() {
         this.writeLock.lock();
         try {
-            final List<EpochEntry> entries = this.checkpoint.read();
-            initEntries(entries);
+            final List<EpochEntry> entries = validatedEntries(this.checkpoint.readStrict());
+            publishEntries(entries);
             return true;
         } catch (final IOException e) {
             log.error("Error happen when init epoch entries from epochFile", e);
@@ -70,23 +71,49 @@ public class EpochFileCache {
     public void initCacheFromEntries(final List<EpochEntry> entries) {
         this.writeLock.lock();
         try {
-            initEntries(entries);
-            flush();
+            replaceEntries(entries);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to initialize epoch entries", e);
         } finally {
             this.writeLock.unlock();
         }
     }
 
-    private void initEntries(final List<EpochEntry> entries) {
-        this.epochMap.clear();
+    private List<EpochEntry> validatedEntries(final List<EpochEntry> entries) throws IOException {
+        final List<EpochEntry> result = new ArrayList<>(entries.size());
         EpochEntry preEntry = null;
-        for (final EpochEntry entry : entries) {
-            this.epochMap.put(entry.getEpoch(), entry);
+        for (final EpochEntry source : entries) {
+            if (source == null || source.getEpoch() < 0 || source.getStartOffset() < 0
+                || source.getEndOffset() < source.getStartOffset()) {
+                throw new IOException("Invalid epoch entry: " + source);
+            }
+            final EpochEntry entry = new EpochEntry(source);
             if (preEntry != null) {
+                if (preEntry.getEpoch() >= entry.getEpoch() || preEntry.getStartOffset() >= entry.getStartOffset()) {
+                    throw new IOException("Epoch entries must have increasing epochs and start offsets");
+                }
                 preEntry.setEndOffset(entry.getStartOffset());
             }
+            result.add(entry);
             preEntry = entry;
         }
+        return result;
+    }
+
+    private void publishEntries(final List<EpochEntry> entries) {
+        this.epochMap.clear();
+        for (final EpochEntry entry : entries) {
+            this.epochMap.put(entry.getEpoch(), entry);
+        }
+    }
+
+    private void replaceEntries(final List<EpochEntry> entries) throws IOException {
+        final List<EpochEntry> replacement = validatedEntries(entries);
+        if (this.checkpoint != null) {
+            this.checkpoint.writeAtomically(replacement);
+        }
+        // Do not expose a history boundary until its durable replacement has succeeded.
+        publishEntries(replacement);
     }
 
     public int getEntrySize() {
@@ -107,11 +134,41 @@ public class EpochFileCache {
                     log.error("The appending entry's lastEpoch or endOffset {} is not bigger than lastEntry {}, append failed", entry, lastEntry);
                     return false;
                 }
-                lastEntry.setEndOffset(entry.getStartOffset());
             }
-            this.epochMap.put(entry.getEpoch(), new EpochEntry(entry));
-            flush();
+            final List<EpochEntry> replacement = getAllEntries();
+            replacement.add(entry);
+            replaceEntries(replacement);
             return true;
+        } catch (IOException e) {
+            log.error("Failed to persist appended epoch entry {}", entry, e);
+            return false;
+        } finally {
+            this.writeLock.unlock();
+        }
+    }
+
+    /**
+     * Durably close the recovered history and install a controller-granted master epoch. Entries
+     * starting at or beyond the recovered end have no surviving data and are replaced together
+     * with the new boundary. Repeated grants within one startup keep an existing valid start.
+     */
+    public EpochEntry prepareMasterEpoch(final int epoch, final long recoveredMax) throws IOException {
+        this.writeLock.lock();
+        try {
+            if (epoch < 0 || recoveredMax < 0 || epoch < lastEpoch()) {
+                throw new IOException("Invalid master epoch or recovered offset: " + epoch + ", " + recoveredMax);
+            }
+            final EpochEntry lastEntry = lastEntry();
+            if (lastEntry != null && lastEntry.getEpoch() == epoch && lastEntry.getStartOffset() <= recoveredMax) {
+                replaceEntries(getAllEntries());
+                return lastEntry;
+            }
+            final List<EpochEntry> replacement = getAllEntries();
+            replacement.removeIf(entry -> entry.getStartOffset() >= recoveredMax);
+            final EpochEntry newEntry = new EpochEntry(epoch, recoveredMax);
+            replacement.add(newEntry);
+            replaceEntries(replacement);
+            return new EpochEntry(newEntry);
         } finally {
             this.writeLock.unlock();
         }
@@ -247,28 +304,32 @@ public class EpochFileCache {
     /**
      * Remove epochEntries with epoch >= truncateEpoch.
      */
-    public void truncateSuffixByEpoch(final int truncateEpoch) {
+    public boolean truncateSuffixByEpoch(final int truncateEpoch) {
         Predicate<EpochEntry> predict = entry -> entry.getEpoch() >= truncateEpoch;
-        doTruncateSuffix(predict);
+        return doTruncateSuffix(predict);
     }
 
     /**
      * Remove epochEntries with startOffset >= truncateOffset.
      */
-    public void truncateSuffixByOffset(final long truncateOffset) {
+    public boolean truncateSuffixByOffset(final long truncateOffset) {
         Predicate<EpochEntry> predict = entry -> entry.getStartOffset() >= truncateOffset;
-        doTruncateSuffix(predict);
+        return doTruncateSuffix(predict);
     }
 
-    private void doTruncateSuffix(Predicate<EpochEntry> predict) {
+    private boolean doTruncateSuffix(Predicate<EpochEntry> predict) {
         this.writeLock.lock();
         try {
-            this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));
-            final EpochEntry entry = lastEntry();
-            if (entry != null) {
-                entry.setEndOffset(Long.MAX_VALUE);
+            final List<EpochEntry> replacement = getAllEntries();
+            replacement.removeIf(predict);
+            if (!replacement.isEmpty()) {
+                replacement.get(replacement.size() - 1).setEndOffset(Long.MAX_VALUE);
             }
-            flush();
+            replaceEntries(replacement);
+            return true;
+        } catch (IOException e) {
+            log.error("Failed to persist truncated epoch suffix", e);
+            return false;
         } finally {
             this.writeLock.unlock();
         }
@@ -277,26 +338,17 @@ public class EpochFileCache {
     /**
      * Remove epochEntries with endOffset <= truncateOffset.
      */
-    public void truncatePrefixByOffset(final long truncateOffset) {
+    public boolean truncatePrefixByOffset(final long truncateOffset) {
         Predicate<EpochEntry> predict = entry -> entry.getEndOffset() <= truncateOffset;
         this.writeLock.lock();
         try {
-            this.epochMap.entrySet().removeIf(entry -> predict.test(entry.getValue()));
-            flush();
-        } finally {
-            this.writeLock.unlock();
-        }
-    }
-
-    private void flush() {
-        this.writeLock.lock();
-        try {
-            if (this.checkpoint != null) {
-                final ArrayList<EpochEntry> entries = new ArrayList<>(this.epochMap.values());
-                this.checkpoint.write(entries);
-            }
+            final List<EpochEntry> replacement = getAllEntries();
+            replacement.removeIf(predict);
+            replaceEntries(replacement);
+            return true;
         } catch (final IOException e) {
-            log.error("Error happen when flush epochEntries to epochCheckpointFile", e);
+            log.error("Failed to persist truncated epoch prefix", e);
+            return false;
         } finally {
             this.writeLock.unlock();
         }

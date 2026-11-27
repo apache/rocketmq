@@ -142,7 +142,8 @@ public class ReplicasManagerRegisterTest {
 
         when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
-        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any())).thenReturn(new Pair<>(new RegisterBrokerToControllerResponseHeader(),  syncStateSet));
+        mockRegistrationWithoutMaster();
+        when(mockedAutoSwitchHAService.changeToMaster(1)).thenReturn(true);
         when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong()))
                 .thenReturn(new Pair<>(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1), syncStateSet));
 
@@ -160,10 +161,53 @@ public class ReplicasManagerRegisterTest {
     }
 
     @Test
+    public void testStartupUsesElectionResponseInsteadOfRegistrationSnapshot() throws Exception {
+        final long brokerId = 1L;
+        final String masterAddress = "127.0.0.1:13131";
+        when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any()))
+            .thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, brokerId));
+        when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any()))
+            .thenReturn(new ApplyBrokerIdResponseHeader());
+        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any(), anyLong(), any()))
+            .thenAnswer(invocation -> {
+                RegisterBrokerToControllerResponseHeader response = new RegisterBrokerToControllerResponseHeader();
+                response.setBrokerStartupGeneration(invocation.getArgument(5));
+                response.setBrokerStartupId(invocation.getArgument(6));
+                response.setMasterBrokerId(brokerId);
+                response.setMasterAddress(masterAddress);
+                response.setMasterEpoch(2);
+                response.setSyncStateSetEpoch(1);
+                return new Pair<>(response, syncStateSet);
+            });
+        when(mockedAutoSwitchHAService.changeToMaster(3)).thenReturn(true);
+
+        ReplicasManager manager = new ReplicasManager(mockedBrokerController);
+        when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenAnswer(invocation -> {
+            assertTrue(runningFlags.isFenced());
+            assertEquals(0, manager.getMasterEpoch());
+            manager.changeBrokerRole(brokerId, masterAddress, 2, 1, syncStateSet);
+            assertTrue(runningFlags.isFenced());
+            return new Pair<>(new ElectMasterResponseHeader(brokerId, masterAddress, 3, 1), syncStateSet);
+        });
+
+        try {
+            manager.start();
+            assertEquals(ReplicasManager.State.RUNNING, manager.getState());
+            assertEquals(3, manager.getMasterEpoch());
+            assertFalse(runningFlags.isFenced());
+            Mockito.verify(mockedAutoSwitchHAService, Mockito.never()).changeToMaster(2);
+            Mockito.verify(mockedAutoSwitchHAService).changeToMaster(3);
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @Test
     public void testBrokerRegisterSuccessAndRestartWithChangedBrokerConfig() throws Exception {
         when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
-        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any())).thenReturn(new Pair<>(new RegisterBrokerToControllerResponseHeader(),  syncStateSet));
+        mockRegistrationWithoutMaster();
+        when(mockedAutoSwitchHAService.changeToMaster(1)).thenReturn(true);
         when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new Pair<>(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1), syncStateSet));
 
         ReplicasManager replicasManager0 = new ReplicasManager(mockedBrokerController);
@@ -250,7 +294,8 @@ public class ReplicasManagerRegisterTest {
         ReplicasManager spyReplicasManager = new ReplicasManager(mockedBrokerController);
         when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
-        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any())).thenReturn(new Pair<>(new RegisterBrokerToControllerResponseHeader(),  syncStateSet));
+        mockRegistrationWithoutMaster();
+        when(mockedAutoSwitchHAService.changeToMaster(1)).thenReturn(true);
         when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new Pair<>(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1), syncStateSet));
         
         FieldUtils.writeDeclaredField(spyReplicasManager, "brokerMetadata", brokerMetadata, true);
@@ -291,7 +336,8 @@ public class ReplicasManagerRegisterTest {
         ReplicasManager replicasManager = new ReplicasManager(mockedBrokerController);
         when(mockedBrokerOuterAPI.getNextBrokerId(any(), any(), any())).thenReturn(new GetNextBrokerIdResponseHeader(CLUSTER_NAME, BROKER_NAME, 1L));
         when(mockedBrokerOuterAPI.applyBrokerId(any(), any(), anyLong(), any(), any())).thenReturn(new ApplyBrokerIdResponseHeader());
-        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any())).thenThrow(new RuntimeException());
+        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any(), anyLong(), any()))
+            .thenThrow(new RuntimeException());
         when(mockedBrokerOuterAPI.brokerElect(any(), any(), any(), anyLong())).thenReturn(new Pair<>(new ElectMasterResponseHeader(1L, "127.0.0.1:13131", 1, 1), syncStateSet));
 
         replicasManager.start();
@@ -319,7 +365,8 @@ public class ReplicasManagerRegisterTest {
 
         // restart, we expect that this replicasManager still keep the metadata and still try to finish its registering
         ReplicasManager replicasManagerNew = new ReplicasManager(mockedBrokerController);
-        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any())).thenReturn(new Pair<>(new RegisterBrokerToControllerResponseHeader(),  syncStateSet));
+        mockRegistrationWithoutMaster();
+        when(mockedAutoSwitchHAService.changeToMaster(1)).thenReturn(true);
         replicasManagerNew.start();
         
         assertEquals(ReplicasManager.State.RUNNING, replicasManagerNew.getState());
@@ -335,6 +382,19 @@ public class ReplicasManagerRegisterTest {
         replicasManagerNew.shutdown();
     }
 
+
+    private void mockRegistrationWithoutMaster() throws Exception {
+        when(mockedBrokerOuterAPI.registerBrokerToController(any(), any(), anyLong(), any(), any(), anyLong(), any()))
+            .thenAnswer(invocation -> {
+                final RegisterBrokerToControllerResponseHeader response = new RegisterBrokerToControllerResponseHeader();
+                response.setBrokerStartupGeneration(invocation.getArgument(5));
+                response.setBrokerStartupId(invocation.getArgument(6));
+                // Registration succeeds before the initial election has selected a master.
+                response.setMasterEpoch(0);
+                response.setSyncStateSetEpoch(0);
+                return new Pair<>(response, syncStateSet);
+            });
+    }
 
     private void checkMetadataFile(BrokerMetadata brokerMetadata0 ,Long brokerId) throws Exception {
         assertEquals(brokerId, brokerMetadata0.getBrokerId());

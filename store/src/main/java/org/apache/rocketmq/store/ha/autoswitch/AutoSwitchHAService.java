@@ -19,6 +19,9 @@ package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -71,6 +74,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private volatile boolean isSynchronizingSyncStateSet = false;
 
     private EpochFileCache epochCache;
+    private ConfirmedOffsetGuard confirmedOffsetGuard;
     private AutoSwitchHAClient haClient;
 
     private Long localBrokerId = null;
@@ -80,8 +84,23 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     @Override
     public void init(final DefaultMessageStore defaultMessageStore) throws IOException {
-        this.epochCache = new EpochFileCache(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile());
-        this.epochCache.initCacheFromFile();
+        final Path epochFilePath = Paths.get(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile()).toAbsolutePath();
+        final Path parent = epochFilePath.getParent();
+        if (epochFilePath.getFileName() == null || parent == null) {
+            throw new IOException("Invalid epoch file path: " + epochFilePath);
+        }
+        if (!Files.isDirectory(parent)) {
+            Files.createDirectories(parent);
+        }
+        this.epochCache = new EpochFileCache(epochFilePath.toString());
+        if (!this.epochCache.initCacheFromFile()) {
+            throw new IOException("Failed to load epoch history: " + epochFilePath);
+        }
+        if (this.epochCache.getEntrySize() == 0
+            && (defaultMessageStore.getMaxPhyOffset() != 0 || defaultMessageStore.getConfirmOffset() > 0)) {
+            throw new IOException("Nonempty commitlog has no epoch history: " + epochFilePath);
+        }
+        this.confirmedOffsetGuard = new ConfirmedOffsetGuard(Paths.get(epochFilePath + ".confirmed-offset-guard"));
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
@@ -134,14 +153,15 @@ public class AutoSwitchHAService extends DefaultHAService {
         // Truncate dirty file
         final long truncateOffset = truncateInvalidMsg();
 
-        this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
-
-        if (truncateOffset >= 0) {
-            this.epochCache.truncateSuffixByOffset(truncateOffset);
+        final EpochEntry newEpochEntry;
+        try {
+            // Use the final recovered end, and replace invalid tails and the new boundary together.
+            newEpochEntry = appendEpochEntry(masterEpoch);
+        } catch (IOException e) {
+            LOGGER.error("Failed to persist master epoch {}, keep the broker fenced", masterEpoch, e);
+            return false;
         }
-
-        // Append new epoch to epochFile
-        final EpochEntry newEpochEntry = appendEpochEntry(masterEpoch);
+        this.defaultMessageStore.setConfirmOffset(computeConfirmOffset());
 
         // Waiting consume queue dispatch
         while (defaultMessageStore.dispatchBehindBytes() > 0) {
@@ -180,7 +200,6 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
             this.haClient.updateMasterAddress(newMasterAddr);
             this.haClient.updateHaMasterAddress(null);
-            this.haClient.start();
 
             if (defaultMessageStore.isTransientStorePoolEnable()) {
                 waitingForAllCommit();
@@ -188,6 +207,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             }
 
             this.defaultMessageStore.setStateMachineVersion(newMasterEpoch);
+            this.haClient.start();
 
             LOGGER.info("Change ha to slave success, newMasterAddress:{}, newMasterEpoch:{}", newMasterAddr, newMasterEpoch);
             return true;
@@ -204,8 +224,13 @@ public class AutoSwitchHAService extends DefaultHAService {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
             return false;
         }
-        // Append new epoch to epochFile
-        final EpochEntry newEpochEntry = appendEpochEntry(masterEpoch);
+        final EpochEntry newEpochEntry;
+        try {
+            newEpochEntry = appendEpochEntry(masterEpoch);
+        } catch (IOException e) {
+            LOGGER.error("Failed to persist master epoch {}, keep the broker fenced", masterEpoch, e);
+            return false;
+        }
 
         this.defaultMessageStore.setStateMachineVersion(masterEpoch);
         LOGGER.info("Change ha to master success, last role is master, newMasterEpoch:{}, startOffset:{}",
@@ -214,34 +239,11 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     /**
-     * Append the master epoch to the epoch file. If the epoch already exists locally, keep the original entry
-     * instead of rewriting its start offset with the current max physical offset. A broker that restarts and is
-     * elected as the master again with the same epoch would otherwise move the start offset of the epoch, and the
-     * slave holding the original start offset could never find a consistent point, so it would never rejoin the
-     * sync state set.
-     * <p>
-     * The entry is only reused if its start offset is within the local commitlog. The epoch file is not trimmed
-     * against the recovered commitlog on startup, so after an unclean shutdown the recorded start offset may be
-     * greater than the recovered max physical offset. Reusing such an entry would make the slave treat its own
-     * tail as consistent with the master, and the two replicas would silently diverge.
+     * Install the granted epoch before writes are enabled. A new broker startup must receive a new
+     * controller epoch; a duplicate grant within that startup retains its original valid start offset.
      */
-    private EpochEntry appendEpochEntry(final int masterEpoch) {
-        final int lastEpoch = this.epochCache.lastEpoch();
-        if (lastEpoch == masterEpoch) {
-            final EpochEntry existingEntry = this.epochCache.lastEntry();
-            final long maxPhyOffset = this.defaultMessageStore.getMaxPhyOffset();
-            if (existingEntry.getStartOffset() <= maxPhyOffset) {
-                LOGGER.info("Epoch entry already exists locally, keep the original startOffset. epoch:{}, startOffset:{}",
-                    existingEntry.getEpoch(), existingEntry.getStartOffset());
-                return existingEntry;
-            }
-            LOGGER.warn("Epoch {} startOffset {} exceeds maxPhyOffset {}, rewrite the entry",
-                masterEpoch, existingEntry.getStartOffset(), maxPhyOffset);
-            this.epochCache.truncateSuffixByEpoch(masterEpoch);
-        }
-        final EpochEntry newEpochEntry = new EpochEntry(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
-        this.epochCache.appendEntry(newEpochEntry);
-        return newEpochEntry;
+    private EpochEntry appendEpochEntry(final int masterEpoch) throws IOException {
+        return this.epochCache.prepareMasterEpoch(masterEpoch, this.defaultMessageStore.getMaxPhyOffset());
     }
 
     @Override
@@ -252,10 +254,25 @@ public class AutoSwitchHAService extends DefaultHAService {
             return false;
         }
 
-        this.defaultMessageStore.setStateMachineVersion(newMasterEpoch);
-        LOGGER.info("Change ha to slave success, master doesn't change, newMasterAddress:{}, newMasterEpoch:{}",
-            newMasterAddr, newMasterEpoch);
-        return true;
+        if (this.haClient == null) {
+            LOGGER.warn("No HA client for unchanged master {}, fail to change to slave", newMasterAddr);
+            return false;
+        }
+        try {
+            // The broker ID may be unchanged while its startup and history have changed. Stop the
+            // old transfer before publishing the new expected epoch and starting another handshake.
+            this.haClient.reOpen();
+            this.haClient.updateMasterAddress(newMasterAddr);
+            this.haClient.updateHaMasterAddress(null);
+            this.defaultMessageStore.setStateMachineVersion(newMasterEpoch);
+            this.haClient.start();
+            LOGGER.info("Change ha to slave success, master doesn't change, newMasterAddress:{}, newMasterEpoch:{}",
+                newMasterAddr, newMasterEpoch);
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("Failed to restart HA client for unchanged master", e);
+            return false;
+        }
     }
 
     public void waitingForAllCommit() {
@@ -575,6 +592,10 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     public List<EpochEntry> getEpochEntries() {
         return this.epochCache.getAllEntries();
+    }
+
+    public ConfirmedOffsetGuard getConfirmedOffsetGuard() {
+        return this.confirmedOffsetGuard;
     }
 
     public Long getLocalBrokerId() {

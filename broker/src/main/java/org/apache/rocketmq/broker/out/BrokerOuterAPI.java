@@ -1435,7 +1435,16 @@ public class BrokerOuterAPI {
     public Pair<RegisterBrokerToControllerResponseHeader, Set<Long>> registerBrokerToController(
         final String clusterName, final String brokerName, final Long brokerId, final String brokerAddress,
         final String controllerAddress) throws Exception {
+        return registerBrokerToController(clusterName, brokerName, brokerId, brokerAddress, controllerAddress,
+            null, null);
+    }
+
+    public Pair<RegisterBrokerToControllerResponseHeader, Set<Long>> registerBrokerToController(
+        final String clusterName, final String brokerName, final Long brokerId, final String brokerAddress,
+        final String controllerAddress, final Long startupGeneration, final String startupId) throws Exception {
         final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerId, brokerAddress);
+        requestHeader.setBrokerStartupGeneration(startupGeneration);
+        requestHeader.setBrokerStartupId(startupId);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
         assert response != null;
