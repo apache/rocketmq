@@ -170,4 +170,31 @@ public class IOTinyUtilsTest {
         File dest = new File(target);
         assertTrue(dest.exists());
     }
+
+    @Test
+    public void testCopyFileSameFile() throws Exception {
+        File source = new File(testRootDir, "source");
+        IOTinyUtils.writeStringToFile(source, "testCopyFileSameFile", StandardCharsets.UTF_8.name());
+
+        try {
+            IOTinyUtils.copyFile(source.getCanonicalPath(), source.getCanonicalPath());
+            fail("Expected IllegalArgumentException when source and target are the same file");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("same file"));
+        }
+    }
+}
+
+    @Test
+    public void testCopyFileSameFile() throws Exception {
+        File source = new File(testRootDir, "source");
+        IOTinyUtils.writeStringToFile(source, "testCopyFileSameFile", StandardCharsets.UTF_8.name());
+
+        try {
+            IOTinyUtils.copyFile(source.getCanonicalPath(), source.getCanonicalPath());
+            fail("Expected IllegalArgumentException when source and target are the same file");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("same file"));
+        }
+    }
 }

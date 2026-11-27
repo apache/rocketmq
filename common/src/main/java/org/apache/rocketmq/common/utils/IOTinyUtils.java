@@ -90,6 +90,10 @@ public class IOTinyUtils {
             throw new RuntimeException("failed to create target file.");
         }
 
+        if (Files.isSameFile(sf.toPath(), tf.toPath())) {
+            throw new IllegalArgumentException("source and target refer to the same file.");
+        }
+
         FileChannel sc = null;
         FileChannel tc = null;
         try {
