@@ -19,6 +19,8 @@ package org.apache.rocketmq.broker.config.v1;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -31,13 +33,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RocksDBSubscriptionGroupManagerTest {
+
+    private static final String FORBIDDEN_COLUMN_FAMILY_NAME = "forbidden";
 
     @Mock
     private BrokerController brokerController;
@@ -84,6 +94,29 @@ public class RocksDBSubscriptionGroupManagerTest {
 
         assertNull(rocksDBSubscriptionGroupManager.putSubscriptionGroupConfigIfAbsent(newConfig));
         assertEquals(newConfig, rocksDBSubscriptionGroupManager.getSubscriptionGroupTable().get("group"));
+    }
+
+    @Test
+    public void testClearForbiddenDoesNotPersistNullValue() throws Exception {
+        ConfigRocksDBStorage storage = mock(ConfigRocksDBStorage.class);
+        FieldUtils.writeField(rocksDBConfigManager, "configRocksDBStorage", storage, true);
+
+        rocksDBSubscriptionGroupManager.setForbidden("group", "topic", PermName.INDEX_PERM_READ);
+        rocksDBSubscriptionGroupManager.clearForbidden("group", "topic", PermName.INDEX_PERM_READ);
+
+        verify(rocksDBConfigManager, never()).put(eq(FORBIDDEN_COLUMN_FAMILY_NAME), eq("group"), eq("null"));
+        verify(storage, times(1)).delete(eq(FORBIDDEN_COLUMN_FAMILY_NAME), any(byte[].class));
+    }
+
+    @Test
+    public void testDecodeForbiddenIgnoresNullBody() {
+        String forbiddenGroupName = "group";
+        byte[] key = forbiddenGroupName.getBytes(StandardCharsets.UTF_8);
+        byte[] body = "null".getBytes(StandardCharsets.UTF_8);
+
+        rocksDBSubscriptionGroupManager.decodeForbidden(key, body);
+
+        assertFalse(rocksDBSubscriptionGroupManager.getForbiddenTable().containsKey(forbiddenGroupName));
     }
 
     @Test
