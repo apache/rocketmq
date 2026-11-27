@@ -900,6 +900,33 @@ public class ExpressionTest {
         eval(expression, context, Boolean.FALSE);
     }
 
+    @Test
+    public void testEvaluateZeroFloatingPointLiterals() throws Exception {
+        for (String literal : new String[] {"0.0", "-0.0", "0e0", "-0e0"}) {
+            Expression expression = SelectorParser.parse("a = " + literal);
+            eval(expression, genContext(KeyValue.c("a", literal)), Boolean.TRUE);
+            eval(expression, genContext(KeyValue.c("a", Double.valueOf(literal))), Boolean.TRUE);
+            eval(expression, genContext(KeyValue.c("a", "1")), Boolean.FALSE);
+        }
+    }
+
+    @Test
+    public void testCreateFloatFiniteBounds() {
+        for (double value : new double[] {Double.MIN_VALUE, -Double.MIN_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE}) {
+            assertThat(ConstantExpression.createFloat(Double.toString(value)).getValue()).isEqualTo(value);
+        }
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testCreateFloatRejectsPositiveOverflow() {
+        ConstantExpression.createFloat("1e309");
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testCreateFloatRejectsNegativeOverflow() {
+        ConstantExpression.createFloat("-1e309");
+    }
+
     protected void eval(Expression expression, EvaluationContext context, Boolean result) throws Exception {
         Object ret = expression.evaluate(context);
         if (ret == null || !(ret instanceof Boolean)) {
