@@ -109,9 +109,13 @@ public class ServiceProvider {
             return services;
         }
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            String serviceName = reader.readLine();
             List<String> names = new ArrayList<>();
-            while (serviceName != null && !"".equals(serviceName)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String serviceName = providerName(line);
+                if (serviceName.isEmpty()) {
+                    continue;
+                }
                 LOG.info(
                     "Creating an instance as specified by file {} which was present in the path of the context classloader.",
                     name);
@@ -119,7 +123,6 @@ public class ServiceProvider {
                     names.add(serviceName);
                     services.add(initService(getContextClassLoader(), serviceName, clazz));
                 }
-                serviceName = reader.readLine();
             }
         } catch (Exception e) {
             LOG.error("Error occurred when looking for resource file " + name, e);
@@ -141,16 +144,26 @@ public class ServiceProvider {
             return null;
         }
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            String serviceName = reader.readLine();
-            if (serviceName != null && !"".equals(serviceName)) {
-                s = initService(getContextClassLoader(), serviceName, clazz);
-            } else {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String serviceName = providerName(line);
+                if (!serviceName.isEmpty()) {
+                    s = initService(getContextClassLoader(), serviceName, clazz);
+                    break;
+                }
+            }
+            if (s == null) {
                 LOG.warn("ServiceName is empty!");
             }
         } catch (Exception e) {
             LOG.warn("Error occurred when looking for resource file " + name, e);
         }
         return s;
+    }
+
+    private static String providerName(String line) {
+        int commentIndex = line.indexOf('#');
+        return (commentIndex < 0 ? line : line.substring(0, commentIndex)).trim();
     }
 
     protected static <T> T initService(ClassLoader classLoader, String serviceName, Class<?> clazz) {
