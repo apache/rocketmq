@@ -127,6 +127,43 @@ public class ProxyAdminAuthInterceptorTest extends InitConfigTest {
         return new ProxyAdminAuthInterceptor.ResourceAction(resource, action);
     }
 
+    @Test
+    public void everyServedAdminMethodHasAnAclMapping() {
+        // the served surface comes from rocketmq-apis (admin.proto) while the ACL map is
+        // maintained by hand: fail this test the moment a new RPC lands without an entry,
+        // instead of discovering the gap on a production call
+        for (io.grpc.MethodDescriptor<?, ?> served :
+            apache.rocketmq.v2.AdminGrpc.getServiceDescriptor().getMethods()) {
+            String bare = served.getBareMethodName();
+            assertNotNull("no proxy.admin.* ACL mapping for served admin method " + bare,
+                ProxyAdminAuthInterceptor.resolveResourceAction(bare));
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void unmappedMethodIsDeniedWhenAuthorizationEnabled() {
+        // authorization on, no credentials wired: a MAPPED method demands credentials (see
+        // authorizationEnabledRejectsMissingCredentials), but an unmapped one used to skip the
+        // ACL branch entirely and run — fail closed instead
+        AuthConfig authConfig = new AuthConfig();
+        authConfig.setConfigName("proxy-admin-unmapped-test-" + System.nanoTime());
+        authConfig.setAuthenticationEnabled(false);
+        authConfig.setAuthorizationEnabled(true);
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerAuthEnable(false);
+
+        ProxyAdminAuthInterceptor interceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
+        ServerCall<byte[], byte[]> call = serverCall("SomeMethodAddedInAFutureRelease");
+        ServerCallHandler<byte[], byte[]> next = mock(ServerCallHandler.class);
+
+        interceptor.interceptCall(call, new Metadata(), next);
+        verify(next, never()).startCall(any(), any());
+        org.mockito.ArgumentCaptor<Status> statusCaptor = org.mockito.ArgumentCaptor.forClass(Status.class);
+        verify(call).close(statusCaptor.capture(), any(Metadata.class));
+        assertEquals(Status.Code.PERMISSION_DENIED, statusCaptor.getValue().getCode());
+        assertTrue(statusCaptor.getValue().getDescription().contains("not mapped"));
+    }
+
     // ---------------------------------------------------------------------
     // behavior modes
     // ---------------------------------------------------------------------
