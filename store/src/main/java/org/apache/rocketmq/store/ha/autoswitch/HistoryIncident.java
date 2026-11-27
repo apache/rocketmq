@@ -170,7 +170,7 @@ final class HistoryIncident {
     private void replayReceived() throws IOException {
         byte[] bytes = read(received);
         if (bytes != null) {
-            String[] fields = checkedFields(bytes);
+            String[] fields = checkedFields(received, bytes);
             finishReceived(Long.parseLong(fields[1]) < Long.parseLong(fields[2]));
         }
     }
@@ -187,11 +187,11 @@ final class HistoryIncident {
         forceDirectory(received.getParent());
     }
 
-    private String[] checkedFields(byte[] bytes) throws IOException {
+    private static String[] checkedFields(Path path, byte[] bytes) throws IOException {
         String[] fields = new String(bytes, StandardCharsets.UTF_8).split("\n", -1);
         if (fields.length != 7 || !fields[6].isEmpty()
             || !DigestUtils.sha256Hex(String.join("\n", Arrays.copyOf(fields, 5)) + "\n").equals(fields[5])) {
-            throw new IOException("Invalid HA history record in " + state.getParent());
+            throw new IOException("Invalid HA history record at " + path);
         }
         return fields;
     }
@@ -208,7 +208,7 @@ final class HistoryIncident {
             record(0, confirm, end, source);
             return null;
         }
-        String[] fields = checkedFields(bytes);
+        String[] fields = checkedFields(state, bytes);
         long limit = Long.parseLong(fields[1]);
         long originalConfirm = Long.parseLong(fields[2]);
         long originalEnd = Long.parseLong(fields[3]);

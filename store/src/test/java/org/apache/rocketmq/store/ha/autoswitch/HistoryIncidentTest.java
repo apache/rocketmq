@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -118,6 +119,36 @@ public class HistoryIncidentTest {
     }
 
     @Test
+    public void rejectedIncompleteReceiptNamesFileAndRetainsBytesAfterRestart() throws IOException {
+        Path root = temp.newFolder().toPath();
+        Path received = root.resolve("ha-history-received");
+        for (byte[] incomplete : new byte[][] {new byte[0], "some-id\n60\n100".getBytes(StandardCharsets.UTF_8)}) {
+            Files.write(received, incomplete);
+            assertThatThrownBy(new HistoryIncident(root)::isolated).isInstanceOf(IOException.class)
+                .hasMessageContaining(received.toString());
+            assertArrayEquals(incomplete, Files.readAllBytes(received));
+            assertFalse(Files.exists(root.resolve("ha-history-incident")));
+        }
+    }
+
+    @Test
+    public void failedDirectoryForceLeavesReceiptForRestart() throws IOException {
+        Path archive = temp.newFolder().toPath().resolve("store.zip");
+        try (FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + archive.toUri()),
+            Collections.singletonMap("create", "true"))) {
+            Path root = Files.createDirectory(fs.getPath("/store"));
+            Path received = root.resolve("ha-history-received");
+            assertThatThrownBy(() -> new HistoryIncident(root).firstDecision(100, () -> {
+                throw new AssertionError("Cannot compare confirmation before the directory force");
+            }, 100, "a 1@0")).isInstanceOf(IOException.class);
+            assertEquals(0, Files.size(received));
+            assertThatThrownBy(new HistoryIncident(root)::isolated).isInstanceOf(IOException.class)
+                .hasMessageContaining(received.toString());
+            assertTrue(Files.exists(received));
+        }
+    }
+
+    @Test
     public void retryMustForceAlreadyVisibleInspectionMarker() throws IOException {
         Path archive = temp.newFolder().toPath().resolve("store.zip");
         // ZipFS permits creating and reading a file but cannot open its
@@ -145,6 +176,9 @@ public class HistoryIncidentTest {
         assertThatThrownBy(() -> incident.authorize(1, 2, 2, "a 1@0", false)).isInstanceOf(IOException.class);
         assertTrue(incident.isolated());
         Path state = root.resolve("ha-history-incident");
+        Files.write(state, "bad".getBytes(StandardCharsets.UTF_8));
+        assertThatThrownBy(() -> incident.authorize(1, 2, 2, "a 1@0", false)).isInstanceOf(IOException.class)
+            .hasMessageContaining(state.toString());
         Files.delete(state);
         Files.createDirectory(state);
         assertThatThrownBy(incident::isolated).isInstanceOf(IOException.class);

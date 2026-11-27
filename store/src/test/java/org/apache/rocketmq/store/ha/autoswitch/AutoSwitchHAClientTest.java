@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -30,6 +31,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -151,6 +153,36 @@ public class AutoSwitchHAClientTest {
             restarted.shutdown();
             waiting.shutdown();
         }
+    }
+
+    @Test
+    public void testInterruptedReceiptBlocksHealthyHandshakeAndRestart() throws Exception {
+        Path root = temporaryFolder.newFolder().toPath();
+        Path received = root.resolve("ha-history-received");
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathRootDir(root.toString());
+        DefaultMessageStore store = mock(DefaultMessageStore.class);
+        when(store.getMessageStoreConfig()).thenReturn(config);
+        when(store.getMaxPhyOffset()).thenReturn(2048L);
+        when(store.getConfirmOffset()).thenThrow(new IllegalStateException("Interrupted after reserving receipt"))
+            .thenReturn(2048L);
+        when(store.truncateFiles(2048L)).thenReturn(true);
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            AutoSwitchHAClient client = createClient(store);
+            try {
+                client.changeCurrentState(HAConnectionState.HANDSHAKE);
+                assertFalse(client.new HAClientReader().processReadResult(handshake(2048L)));
+                assertEquals(HAConnectionState.HANDSHAKE, client.getCurrentState());
+                assertThatThrownBy(client::reservePromotion).isInstanceOf(IOException.class)
+                    .hasMessageContaining(received.toString());
+                assertEquals(0, Files.size(received));
+            } finally {
+                client.shutdown();
+            }
+        }
+        verify(store).getConfirmOffset();
+        verify(store, never()).truncateFiles(anyLong());
     }
 
     @Test
