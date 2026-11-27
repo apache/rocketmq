@@ -18,7 +18,6 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
@@ -97,24 +96,18 @@ public class HistoryIncidentTest {
     }
 
     @Test
-    public void restartReplaysReceivedDecisionAfterPublicationFails() throws IOException {
+    public void restartReplaysDurableReceivedDecisionBeforePublication() throws IOException {
         for (long point : new long[] {60, 100}) {
             Path root = temp.newFolder().toPath();
-            Path offline = root.resolveSibling(root.getFileName() + "-offline");
             HistoryIncident incident = new HistoryIncident(root);
-            try {
-                assertThatThrownBy(() -> incident.firstDecision(point, () -> {
-                    try {
-                        Files.move(root, offline);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                    return 100;
-                }, 110, "a 1@0")).isInstanceOf(IOException.class);
-            } finally {
-                Files.move(offline, root);
-            }
+            assertEquals(point < 100, incident.journalReceivedDecision(point, () -> 100, 110, "a 1@0"));
             HistoryIncident restarted = new HistoryIncident(root);
+            if (point < 100) {
+                Path conflict = Files.createDirectory(root.resolve("ha-history-incident"));
+                assertThatThrownBy(restarted::isolated).isInstanceOf(IOException.class);
+                assertTrue(Files.exists(root.resolve("ha-history-received")));
+                Files.delete(conflict);
+            }
             assertEquals(point < 100, restarted.isolated());
             if (point < 100) {
                 assertNull(restarted.authorize(110, 100, 110, "a 1@0", false));

@@ -17,10 +17,12 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
@@ -94,6 +96,10 @@ final class HistoryIncident {
     }
 
     static void forceDirectory(Path directory) throws IOException {
+        if (File.separatorChar == '\\' && directory.getFileSystem() == FileSystems.getDefault()) {
+            WindowsDirectorySync.force(directory);
+            return;
+        }
         try (FileChannel channel = FileChannel.open(directory, StandardOpenOption.READ)) {
             channel.force(true);
         }
@@ -144,6 +150,12 @@ final class HistoryIncident {
     }
 
     Cut firstDecision(long point, LongSupplier confirmedOffset, long end, String source) throws IOException {
+        boolean refused = journalReceivedDecision(point, confirmedOffset, end, source);
+        finishReceived(refused);
+        return refused ? null : new Cut(point, end);
+    }
+
+    boolean journalReceivedDecision(long point, LongSupplier confirmedOffset, long end, String source) throws IOException {
         // Only complete responses reach here. Reserve and force the journal
         // entry before consulting confirmation to decide whether to reject.
         long confirm;
@@ -152,9 +164,7 @@ final class HistoryIncident {
             confirm = confirmedOffset.getAsLong();
             writeAndForce(channel, decision(point, confirm, end, source));
         }
-        boolean refused = point < confirm;
-        finishReceived(refused);
-        return refused ? null : new Cut(point, end);
+        return point < confirm;
     }
 
     private void replayReceived() throws IOException {

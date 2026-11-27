@@ -4,6 +4,8 @@ When a handshake would truncate below the replica's confirmed offset, the replic
 
 ## Accept the elected master's history once
 
+On Windows, use an NTFS Store with a broker account that can open and flush the affected directories for writing. The broker rejects the handshake or recovery when the directory flush fails. The shell examples below target POSIX systems. Windows operators can use the PowerShell commands at the end.
+
 On receipt of a complete handshake, a healthy replica records its candidate cut and local confirmation in `ha-history-received` before acting on the comparison. A restart replays a completed record. An incomplete or unreadable journal blocks the replica. Include this file in incident backups when present.
 
 1. Identify the **isolated replica**, often the former master. Keep the elected master as the source. Stop the isolated broker, take a restorable backup of its complete Store (including configured external commit-log and epoch paths), and preserve its broker identity.
@@ -52,3 +54,34 @@ PY
 ```
 
 If the endpoint, epoch sequence or cut changes, the replica issues a fresh incident ID. A healthy replica can restart while waiting for its first response and reconnect normally. An already-isolated replica creates `ha-history-inspecting` before requesting history again. If it crashes or loses storage while inspecting, it may have seen a smaller cut. Its next usable handshake invalidates the old approval and proposes a cut of **zero**. Preserve both incident files. After an interrupted repair, inspect the current incident and disk state and approve the new record only if the remaining repair is still intended. An unreadable or damaged record, unsupported durable filesystem operation, or lack of a common epoch keeps the replica isolated. Restore a trusted Store snapshot or rebuild when the retained prefix or storage integrity cannot be established.
+
+## Publish or withdraw an approval on Windows
+
+From the stopped replica's Store root, use a PowerShell session with permission to flush its volume. To grant the approval reviewed in step 3, run:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$record = (Get-Item -LiteralPath 'ha-history-incident').FullName
+$volume = Get-Volume -FilePath $record
+$approval = Join-Path $PWD 'ha-history-approval'
+$staged = Join-Path $PWD ([guid]::NewGuid().ToString() + '.tmp')
+[IO.File]::Copy($record, $staged)
+$volume | Write-VolumeCache
+if ([IO.File]::Exists($approval)) {
+    [IO.File]::Replace($staged, $approval, [System.Management.Automation.Language.NullString]::Value)
+} else {
+    [IO.File]::Move($staged, $approval)
+}
+$volume | Write-VolumeCache
+```
+
+To withdraw an unused approval, stop the replica and run:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$volume = Get-Volume -FilePath (Get-Item -LiteralPath 'ha-history-incident').FullName
+Remove-Item -LiteralPath 'ha-history-approval'
+$volume | Write-VolumeCache
+```
+
+Wait for the volume flush to finish successfully before restarting. [Microsoft Write-VolumeCache documentation](https://learn.microsoft.com/en-us/powershell/module/storage/write-volumecache)
