@@ -487,6 +487,104 @@ public class PopConsumerServiceTest {
     }
 
     @Test
+    public void transferToFsStoreKeepsRecordWhenCheckpointPutFailsTest() {
+        PopConsumerRecord record = new PopConsumerRecord();
+        record.setPopTime(0);
+        record.setInvisibleTime(20 * 1000);
+        record.setTopicId("topic");
+        record.setGroupId("group");
+        record.setQueueId(2);
+        record.setOffset(0);
+
+        Mockito.when(brokerController.getPopMessageProcessor().buildCkMsg(any(), anyInt()))
+            .thenReturn(new MessageExtBrokerInner());
+        Mockito.when(brokerController.getMessageStore()).thenReturn(Mockito.mock(MessageStore.class));
+        Mockito.when(brokerController.getMessageStore().asyncPutMessage(any()))
+            .thenReturn(CompletableFuture.completedFuture(
+                new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null)));
+
+        consumerService.getPopConsumerStore().start();
+        consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(record));
+        consumerService.transferToFsStore();
+
+        List<PopConsumerRecord> remainingRecords = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, Long.MAX_VALUE, 10);
+        Assert.assertEquals(1, remainingRecords.size());
+        Assert.assertEquals(0, remainingRecords.get(0).getOffset());
+
+        consumerService.getPopConsumerStore().shutdown();
+    }
+
+    @Test
+    public void transferToFsStoreDeletesOnlyTransferredRecordsTest() {
+        List<PopConsumerRecord> consumerRecordList = IntStream.range(0, 3)
+            .mapToObj(i -> {
+                PopConsumerRecord temp = new PopConsumerRecord();
+                temp.setPopTime(0);
+                temp.setInvisibleTime(20 * 1000);
+                temp.setTopicId("topic");
+                temp.setGroupId("group");
+                temp.setQueueId(2);
+                temp.setOffset(i);
+                return temp;
+            })
+            .collect(Collectors.toList());
+
+        Mockito.when(brokerController.getPopMessageProcessor().buildCkMsg(any(), anyInt()))
+            .thenReturn(new MessageExtBrokerInner());
+        Mockito.when(brokerController.getMessageStore()).thenReturn(Mockito.mock(MessageStore.class));
+        Mockito.when(brokerController.getMessageStore().asyncPutMessage(any()))
+            .thenReturn(CompletableFuture.completedFuture(
+                new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))))
+            .thenReturn(CompletableFuture.completedFuture(
+                new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))))
+            .thenReturn(CompletableFuture.completedFuture(
+                new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null)));
+
+        consumerService.getPopConsumerStore().start();
+        consumerService.getPopConsumerStore().writeRecords(consumerRecordList);
+        consumerService.transferToFsStore();
+
+        List<PopConsumerRecord> remainingRecords = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, Long.MAX_VALUE, 10);
+        Assert.assertEquals(1, remainingRecords.size());
+        Assert.assertEquals(2, remainingRecords.get(0).getOffset());
+
+        consumerService.getPopConsumerStore().shutdown();
+    }
+
+    @Test(timeout = 30 * 1000)
+    public void transferToFsStoreStopsWhenCheckpointPutThrowsTest() {
+        PopConsumerRecord record = new PopConsumerRecord();
+        record.setPopTime(0);
+        record.setInvisibleTime(20 * 1000);
+        record.setTopicId("topic");
+        record.setGroupId("group");
+        record.setQueueId(2);
+        record.setOffset(0);
+
+        CompletableFuture<PutMessageResult> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("store unavailable"));
+
+        Mockito.when(brokerController.getPopMessageProcessor().buildCkMsg(any(), anyInt()))
+            .thenReturn(new MessageExtBrokerInner());
+        Mockito.when(brokerController.getMessageStore()).thenReturn(Mockito.mock(MessageStore.class));
+        Mockito.when(brokerController.getMessageStore().asyncPutMessage(any()))
+            .thenReturn(failedFuture);
+
+        consumerService.getPopConsumerStore().start();
+        consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(record));
+        consumerService.transferToFsStore();
+
+        List<PopConsumerRecord> remainingRecords = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, Long.MAX_VALUE, 10);
+        Assert.assertEquals(1, remainingRecords.size());
+        Assert.assertEquals(0, remainingRecords.get(0).getOffset());
+
+        consumerService.getPopConsumerStore().shutdown();
+    }
+
+    @Test
     public void testChangeInvisibilityDurationWithSuspendTrue() {
         long current = System.currentTimeMillis();
         long popTime = current - 1000;
