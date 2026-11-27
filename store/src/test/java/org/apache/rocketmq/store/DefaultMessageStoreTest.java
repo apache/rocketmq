@@ -203,6 +203,34 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
+    public void testWriteAndReadAcrossFlushModeChanges() throws Exception {
+        MessageStoreConfig config = messageStore.getMessageStoreConfig();
+        shutdownAndDeleteStore(messageStore);
+        config.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
+        config.setMappedFileSizeCommitLog(8 * 1024);
+        messageStore = new DefaultMessageStore(config, new BrokerStatsManager("simpleTest", true),
+            new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
+        assertTrue(messageStore.load());
+        messageStore.start();
+        queueTotal = 1;
+
+        for (int i = 0; i < 24; i++) {
+            FlushDiskType mode = i % 2 == 0 ? FlushDiskType.ASYNC_FLUSH : FlushDiskType.SYNC_FLUSH;
+            config.setFlushDiskType(mode);
+            byte[] body = new byte[512];
+            Arrays.fill(body, (byte) i);
+            PutMessageResult result = messageStore.putMessage(buildMessage(body, messageTopic));
+            assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
+            AppendMessageResult append = result.getAppendMessageResult();
+            if (mode == FlushDiskType.SYNC_FLUSH) {
+                assertThat(getDefaultMessageStore().getCommitLog().getMappedFileQueue().getFlushedWhere())
+                    .isGreaterThanOrEqualTo(append.getWroteOffset() + append.getWroteBytes());
+            }
+            assertThat(messageStore.lookMessageByOffset(append.getWroteOffset()).getBody()).isEqualTo(body);
+        }
+    }
+
+    @Test
     public void testLookMessageByOffset_OffsetIsFirst() {
         final int totalCount = 10;
         int queueId = new Random().nextInt(10);

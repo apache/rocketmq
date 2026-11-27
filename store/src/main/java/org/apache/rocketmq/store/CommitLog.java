@@ -1575,92 +1575,6 @@ public class CommitLog implements Swappable {
         }
     }
 
-    class FlushRealTimeService extends FlushCommitLogService {
-        private long lastFlushTimestamp = 0;
-        private long printTimes = 0;
-
-        @Override
-        public void run() {
-            CommitLog.log.info("{} service started", this.getServiceName());
-
-            while (!this.isStopped()) {
-                boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
-
-                int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
-                int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
-
-                int flushPhysicQueueThoroughInterval =
-                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
-
-                boolean printFlushProgress = false;
-
-                // Print flush progress
-                long currentTimeMillis = System.currentTimeMillis();
-                if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
-                    this.lastFlushTimestamp = currentTimeMillis;
-                    flushPhysicQueueLeastPages = 0;
-                    printFlushProgress = (printTimes++ % 10) == 0;
-                }
-
-                try {
-                    if (flushCommitLogTimed) {
-                        Thread.sleep(interval);
-                    } else {
-                        this.waitForRunning(interval);
-                    }
-
-                    if (printFlushProgress) {
-                        this.printFlushProgress();
-                    }
-
-                    long begin = System.currentTimeMillis();
-                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
-                    long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-                    if (storeTimestamp > 0) {
-                        CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-                    }
-                    long past = System.currentTimeMillis() - begin;
-                    CommitLog.this.getMessageStore().getPerfCounter().flowOnce("FLUSH_DATA_TIME_MS", (int) past);
-                    if (past > 500) {
-                        log.info("Flush data to disk costs {} ms", past);
-                    }
-                } catch (Throwable e) {
-                    CommitLog.log.warn("{} service has exception. ", this.getServiceName(), e);
-                    this.printFlushProgress();
-                }
-            }
-
-            // Normal shutdown, to ensure that all the flush before exit
-            boolean result = false;
-            for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
-                result = CommitLog.this.mappedFileQueue.flush(0);
-                CommitLog.log.info("{} service shutdown, retry {} times {}", this.getServiceName(), i + 1, result ? "OK" : "Not OK");
-            }
-
-            this.printFlushProgress();
-
-            CommitLog.log.info("{} service end", this.getServiceName());
-        }
-
-        @Override
-        public String getServiceName() {
-            if (CommitLog.this.defaultMessageStore.getBrokerConfig().isInBrokerContainer()) {
-                return CommitLog.this.defaultMessageStore.getBrokerConfig().getIdentifier() + FlushRealTimeService.class.getSimpleName();
-            }
-            return FlushRealTimeService.class.getSimpleName();
-        }
-
-        private void printFlushProgress() {
-            // CommitLog.log.info("how much disk fall behind memory, "
-            // + CommitLog.this.mappedFileQueue.howMuchFallBehind());
-        }
-
-        @Override
-        public long getJoinTime() {
-            return 1000 * 60 * 5;
-        }
-    }
-
     public static class GroupCommitRequest {
         private final long nextOffset;
         // Indicate the GroupCommitRequest result: true or false
@@ -1703,6 +1617,7 @@ public class CommitLog implements Swappable {
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
+        private long lastFlushTimestamp;
         private LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
         private LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
@@ -1725,6 +1640,27 @@ public class CommitLog implements Swappable {
                 this.requestsRead = tmp;
             } finally {
                 lock.unlock();
+            }
+        }
+
+        private void doAsyncFlush() {
+            MessageStoreConfig config = CommitLog.this.defaultMessageStore.getMessageStoreConfig();
+            int leastPages = config.getFlushCommitLogLeastPages();
+            long now = System.currentTimeMillis();
+            if (now >= lastFlushTimestamp + config.getFlushCommitLogThoroughInterval()) {
+                lastFlushTimestamp = now;
+                leastPages = 0;
+            }
+
+            CommitLog.this.mappedFileQueue.flush(leastPages);
+            long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
+            if (storeTimestamp > 0) {
+                CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
+            }
+            long elapsed = System.currentTimeMillis() - now;
+            CommitLog.this.getMessageStore().getPerfCounter().flowOnce("FLUSH_DATA_TIME_MS", (int) elapsed);
+            if (elapsed > 500) {
+                log.info("Flush data to disk costs {} ms", elapsed);
             }
         }
 
@@ -1770,9 +1706,15 @@ public class CommitLog implements Swappable {
 
             while (!this.isStopped()) {
                 try {
-                    this.waitForRunning(10);
-                    this.doCommit();
-                } catch (Exception e) {
+                    MessageStoreConfig config = CommitLog.this.defaultMessageStore.getMessageStoreConfig();
+                    boolean syncFlush = config.getFlushDiskType() == FlushDiskType.SYNC_FLUSH;
+                    this.waitForRunning(syncFlush ? 10 : config.getFlushIntervalCommitLog());
+                    if (syncFlush || !this.requestsRead.isEmpty()) {
+                        this.doCommit();
+                    } else {
+                        this.doAsyncFlush();
+                    }
+                } catch (Throwable e) {
                     CommitLog.log.warn("{} service has exception. ", this.getServiceName(), e);
                 }
             }
@@ -1787,6 +1729,11 @@ public class CommitLog implements Swappable {
 
             this.swapRequests();
             this.doCommit();
+            for (int i = 0; i < RETRY_TIMES_OVER; i++) {
+                if (CommitLog.this.mappedFileQueue.flush(0)) {
+                    break;
+                }
+            }
 
             CommitLog.log.info("{} service end", this.getServiceName());
         }
@@ -2219,18 +2166,13 @@ public class CommitLog implements Swappable {
 
     class DefaultFlushManager implements FlushManager {
 
-        private final FlushCommitLogService flushCommitLogService;
+        private final GroupCommitService flushCommitLogService;
 
         //If TransientStorePool enabled, we must flush message to FileChannel at fixed periods
         private final FlushCommitLogService commitRealTimeService;
 
         public DefaultFlushManager() {
-            if (FlushDiskType.SYNC_FLUSH == CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-                this.flushCommitLogService = new CommitLog.GroupCommitService();
-            } else {
-                this.flushCommitLogService = new CommitLog.FlushRealTimeService();
-            }
-
+            this.flushCommitLogService = new CommitLog.GroupCommitService();
             this.commitRealTimeService = new CommitLog.CommitRealTimeService();
         }
 
@@ -2248,10 +2190,9 @@ public class CommitLog implements Swappable {
             MessageExt messageExt) {
             // Synchronization flush
             if (FlushDiskType.SYNC_FLUSH == CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-                final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
                 if (messageExt.isWaitStoreMsgOK()) {
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(), CommitLog.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-                    service.putRequest(request);
+                    flushCommitLogService.putRequest(request);
                     CompletableFuture<PutMessageStatus> flushOkFuture = request.future();
                     PutMessageStatus flushStatus = null;
                     try {
@@ -2264,14 +2205,14 @@ public class CommitLog implements Swappable {
                         putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                     }
                 } else {
-                    service.wakeup();
+                    flushCommitLogService.wakeup();
                 }
             }
             // Asynchronous flush
             else {
                 if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
                     if (defaultMessageStore.getMessageStoreConfig().isWakeFlushWhenPutMessage()) {
-                        flushCommitLogService.wakeup();
+                        wakeUpFlush();
                     }
                 } else {
                     if (defaultMessageStore.getMessageStoreConfig().isWakeCommitWhenPutMessage()) {
@@ -2285,14 +2226,13 @@ public class CommitLog implements Swappable {
         public CompletableFuture<PutMessageStatus> handleDiskFlush(AppendMessageResult result, MessageExt messageExt) {
             // Synchronization flush
             if (FlushDiskType.SYNC_FLUSH == CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
-                final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
                 if (messageExt.isWaitStoreMsgOK()) {
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes(), CommitLog.this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                     flushDiskWatcher.add(request);
-                    service.putRequest(request);
+                    flushCommitLogService.putRequest(request);
                     return request.future();
                 } else {
-                    service.wakeup();
+                    flushCommitLogService.wakeup();
                     return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
                 }
             }
@@ -2300,7 +2240,7 @@ public class CommitLog implements Swappable {
             else {
                 if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
                     if (defaultMessageStore.getMessageStoreConfig().isWakeFlushWhenPutMessage()) {
-                        flushCommitLogService.wakeup();
+                        wakeUpFlush();
                     }
                 } else {
                     if (defaultMessageStore.getMessageStoreConfig().isWakeCommitWhenPutMessage()) {
@@ -2313,8 +2253,10 @@ public class CommitLog implements Swappable {
 
         @Override
         public void wakeUpFlush() {
-            // now wake up flush thread.
-            flushCommitLogService.wakeup();
+            MessageStoreConfig config = defaultMessageStore.getMessageStoreConfig();
+            if (config.getFlushDiskType() == FlushDiskType.SYNC_FLUSH || !config.isFlushCommitLogTimed()) {
+                flushCommitLogService.wakeup();
+            }
         }
 
         @Override

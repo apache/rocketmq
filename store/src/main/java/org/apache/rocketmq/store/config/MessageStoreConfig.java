@@ -252,7 +252,7 @@ public class MessageStoreConfig {
     @ImportantField
     private volatile BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
     @ImportantField
-    private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
+    private volatile FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
     // Used by GroupTransferService to sync messages from master to slave
     private int syncFlushTimeout = 1000 * 5;
     // Used by PutMessage to wait messages be flushed to disk and synchronized in current broker member group.
