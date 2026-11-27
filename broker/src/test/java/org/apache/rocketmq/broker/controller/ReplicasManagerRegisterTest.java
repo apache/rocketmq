@@ -32,6 +32,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextB
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.RunningFlags;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.ha.autoswitch.BrokerMetadata;
@@ -51,6 +52,7 @@ import java.util.HashSet;
 import java.util.UUID;
 
 import static org.awaitility.Awaitility.await;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -123,6 +125,7 @@ public class ReplicasManagerRegisterTest {
         this.mockedMessageStore = Mockito.mock(DefaultMessageStore.class);
         this.mockedBrokerOuterAPI = Mockito.mock(BrokerOuterAPI.class);
         this.mockedAutoSwitchHAService = Mockito.mock(AutoSwitchHAService.class);
+        when(mockedAutoSwitchHAService.changeToMaster(1, syncStateSet)).thenReturn(true);
         TopicConfigManager mockedTopicConfigManager = new TopicConfigManager();
         when(mockedBrokerController.getBrokerOuterAPI()).thenReturn(mockedBrokerOuterAPI);
         when(mockedBrokerController.getMessageStore()).thenReturn(mockedMessageStore);
@@ -135,6 +138,44 @@ public class ReplicasManagerRegisterTest {
                 new GetMetaDataResponseHeader("default-group", "dledger-a", CONTROLLER_ADDR, true, CONTROLLER_ADDR));
         when(mockedBrokerOuterAPI.checkAddressReachable(any())).thenReturn(true);
         when(mockedBrokerController.getMessageStoreConfig()).thenReturn(buildMessageStoreConfig(0));
+    }
+
+    @Test
+    public void testRefusedPromotionLeavesRoleAndEpoch() throws Exception {
+        BrokerConfig config = new BrokerConfig();
+        config.setBrokerId(2);
+        when(mockedBrokerController.getBrokerConfig()).thenReturn(config);
+        mockedBrokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
+        ReplicasManager manager = new ReplicasManager(mockedBrokerController);
+        try {
+            assertThatThrownBy(() -> manager.changeToMaster(2, 1, syncStateSet)).isInstanceOf(IllegalStateException.class);
+            assertEquals(0, manager.getMasterEpoch());
+            assertEquals(2, config.getBrokerId());
+            assertEquals(0, manager.getSyncStateSet().getSyncStateSetEpoch());
+            assertTrue(manager.getSyncStateSet().getSyncStateSet().isEmpty());
+            Mockito.verify(mockedAutoSwitchHAService, Mockito.never()).setSyncStateSet(Mockito.anySet());
+            assertEquals(BrokerRole.SLAVE, mockedBrokerController.getMessageStoreConfig().getBrokerRole());
+            Mockito.verify(mockedAutoSwitchHAService).changeToMaster(2, syncStateSet);
+        } finally {
+            manager.shutdown();
+        }
+    }
+
+    @Test
+    public void testRefusedSameMasterEpochIsRetryable() throws Exception {
+        BrokerConfig config = new BrokerConfig();
+        config.setBrokerId(0);
+        when(mockedBrokerController.getBrokerConfig()).thenReturn(config);
+        ReplicasManager manager = new ReplicasManager(mockedBrokerController);
+        try {
+            FieldUtils.writeDeclaredField(manager, "masterBrokerId", 2L, true);
+            FieldUtils.writeDeclaredField(manager, "brokerControllerId", 2L, true);
+            assertThatThrownBy(() -> manager.changeToMaster(2, 1, syncStateSet)).isInstanceOf(IllegalStateException.class);
+            assertEquals(0, manager.getMasterEpoch());
+            Mockito.verify(mockedAutoSwitchHAService).changeToMasterWhenLastRoleIsMaster(2);
+        } finally {
+            manager.shutdown();
+        }
     }
 
     @Test

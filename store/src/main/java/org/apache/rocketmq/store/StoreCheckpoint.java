@@ -90,16 +90,20 @@ public class StoreCheckpoint {
 
     public void flush() {
         try {
-            this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
-            this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
-            this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
-            this.mappedByteBuffer.putLong(24, this.masterFlushedOffset);
-            this.mappedByteBuffer.putLong(32, this.confirmPhyOffset);
-            this.mappedByteBuffer.putLong(40, this.logicsPhysicalOffset);
-            this.mappedByteBuffer.force();
+            flushForRecovery();
         } catch (Throwable e) {
             log.error("Failed to flush", e);
         }
+    }
+
+    public synchronized void flushForRecovery() {
+        this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
+        this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
+        this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
+        this.mappedByteBuffer.putLong(24, this.masterFlushedOffset);
+        this.mappedByteBuffer.putLong(32, this.confirmPhyOffset);
+        this.mappedByteBuffer.putLong(40, this.logicsPhysicalOffset);
+        this.mappedByteBuffer.force();
     }
 
     public long getPhysicMsgTimestamp() {

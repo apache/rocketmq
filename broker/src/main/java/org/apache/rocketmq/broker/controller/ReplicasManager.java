@@ -238,28 +238,29 @@ public class ReplicasManager {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
-                this.masterEpoch = newMasterEpoch;
                 if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
+                    if (!this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch)) {
+                        throw new IllegalStateException("Store refused master epoch " + newMasterEpoch);
+                    }
+                    this.masterEpoch = newMasterEpoch;
                     // Change SyncStateSet
                     final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
                     changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
-                    // if master doesn't change
-                    this.haService.changeToMasterWhenLastRoleIsMaster(newMasterEpoch);
                     this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
                     this.executorService.submit(this::checkSyncStateSetAndDoReport);
                     registerBrokerWhenRoleChange();
                     return;
                 }
 
-                // Change SyncStateSet
-                final HashSet<Long> newSyncStateSet = new HashSet<>(syncStateSet);
-                changeSyncStateSet(newSyncStateSet, syncStateSetEpoch);
-
-                // Handle the slave synchronise
+                Set<Long> proposed = syncStateSetEpoch > this.syncStateSetEpoch ? new HashSet<>(syncStateSet) : null;
+                if (!this.haService.changeToMaster(newMasterEpoch, proposed)) {
+                    throw new IllegalStateException("Store refused promotion to master epoch " + newMasterEpoch);
+                }
+                if (proposed != null) {
+                    recordSyncStateSet(proposed, syncStateSetEpoch);
+                }
+                this.masterEpoch = newMasterEpoch;
                 handleSlaveSynchronize(BrokerRole.SYNC_MASTER);
-
-                // Notify ha service, change to master
-                this.haService.changeToMaster(newMasterEpoch);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
@@ -337,12 +338,16 @@ public class ReplicasManager {
     private void changeSyncStateSet(final Set<Long> newSyncStateSet, final int newSyncStateSetEpoch) {
         synchronized (this) {
             if (newSyncStateSetEpoch > this.syncStateSetEpoch) {
-                LOGGER.info("SyncStateSet changed from {} to {}", this.syncStateSet, newSyncStateSet);
-                this.syncStateSetEpoch = newSyncStateSetEpoch;
-                this.syncStateSet = new HashSet<>(newSyncStateSet);
+                recordSyncStateSet(newSyncStateSet, newSyncStateSetEpoch);
                 this.haService.setSyncStateSet(newSyncStateSet);
             }
         }
+    }
+
+    private void recordSyncStateSet(Set<Long> newSyncStateSet, int newSyncStateSetEpoch) {
+        LOGGER.info("SyncStateSet changed from {} to {}", this.syncStateSet, newSyncStateSet);
+        this.syncStateSetEpoch = newSyncStateSetEpoch;
+        this.syncStateSet = new HashSet<>(newSyncStateSet);
     }
 
     private void handleSlaveSynchronize(final BrokerRole role) {

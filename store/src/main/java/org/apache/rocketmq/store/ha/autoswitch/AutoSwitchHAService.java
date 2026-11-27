@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -71,6 +72,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private volatile boolean isSynchronizingSyncStateSet = false;
 
     private EpochFileCache epochCache;
+    private HistoryIncident incident;
     private AutoSwitchHAClient haClient;
 
     private Long localBrokerId = null;
@@ -83,6 +85,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         this.epochCache = new EpochFileCache(defaultMessageStore.getMessageStoreConfig().getStorePathEpochFile());
         this.epochCache.initCacheFromFile();
         this.defaultMessageStore = defaultMessageStore;
+        this.incident = new HistoryIncident(Paths.get(defaultMessageStore.getMessageStoreConfig().getStorePathRootDir()));
         this.acceptSocketService = new AutoSwitchAcceptSocketService(defaultMessageStore.getMessageStoreConfig());
         this.groupTransferService = new GroupTransferService(this, defaultMessageStore);
         this.haConnectionStateNotificationService = new HAConnectionStateNotificationService(this, defaultMessageStore);
@@ -120,10 +123,20 @@ public class AutoSwitchHAService extends DefaultHAService {
 
     @Override
     public boolean changeToMaster(int masterEpoch) throws RocksDBException {
+        return changeToMaster(masterEpoch, null);
+    }
+
+    public boolean changeToMaster(int masterEpoch, Set<Long> newSyncStateSet) throws RocksDBException {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
             return false;
+        }
+        if (!reserveMasterRole()) {
+            return false;
+        }
+        if (newSyncStateSet != null) {
+            setSyncStateSet(newSyncStateSet);
         }
         destroyConnections();
         // Stop ha client if needed
@@ -204,6 +217,9 @@ public class AutoSwitchHAService extends DefaultHAService {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
             return false;
         }
+        if (!reserveMasterRole()) {
+            return false;
+        }
         // Append new epoch to epochFile
         final EpochEntry newEpochEntry = appendEpochEntry(masterEpoch);
 
@@ -211,6 +227,21 @@ public class AutoSwitchHAService extends DefaultHAService {
         LOGGER.info("Change ha to master success, last role is master, newMasterEpoch:{}, startOffset:{}",
             masterEpoch, newEpochEntry.getStartOffset());
         return true;
+    }
+
+    private boolean reserveMasterRole() {
+        try {
+            // reservePromotion and doTruncate share the client's monitor.
+            // After acceptance no handshake can create a new incident while
+            // shutdown joins the reader outside that monitor.
+            if (haClient == null ? !incident.isolated() : haClient.reservePromotion()) {
+                return true;
+            }
+            LOGGER.error("Isolated replica cannot become master");
+        } catch (IOException e) {
+            LOGGER.error("Cannot verify local HA history before promotion", e);
+        }
+        return false;
     }
 
     /**
