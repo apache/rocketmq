@@ -582,6 +582,8 @@ public class BrokerConfig extends BrokerIdentity {
     // make sense for rocksdb store
     private boolean persistConsumerOffsetIncrementally = false;
 
+    private long consumerOffsetBatchIntervalMs = 100;
+
     private long maxLiteSubscriptionCount = 100000;
 
     private boolean enableLitePopLog = false;
@@ -2484,6 +2486,17 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPersistConsumerOffsetIncrementally(boolean persistConsumerOffsetIncrementally) {
         this.persistConsumerOffsetIncrementally = persistConsumerOffsetIncrementally;
+    }
+
+    public long getConsumerOffsetBatchIntervalMs() {
+        return consumerOffsetBatchIntervalMs;
+    }
+
+    public void setConsumerOffsetBatchIntervalMs(long consumerOffsetBatchIntervalMs) {
+        if (consumerOffsetBatchIntervalMs <= 0) {
+            throw new IllegalArgumentException("consumerOffsetBatchIntervalMs must be positive");
+        }
+        this.consumerOffsetBatchIntervalMs = consumerOffsetBatchIntervalMs;
     }
 
     public long getMaxLiteSubscriptionCount() {
