@@ -305,7 +305,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 if (!pullRequest.isPreviouslyLocked()) {
                     long offset = -1L;
                     try {
-                        offset = this.rebalanceImpl.computePullFromWhereWithException(pullRequest.getMessageQueue());
+                        offset = this.offsetStore.readOffset(pullRequest.getMessageQueue(), ReadOffsetType.READ_FROM_STORE);
+                        if (offset == -1) {
+                            offset = pullRequest.getNextOffset();
+                        }
                         if (offset < 0) {
                             throw new MQClientException(ResponseCode.SYSTEM_ERROR, "Unexpected offset " + offset);
                         }
