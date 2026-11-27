@@ -127,7 +127,12 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             @Override
             public void shutdown() throws Exception {
                 scheduledExecutorService.shutdown();
+                // clearAllHandle submits the remaining handles to returnHandleGroupWorkerService, so
+                // the pools are stopped afterwards: this manager created them and nothing else
+                // releases them, they would otherwise keep their threads alive past the shutdown
                 clearAllHandle();
+                renewalWorkerService.shutdown();
+                returnHandleGroupWorkerService.shutdown();
             }
         });
     }
