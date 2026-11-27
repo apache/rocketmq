@@ -46,6 +46,7 @@ public class MessageSysFlag {
     public final static int COMPRESSION_LZ4_TYPE = 0x1 << 8;
     public final static int COMPRESSION_ZSTD_TYPE = 0x2 << 8;
     public final static int COMPRESSION_ZLIB_TYPE = 0x3 << 8;
+    public final static int COMPRESSION_GZIP_TYPE = 0x4 << 8;
     public final static int COMPRESSION_TYPE_COMPARATOR = 0x7 << 8;
 
     public static int getTransactionValue(final int flag) {
