@@ -144,6 +144,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -235,6 +236,17 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     }
 
     private void stubRoute(boolean forWrite, String... brokerAddrs) throws Exception {
+        MessageQueueView view = routeView(forWrite, brokerAddrs);
+        when(topicRouteService.getAllMessageQueueView(any(), anyString())).thenReturn(view);
+    }
+
+    /** Same as {@link #stubRoute(boolean, String...)}, for a request that may be rejected before routing. */
+    private void stubRouteLenient(boolean forWrite, String... brokerAddrs) throws Exception {
+        MessageQueueView view = routeView(forWrite, brokerAddrs);
+        lenient().when(topicRouteService.getAllMessageQueueView(any(), anyString())).thenReturn(view);
+    }
+
+    private static MessageQueueView routeView(boolean forWrite, String... brokerAddrs) throws Exception {
         List<AddressableMessageQueue> queues = new ArrayList<>();
         for (int i = 0; i < brokerAddrs.length; i++) {
             queues.add(new AddressableMessageQueue(new MessageQueue(TOPIC, "broker-" + i, i), brokerAddrs[i]));
@@ -247,7 +259,7 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         } else {
             when(view.getReadSelector()).thenReturn(selector);
         }
-        when(topicRouteService.getAllMessageQueueView(any(), anyString())).thenReturn(view);
+        return view;
     }
 
     private SubscriptionData subscriptionData(String topic, String expressionType, String expression) {
@@ -975,6 +987,93 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         assertEquals(1, observer.value.getMessagesCount());
         verify(adminService).queryMessage(eq(ADDRESS_A), eq(TOPIC), eq("key-1"), eq(1), anyLong(), anyLong(),
             anyBoolean(), anyBoolean(), anyLong());
+    }
+
+    @Test
+    public void queryMessagePageSizeCapsResultsTest() throws Exception {
+        stubRoute(false, ADDRESS_A);
+        when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Arrays.asList(messageExt("MSG-1"), messageExt("MSG-2"))));
+
+        SimpleObserver<ListMessageResponse> observer = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setMessageKey("key-1")
+            .setPageSize(1)
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.OK, observer.value.getStatus().getCode());
+        assertEquals(1, observer.value.getMessagesCount());
+        // the page size is a cap on the query, not just a truncation of its answer
+        verify(adminService).queryMessage(eq(ADDRESS_A), eq(TOPIC), eq("key-1"), eq(1), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong());
+    }
+
+    @Test
+    public void queryMessageRejectsNonPositivePageSizeTest() {
+        SimpleObserver<ListMessageResponse> observer = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setMessageKey("key-1")
+            .setPageSize(0)
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        // an explicit non-positive page size cannot be capped to anything sensible
+        assertEquals(Code.BAD_REQUEST, observer.value.getStatus().getCode());
+        assertTrue(observer.value.getStatus().getMessage().contains("page_size"));
+        verify(adminService, never()).queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(),
+            anyLong(), anyBoolean(), anyBoolean(), anyLong());
+    }
+
+    @Test
+    public void queryMessageRejectsPageNumBeyondTheFirstPageTest() throws Exception {
+        // stubbed leniently: without the fix the request is served from this data (a copy of the
+        // first page), while the fix refuses it before any route or broker lookup
+        stubRouteLenient(false, ADDRESS_A);
+        lenient().when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(messageExt("MSG-1"))));
+
+        SimpleObserver<ListMessageResponse> observer = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setMessageKey("key-1")
+            .setPageNum(2)
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        // there is no ordering or cursor behind the answer, so any page past the first would be a
+        // copy of it; refusing is the only honest answer
+        assertEquals(Code.BAD_REQUEST, observer.value.getStatus().getCode());
+        assertTrue(observer.value.getStatus().getMessage().contains("page_num"));
+        verify(adminService, never()).queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(),
+            anyLong(), anyBoolean(), anyBoolean(), anyLong());
+    }
+
+    @Test
+    public void queryMessageRejectsScrollIdTest() throws Exception {
+        // the proxy never issues a cursor, so pre-fix the request is served as if it were a fresh
+        // query; the fix refuses it instead
+        stubRouteLenient(false, ADDRESS_A);
+        lenient().when(adminService.queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong(),
+            anyBoolean(), anyBoolean(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.singletonList(messageExt("MSG-1"))));
+
+        SimpleObserver<ListMessageResponse> observer = new SimpleObserver<>();
+        service.queryMessage(ListMessageRequest.newBuilder()
+            .setTopic(resource(TOPIC))
+            .setMessageKey("key-1")
+            .setScrollId("cursor-1")
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        assertEquals(Code.BAD_REQUEST, observer.value.getStatus().getCode());
+        assertTrue(observer.value.getStatus().getMessage().contains("scroll_id"));
+        verify(adminService, never()).queryMessage(anyString(), anyString(), anyString(), anyInt(), anyLong(),
+            anyLong(), anyBoolean(), anyBoolean(), anyLong());
     }
 
     // ------------------------------------------------------------------ 10/13. client relay RPCs
