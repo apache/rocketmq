@@ -335,8 +335,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                         Action.SUB, sourceIp));
                     break;
                 case RequestCode.QUERY_MESSAGE:
-                    topic = Resource.ofTopic(requireResource(fields.get(TOPIC), "topic"));
-                    result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.GET), sourceIp));
+                    String queryMessageTopic = requireResource(fields.get(TOPIC), "topic");
+                    Resource queryMessageResource = NamespaceUtil.isRetryTopic(queryMessageTopic)
+                        ? Resource.ofGroup(queryMessageTopic) : Resource.ofTopic(queryMessageTopic);
+                    result.add(DefaultAuthorizationContext.of(subject, queryMessageResource, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.HEART_BEAT:
                     HeartbeatData heartbeatData = decodeRequiredBody(command, HeartbeatData.class, "heartbeat");
