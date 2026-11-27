@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.sysmessage;
 
 import com.google.common.base.MoreObjects;
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
@@ -38,6 +39,7 @@ public class HeartbeatSyncerData {
     private ConsumeFromWhere consumeFromWhere;
     private String localProxyId;
     private String channelData;
+    private Map<String, String> extInfo;
 
     public HeartbeatSyncerData() {
     }
@@ -156,6 +158,14 @@ public class HeartbeatSyncerData {
         this.channelData = channelData;
     }
 
+    public Map<String, String> getExtInfo() {
+        return extInfo;
+    }
+
+    public void setExtInfo(Map<String, String> extInfo) {
+        this.extInfo = extInfo;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -171,6 +181,7 @@ public class HeartbeatSyncerData {
             .add("consumeFromWhere", consumeFromWhere)
             .add("connectProxyIp", localProxyId)
             .add("channelData", channelData)
+            .add("extInfo", extInfo)
             .toString();
     }
 }

@@ -19,15 +19,19 @@ package org.apache.rocketmq.proxy.service.client;
 
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.sysmessage.HeartbeatSyncer;
+import org.apache.rocketmq.proxy.service.sysmessage.HeartbeatSyncerData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
@@ -48,6 +52,11 @@ public class ClusterConsumerManager extends ConsumerManager implements StartAndS
         long channelExpiredTimeout, RPCHook rpcHook, ExecutorService consumeExecutor) {
         super(consumerIdsChangeListener, channelExpiredTimeout);
         this.heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, this, mqClientAPIFactory, rpcHook, consumeExecutor);
+    }
+
+    public void setHeartbeatSyncerDataHandlers(Consumer<HeartbeatSyncerData> beforeSend,
+        BiConsumer<HeartbeatSyncerData, RemoteChannel> beforeProcess) {
+        this.heartbeatSyncer.setHeartbeatSyncerDataHandlers(beforeSend, beforeProcess);
     }
 
     @Override

@@ -48,6 +48,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
@@ -55,6 +57,8 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
     protected ConsumerManager consumerManager;
     protected final Map<String /* group @ channelId as longText */, RemoteChannel> remoteChannelMap = new ConcurrentHashMap<>();
     protected String localProxyId;
+    private volatile Consumer<HeartbeatSyncerData> beforeSend;
+    private volatile BiConsumer<HeartbeatSyncerData, RemoteChannel> beforeProcess;
 
     public HeartbeatSyncer(TopicRouteService topicRouteService, AdminService adminService,
                            ConsumerManager consumerManager, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
@@ -91,6 +95,34 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
             }
         });
+    }
+
+    public void setHeartbeatSyncerDataHandlers(Consumer<HeartbeatSyncerData> beforeSend,
+        BiConsumer<HeartbeatSyncerData, RemoteChannel> beforeProcess) {
+        this.beforeSend = beforeSend;
+        this.beforeProcess = beforeProcess;
+    }
+
+    private void prepareHeartbeatData(HeartbeatSyncerData data) {
+        Consumer<HeartbeatSyncerData> handler = this.beforeSend;
+        if (handler != null) {
+            try {
+                handler.accept(data);
+            } catch (Exception e) {
+                log.warn("Prepare heartbeat extension failed, group:{}", data.getGroup(), e);
+            }
+        }
+    }
+
+    private void processHeartbeatData(HeartbeatSyncerData data, RemoteChannel channel) {
+        BiConsumer<HeartbeatSyncerData, RemoteChannel> handler = this.beforeProcess;
+        if (handler != null) {
+            try {
+                handler.accept(data, channel);
+            } catch (Exception e) {
+                log.warn("Process heartbeat extension failed, group:{}", data.getGroup(), e);
+            }
+        }
     }
 
     @Override
@@ -137,6 +169,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                         remoteChannel.encode()
                     );
                     data.setSubscriptionDataSet(subList);
+                    prepareHeartbeatData(data);
 
                     log.debug("sync register heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
                     this.sendSystemMessage(data);
@@ -175,6 +208,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                         remoteChannel.encode()
                     );
 
+                    prepareHeartbeatData(data);
                     log.debug("sync unregister heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
                     this.sendSystemMessage(data);
                 } catch (Throwable t) {
@@ -210,6 +244,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     channel = remoteChannelMap.getOrDefault(key, decodedChannel);
                 }
                 channel.setExtendAttribute(decodedChannel.getChannelExtendAttribute());
+                processHeartbeatData(data, channel);
                 ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                     channel,
                     data.getClientId(),
