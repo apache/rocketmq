@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -62,7 +63,9 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
         opt = new Option("b", "brokers", true, "remapping static topic to brokers, comma separated");
         optionGroup.addOption(opt);
 
-        optionGroup.setRequired(true);
+        // not required: the from-file mode carries its targets in the file, and the recompute
+        // mode validates that it got -b/-c (and -qn) itself
+        optionGroup.setRequired(false);
         options.addOptionGroup(optionGroup);
 
         opt = new Option("t", "topic", true, "topic name");
@@ -91,10 +94,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
             defaultMQAdminExt.start();
             String topic = commandLine.getOptionValue('t').trim();
 
-            String mapFileName = commandLine.getOptionValue('f').trim();
-            String mapData = MixAll.file2String(mapFileName);
-            TopicRemappingDetailWrapper wrapper = TopicRemappingDetailWrapper.decode(mapData.getBytes(StandardCharsets.UTF_8),
-                TopicRemappingDetailWrapper.class);
+            TopicRemappingDetailWrapper wrapper = loadMappingDetail(commandLine);
             //double check the config
             TopicQueueMappingUtils.checkNameEpochNumConsistence(topic, wrapper.getBrokerConfigMap());
             TopicQueueMappingUtils.checkAndBuildMappingItems(new ArrayList<>(TopicQueueMappingUtils.getMappingDetailFromConfig(wrapper.getBrokerConfigMap().values())), false, true);
@@ -114,6 +114,17 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
     }
 
 
+
+    /**
+     * Loads the mapping detail the caller supplied through the map-file option.
+     */
+    static TopicRemappingDetailWrapper loadMappingDetail(CommandLine commandLine) throws IOException {
+        String mapFileName = commandLine.getOptionValue("mf").trim();
+        String mapData = MixAll.file2String(mapFileName);
+        return TopicRemappingDetailWrapper.decode(mapData.getBytes(StandardCharsets.UTF_8),
+            TopicRemappingDetailWrapper.class);
+    }
+
     @Override
     public void execute(final CommandLine commandLine, final Options options,
                         RPCHook rpcHook) throws SubCommandException {
@@ -122,7 +133,7 @@ public class RemappingStaticTopicSubCommand implements SubCommand {
             return;
         }
 
-        if (commandLine.hasOption("f")) {
+        if (commandLine.hasOption("mf")) {
             executeFromFile(commandLine, options, rpcHook);
             return;
         }
