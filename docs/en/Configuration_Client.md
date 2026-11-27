@@ -22,7 +22,7 @@ consumer.setNamesrvAddr("192.168.0.1:9876;192.168.0.2:9876");
 - Specified `Name Server` address in environment variables:
 
 ```text
-export NAMESRV_ADDR=192.168.0.1:9876;192.168.0.2:9876   
+export NAMESRV_ADDR='192.168.0.1:9876;192.168.0.2:9876'
 ```
 
 - HTTP static server addressing (default):
@@ -34,12 +34,6 @@ http://jmenv.tbsite.net:8080/rocketmq/nsaddr
 
 - **New in RocketMQ 5.x:**
   - Improved service discovery mechanism, allowing dynamic Name Server registration.
-  - Introduces `VIP_CHANNEL_ENABLED` for better failover:
-
-  ```java
-  producer.setVipChannelEnabled(false);
-  consumer.setVipChannelEnabled(false);
-  ```
 
 ### 2 Client Configuration
 
@@ -56,8 +50,6 @@ http://jmenv.tbsite.net:8080/rocketmq/nsaddr
 | pollNameServerInterval        | 30000         | Interval (ms) to poll Name Server |
 | heartbeatBrokerInterval       | 30000         | Interval (ms) for sending heartbeats to Broker |
 | persistConsumerOffsetInterval | 5000          | Interval (ms) for persisting consumer offsets |
-| **autoUpdateNameServer** (5.x) | true          | Automatically update Name Server addresses from registry |
-| **instanceId** (5.x)          |               | Unique identifier for each client instance |
 
 #### 2.2 Producer Configuration
 
@@ -66,8 +58,6 @@ http://jmenv.tbsite.net:8080/rocketmq/nsaddr
 | producerGroup                  | DEFAULT_PRODUCER     | Producer group name |
 | sendMsgTimeout                 | 3000                 | Timeout (ms) for sending messages |
 | retryTimesWhenSendFailed       | 2                    | Max retries for failed messages |
-| **enableBatchSend** (5.x)      | true                 | Enables batch message sending |
-| **enableBackPressure** (5.x)   | true                 | Prevents overload in high-traffic scenarios |
 
 #### 2.3 PushConsumer Configuration
 
@@ -78,7 +68,6 @@ http://jmenv.tbsite.net:8080/rocketmq/nsaddr
 | consumeFromWhere                     | CONSUME_FROM_LAST_OFFSET          | Default consumption position |
 | consumeThreadMin                     | 20                                | Min consumption thread count |
 | consumeThreadMax                     | 20                                | Max consumption thread count |
-| **Rebalance Strategies (5.x)**        | AllocateMessageQueueAveragelyByCircle | New rebalance strategy for better distribution |
 
 #### 2.4 PullConsumer Configuration
 
@@ -87,7 +76,6 @@ http://jmenv.tbsite.net:8080/rocketmq/nsaddr
 | consumerGroup                      | DEFAULT_CONSUMER             | Consumer group name |
 | brokerSuspendMaxTimeMillis         | 20000                        | Max suspension time (ms) for long polling |
 | consumerPullTimeoutMillis          | 10000                        | Timeout (ms) for pull requests |
-| **messageGroup** (5.x)             |                              | Enables orderly consumption based on groups |
 
 #### 2.5 Message Data Structure
 
@@ -101,7 +89,6 @@ http://jmenv.tbsite.net:8080/rocketmq/nsaddr
 | DelayTimeLevel   | 0             | Optional: Message delay level |
 | WaitStoreMsgOK   | TRUE          | Optional: Acknowledgment before storing |
 | **maxReconsumeTimes** (5.x) |   | Max retries before moving to dead-letter queue |
-| **messageGroup** (5.x) |   | Group-based message ordering |
 
 ---
 
