@@ -51,6 +51,8 @@ import java.util.concurrent.TimeUnit;
 
 public class BrokerContainer implements IBrokerContainer {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    static final String INVALID_LISTEN_PORT_MESSAGE =
+        "listenPort must be greater than 0 for brokers in a container";
 
     private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newScheduledThreadPool(1,
         new BasicThreadFactory.Builder()
@@ -278,6 +280,11 @@ public class BrokerContainer implements IBrokerContainer {
         MessageStoreConfig storeConfig = configContext.getMessageStoreConfig();
         AuthConfig authConfig = configContext.getAuthConfig();
 
+        // A child remoting server binds port 0 to an OS-selected port, but the container
+        // registry is keyed by the requested port and broker routes are built from this config.
+        // Reject it before initialization so the broker cannot be registered with an unusable address.
+        validateListenPort(brokerConfig.getListenPort());
+
         if (storeConfig.isEnableDLegerCommitLog()) {
             return this.addDLedgerBroker(brokerConfig, storeConfig, authConfig);
         } else {
@@ -292,8 +299,19 @@ public class BrokerContainer implements IBrokerContainer {
         return null;
     }
 
+    static boolean isValidListenPort(int listenPort) {
+        return listenPort > 0;
+    }
+
+    private static void validateListenPort(int listenPort) {
+        if (!isValidListenPort(listenPort)) {
+            throw new IllegalArgumentException(INVALID_LISTEN_PORT_MESSAGE);
+        }
+    }
+
     public InnerBrokerController addDLedgerBroker(final BrokerConfig brokerConfig, final MessageStoreConfig storeConfig,
         final AuthConfig authConfig) throws Exception {
+        validateListenPort(brokerConfig.getListenPort());
         brokerConfig.setInBrokerContainer(true);
         if (storeConfig.isDuplicationEnable()) {
             LOG.error("Can not add broker to container when duplicationEnable is true currently");
@@ -325,6 +343,7 @@ public class BrokerContainer implements IBrokerContainer {
     public InnerBrokerController addMasterBroker(final BrokerConfig masterBrokerConfig,
         final MessageStoreConfig storeConfig, final AuthConfig authConfig) throws Exception {
 
+        validateListenPort(masterBrokerConfig.getListenPort());
         masterBrokerConfig.setInBrokerContainer(true);
         if (storeConfig.isDuplicationEnable()) {
             LOG.error("Can not add broker to container when duplicationEnable is true currently");
@@ -368,6 +387,7 @@ public class BrokerContainer implements IBrokerContainer {
     public InnerSalveBrokerController addSlaveBroker(final BrokerConfig slaveBrokerConfig,
         final MessageStoreConfig storeConfig, final AuthConfig authConfig) throws Exception {
 
+        validateListenPort(slaveBrokerConfig.getListenPort());
         slaveBrokerConfig.setInBrokerContainer(true);
         if (storeConfig.isDuplicationEnable()) {
             LOG.error("Can not add broker to container when duplicationEnable is true currently");
