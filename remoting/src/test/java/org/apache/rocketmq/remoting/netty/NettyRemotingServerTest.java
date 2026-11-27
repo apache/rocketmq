@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
@@ -29,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -59,5 +62,23 @@ public class NettyRemotingServerTest {
         content.writeBytes("xxxx".getBytes(StandardCharsets.UTF_8));
         HAProxyTLV haProxyTLV = new HAProxyTLV((byte) 0xE1, content);
         nettyRemotingServer.handleHAProxyTLV(haProxyTLV, channel);
+    }
+
+    @Test
+    public void serverSocketBacklogIsAppliedToTheBootstrap() throws Exception {
+        // the value is configurable (field, getter and the rocketmq.remoting.socket.backlog
+        // property), so the server bootstrap has to use it instead of a literal
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setServerSocketBacklog(65535);
+        NettyRemotingServer server = new NettyRemotingServer(nettyServerConfig);
+        try {
+            ServerBootstrap serverBootstrap = new ServerBootstrap();
+            server.initServerBootstrap(serverBootstrap);
+
+            assertEquals(Integer.valueOf(65535),
+                serverBootstrap.config().options().get(ChannelOption.SO_BACKLOG));
+        } finally {
+            server.shutdown();
+        }
     }
 }
