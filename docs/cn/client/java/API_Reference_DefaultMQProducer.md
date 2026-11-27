@@ -50,8 +50,8 @@ public class Producer {
 |int|defaultTopicQueueNums|创建topic时默认的队列数量|
 |int|sendMsgTimeout|发送消息的超时时间|
 |int|compressMsgBodyOverHowmuch|压缩消息体的阈值|
-|int|retryTimesWhenSendFailed|同步模式下内部尝试发送消息的最大次数|
-|int|retryTimesWhenSendAsyncFailed|异步模式下内部尝试发送消息的最大次数|
+|int|retryTimesWhenSendFailed|同步模式下，返回发送失败之前内部重试的最大次数（总尝试次数为1+该值）|
+|int|retryTimesWhenSendAsyncFailed|异步模式下，发送失败之前内部重试的最大次数（总尝试次数为1+该值）|
 |boolean|retryAnotherBrokerWhenNotStoreOK|是否在内部发送失败时重试另一个broker|
 |int|maxMessageSize|消息体的最大长度|
 |TraceDispatcher|traceDispatcher|基于RPCHook实现的消息轨迹插件|
@@ -385,7 +385,7 @@ public class Producer {
 
 	`public long maxOffset(MessageQueue mq)`
 
-	查询消息队列的最大物理偏移量。
+	查询消息队列的最大逻辑偏移量。
 
 	- 入参描述：
 
@@ -395,7 +395,7 @@ public class Producer {
 
 	- 返回值描述：
 
-		给定消息队列的最大物理偏移量。
+		给定消息队列的最大逻辑偏移量。
 
 	- 异常描述：
 
@@ -405,7 +405,7 @@ public class Producer {
 
 	`public long minOffset(MessageQueue mq)`
 
-	查询给定消息队列的最小物理偏移量。
+	查询给定消息队列的最小逻辑偏移量。
 
 	- 入参描述：
 		
@@ -415,7 +415,7 @@ public class Producer {
 
 	- 返回值描述：
 
-		给定消息队列的最小物理偏移量。
+		给定消息队列的最小逻辑偏移量。
 
 	- 异常描述：
 
@@ -450,7 +450,7 @@ public class Producer {
 
 	`public long searchOffset(MessageQueue mq, long timestamp)`
 
-	查找指定时间的消息队列的物理偏移量。
+	查找指定时间的消息队列的逻辑偏移量。
 
 	- 入参描述：
 		
@@ -461,7 +461,7 @@ public class Producer {
 
 	- 返回值描述：
 
-		指定时间的消息队列的物理偏移量。
+		指定时间的消息队列的逻辑偏移量。
 
 	- 异常描述：
 
