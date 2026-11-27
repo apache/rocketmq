@@ -159,6 +159,11 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
     }
 
     @Override
+    public Long getConsumeInitTimestamp() {
+        throw new UnsupportedOperationException("no initTimestamp for Pull");
+    }
+
+    @Override
     public void dispatchPullRequest(final List<PullRequest> pullRequestList, final long delay) {
     }
 

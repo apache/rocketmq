@@ -30,6 +30,7 @@ import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -45,6 +46,7 @@ import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -248,12 +250,39 @@ public class PullAPIWrapperTest {
                 1,
                 false,
                 "",
-                "");
+                "",
+                null);
         verify(mqClientAPIImpl, times(1)).popMessageAsync(eq(defaultBroker),
                 eq(defaultBrokerAddr),
                 any(PopMessageRequestHeader.class),
                 eq(13000L),
                 any(PopCallback.class));
+    }
+
+    @Test
+    public void testPopAsyncWithTimestamp() throws RemotingException, InterruptedException, MQClientException {
+        PopCallback popCallback = mock(PopCallback.class);
+        when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mqClientAPIImpl);
+        pullAPIWrapper.popAsync(createMessageQueue(),
+                System.currentTimeMillis(),
+                1,
+                defaultGroup,
+                defaultTimeout,
+                popCallback,
+                true,
+                ConsumeInitMode.TIMESTAMP,
+                false,
+                "",
+                "",
+                1732600000000L);
+        ArgumentCaptor<PopMessageRequestHeader> headerCaptor = ArgumentCaptor.forClass(PopMessageRequestHeader.class);
+        verify(mqClientAPIImpl, times(1)).popMessageAsync(eq(defaultBroker),
+                eq(defaultBrokerAddr),
+                headerCaptor.capture(),
+                eq(13000L),
+                any(PopCallback.class));
+        assertEquals(ConsumeInitMode.TIMESTAMP, headerCaptor.getValue().getInitMode());
+        assertEquals(Long.valueOf(1732600000000L), headerCaptor.getValue().getTimestamp());
     }
 
     private ConcurrentMap<String, TopicRouteData> createTopicRouteTable() {

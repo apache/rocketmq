@@ -19,6 +19,7 @@ package org.apache.rocketmq.remoting.protocol.header;
 import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
@@ -47,6 +48,13 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private int initMode;
 
+    /**
+     * Store timestamp to seek the initial consume offset per queue, only used when
+     * {@link #initMode} is {@link org.apache.rocketmq.common.constant.ConsumeInitMode#TIMESTAMP}
+     * and the consumer group has no committed offset yet.
+     */
+    private Long timestamp;
+
     private String expType;
     private String exp;
 
@@ -62,6 +70,9 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
+        if (ConsumeInitMode.TIMESTAMP == initMode && null == timestamp) {
+            throw new RemotingCommandException("timestamp is required when initMode is TIMESTAMP");
+        }
     }
 
     public void setInitMode(int initMode) {
@@ -70,6 +81,14 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
 
     public int getInitMode() {
         return initMode;
+    }
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
     }
 
     public long getInvisibleTime() {
@@ -183,6 +202,7 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
             .add("pollTime", pollTime)
             .add("bornTime", bornTime)
             .add("initMode", initMode)
+            .add("timestamp", timestamp)
             .add("expType", expType)
             .add("exp", exp)
             .add("order", order)

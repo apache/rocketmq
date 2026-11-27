@@ -46,6 +46,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -498,6 +499,7 @@ public class DefaultMQPushConsumerImplTest {
                 anyInt(),
                 anyBoolean(),
                 any(),
+                any(),
                 any());
         defaultMQPushConsumerImpl.popMessage(popRequest);
     }
@@ -527,6 +529,7 @@ public class DefaultMQPushConsumerImplTest {
                 anyBoolean(),
                 anyInt(),
                 anyBoolean(),
+                any(),
                 any(),
                 any());
         defaultMQPushConsumerImpl.popMessage(popRequest);
@@ -560,6 +563,7 @@ public class DefaultMQPushConsumerImplTest {
                 anyInt(),
                 anyBoolean(),
                 any(),
+                any(),
                 any());
         defaultMQPushConsumerImpl.popMessage(popRequest);
     }
@@ -591,6 +595,7 @@ public class DefaultMQPushConsumerImplTest {
                 anyBoolean(),
                 anyInt(),
                 anyBoolean(),
+                any(),
                 any(),
                 any());
         defaultMQPushConsumerImpl.popMessage(popRequest);
@@ -637,7 +642,30 @@ public class DefaultMQPushConsumerImplTest {
                 eq(0),
                 eq(false),
                 any(),
+                any(),
                 any());
+    }
+
+    @Test
+    public void testPopMessageCarriesInitTimestamp() throws RemotingException, InterruptedException, MQClientException {
+        when(popRequest.getPopProcessQueue()).thenReturn(popProcessQueue);
+        when(popRequest.getMessageQueue()).thenReturn(createMessageQueue());
+        when(popRequest.getInitMode()).thenReturn(ConsumeInitMode.TIMESTAMP);
+        when(popRequest.getTimestamp()).thenReturn(1732600000000L);
+        defaultMQPushConsumerImpl.setServiceState(ServiceState.RUNNING);
+        defaultMQPushConsumerImpl.popMessage(popRequest);
+        verify(pullAPIWrapper).popAsync(any(MessageQueue.class),
+                anyLong(),
+                anyInt(),
+                any(),
+                anyLong(),
+                any(PopCallback.class),
+                eq(true),
+                eq(ConsumeInitMode.TIMESTAMP),
+                eq(false),
+                any(),
+                any(),
+                eq(1732600000000L));
     }
 
     @Test

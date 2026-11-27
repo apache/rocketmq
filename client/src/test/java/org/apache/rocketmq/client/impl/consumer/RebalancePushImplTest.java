@@ -29,6 +29,8 @@ import org.apache.rocketmq.client.impl.MQAdminImpl;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
@@ -255,6 +257,30 @@ public class RebalancePushImplTest {
         assertEquals(12345L, rebalanceImpl.computePullFromWhereWithException(mq));
 
         assertEquals(23456L, rebalanceImpl.computePullFromWhereWithException(retryMq));
+    }
+
+    @Test
+    public void testGetConsumeInitMode() {
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        assertEquals(ConsumeInitMode.MAX, rebalanceImpl.getConsumeInitMode());
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        assertEquals(ConsumeInitMode.MIN, rebalanceImpl.getConsumeInitMode());
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
+        assertEquals(ConsumeInitMode.TIMESTAMP, rebalanceImpl.getConsumeInitMode());
+    }
+
+    @Test
+    public void testGetConsumeInitTimestamp() {
+        consumer.setConsumeTimestamp("20261126120000");
+        long expected = UtilAll.parseDate("20261126120000", UtilAll.YYYYMMDDHHMMSS).getTime();
+        assertEquals(expected, (long) rebalanceImpl.getConsumeInitTimestamp());
+    }
+
+    @Test
+    public void testGetConsumeInitTimestampInvalid() {
+        consumer.setConsumeTimestamp("not-a-date");
+        assertThatThrownBy(() -> rebalanceImpl.getConsumeInitTimestamp())
+            .isInstanceOf(IllegalArgumentException.class);
     }
 
 }
