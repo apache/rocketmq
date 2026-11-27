@@ -19,6 +19,7 @@ package org.apache.rocketmq.auth.authorization.model;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authorization.enums.Decision;
@@ -40,6 +41,13 @@ public class Acl {
         acl.setSubject(subject);
         acl.setPolicies(policies);
         return acl;
+    }
+
+    public Acl copy() {
+        List<Policy> policiesCopy = this.policies == null ? null : this.policies.stream()
+            .map(Policy::copy)
+            .collect(Collectors.toList());
+        return Acl.of(this.subject, policiesCopy);
     }
 
     public static Acl of(Subject subject, List<Resource> resources, List<Action> actions, Environment environment,
