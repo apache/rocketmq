@@ -93,12 +93,14 @@ public class FileSegmentInputStream extends InputStream {
         if (this.markReadPosition == -1) {
             throw new IOException("mark not set");
         }
-        this.readPosition = markReadPosition;
-        this.curReadBufferIndex = markCurReadBufferIndex;
-        this.readPosInCurBuffer = markReadPosInCurBuffer;
-        if (this.curReadBufferIndex < bufferList.size()) {
-            this.curBuffer = bufferList.get(curReadBufferIndex);
-        }
+        setReadPosition(markReadPosition, markCurReadBufferIndex, markReadPosInCurBuffer);
+    }
+
+    void setReadPosition(int position, int bufferIndex, int positionInBuffer) {
+        readPosition = position;
+        curReadBufferIndex = bufferIndex;
+        readPosInCurBuffer = positionInBuffer;
+        curBuffer = bufferIndex < bufferList.size() ? bufferList.get(bufferIndex) : null;
     }
 
     public synchronized void rewind() {
@@ -169,9 +171,8 @@ public class FileSegmentInputStream extends InputStream {
         int pos = readPosition;
         int bufIndex = curReadBufferIndex;
         int posInCurBuffer = readPosInCurBuffer;
-        ByteBuffer curBuf = curBuffer;
         while (needRead > 0 && bufIndex < bufferList.size()) {
-            curBuf = bufferList.get(bufIndex);
+            ByteBuffer curBuf = bufferList.get(bufIndex);
             int remaining = curBuf.remaining() - posInCurBuffer;
             int readLen = Math.min(remaining, needRead);
             // read from curBuf
@@ -189,10 +190,7 @@ public class FileSegmentInputStream extends InputStream {
                 posInCurBuffer = 0;
             }
         }
-        readPosition = pos;
-        curReadBufferIndex = bufIndex;
-        readPosInCurBuffer = posInCurBuffer;
-        curBuffer = curBuf;
+        setReadPosition(pos, bufIndex, posInCurBuffer);
         return len;
     }
 }
