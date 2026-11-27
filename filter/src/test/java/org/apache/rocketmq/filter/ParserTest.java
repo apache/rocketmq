@@ -60,6 +60,26 @@ public class ParserTest {
     }
 
     @Test
+    public void testParse_trailingTokenIsRejected() {
+        try {
+            SelectorParser.parse("a = 3 b = 4");
+
+            assertThat(Boolean.TRUE).isFalse();
+        } catch (MQFilterException e) {
+        }
+    }
+
+    @Test
+    public void testParse_trailingGarbageAfterLiteralIsRejected() {
+        try {
+            SelectorParser.parse("a < 10bbbbb");
+
+            assertThat(Boolean.TRUE).isFalse();
+        } catch (MQFilterException e) {
+        }
+    }
+
+    @Test
     public void testParse_invalid() {
         try {
             SelectorParser.parse(invalidExpression);
