@@ -39,6 +39,8 @@ import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.constant.CommonConstants;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -203,7 +205,7 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
                     User.of(username),
                     Resource.of(ResourceType.CLUSTER, resourceAction.resource, ResourcePattern.LITERAL),
                     resourceAction.action,
-                    resolveSourceIp(call));
+                    resolveSourceIp(call, headers));
                 authorizationContext.setRpcCode(call.getMethodDescriptor().getFullMethodName());
                 authorizationEvaluator.evaluate(Collections.singletonList(authorizationContext));
             }
@@ -212,7 +214,7 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
                 StringUtils.isBlank(username) ? "anonymous" : username, method,
                 resourceAction == null ? "unmapped" : resourceAction.resource,
                 resourceAction == null ? "unknown" : resourceAction.action.getName(),
-                resolveSourceIp(call));
+                resolveSourceIp(call, headers));
             return next.startCall(call, headers);
         } catch (AuthenticationException e) {
             log.warn("admin authentication failed. method:{}, cause:{}", method, e.getMessage());
@@ -243,7 +245,20 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
         return authenticationContext;
     }
 
-    private static <R, W> String resolveSourceIp(ServerCall<R, W> call) {
+    /**
+     * The address the admin ACL is evaluated against. {@code HeaderInterceptor} resolves the client
+     * address — the PROXY protocol address when the connection arrives through a proxy-protocol
+     * balancer, the transport peer otherwise — into {@link GrpcConstants#REMOTE_ADDRESS}, and that
+     * is the value the data plane's authorization context uses. Reusing it keeps both surfaces
+     * judging the same subject: behind such a balancer the transport peer is the balancer itself,
+     * so an {@code -i} restriction would be evaluated against the wrong address.
+     */
+    static <R, W> String resolveSourceIp(ServerCall<R, W> call, Metadata headers) {
+        String resolved = headers == null ? null : headers.get(GrpcConstants.REMOTE_ADDRESS);
+        if (StringUtils.isNotBlank(resolved)) {
+            // resolved is host:port; strip the port exactly like DefaultAuthorizationContextBuilder
+            return StringUtils.substringBeforeLast(resolved, CommonConstants.COLON);
+        }
         try {
             InetSocketAddress remoteAddress = (InetSocketAddress) call.getAttributes()
                 .get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
