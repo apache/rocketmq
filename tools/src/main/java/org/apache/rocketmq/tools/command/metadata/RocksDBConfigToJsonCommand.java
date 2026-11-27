@@ -200,8 +200,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
             return null;
         }
 
-        RocksIterator iterator = configRocksDBStorage.iterator();
-        try {
+        try (RocksIterator iterator = configRocksDBStorage.iterator()) {
             final Map<String, JSONObject> configMap = new HashMap<>();
             final JSONObject configTable = new JSONObject();
             iterator.seekToFirst();
@@ -303,8 +302,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
             return null;
         }
 
-        RocksIterator iterator = configRocksDBStorage.iterator();
-        try {
+        try (RocksIterator iterator = configRocksDBStorage.iterator()) {
             final Map<String, JSONObject> configMap = new HashMap<>();
             final JSONObject configTable = new JSONObject();
             iterator.seekToFirst();
