@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
@@ -210,6 +211,80 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.argThat(r -> r.getInvisibleTime() == newInvisibleTime), Mockito.eq(MESSAGE_ID),
                 Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(retryPolicy.nextDelayDuration(times.incrementAndGet())));
         receiptHandleManager.scheduleRenewTask();
+    }
+
+    @Test
+    public void testRenewAfterPreviousFutureStalls() throws InterruptedException {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        long previousTimeout = config.getLockTimeoutMsInHandleGroup();
+        long timeout = 25;
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        ReceiptHandleGroupKey key = new ReceiptHandleGroupKey(channel, GROUP);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        ReceiptHandleGroup group = receiptHandleManager.receiptHandleGroupMap.get(key);
+        CompletableFuture<AckResult> stalled = new CompletableFuture<>();
+        AckResult ack = new AckResult();
+        ack.setStatus(AckStatus.OK);
+        String renewedHandle = ReceiptHandle.builder()
+            .startOffset(0L)
+            .retrieveTime(System.currentTimeMillis())
+            .invisibleTime(INVISIBLE_TIME)
+            .reviveQueueId(1)
+            .topicType(ReceiptHandle.NORMAL_TOPIC)
+            .brokerName(BROKER_NAME)
+            .queueId(QUEUE_ID)
+            .offset(OFFSET)
+            .commitLogOffset(0L)
+            .build().encode();
+        ack.setExtraInfo(renewedHandle);
+        Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(), Mockito.any(), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.anyLong()))
+            .thenReturn(stalled)
+            .thenReturn(CompletableFuture.completedFuture(ack));
+
+        try {
+            config.setLockTimeoutMsInHandleGroup(timeout);
+            receiptHandleManager.renewMessage(PROXY_CONTEXT, key, group, MSG_ID, receiptHandle);
+            TimeUnit.MILLISECONDS.sleep(4 * timeout);
+            receiptHandleManager.renewMessage(PROXY_CONTEXT, key, group, MSG_ID, receiptHandle);
+
+            Mockito.verify(messagingProcessor, Mockito.times(2)).changeInvisibleTime(Mockito.any(), Mockito.any(),
+                Mockito.eq(MESSAGE_ID), Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.anyLong());
+            assertEquals(renewedHandle, group.get(MSG_ID, receiptHandle).getReceiptHandleStr());
+
+            AckResult lateAck = new AckResult();
+            lateAck.setStatus(AckStatus.OK);
+            lateAck.setExtraInfo(receiptHandle);
+            assertTrue(stalled.complete(lateAck));
+            MessageReceiptHandle removed = receiptHandleManager.removeReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, receiptHandle);
+            assertEquals(renewedHandle, removed.getReceiptHandleStr());
+            assertEquals(1, removed.getRenewTimes());
+        } finally {
+            stalled.cancel(false);
+            config.setLockTimeoutMsInHandleGroup(previousTimeout);
+        }
+    }
+
+    @Test
+    public void testRenewReplyProcessingFailureReleasesHandle() {
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        ReceiptHandleGroupKey key = new ReceiptHandleGroupKey(channel, GROUP);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        ReceiptHandleGroup group = receiptHandleManager.receiptHandleGroupMap.get(key);
+        CompletableFuture<AckResult> reply = new CompletableFuture<>();
+        Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(), Mockito.any(), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.anyLong()))
+            .thenReturn(reply);
+
+        receiptHandleManager.renewMessage(PROXY_CONTEXT, key, group, MSG_ID, receiptHandle);
+        reply.complete(null);
+
+        // A malformed reply must settle the computation without waiting for the expiry path.
+        group.computeIfPresent(MSG_ID, receiptHandle, value -> {
+            assertEquals(messageReceiptHandle, value);
+            return CompletableFuture.completedFuture(null);
+        }, 0);
+        assertTrue(group.isEmpty());
     }
 
     @Test

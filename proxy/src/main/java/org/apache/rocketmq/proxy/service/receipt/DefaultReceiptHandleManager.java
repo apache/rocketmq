@@ -192,7 +192,6 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
     }
 
     protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ProxyContext context, ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle) {
-        CompletableFuture<MessageReceiptHandle> resFuture = new CompletableFuture<>();
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         long current = System.currentTimeMillis();
         try {
@@ -203,24 +202,24 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
                 eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));
-                future.whenComplete((ackResult, throwable) -> {
+                // Return the reply stage so an exception while processing the reply also settles the handle computation.
+                return future.handle((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when renew. handle:{}", messageReceiptHandle, throwable);
                         if (renewExceptionNeedRetry(throwable)) {
                             messageReceiptHandle.incrementAndGetRenewRetryTimes();
-                            resFuture.complete(messageReceiptHandle);
-                        } else {
-                            resFuture.complete(null);
+                            return messageReceiptHandle;
                         }
-                    } else if (AckStatus.OK.equals(ackResult.getStatus())) {
+                        return null;
+                    }
+                    if (AckStatus.OK.equals(ackResult.getStatus())) {
                         messageReceiptHandle.updateReceiptHandle(ackResult.getExtraInfo());
                         messageReceiptHandle.resetRenewRetryTimes();
                         messageReceiptHandle.incrementRenewTimes();
-                        resFuture.complete(messageReceiptHandle);
-                    } else {
-                        log.error("renew response is not ok. result:{}, handle:{}", ackResult, messageReceiptHandle);
-                        resFuture.complete(null);
+                        return messageReceiptHandle;
                     }
+                    log.error("renew response is not ok. result:{}, handle:{}", ackResult, messageReceiptHandle);
+                    return null;
                 });
             } else {
                 SubscriptionGroupConfig subscriptionGroupConfig =
@@ -232,18 +231,17 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 RetryPolicy retryPolicy = subscriptionGroupConfig.getGroupRetryPolicy().getRetryPolicy();
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
                 eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()), RenewEvent.EventType.STOP_RENEW, future));
-                future.whenComplete((ackResult, throwable) -> {
+                return future.handle((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when nack in renew. handle:{}", messageReceiptHandle, throwable);
                     }
-                    resFuture.complete(null);
+                    return null;
                 });
             }
         } catch (Throwable t) {
             log.error("unexpect error when renew message, stop to renew it. handle:{}", messageReceiptHandle, t);
-            resFuture.complete(null);
+            return CompletableFuture.completedFuture(null);
         }
-        return resFuture;
     }
 
     protected void clearGroup(ReceiptHandleGroupKey key) {
