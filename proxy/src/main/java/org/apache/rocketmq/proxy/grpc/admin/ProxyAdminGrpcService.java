@@ -1294,8 +1294,17 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                         if (consumeResult == CMResult.CR_SUCCESS) {
                             respond(responseObserver, VerifyMessageResponse.newBuilder().setStatus(ok()).build());
                         } else {
+                            // The client's answer is graded: it reports a corrupt message only by
+                            // returning null for it (CR_RETURN_NULL, what a gRPC client sends for
+                            // Code.MESSAGE_CORRUPTED). Every other failure — the client asked for a
+                            // retry, threw while consuming, or never answered because it is not
+                            // connected — is a failed consumption, which the proto grades with its own
+                            // code; calling those "message corrupted" would claim something about the
+                            // message that the answer does not say.
+                            Code failure = consumeResult == CMResult.CR_RETURN_NULL
+                                ? Code.MESSAGE_CORRUPTED : Code.FAILED_TO_CONSUME_MESSAGE;
                             respond(responseObserver, VerifyMessageResponse.newBuilder()
-                                .setStatus(err(Code.MESSAGE_CORRUPTED,
+                                .setStatus(err(failure,
                                     "client " + clientId + " failed to consume message " + messageId + ": "
                                         + (consumeResult == null ? result.getRemark() : consumeResult.name())
                                         + (directlyResult != null && directlyResult.getRemark() != null
