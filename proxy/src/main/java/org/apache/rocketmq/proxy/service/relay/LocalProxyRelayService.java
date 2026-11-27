@@ -43,6 +43,12 @@ public class LocalProxyRelayService extends AbstractProxyRelayService {
     public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
         ProxyContext context, RemotingCommand command, GetConsumerRunningInfoRequestHeader header) {
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future = new CompletableFuture<>();
+        if (command instanceof ProxyRelayRequest) {
+            // An in-process caller (the proxy admin service) waits on the future it attached to the
+            // command, and no remoting request is waiting for the synthesized response below.
+            bridgeToCaller(command, future);
+            return future;
+        }
         future.thenAccept(proxyOutResult -> {
             RemotingServer remotingServer = this.brokerController.getRemotingServer();
             if (remotingServer instanceof NettyRemotingAbstract) {
@@ -67,6 +73,12 @@ public class LocalProxyRelayService extends AbstractProxyRelayService {
         ProxyContext context, RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header) {
         CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> future = new CompletableFuture<>();
+        if (command instanceof ProxyRelayRequest) {
+            // An in-process caller (the proxy admin service) waits on the future it attached to the
+            // command, and no remoting request is waiting for the synthesized response below.
+            bridgeToCaller(command, future);
+            return future;
+        }
         future.thenAccept(proxyOutResult -> {
             RemotingServer remotingServer = this.brokerController.getRemotingServer();
             if (remotingServer instanceof NettyRemotingAbstract) {
