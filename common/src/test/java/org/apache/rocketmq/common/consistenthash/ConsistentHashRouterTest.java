@@ -67,4 +67,41 @@ public class ConsistentHashRouterTest {
 
         assertNull(router.routeNode("message-queue"));
     }
+
+    @Test
+    public void testRouteAcrossSignedHashRange() {
+        Node first = () -> "first";
+        Node last = () -> "last";
+        HashFunction hash = key -> {
+            if ("first-0".equals(key)) {
+                return Long.MIN_VALUE + 1;
+            }
+            if ("last-0".equals(key)) {
+                return Long.MAX_VALUE - 1;
+            }
+            return Long.parseLong(key);
+        };
+        ConsistentHashRouter<Node> router = new ConsistentHashRouter<>(Arrays.asList(first, last), 1, hash);
+
+        assertSame(first, router.routeNode(Long.toString(Long.MIN_VALUE)));
+        assertSame(first, router.routeNode(Long.toString(Long.MIN_VALUE + 1)));
+        assertSame(last, router.routeNode("0"));
+        assertSame(last, router.routeNode(Long.toString(Long.MAX_VALUE - 1)));
+        assertSame(first, router.routeNode(Long.toString(Long.MAX_VALUE)));
+    }
+
+    @Test
+    public void testRouteAfterHashCollisionAndRemoval() {
+        Node first = () -> "first";
+        Node replacement = () -> "replacement";
+        ConsistentHashRouter<Node> router = new ConsistentHashRouter<>(
+            Collections.singletonList(first), 1, key -> 10L);
+
+        router.addNode(replacement, 1);
+        assertSame(replacement, router.routeNode("queue"));
+        router.removeNode(first);
+        assertSame(replacement, router.routeNode("queue"));
+        router.removeNode(replacement);
+        assertNull(router.routeNode("queue"));
+    }
 }
