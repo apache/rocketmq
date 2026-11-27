@@ -22,7 +22,9 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -70,10 +72,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -364,6 +368,35 @@ public class MqClientAdminImplTest {
         MQClientException mqException = (MQClientException) thrown.getCause();
         assertEquals(ResponseCode.SYSTEM_ERROR, mqException.getResponseCode());
         assertTrue(mqException.getMessage().contains("CODE: 1  DESC: null"));
+    }
+
+    @Test
+    public void assertGetBrokerClusterInfoWithConnectFailure() {
+        RemotingConnectException cause = new RemotingConnectException(defaultBrokerAddr);
+        CompletableFuture<RemotingCommand> failed = new CompletableFuture<>();
+        failed.completeExceptionally(cause);
+        when(remotingClient.invoke(any(String.class), any(RemotingCommand.class), any(Long.class))).thenReturn(failed);
+        CompletableFuture<ClusterInfo> actual = mqClientAdminImpl.getBrokerClusterInfo(defaultBrokerAddr, defaultTimeout);
+        Throwable thrown = assertThrows(ExecutionException.class, () -> actual.get(1, TimeUnit.SECONDS));
+        assertSame(cause, thrown.getCause());
+    }
+
+    @Test
+    public void assertGetBrokerClusterInfoWithTimeout() {
+        RemotingTimeoutException cause = new RemotingTimeoutException(defaultBrokerAddr, defaultTimeout);
+        CompletableFuture<RemotingCommand> failed = new CompletableFuture<>();
+        failed.completeExceptionally(cause);
+        when(remotingClient.invoke(any(String.class), any(RemotingCommand.class), any(Long.class))).thenReturn(failed);
+        CompletableFuture<ClusterInfo> actual = mqClientAdminImpl.getBrokerClusterInfo(defaultBrokerAddr, defaultTimeout);
+        Throwable thrown = assertThrows(ExecutionException.class, () -> actual.get(1, TimeUnit.SECONDS));
+        assertSame(cause, thrown.getCause());
+    }
+
+    @Test
+    public void assertGetBrokerClusterInfoWithUndecodableBody() {
+        setResponseSuccess("not-json".getBytes(StandardCharsets.UTF_8));
+        CompletableFuture<ClusterInfo> actual = mqClientAdminImpl.getBrokerClusterInfo(defaultBrokerAddr, defaultTimeout);
+        assertThrows(ExecutionException.class, () -> actual.get(1, TimeUnit.SECONDS));
     }
 
     @Test

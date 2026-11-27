@@ -75,6 +75,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -101,6 +103,7 @@ import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -134,6 +137,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -198,6 +202,7 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         T value;
         Throwable error;
         boolean completed;
+        final CountDownLatch done = new CountDownLatch(1);
 
         @Override
         public void onNext(T value) {
@@ -207,11 +212,13 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         @Override
         public void onError(Throwable t) {
             this.error = t;
+            done.countDown();
         }
 
         @Override
         public void onCompleted() {
             this.completed = true;
+            done.countDown();
         }
     }
 
@@ -746,6 +753,38 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         // an offline group is a normal answer for a listing RPC, not a server error
         assertEquals(Code.OK, observer.value.getStatus().getCode());
         assertEquals(0, observer.value.getClientInfoCount());
+    }
+
+    @Test
+    public void listConsumerConnectionReportsNameServerFailureTest() {
+        when(adminService.getBrokerClusterInfo(anyLong()))
+            .thenReturn(failedFuture(new RuntimeException("namesrv unreachable")));
+
+        SimpleObserver<ListConsumerConnectionResponse> observer = new SimpleObserver<>();
+        service.listConsumerConnection(ListConsumerConnectionRequest.newBuilder()
+            .setGroup(resource(GROUP)).build(), observer);
+
+        assertNotNull(observer.value);
+        // unlike an offline group, a failed cluster lookup must not look like "OK, no clients"
+        assertNotEquals(Code.OK, observer.value.getStatus().getCode());
+    }
+
+    @Test
+    public void listConsumerConnectionAnswersWhenNameServerHangsTest() throws Exception {
+        long savedTimeout = ConfigurationManager.getProxyConfig().getGrpcAdminServerRequestTimeoutMillis();
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerRequestTimeoutMillis(100L);
+        try {
+            when(adminService.getBrokerClusterInfo(anyLong())).thenReturn(new CompletableFuture<>());
+
+            SimpleObserver<ListConsumerConnectionResponse> observer = new SimpleObserver<>();
+            service.listConsumerConnection(ListConsumerConnectionRequest.newBuilder()
+                .setGroup(resource(GROUP)).build(), observer);
+
+            assertTrue("no response although the cluster lookup is bounded", observer.done.await(5, TimeUnit.SECONDS));
+            assertEquals(Code.PROXY_TIMEOUT, observer.value.getStatus().getCode());
+        } finally {
+            ConfigurationManager.getProxyConfig().setGrpcAdminServerRequestTimeoutMillis(savedTimeout);
+        }
     }
 
     @Test
@@ -1316,7 +1355,7 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     public void getTopicRouteReturnsJsonTest() {
         TopicRouteData routeData = new TopicRouteData();
         routeData.setOrderTopicConf("orderConf");
-        when(adminService.getTopicRouteData(TOPIC)).thenReturn(CompletableFuture.completedFuture(routeData));
+        when(adminService.getTopicRouteData(eq(TOPIC), anyLong())).thenReturn(CompletableFuture.completedFuture(routeData));
 
         SimpleObserver<GetTopicRouteResponse> observer = new SimpleObserver<>();
         service.getTopicRoute(GetTopicRouteRequest.newBuilder().setTopic(resource(TOPIC)).build(), observer);
@@ -1328,7 +1367,7 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
 
     @Test
     public void getTopicRouteFailsWhenAdminServiceFailsTest() {
-        when(adminService.getTopicRouteData(TOPIC))
+        when(adminService.getTopicRouteData(eq(TOPIC), anyLong()))
             .thenReturn(failedFuture(new RuntimeException("namesrv unreachable")));
 
         SimpleObserver<GetTopicRouteResponse> observer = new SimpleObserver<>();
@@ -1337,6 +1376,43 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
         assertNotNull(observer.value);
         assertEquals(Code.INTERNAL_SERVER_ERROR, observer.value.getStatus().getCode());
         assertTrue(observer.value.getStatus().getMessage().contains("namesrv unreachable"));
+    }
+
+    @Test
+    public void getTopicRouteAnswersWhenAdminServiceHangsTest() throws Exception {
+        long savedTimeout = ConfigurationManager.getProxyConfig().getGrpcAdminServerRequestTimeoutMillis();
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerRequestTimeoutMillis(100L);
+        try {
+            when(adminService.getTopicRouteData(eq(TOPIC), anyLong())).thenReturn(new CompletableFuture<>());
+
+            SimpleObserver<GetTopicRouteResponse> observer = new SimpleObserver<>();
+            service.getTopicRoute(GetTopicRouteRequest.newBuilder().setTopic(resource(TOPIC)).build(), observer);
+
+            assertTrue("no response although the route lookup is bounded", observer.done.await(5, TimeUnit.SECONDS));
+            assertEquals(Code.PROXY_TIMEOUT, observer.value.getStatus().getCode());
+        } finally {
+            ConfigurationManager.getProxyConfig().setGrpcAdminServerRequestTimeoutMillis(savedTimeout);
+        }
+    }
+
+    @Test
+    public void getTopicRouteUsesConfiguredTimeoutAndReportsTimeoutTest() throws Exception {
+        long savedTimeout = ConfigurationManager.getProxyConfig().getGrpcAdminServerRequestTimeoutMillis();
+        ConfigurationManager.getProxyConfig().setGrpcAdminServerRequestTimeoutMillis(100L);
+        try {
+            when(adminService.getTopicRouteData(eq(TOPIC), anyLong()))
+                .thenReturn(failedFuture(new RemotingTimeoutException("namesrv", 100L)));
+
+            SimpleObserver<GetTopicRouteResponse> observer = new SimpleObserver<>();
+            service.getTopicRoute(GetTopicRouteRequest.newBuilder().setTopic(resource(TOPIC)).build(), observer);
+
+            assertTrue(observer.done.await(5, TimeUnit.SECONDS));
+            // the route lookup honours grpcAdminServerRequestTimeoutMillis like every other hop
+            verify(adminService).getTopicRouteData(TOPIC, 100L);
+            assertEquals(Code.PROXY_TIMEOUT, observer.value.getStatus().getCode());
+        } finally {
+            ConfigurationManager.getProxyConfig().setGrpcAdminServerRequestTimeoutMillis(savedTimeout);
+        }
     }
 
     @Test

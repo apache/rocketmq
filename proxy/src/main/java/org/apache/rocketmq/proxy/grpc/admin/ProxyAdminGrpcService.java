@@ -112,6 +112,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.body.CMResult;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
@@ -151,7 +152,8 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
 
     /**
      * Bounds every wait this service performs that is not already bounded by the callee: the answer
-     * to a relayed telemetry command, and each broker hop of a fan-out. The gRPC nonce sweeper and
+     * to a relayed telemetry command, each broker hop of a fan-out, and the nameserver lookups
+     * (cluster info, topic route). The gRPC nonce sweeper and
      * the remoting timeout cover the healthy paths, but a hop that never completes at all (an
      * unwritable channel, a saturated blocking-call pool) would otherwise leave the RPC hanging
      * forever with no response at all.
@@ -222,7 +224,10 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
 
     /** Master broker address of every broker group in the cluster. */
     private CompletableFuture<List<String>> allMasterBrokerAddrs() {
-        return admin().getBrokerClusterInfo(timeoutMillis()).thenApply(clusterInfo -> {
+        long timeout = timeoutMillis();
+        CompletableFuture<ClusterInfo> clusterInfoFuture = withTimeout(admin().getBrokerClusterInfo(timeout),
+            timeout + BROKER_CALL_DEADLINE_SLACK_MILLIS, "nameserver cluster info");
+        return clusterInfoFuture.thenApply(clusterInfo -> {
             List<String> addrs = new ArrayList<>();
             if (clusterInfo == null || clusterInfo.getBrokerAddrTable() == null) {
                 return addrs;
@@ -316,7 +321,7 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
         String what) {
         CompletableFuture<T> timeout = new CompletableFuture<>();
         ScheduledFuture<?> timer = this.adminTimeoutScheduler.schedule(
-            () -> timeout.completeExceptionally(new IllegalStateException(
+            () -> timeout.completeExceptionally(new GrpcProxyException(Code.PROXY_TIMEOUT,
                 what + " timed out after " + timeoutMillis + "ms")),
             timeoutMillis, TimeUnit.MILLISECONDS);
         // one admin RPC fans out to every broker, so the timer is cancelled as soon as the answer
@@ -820,10 +825,12 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
         log.info("deleteSubscription group={} topic={} expression={} brokers={}", group, topic, expression, brokerAddrs);
 
         long timeout = timeoutMillis();
+        long deadline = timeout + BROKER_CALL_DEADLINE_SLACK_MILLIS;
         List<CompletableFuture<Boolean>> tasks = new ArrayList<>();
         List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
         for (String brokerAddr : brokerAddrs) {
-            tasks.add(admin().getSubscriptionGroupConfig(brokerAddr, group, timeout)
+            tasks.add(withTimeout(admin().getSubscriptionGroupConfig(brokerAddr, group, timeout), deadline,
+                "get subscription group config from " + brokerAddr)
                 .thenCompose(config -> {
                     if (config == null) {
                         return CompletableFuture.completedFuture(false);
@@ -847,7 +854,8 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                         return CompletableFuture.completedFuture(false);
                     }
                     config.setSubscriptionDataSet(remaining);
-                    return admin().updateSubscriptionGroupConfig(brokerAddr, config, timeout).thenApply(v -> true);
+                    return withTimeout(admin().updateSubscriptionGroupConfig(brokerAddr, config, timeout), deadline,
+                        "update subscription group config on " + brokerAddr).thenApply(v -> true);
                 })
                 .exceptionally(t -> {
                     failures.add(t);
@@ -1026,10 +1034,10 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
             .thenCompose(brokers -> collectConnections(brokers, Collections.singletonList(group)))
             .whenComplete((byGroup, throwable) -> {
                 if (throwable != null) {
-                    // an offline group is a normal answer for a listing RPC, not a server error
-                    log.info("listConsumerConnection group={} unavailable: {}", group, throwable.getMessage());
+                    // collectConnections already treats an offline consumer group as a normal result.
+                    log.warn("listConsumerConnection failed for group={}: {}", group, throwable.toString());
                     respond(responseObserver, ListConsumerConnectionResponse.newBuilder()
-                        .setStatus(ok()).build());
+                        .setStatus(err(throwable)).build());
                     return;
                 }
                 try {
@@ -1509,7 +1517,10 @@ public class ProxyAdminGrpcService extends AdminGrpc.AdminImplBase implements St
                 .setStatus(err(Code.BAD_REQUEST, "topic is required")).build());
             return;
         }
-        admin().getTopicRouteData(topic).whenComplete((topicRouteData, throwable) -> {
+        long timeout = timeoutMillis();
+        CompletableFuture<TopicRouteData> routeFuture = withTimeout(admin().getTopicRouteData(topic, timeout),
+            timeout + BROKER_CALL_DEADLINE_SLACK_MILLIS, "get topic route for " + topic);
+        routeFuture.whenComplete((topicRouteData, throwable) -> {
             if (throwable != null) {
                 respond(responseObserver, GetTopicRouteResponse.newBuilder().setStatus(err(throwable)).build());
                 return;
