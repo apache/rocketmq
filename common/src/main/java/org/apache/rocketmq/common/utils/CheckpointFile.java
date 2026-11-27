@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 
@@ -75,9 +74,6 @@ public class CheckpointFile<T> {
      * Write entries to file
      */
     public void write(final List<T> entries) throws IOException {
-        if (entries.isEmpty()) {
-            return;
-        }
         synchronized (this) {
             StringBuilder entryContent = new StringBuilder();
             for (T entry : entries) {
@@ -144,7 +140,7 @@ public class CheckpointFile<T> {
     public List<T> read() throws IOException {
         try {
             List<T> result = this.read(this.filePath);
-            if (CollectionUtils.isEmpty(result)) {
+            if (!new File(this.filePath).exists()) {
                 result = this.read(this.getBackFilePath());
             }
             return result;

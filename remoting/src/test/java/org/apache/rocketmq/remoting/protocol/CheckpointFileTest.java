@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.utils.CheckpointFile;
@@ -95,6 +96,31 @@ public class CheckpointFileTest {
             Assert.assertTrue(message, message.contains("expected=" + wrongCrc));
             Assert.assertTrue(message, message.contains("truth="));
         }
+    }
+
+    @Test
+    public void testEmptyWriteReplacesPreviousEntries() throws IOException {
+        checkpoint.write(Collections.emptyList());
+        CheckpointFile<EpochEntry> reopened = new CheckpointFile<>(FILE_PATH, new EpochEntrySerializer());
+        Assert.assertTrue(reopened.read().isEmpty());
+        Assert.assertTrue(Files.exists(Paths.get(FILE_PATH)));
+        Assert.assertEquals(entryList, new CheckpointFile<>(FILE_PATH + ".bak", new EpochEntrySerializer()).read());
+    }
+
+    @Test
+    public void testEmptyPrimaryDoesNotRestoreBackup() throws IOException {
+        checkpoint.write(entryList);
+        Files.write(Paths.get(FILE_PATH), ("0" + System.lineSeparator() + "0" + System.lineSeparator())
+            .getBytes(StandardCharsets.UTF_8));
+        Assert.assertTrue(checkpoint.read().isEmpty());
+    }
+
+    @Test
+    public void testCorruptPrimaryFallsBackToBackup() throws IOException {
+        checkpoint.write(entryList);
+        Files.write(Paths.get(FILE_PATH), ("1" + System.lineSeparator() + "0" + System.lineSeparator())
+            .getBytes(StandardCharsets.UTF_8));
+        Assert.assertEquals(entryList, checkpoint.read());
     }
 
     @Test
