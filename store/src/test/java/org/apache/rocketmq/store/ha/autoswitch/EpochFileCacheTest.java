@@ -66,6 +66,15 @@ public class EpochFileCacheTest {
     }
 
     @Test
+    public void testTruncateAllEntriesAndReload() {
+        epochCache.truncateSuffixByEpoch(1);
+        assertEquals(0, epochCache.getEntrySize());
+        EpochFileCache reopened = new EpochFileCache(path);
+        assertTrue(reopened.initCacheFromFile());
+        assertEquals(0, reopened.getEntrySize());
+    }
+
+    @Test
     public void testTruncate() {
         this.epochCache.truncateSuffixByOffset(150);
         assertNotNull(this.epochCache.getEntry(1));
