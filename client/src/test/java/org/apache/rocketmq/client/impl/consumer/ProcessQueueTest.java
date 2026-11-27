@@ -81,6 +81,29 @@ public class ProcessQueueTest {
     }
 
     @Test
+    public void testRemoveMessageWithOutOfOrderQueueOffsets() {
+        ProcessQueue pq = new ProcessQueue();
+        final MessageExt message10 = createMessage(10L);
+        final MessageExt message5 = createMessage(5L);
+
+        pq.putMessage(Lists.list(message10, message5));
+
+        assertThat(pq.removeMessage(Lists.list(message10, message5))).isEqualTo(11L);
+    }
+
+    @Test
+    public void testRemoveMessageWithOutOfOrderBatches() {
+        ProcessQueue pq = new ProcessQueue();
+        final MessageExt message10 = createMessage(10L);
+        final MessageExt message5 = createMessage(5L);
+
+        pq.putMessage(Lists.list(message10));
+        pq.putMessage(Lists.list(message5));
+
+        assertThat(pq.removeMessage(Lists.list(message10, message5))).isEqualTo(11L);
+    }
+
+    @Test
     public void testContainsMessage() {
         ProcessQueue pq = new ProcessQueue();
         final List<MessageExt> messageList = createMessageList(2);
@@ -171,6 +194,13 @@ public class ProcessQueueTest {
 
     private List<MessageExt> createMessageList() {
         return createMessageList(100);
+    }
+
+    private MessageExt createMessage(long queueOffset) {
+        MessageExt messageExt = new MessageExt();
+        messageExt.setQueueOffset(queueOffset);
+        messageExt.setBody(new byte[123]);
+        return messageExt;
     }
 
     private List<MessageExt> createMessageList(int count) {
