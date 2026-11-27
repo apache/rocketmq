@@ -819,6 +819,29 @@ public class ProxyAdminGrpcServiceTest extends InitConfigTest {
     }
 
     @Test
+    public void resetGroupOffsetReportsBrokersThatWereNotResetTest() throws Exception {
+        stubRoute(true, ADDRESS_A, ADDRESS_B);
+        when(adminService.resetOffset(eq(ADDRESS_A), eq(TOPIC), eq(GROUP), anyLong(), eq(true), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.emptyMap()));
+        when(adminService.resetOffset(eq(ADDRESS_B), eq(TOPIC), eq(GROUP), anyLong(), eq(true), anyLong()))
+            .thenReturn(failedFuture(new RuntimeException("broker unreachable")));
+
+        SimpleObserver<ResetGroupOffsetResponse> observer = new SimpleObserver<>();
+        service.resetGroupOffset(ResetGroupOffsetRequest.newBuilder()
+            .setGroup(resource(GROUP))
+            .setTopic(resource(TOPIC))
+            .setResetTimestamp(Timestamp.newBuilder().setSeconds(1000L).build())
+            .build(), observer);
+
+        assertNotNull(observer.value);
+        // a reset that reached only one of the two brokers leaves the other queues on the old
+        // offsets; reporting that as a plain success hides a partially applied mutation
+        assertEquals(Code.INTERNAL_SERVER_ERROR, observer.value.getStatus().getCode());
+        assertTrue(observer.value.getStatus().getMessage().contains(ADDRESS_B));
+        verify(adminService).resetOffset(eq(ADDRESS_A), eq(TOPIC), eq(GROUP), eq(1000000L), eq(true), anyLong());
+    }
+
+    @Test
     public void resetGroupOffsetPropagatesBrokerFailureTest() throws Exception {
         stubRoute(true, ADDRESS_A);
         when(adminService.resetOffset(anyString(), eq(TOPIC), eq(GROUP), anyLong(), eq(true), anyLong()))
