@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -48,7 +49,7 @@ public class ForwardMessageToDLQActivity extends AbstractMessagingActivity {
             if (messageReceiptHandle != null) {
                 handleString = messageReceiptHandle.getReceiptHandleStr();
             }
-            ReceiptHandle receiptHandle = ReceiptHandle.decode(handleString);
+            ReceiptHandle receiptHandle = ProxyUtils.decodeReceiptHandle(handleString);
 
             String liteTopic = request.hasLiteTopic() ? request.getLiteTopic() : null;
 
