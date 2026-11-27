@@ -52,6 +52,7 @@ import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicListResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -531,6 +532,10 @@ public interface MQAdminExt extends MQAdmin {
 
     GetLiteTopicInfoResponseBody getLiteTopicInfo(final String brokerAddr, final String parentTopic,
         final String liteTopic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetLiteTopicListResponseBody getLiteTopicList(final String brokerAddr, final String parentTopic,
+        final String prefix, final int maxCount)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
     GetLiteClientInfoResponseBody getLiteClientInfo(final String brokerAddr, final String parentTopic,
