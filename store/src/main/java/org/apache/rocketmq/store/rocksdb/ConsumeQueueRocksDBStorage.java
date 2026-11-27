@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.rocksdb;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiPredicate;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -33,6 +34,7 @@ import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.Slice;
 import org.rocksdb.WriteBatch;
 
 public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
@@ -116,6 +118,47 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
     public List<byte[]> multiGet(final List<ColumnFamilyHandle> cfhList,
         final List<byte[]> keys) throws RocksDBException {
         return multiGet(this.totalOrderReadOptions, cfhList, keys);
+    }
+
+    /**
+     * Scan CQ entries whose keys are in the half-open range [{@code startKey}, {@code endKey}) in
+     * ascending key order and hand every entry to {@code consumer} until it returns {@code false}.
+     *
+     * <p>{@code startKey} and {@code endKey} must share the topic and queue prefix, so the range
+     * contains exactly the CQ offsets the caller is interested in. A single seek plus sequential
+     * iteration replaces one point lookup per offset, which is the point of using an iterator for
+     * consecutive ConsumeQueue reads.
+     *
+     * @param startKey inclusive lower bound
+     * @param endKey exclusive upper bound
+     * @param consumer invoked for each entry; returning false stops the scan
+     */
+    public void scanCQ(final byte[] startKey, final byte[] endKey, final BiPredicate<byte[], byte[]> consumer)
+        throws RocksDBException {
+        if (!hold()) {
+            throw new IllegalStateException("rocksDB:" + this + " is not ready");
+        }
+        try (ReadOptions scanReadOptions = new ReadOptions();
+            Slice upperBound = new Slice(endKey)) {
+            scanReadOptions.setTotalOrderSeek(true);
+            scanReadOptions.setIterateUpperBound(upperBound);
+            try (RocksIterator iterator = this.db.newIterator(this.defaultCFHandle, scanReadOptions)) {
+                iterator.seek(startKey);
+                while (iterator.isValid()) {
+                    if (!consumer.test(iterator.key(), iterator.value())) {
+                        break;
+                    }
+                    iterator.next();
+                }
+                // Surface background I/O errors instead of returning a silently truncated result.
+                iterator.status();
+            }
+        } catch (RocksDBException e) {
+            log.error("scanCQ Failed. dbPath={}", this.dbPath, e);
+            throw e;
+        } finally {
+            release();
+        }
     }
 
     public void batchPut(final WriteBatch batch) throws RocksDBException {
