@@ -124,8 +124,10 @@ public class ClientActivity extends AbstractMessagingActivity {
                     break;
                 }
                 default: {
+                    log.warn("heartbeat rejected unsupported client type. clientId:{}, clientType:{}",
+                        ctx.getClientID(), clientSettings.getClientType());
                     future.complete(HeartbeatResponse.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
+                        .setStatus(buildUnsupportedClientTypeStatus(clientSettings.getClientType()))
                         .build());
                     return future;
                 }
@@ -181,8 +183,10 @@ public class ClientActivity extends AbstractMessagingActivity {
                     }
                     break;
                 default:
+                    log.warn("client termination rejected unsupported client type. clientId:{}, clientType:{}",
+                        clientId, clientSettings.getClientType());
                     future.complete(NotifyClientTerminationResponse.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
+                        .setStatus(buildUnsupportedClientTypeStatus(clientSettings.getClientType()))
                         .build());
                     return future;
             }
@@ -193,6 +197,12 @@ public class ClientActivity extends AbstractMessagingActivity {
             future.completeExceptionally(t);
         }
         return future;
+    }
+
+    private Status buildUnsupportedClientTypeStatus(ClientType clientType) {
+        String message = String.format("unsupported client type: %s. Proxy supports PRODUCER, PUSH_CONSUMER, "
+            + "SIMPLE_CONSUMER, LITE_PUSH_CONSUMER and LITE_SIMPLE_CONSUMER", clientType.name());
+        return ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, message);
     }
 
     public CompletableFuture<SyncLiteSubscriptionResponse> syncLiteSubscription(ProxyContext ctx,
