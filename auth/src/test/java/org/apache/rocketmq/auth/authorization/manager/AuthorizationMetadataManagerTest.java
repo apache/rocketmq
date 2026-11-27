@@ -30,6 +30,7 @@ import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Policy;
 import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
+import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
 import org.apache.rocketmq.common.MixAll;
@@ -270,6 +271,60 @@ public class AuthorizationMetadataManagerTest {
         for (PolicyEntry policyEntry : policyEntries) {
             Assert.assertTrue(policyEntry.toResourceStr().contains("test-2"));
         }
+    }
+
+    @Test
+    public void updateAclDoesNotMutateCachedInstance() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        User user = User.of("test", "test");
+        this.authenticationMetadataManager.createUser(user).join();
+
+        Acl acl1 = AuthTestHelper.buildAcl("User:test", PolicyType.CUSTOM, "Topic:test", "PUB",
+            null, Decision.ALLOW);
+        this.authorizationMetadataManager.createAcl(acl1).join();
+
+        AuthorizationMetadataProvider provider = AuthorizationFactory.getMetadataProvider(this.authConfig);
+        Acl cachedBefore = provider.getAcl(Subject.of("User:test")).join();
+        int entriesBefore = cachedBefore.getPolicy(PolicyType.CUSTOM).getEntries().size();
+
+        Acl acl2 = AuthTestHelper.buildAcl("User:test", PolicyType.CUSTOM, "Topic:abc", "PUB",
+            null, Decision.ALLOW);
+        this.authorizationMetadataManager.updateAcl(acl2).join();
+
+        // The cached instance must not have been mutated in place by the admin write.
+        Assert.assertEquals(entriesBefore, cachedBefore.getPolicy(PolicyType.CUSTOM).getEntries().size());
+
+        // A fresh read must reflect the update.
+        Acl updated = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
+        Assert.assertEquals(entriesBefore + 1, updated.getPolicy(PolicyType.CUSTOM).getEntries().size());
+    }
+
+    @Test
+    public void deleteAclDoesNotMutateCachedInstance() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        User user = User.of("test", "test");
+        this.authenticationMetadataManager.createUser(user).join();
+
+        Acl acl1 = AuthTestHelper.buildAcl("User:test", PolicyType.CUSTOM, "Topic:test,Group:test", "PUB,SUB",
+            null, Decision.ALLOW);
+        this.authorizationMetadataManager.createAcl(acl1).join();
+
+        AuthorizationMetadataProvider provider = AuthorizationFactory.getMetadataProvider(this.authConfig);
+        Acl cachedBefore = provider.getAcl(Subject.of("User:test")).join();
+        int entriesBefore = cachedBefore.getPolicy(PolicyType.CUSTOM).getEntries().size();
+
+        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM,
+            Resource.ofTopic("test")).join();
+
+        // The cached instance must not have been mutated in place by the admin write.
+        Assert.assertEquals(entriesBefore, cachedBefore.getPolicy(PolicyType.CUSTOM).getEntries().size());
+
+        Acl updated = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
+        Assert.assertEquals(entriesBefore - 1, updated.getPolicy(PolicyType.CUSTOM).getEntries().size());
     }
 
     private void clearAllUsers() {

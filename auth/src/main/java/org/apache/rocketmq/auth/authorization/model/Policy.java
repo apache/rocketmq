@@ -76,6 +76,19 @@ public class Policy {
         }
     }
 
+    /**
+     * Returns an independent deep copy of this policy (entries are copied) so that callers cannot
+     * mutate the cached instance.
+     */
+    public Policy deepCopy() {
+        Policy policy = new Policy();
+        policy.setPolicyType(this.policyType);
+        if (CollectionUtils.isNotEmpty(this.entries)) {
+            policy.setEntries(this.entries.stream().map(PolicyEntry::deepCopy).collect(Collectors.toList()));
+        }
+        return policy;
+    }
+
     private PolicyEntry getEntry(Resource resource) {
         if (CollectionUtils.isEmpty(this.entries)) {
             return null;
