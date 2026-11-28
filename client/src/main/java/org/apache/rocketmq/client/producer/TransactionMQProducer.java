@@ -89,6 +89,35 @@ public class TransactionMQProducer extends DefaultMQProducer {
         return this.defaultMQProducerImpl.sendMessageInTransaction(msg, null, arg);
     }
 
+    /**
+     * Send a transactional message with a message queue selector.
+     *
+     * <p>The {@code selectorArg} is passed only to {@link MessageQueueSelector#select(List, Message, Object)}.
+     * The {@code transactionArg} is passed only to {@link TransactionListener#executeLocalTransaction(Message, Object)}.
+     * This method follows the existing selector send semantics and does not perform the broker or queue reselection
+     * retry used by the default send path.</p>
+     *
+     * @param msg transactional message to send.
+     * @param selector message queue selector.
+     * @param selectorArg argument used by the selector.
+     * @param transactionArg argument used by the local transaction executor.
+     * @return transaction result.
+     * @throws MQClientException if the message cannot be sent.
+     */
+    @Override
+    public TransactionSendResult sendMessageInTransaction(final Message msg,
+        final MessageQueueSelector selector, final Object selectorArg, final Object transactionArg) throws MQClientException {
+        if (null == this.transactionListener) {
+            throw new MQClientException("TransactionListener is null", null);
+        }
+        if (null == selector) {
+            throw new MQClientException("MessageQueueSelector is null", null);
+        }
+
+        msg.setTopic(NamespaceUtil.wrapNamespace(this.getNamespace(), msg.getTopic()));
+        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, selector, selectorArg, transactionArg);
+    }
+
     public TransactionCheckListener getTransactionCheckListener() {
         return transactionCheckListener;
     }

@@ -1433,6 +1433,21 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public TransactionSendResult sendMessageInTransaction(final Message msg,
         final TransactionListener localTransactionListener, final Object arg)
         throws MQClientException {
+        return sendMessageInTransaction(msg, localTransactionListener, null, null, arg);
+    }
+
+    public TransactionSendResult sendMessageInTransaction(final Message msg,
+        final MessageQueueSelector selector, final Object selectorArg, final Object arg)
+        throws MQClientException {
+        if (selector == null) {
+            throw new MQClientException("MessageQueueSelector is null", null);
+        }
+        return sendMessageInTransaction(msg, null, selector, selectorArg, arg);
+    }
+
+    private TransactionSendResult sendMessageInTransaction(final Message msg,
+        final TransactionListener localTransactionListener, final MessageQueueSelector selector,
+        final Object selectorArg, final Object arg) throws MQClientException {
         TransactionListener transactionListener = getCheckListener();
         if (null == localTransactionListener && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
@@ -1445,7 +1460,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
         try {
-            sendResult = this.send(msg);
+            if (selector == null) {
+                sendResult = this.send(msg);
+            } else {
+                MessageQueue mq = this.invokeMessageQueueSelector(msg, selector, selectorArg,
+                    this.defaultMQProducer.getSendMsgTimeout());
+                sendResult = this.send(msg, mq);
+            }
         } catch (Exception e) {
             throw new MQClientException("send message Exception", e);
         }
