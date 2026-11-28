@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.common.message;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 public class MessageConst {
     public static final String PROPERTY_KEYS = "KEYS";
@@ -102,6 +106,8 @@ public class MessageConst {
 
     public static final HashSet<String> STRING_HASH_SET = new HashSet<>(64);
 
+    static final String[][] STRING_INTERN_BY_LEN;
+
     public static final String PROPERTY_TIMER_ENQUEUE_MS = "TIMER_ENQUEUE_MS";
     public static final String PROPERTY_TIMER_DEQUEUE_MS = "TIMER_DEQUEUE_MS";
     public static final String PROPERTY_TIMER_ROLL_TIMES = "TIMER_ROLL_TIMES";
@@ -173,5 +179,20 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_CRC32);
         STRING_HASH_SET.add(PROPERTY_PRIORITY);
         STRING_HASH_SET.add(PROPERTY_LITE_TOPIC);
+        int maxLen = 0;
+        for (String key : STRING_HASH_SET) {
+            if (key.length() > maxLen) {
+                maxLen = key.length();
+            }
+        }
+        String[][] byLen = new String[maxLen + 1][];
+        Map<Integer, List<String>> bucketBuilder = new HashMap<>();
+        for (String key : STRING_HASH_SET) {
+            bucketBuilder.computeIfAbsent(key.length(), k -> new ArrayList<>()).add(key);
+        }
+        for (Map.Entry<Integer, List<String>> e : bucketBuilder.entrySet()) {
+            byLen[e.getKey()] = e.getValue().toArray(new String[0]);
+        }
+        STRING_INTERN_BY_LEN = byLen;
     }
 }
