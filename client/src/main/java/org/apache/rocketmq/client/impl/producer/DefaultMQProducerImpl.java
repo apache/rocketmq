@@ -645,12 +645,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             if (isEnableBackpressureForAsyncMode) {
                 defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
-                long costTime = System.currentTimeMillis() - beginStartTime;
-
-                isSemaphoreAsyncNumAcquired = timeout - costTime > 0
-                    && semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
-                sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAcquired;
-                defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
+                try {
+                    long costTime = System.currentTimeMillis() - beginStartTime;
+                    isSemaphoreAsyncNumAcquired = timeout - costTime > 0
+                        && semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
+                    sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAcquired;
+                } finally {
+                    defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
+                }
                 if (!isSemaphoreAsyncNumAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
@@ -658,12 +660,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
-                costTime = System.currentTimeMillis() - beginStartTime;
-
-                isSemaphoreAsyncSizeAcquired = timeout - costTime > 0
-                    && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
-                sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAcquired;
-                defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
+                try {
+                    long costTime = System.currentTimeMillis() - beginStartTime;
+                    isSemaphoreAsyncSizeAcquired = timeout - costTime > 0
+                        && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
+                    sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAcquired;
+                } finally {
+                    defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
+                }
                 if (!isSemaphoreAsyncSizeAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
@@ -672,6 +676,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
 
             executor.submit(runnable);
+        } catch (InterruptedException e) {
+            sendCallback.semaphoreProcessor();
+            throw e;
         } catch (RejectedExecutionException e) {
             if (isEnableBackpressureForAsyncMode) {
                 runnable.run();
