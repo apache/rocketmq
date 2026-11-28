@@ -179,6 +179,63 @@ public class TimerWheelTest {
     }
 
     @Test
+    public void dirtySlotSnapshotCopyTest() throws Exception {
+        String path = baseDir + "_dirty";
+        long firstTime = defaultDelay + precisionMs;
+        long secondTime = defaultDelay + 2 * precisionMs;
+        TimerWheel wheel = new TimerWheel(path, slotsTotal, precisionMs, -1, true);
+        try {
+            wheel.putSlot(firstTime, 1, 2, 3, 4);
+            wheel.putSlot(secondTime, 5, 6, 7, 8);
+            wheel.copyForSnapshot();
+            assertEquals(slotsTotal * 2, wheel.getLastSnapshotCopiedSlots());
+
+            // no writes since the freeze: the snapshot buffer stays valid without a memcpy
+            wheel.copyForSnapshot();
+            assertEquals(0, wheel.getLastSnapshotCopiedSlots());
+            wheel.backup(100);
+
+            // only the slot written after the freeze is refreshed
+            wheel.putSlot(secondTime, 9, 10, 11, 12);
+            wheel.copyForSnapshot();
+            assertEquals(1, wheel.getLastSnapshotCopiedSlots());
+            wheel.backup(200);
+
+            TimerWheel first = new TimerWheel(path, slotsTotal, precisionMs, 100);
+            try {
+                Slot unchanged = first.getSlot(firstTime);
+                assertEquals(1, unchanged.firstPos);
+                assertEquals(4, unchanged.magic);
+                assertEquals(5, first.getSlot(secondTime).firstPos);
+            } finally {
+                first.shutdown();
+            }
+
+            TimerWheel second = new TimerWheel(path, slotsTotal, precisionMs, 200);
+            try {
+                assertEquals(1, second.getSlot(firstTime).firstPos);
+                Slot updated = second.getSlot(secondTime);
+                assertEquals(9, updated.firstPos);
+                assertEquals(12, updated.magic);
+            } finally {
+                second.shutdown();
+            }
+
+            // a dense dirty set falls back to the sequential full-wheel copy
+            for (int i = 0; i < slotsTotal * 2 / 2; i++) {
+                wheel.putSlot(defaultDelay + (i + 1) * (long) precisionMs, i, i, i, i);
+            }
+            wheel.copyForSnapshot();
+            assertEquals(slotsTotal * 2, wheel.getLastSnapshotCopiedSlots());
+        } finally {
+            wheel.shutdown();
+            StoreTestUtils.deleteFile(path);
+            StoreTestUtils.deleteFile(path + ".100");
+            StoreTestUtils.deleteFile(path + ".200");
+        }
+    }
+
+    @Test
     public void segmentedBackupRoundTripTest() throws Exception {
         int bigSlots = 40000;
         String bigFileName = baseDir + "_big";

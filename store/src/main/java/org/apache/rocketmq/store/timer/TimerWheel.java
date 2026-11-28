@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -58,6 +59,11 @@ public class TimerWheel {
 
     private long snapOffset;
     private ByteBuffer snapshotBuffer;
+    // Slots written since the last snapshot freeze. Only maintained in snapshot mode, where every
+    // wheel write is serialized by TimerMessageStore#lockWhenFlush with copyForSnapshot().
+    private final BitSet dirtySlots;
+    private boolean snapshotInitialized;
+    private int lastSnapshotCopiedSlots;
 
     public TimerWheel(String fileName, int slotsTotal, int precisionMs) throws IOException {
         this(fileName, slotsTotal, precisionMs, -1, false);
@@ -71,6 +77,7 @@ public class TimerWheel {
         this.fileName = fileName;
         this.wheelLength = this.slotsTotal * 2 * Slot.SIZE;
         this.snapOffset = snapOffset;
+        this.dirtySlots = snapshotMode ? new BitSet(this.slotsTotal * 2) : null;
 
         String finalFileName = selectSnapshotByFlag(snapOffset);
         File file = new File(finalFileName);
@@ -150,17 +157,68 @@ public class TimerWheel {
         this.mappedByteBuffer.force();
     }
 
-    /* Caller holds lockWhenFlush; the frozen buffer stays immutable until the next copy. */
+    /*
+     * Caller holds lockWhenFlush; the frozen buffer stays immutable until the next copy.
+     * The first copy freezes the whole wheel; later copies only refresh slots dirtied since
+     * the previous freeze, so the lock is held for the changed slots instead of all 36.9 MiB.
+     */
     public void copyForSnapshot() {
         if (snapshotBuffer == null) {
             snapshotBuffer = ByteBuffer.allocateDirect(wheelLength);
         }
-        ByteBuffer bf = localBuffer.get();
+        if (!snapshotInitialized || dirtySlots == null) {
+            copyWholeWheel();
+            return;
+        }
+        // A dense dirty set is cheaper to copy in one sequential memcpy than slot by slot.
+        if (dirtySlots.cardinality() > slotsTotal * 2 / 4) {
+            copyWholeWheel();
+            return;
+        }
+        int copied = 0;
+        for (int slotIndex = dirtySlots.nextSetBit(0); slotIndex >= 0;
+            slotIndex = dirtySlots.nextSetBit(slotIndex + 1)) {
+            copySlot(slotIndex);
+            copied++;
+        }
+        dirtySlots.clear();
+        lastSnapshotCopiedSlots = copied;
+        snapshotBuffer.position(0);
+        snapshotBuffer.limit(wheelLength);
+    }
+
+    private void copyWholeWheel() {
+        ByteBuffer bf = byteBuffer.duplicate();
         bf.position(0);
         bf.limit(wheelLength);
         snapshotBuffer.clear();
         snapshotBuffer.put(bf);
         snapshotBuffer.flip();
+        snapshotInitialized = true;
+        lastSnapshotCopiedSlots = slotsTotal * 2;
+        if (dirtySlots != null) {
+            dirtySlots.clear();
+        }
+    }
+
+    private void copySlot(int slotIndex) {
+        int position = slotIndex * Slot.SIZE;
+        snapshotBuffer.putLong(position, byteBuffer.getLong(position));
+        snapshotBuffer.putLong(position + 8, byteBuffer.getLong(position + 8));
+        snapshotBuffer.putLong(position + 16, byteBuffer.getLong(position + 16));
+        snapshotBuffer.putInt(position + 24, byteBuffer.getInt(position + 24));
+        snapshotBuffer.putInt(position + 28, byteBuffer.getInt(position + 28));
+    }
+
+    private void markSlotDirty(int slotIndex) {
+        if (dirtySlots != null) {
+            dirtySlots.set(slotIndex);
+        }
+    }
+
+    // testable
+    int getLastSnapshotCopiedSlots() {
+        return lastSnapshotCopiedSlots;
     }
 
     /* 1 MiB segments + force bound the writeback burst; tmp + atomic rename keep the snapshot complete. */
@@ -327,25 +385,30 @@ public class TimerWheel {
     }
 
     public void putSlot(long timeMs, long firstPos, long lastPos) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        int slotIndex = getSlotIndex(timeMs);
+        localBuffer.get().position(slotIndex * Slot.SIZE);
         // To be compatible with previous version.
         // The previous version's precision is fixed at 1000ms and it store timeMs / 1000 in slot.
         localBuffer.get().putLong(timeMs / precisionMs);
         localBuffer.get().putLong(firstPos);
         localBuffer.get().putLong(lastPos);
+        markSlotDirty(slotIndex);
     }
 
     public void putSlot(long timeMs, long firstPos, long lastPos, int num, int magic) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        int slotIndex = getSlotIndex(timeMs);
+        localBuffer.get().position(slotIndex * Slot.SIZE);
         localBuffer.get().putLong(timeMs / precisionMs);
         localBuffer.get().putLong(firstPos);
         localBuffer.get().putLong(lastPos);
         localBuffer.get().putInt(num);
         localBuffer.get().putInt(magic);
+        markSlotDirty(slotIndex);
     }
 
     public void reviseSlot(long timeMs, long firstPos, long lastPos, boolean force) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        int slotIndex = getSlotIndex(timeMs);
+        localBuffer.get().position(slotIndex * Slot.SIZE);
 
         if (timeMs / precisionMs != localBuffer.get().getLong()) {
             if (force) {
@@ -361,6 +424,7 @@ public class TimerWheel {
                 localBuffer.get().putLong(lastPos);
             }
         }
+        markSlotDirty(slotIndex);
     }
 
     //check the timerwheel to see if its stored offset > maxOffset in timerlog
