@@ -178,7 +178,7 @@ public class ProxyStartup {
         ConfigurationManager.initEnv();
         ConfigurationManager.initConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
-        log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
+        log.info("Current configuration: " + ConfigurationManager.formatProxyConfigForLog());
 
     }
 
