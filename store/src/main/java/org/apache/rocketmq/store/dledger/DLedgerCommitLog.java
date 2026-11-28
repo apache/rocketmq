@@ -199,7 +199,8 @@ public class DLedgerCommitLog extends CommitLog {
         final long expiredTime,
         final int deleteFilesInterval,
         final long intervalForcibly,
-        final boolean cleanImmediately
+        final boolean cleanImmediately,
+        final int deleteFileBatchMax
     ) {
         if (mappedFileQueue.getMappedFiles().isEmpty()) {
             refreshConfig();
@@ -208,7 +209,7 @@ public class DLedgerCommitLog extends CommitLog {
         } else {
             disableDeleteDledger();
         }
-        int count = super.deleteExpiredFile(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately);
+        int count = super.deleteExpiredFile(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately, deleteFileBatchMax);
         if (count > 0 || mappedFileQueue.getMappedFiles().size() != 1) {
             return count;
         }
@@ -221,8 +222,9 @@ public class DLedgerCommitLog extends CommitLog {
                 DLedgerUtils.sleep(1000);
             }
             mappedFileQueue.getMappedFiles().remove(mappedFile);
+            return 1;
         }
-        return 1;
+        return 0;
     }
 
     public SelectMappedBufferResult convertSbr(SelectMmapBufferResult sbr) {
