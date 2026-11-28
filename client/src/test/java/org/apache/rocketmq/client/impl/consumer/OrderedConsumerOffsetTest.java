@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class OrderedConsumerOffsetTest {
@@ -108,7 +108,7 @@ public class OrderedConsumerOffsetTest {
 
         consumer.pullMessage(request);
 
-        verifyZeroInteractions(pullAPI);
+        verifyNoInteractions(pullAPI);
         verify(pullService).executePullRequestLater(eq(request), anyLong());
         assertThat(request.isPreviouslyLocked()).isFalse();
         assertThat(request.getNextOffset()).isEqualTo(9L);
