@@ -106,6 +106,12 @@ public class ClientConfig {
     private int concurrentHeartbeatThreadPoolSize = Runtime.getRuntime().availableProcessors();
 
     /**
+     * When true, corrupted local offset files are ignored (logged at WARN level) instead of throwing an exception.
+     * The consumer starts with an empty offset table and falls back to CONSUME_FROM_TIMESTAMP or broker-side offset.
+     */
+    private boolean localOffsetStoreIgnoreCorrupted = false;
+
+    /**
      * The switch for message trace
      */
     protected boolean enableTrace = false;
@@ -247,6 +253,7 @@ public class ClientConfig {
         this.traceTopic = cc.traceTopic;
         this.enableConcurrentHeartbeat = cc.enableConcurrentHeartbeat;
         this.concurrentHeartbeatThreadPoolSize = cc.concurrentHeartbeatThreadPoolSize;
+        this.localOffsetStoreIgnoreCorrupted = cc.localOffsetStoreIgnoreCorrupted;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -282,6 +289,7 @@ public class ClientConfig {
         cc.traceTopic = traceTopic;
         cc.enableConcurrentHeartbeat = enableConcurrentHeartbeat;
         cc.concurrentHeartbeatThreadPoolSize = concurrentHeartbeatThreadPoolSize;
+        cc.localOffsetStoreIgnoreCorrupted = localOffsetStoreIgnoreCorrupted;
         return cc;
     }
 
@@ -549,6 +557,14 @@ public class ClientConfig {
 
     public void setConcurrentHeartbeatThreadPoolSize(int concurrentHeartbeatThreadPoolSize) {
         this.concurrentHeartbeatThreadPoolSize = concurrentHeartbeatThreadPoolSize;
+    }
+
+    public boolean isLocalOffsetStoreIgnoreCorrupted() {
+        return localOffsetStoreIgnoreCorrupted;
+    }
+
+    public void setLocalOffsetStoreIgnoreCorrupted(boolean localOffsetStoreIgnoreCorrupted) {
+        this.localOffsetStoreIgnoreCorrupted = localOffsetStoreIgnoreCorrupted;
     }
 
     @Override
