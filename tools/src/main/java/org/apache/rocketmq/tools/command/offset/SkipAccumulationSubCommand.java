@@ -64,10 +64,14 @@ public class SkipAccumulationSubCommand implements SubCommand {
         return options;
     }
 
+    DefaultMQAdminExt createDefaultMQAdminExt(RPCHook rpcHook) {
+        return new DefaultMQAdminExt(rpcHook);
+    }
+
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         long timestamp = -1;
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = createDefaultMQAdminExt(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         try {
             String group = commandLine.getOptionValue("g").trim();
@@ -84,7 +88,7 @@ public class SkipAccumulationSubCommand implements SubCommand {
                 offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(clusterName, topic, group, timestamp, force);
             } catch (MQClientException e) {
                 if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
-                    List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(group, topic, timestamp, force);
+                    List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(clusterName, group, topic, timestamp, force);
                     System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s%n",
                         "#brokerName",
                         "#queueId",

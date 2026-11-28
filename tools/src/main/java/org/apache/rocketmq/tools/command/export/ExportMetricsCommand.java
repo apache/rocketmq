@@ -78,7 +78,7 @@ public class ExportMetricsCommand implements SubCommand {
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook)
         throws SubCommandException {
 
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = createAdmin(rpcHook);
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
@@ -118,7 +118,7 @@ public class ExportMetricsCommand implements SubCommand {
 
                     // runtime version
                     brokerInfo.put("runtimeVersion",
-                        getRuntimeVersion(defaultMQAdminExt, subscriptionGroupWrapper));
+                        getRuntimeVersion(defaultMQAdminExt, subscriptionGroupWrapper, kvTable.getTable().get("brokerVersionDesc")));
 
                     evaluateReportMap.put(brokerName, brokerInfo);
                 }
@@ -145,8 +145,12 @@ public class ExportMetricsCommand implements SubCommand {
 
     }
 
+    DefaultMQAdminExt createAdmin(RPCHook rpcHook) {
+        return new DefaultMQAdminExt(rpcHook);
+    }
+
     private Map<String, Object> getRuntimeVersion(DefaultMQAdminExt defaultMQAdminExt,
-        SubscriptionGroupWrapper subscriptionGroupWrapper) {
+        SubscriptionGroupWrapper subscriptionGroupWrapper, String brokerVersion) {
         Map<String, Object> runtimeVersionMap = new HashMap();
 
         Set<String> clientInfoSet = new HashSet<>();
@@ -163,7 +167,7 @@ public class ExportMetricsCommand implements SubCommand {
                 continue;
             }
         }
-        runtimeVersionMap.put("rocketmqVersion", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+        runtimeVersionMap.put("rocketmqVersion", brokerVersion != null ? brokerVersion : "unknown");
         runtimeVersionMap.put("clientInfo", clientInfoSet);
         return runtimeVersionMap;
     }

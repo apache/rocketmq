@@ -1904,19 +1904,30 @@ public class BrokerController {
         shutdownScheduledExecutorService(this.syncBrokerMemberGroupExecutorService);
         shutdownScheduledExecutorService(this.brokerHeartbeatExecutorService);
 
+        // With useSingleRocksDBForAllConfigs enabled, the V1 RocksDB topic, subscription group,
+        // and consumer offset managers share one RocksDB instance. Persist all configs before any manager closes it.
         if (this.topicConfigManager != null) {
             this.topicConfigManager.persist();
-            this.topicConfigManager.stop();
         }
 
         if (this.subscriptionGroupManager != null) {
             this.subscriptionGroupManager.persist();
-            this.subscriptionGroupManager.stop();
         }
 
         if (this.consumerOffsetManager != null) {
             this.consumerOffsetManager.persist();
-            this.consumerOffsetManager.stop();
+            // Stop the offset manager first to drain asynchronous writes and sync the WAL.
+            // Log failures and continue shutting down the other managers.
+            if (!this.consumerOffsetManager.stop()) {
+                LOG.error("Failed to stop consumer offsets, continue shutting down other config managers");
+            }
+        }
+
+        if (this.topicConfigManager != null) {
+            this.topicConfigManager.stop();
+        }
+        if (this.subscriptionGroupManager != null) {
+            this.subscriptionGroupManager.stop();
         }
 
         if (this.consumerOrderInfoManager != null) {

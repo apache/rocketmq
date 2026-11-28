@@ -20,17 +20,27 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.DataConverter;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
@@ -43,6 +53,8 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     private static final String VERSION_COLUMN_FAMILY = "consumerOffsetVersion";
     private static final String OFFSET_COLUMN_FAMILY = "consumerOffset";
+    private static final JSONWriter.Feature[] SERIALIZE_FEATURES = {JSONWriter.Feature.BrowserCompatible};
+    private final transient AsyncOffsetPersister asyncPersister = new AsyncOffsetPersister();
 
     protected transient RocksDBConfigManager rocksDBConfigManager;
     private final boolean useSingleRocksDBForAllConfigs;
@@ -75,7 +87,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     @Override
-    public boolean load() {
+    public synchronized boolean load() {
         if (!rocksDBConfigManager.init()) {
             return false;
         }
@@ -85,6 +97,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         if (useSingleRocksDBForAllConfigs) {
             migrateFromSeparateRocksDBs();
         }
+        asyncPersister.open();
         return true;
     }
 
@@ -119,15 +132,14 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
 
     @Override
-    public boolean stop() {
-        return this.rocksDBConfigManager.stop();
+    public synchronized boolean stop() {
+        return asyncPersister.close();
     }
 
     @Override
     public void removeConsumerOffset(String topicAtGroup) {
         try {
-            byte[] keyBytes = topicAtGroup.getBytes(DataConverter.CHARSET_UTF8);
-            this.rocksDBConfigManager.delete(keyBytes);
+            asyncPersister.delete(topicAtGroup);
         } catch (Exception e) {
             log.error("kv remove consumerOffset Failed, {}", topicAtGroup);
         }
@@ -159,24 +171,25 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     @Override
     public synchronized void persist() {
-        if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
-            updateDataVersion();
-            this.rocksDBConfigManager.flushWAL();
-            return;
+        try {
+            asyncPersister.persist();
+        } catch (Exception e) {
+            log.error("consumer offset persist Failed", e);
         }
-        persist0();
     }
 
     private void persist0() {
         if (rocksDBConfigManager.isLoaded()) {
             try (WriteBatch writeBatch = new WriteBatch()) {
+                RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
                 for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
-                    putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
+                    putWriteBatch(writeBatch, entry.getKey(), entry.getValue(), wrapper);
                     if (writeBatch.getDataSize() >= 4 * 1024) {
                         this.rocksDBConfigManager.batchPutWithWal(writeBatch);
                     }
                 }
                 this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                this.rocksDBConfigManager.persistKvDataVersion();
                 this.rocksDBConfigManager.flushWAL();
             } catch (Exception e) {
                 log.error("consumer offset persist Failed", e);
@@ -189,29 +202,56 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     @Override
     public void commitOffset(String clientHost, String group, String topic, int queueId, long offset) {
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        if (updateOffsetInMemory(clientHost, key, topic, queueId, offset)) {
+            registerIncrementalWrite(key);
+        }
+        updateDataVersionByStep();
+    }
+
+    @Override
+    public void assignResetOffset(String topic, String group, int queueId, long offset) {
+        super.assignResetOffset(topic, group, queueId, offset);
+        if (StringUtils.isNotEmpty(topic) && StringUtils.isNotEmpty(group) && queueId >= 0 && offset >= 0) {
+            registerIncrementalWrite(topic + TOPIC_GROUP_SEPARATOR + group);
+        }
+    }
+
+    @Override
+    public void cloneOffset(String srcGroup, String destGroup, String topic) {
+        ConcurrentMap<Integer, Long> offsets = this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
+        if (offsets != null) {
+            String key = topic + TOPIC_GROUP_SEPARATOR + destGroup;
+            this.offsetTable.put(key, new ConcurrentHashMap<>(offsets));
+            registerIncrementalWrite(key);
+        }
+    }
+
+    private void registerIncrementalWrite(String key) {
+        if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+            asyncPersister.commit(key);
+        }
+    }
+
+    private boolean updateOffsetInMemory(String clientHost, String key, String topic, int queueId, long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
-            map = MixAll.isLmq(topic) ? new ConcurrentHashMap<>(1, 1.0F) : new ConcurrentHashMap<>();
-            map.put(queueId, offset);
-            this.offsetTable.put(key, map);
-        } else {
-            Long storeOffset = map.put(queueId, offset);
-            if (storeOffset != null && offset < storeOffset) {
-                LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+            ConcurrentMap<Integer, Long> newMap = MixAll.isLmq(topic) ? new ConcurrentHashMap<>(1, 1.0F) : new ConcurrentHashMap<>();
+            newMap.put(queueId, offset);
+            map = this.offsetTable.putIfAbsent(key, newMap);
+            if (map == null) {
+                return true;
             }
         }
-        if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
-            updateDataVersion();
+        Long storeOffset = map.put(queueId, offset);
+        if (storeOffset != null && offset < storeOffset) {
+            LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
         }
-        if (!brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
-            return;
-        }
+        return storeOffset == null || storeOffset.longValue() != offset;
+    }
 
-        try (WriteBatch writeBatch = new WriteBatch()) {
-            putWriteBatch(writeBatch, key, map);
-            this.rocksDBConfigManager.batchPutWithWal(writeBatch);
-        } catch (Exception e) {
-            log.error("consumer offset persist Failed", e);
+    private void updateDataVersionByStep() {
+        if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
+            getDataVersion().nextVersion();
         }
     }
 
@@ -220,11 +260,11 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         super.persist();
     }
 
-    private void putWriteBatch(final WriteBatch writeBatch, final String topicGroupName, final ConcurrentMap<Integer, Long> offsetMap) throws Exception {
+    private void putWriteBatch(final WriteBatch writeBatch, final String topicGroupName,
+        final ConcurrentMap<Integer, Long> offsetMap, final RocksDBOffsetSerializeWrapper wrapper) throws Exception {
         byte[] keyBytes = topicGroupName.getBytes(DataConverter.CHARSET_UTF8);
-        RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
         wrapper.setOffsetTable(offsetMap);
-        byte[] valueBytes = JSON.toJSONBytes(wrapper, JSONWriter.Feature.BrowserCompatible);
+        byte[] valueBytes = JSON.toJSONBytes(wrapper, SERIALIZE_FEATURES);
         rocksDBConfigManager.writeBatchPutOperation(writeBatch, keyBytes, valueBytes);
     }
 
@@ -339,6 +379,179 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             this.rocksDBConfigManager.put(key, body);
         } catch (Exception e) {
             log.error("Error importing consumer offset", e);
+        }
+    }
+
+    // Offset updates and version semantics belong to the manager; queuing, scheduling and write coordination are centralized in this component.
+    private final class AsyncOffsetPersister {
+        private static final int BATCH_KEYS = 2500;
+        private static final int BATCH_BYTES = 512 * 1024;
+        private static final long STOP_TIMEOUT_SECONDS = 30;
+        private static final long BOUNDARY_LOG_INTERVAL_MS = 60_000;
+
+        // Only the writeLock -> pendingLock ordering is allowed; the registration path never acquires writeLock.
+        private final Object pendingLock = new Object();
+        private final Object writeLock = new Object();
+        private final List<String> selectedKeys = new ArrayList<>(BATCH_KEYS);
+        // Deduplicated in registration order; duplicate updates keep their original position and only mutate in-memory state.
+        private final Set<String> pendingKeys = new LinkedHashSet<>();
+        // Guarded by pendingLock; non-null means running. Set to null on close, after which commits are kept in memory only.
+        private ScheduledExecutorService executor;
+        private long lastBoundaryLogTimeMs;
+        private long lastBatchBytes;
+
+        private void open() {
+            synchronized (pendingLock) {
+                if (executor != null) {
+                    return;
+                }
+                long intervalMillis = brokerController.getBrokerConfig().getConsumerOffsetBatchIntervalMs();
+                executor = Executors.newSingleThreadScheduledExecutor(
+                    new ThreadFactoryImpl("AsyncOffsetPersist_", true));
+                executor.scheduleWithFixedDelay(() -> {
+                    try {
+                        flushBatch(intervalMillis);
+                    } catch (Exception e) {
+                        log.error("Failed to persist offset batch", e);
+                    }
+                }, intervalMillis, intervalMillis, TimeUnit.MILLISECONDS);
+            }
+        }
+
+        private void commit(String key) {
+            synchronized (pendingLock) {
+                if (executor == null) {
+                    log.warn("Async offset persistence is stopped, offset only kept in memory, key={}", key);
+                    return;
+                }
+                pendingKeys.add(key);
+            }
+        }
+
+        private void delete(String key) throws Exception {
+            synchronized (writeLock) {
+                synchronized (pendingLock) {
+                    pendingKeys.remove(key);
+                }
+                rocksDBConfigManager.delete(key.getBytes(DataConverter.CHARSET_UTF8));
+            }
+        }
+
+        private void persist() throws Exception {
+            synchronized (writeLock) {
+                flushPending();
+                if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+                    updateDataVersion();
+                    rocksDBConfigManager.flushWALChecked();
+                } else {
+                    persist0();
+                }
+            }
+        }
+
+        private boolean close() {
+            ScheduledExecutorService running;
+            synchronized (pendingLock) {
+                running = executor;
+                executor = null;
+            }
+            if (running != null) {
+                ThreadUtils.shutdownGracefully(running, STOP_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                if (!running.isTerminated()) {
+                    return false;
+                }
+            }
+            synchronized (writeLock) {
+                try {
+                    flushPending();
+                    if (running != null) {
+                        rocksDBConfigManager.persistKvDataVersion();
+                        rocksDBConfigManager.flushWALChecked();
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to stop async offset persistence, keep RocksDB open", e);
+                    return false;
+                }
+                return rocksDBConfigManager.stop();
+            }
+        }
+
+        private void flushBatch(long intervalMillis) throws Exception {
+            synchronized (pendingLock) {
+                if (pendingKeys.isEmpty()) {
+                    return;
+                }
+            }
+            int batchKeys;
+            long batchBytes;
+            long costMs;
+            synchronized (writeLock) {
+                long startMs = System.currentTimeMillis();
+                batchKeys = flushBatchLocked(BATCH_KEYS);
+                batchBytes = lastBatchBytes;
+                if (batchKeys < BATCH_KEYS && batchBytes < BATCH_BYTES) {
+                    return;
+                }
+                long now = System.currentTimeMillis();
+                if (now - lastBoundaryLogTimeMs < BOUNDARY_LOG_INTERVAL_MS) {
+                    return;
+                }
+                lastBoundaryLogTimeMs = now;
+                costMs = now - startMs;
+            }
+            log.info("Async offset batch limits: intervalMillis={}, batchKeys={}, batchBytes={}, "
+                + "batchCostMs={}, keyLimit={}, byteLimit={}",
+                intervalMillis, batchKeys, batchBytes, costMs, BATCH_KEYS, BATCH_BYTES);
+        }
+
+        // Callers hold writeLock, so the batch-write core does not re-acquire the write lock.
+        private int flushBatchLocked(int limit) throws Exception {
+            List<String> selected = selectedKeys;
+            try (WriteBatch batch = new WriteBatch()) {
+                RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
+                while (selected.size() < limit && batch.getDataSize() < BATCH_BYTES) {
+                    String key;
+                    synchronized (pendingLock) {
+                        Iterator<String> it = pendingKeys.iterator();
+                        if (!it.hasNext()) {
+                            break;
+                        }
+                        // Take the earliest registered key; remove the mark before reading memory, later updates will re-register it.
+                        key = it.next();
+                        it.remove();
+                        selected.add(key);
+                    }
+                    ConcurrentMap<Integer, Long> offsets = offsetTable.get(key);
+                    if (offsets == null) {
+                        continue;
+                    }
+                    putWriteBatch(batch, key, offsets, wrapper);
+                }
+                long batchBytes = batch.getDataSize();
+                if (batch.count() > 0) {
+                    rocksDBConfigManager.batchPutWithWal(batch);
+                }
+                lastBatchBytes = batchBytes;
+                return selected.size();
+            } catch (Exception e) {
+                synchronized (pendingLock) {
+                    pendingKeys.addAll(selected);
+                }
+                throw e;
+            } finally {
+                selected.clear();
+            }
+        }
+
+        // Callers hold writeLock; only drains the current count, new commits are handled by the next round.
+        private void flushPending() throws Exception {
+            int remaining;
+            synchronized (pendingLock) {
+                remaining = pendingKeys.size();
+            }
+            while (remaining > 0) {
+                remaining -= flushBatchLocked(Math.min(remaining, BATCH_KEYS));
+            }
         }
     }
 }

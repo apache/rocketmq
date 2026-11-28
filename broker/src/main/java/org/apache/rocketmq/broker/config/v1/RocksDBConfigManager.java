@@ -128,17 +128,22 @@ public class RocksDBConfigManager {
             if (!isLoaded()) {
                 return;
             }
-            if (this.configRocksDBStorage != null) {
-                this.configRocksDBStorage.flushWAL();
-
-                long now = System.currentTimeMillis();
-                if (now > this.lastFlushMemTableMicroSecond + this.memTableFlushInterval) {
-                    this.configRocksDBStorage.flush(this.flushOptions);
-                    this.lastFlushMemTableMicroSecond = now;
-                }
-            }
+            flushWALChecked();
         } catch (Exception e) {
             BROKER_LOG.error("kv flush WAL Failed.", e);
+        }
+    }
+
+    // The async offset barrier must observe flush failures to confirm persistence or safely close the database.
+    public void flushWALChecked() throws RocksDBException {
+        if (!isLoaded()) {
+            throw new IllegalStateException("RocksDB config storage is not loaded");
+        }
+        this.configRocksDBStorage.flushWAL();
+        long now = System.currentTimeMillis();
+        if (now > this.lastFlushMemTableMicroSecond + this.memTableFlushInterval) {
+            this.configRocksDBStorage.flush(this.flushOptions);
+            this.lastFlushMemTableMicroSecond = now;
         }
     }
 

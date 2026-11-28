@@ -22,6 +22,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -50,6 +51,10 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.statictopic.LogicQueueMappingItem;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.tools.admin.api.BrokerOperatorResult;
@@ -85,6 +90,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -92,9 +98,12 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -139,6 +148,105 @@ public class DefaultMQAdminExtImplTest {
         when(mqClientInstance.getMQClientAPIImpl()).thenReturn(mqClientAPIImpl);
         when(mqClientInstance.getMQAdminImpl()).thenReturn(mqAdminImpl);
         when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(any(), anyLong())).thenReturn(createTopicRouteData());
+    }
+
+    @Test
+    public void testExamineConsumeStatsLmqAcrossBrokersAndStaticTopic() throws Exception {
+        String lmq = "%LMQ%test-lmq-1";
+        String secondLmq = "%LMQ%test-lmq-2";
+        String secondBroker = "broker2";
+        String secondAddr = "127.0.0.2:10911";
+        String staticTopic = "staticTopic";
+        TopicRouteData groupRoute = createTopicRouteData();
+        HashMap<Long, String> secondAddresses = new HashMap<>();
+        secondAddresses.put(MixAll.MASTER_ID, secondAddr);
+        groupRoute.getBrokerDatas().add(new BrokerData(defaultCluster, secondBroker, secondAddresses));
+
+        TopicQueueMappingDetail detail = new TopicQueueMappingDetail(staticTopic, 1, defaultBroker, 1L);
+        TopicQueueMappingDetail.putMappingInfo(detail, 0,
+            Collections.singletonList(new LogicQueueMappingItem(0, 3, defaultBroker, 0L, 0L, -1L, -1L, -1L)));
+        TopicRouteData staticRoute = createTopicRouteData();
+        staticRoute.setTopicQueueMappingByBroker(new HashMap<>());
+        staticRoute.getTopicQueueMappingByBroker().put(defaultBroker,
+            TopicQueueMappingDetail.cloneAsMappingInfo(detail));
+        when(defaultMQAdminExt.examineTopicConfig(defaultBrokerAddr, staticTopic))
+            .thenReturn(new TopicConfigAndQueueMapping(new TopicConfig(staticTopic), detail));
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenAnswer(invocation -> {
+            String topic = invocation.getArgument(0);
+            if (MixAll.isLmq(topic)) {
+                throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST,
+                    "No topic route info in name server for the topic: " + topic);
+            }
+            return staticTopic.equals(topic) ? staticRoute : groupRoute;
+        });
+
+        MessageQueue lmqQueue = new MessageQueue(lmq, defaultBroker, 0);
+        MessageQueue secondLmqQueue = new MessageQueue(secondLmq, secondBroker, 0);
+        MessageQueue normalQueue = createMessageQueue();
+        MessageQueue physicalStaticQueue = new MessageQueue(staticTopic, defaultBroker, 3);
+        OffsetWrapper lmqOffset = createOffsetWrapper(80L, 50L, 60L, 2000L);
+        OffsetWrapper secondLmqOffset = createOffsetWrapper(90L, 70L, 75L, 3000L);
+        OffsetWrapper normalOffset = createOffsetWrapper(20L, 10L, 12L, 1000L);
+        OffsetWrapper staticOffset = createOffsetWrapper(40L, 25L, 30L, 4000L);
+        ConsumeStats first = new ConsumeStats();
+        first.getOffsetTable().put(lmqQueue, lmqOffset);
+        first.getOffsetTable().put(normalQueue, normalOffset);
+        first.getOffsetTable().put(physicalStaticQueue, staticOffset);
+        first.setConsumeTps(4.0);
+        ConsumeStats second = new ConsumeStats();
+        second.getOffsetTable().put(secondLmqQueue, secondLmqOffset);
+        second.setConsumeTps(6.0);
+        when(mqClientAPIImpl.getConsumeStats(anyString(), eq(defaultGroup), (String) isNull(), anyLong()))
+            .thenAnswer(invocation -> defaultBrokerAddr.equals(invocation.getArgument(0)) ? first : second);
+
+        ConsumeStats actual = defaultMQAdminExtImpl.examineConsumeStats(defaultGroup);
+        MessageQueue logicalStaticQueue = new MessageQueue(staticTopic,
+            TopicQueueMappingUtils.getMockBrokerName(detail.getScope()), 0);
+        assertEquals(new HashSet<>(Arrays.asList(lmqQueue, secondLmqQueue, normalQueue, logicalStaticQueue)),
+            actual.getOffsetTable().keySet());
+        assertSame(lmqOffset, actual.getOffsetTable().get(lmqQueue));
+        assertSame(secondLmqOffset, actual.getOffsetTable().get(secondLmqQueue));
+        assertSame(normalOffset, actual.getOffsetTable().get(normalQueue));
+        assertEquals(40L, actual.getOffsetTable().get(logicalStaticQueue).getBrokerOffset());
+        assertEquals(25L, actual.getOffsetTable().get(logicalStaticQueue).getConsumerOffset());
+        assertEquals(4000L, actual.getOffsetTable().get(logicalStaticQueue).getLastTimestamp());
+        assertEquals(75L, actual.computeTotalDiff());
+        assertEquals(10.0, actual.getConsumeTps(), 0.0);
+        assertEquals(3, first.getOffsetTable().size());
+        assertSame(staticOffset, first.getOffsetTable().get(physicalStaticQueue));
+        verify(mqClientAPIImpl, never()).getTopicRouteInfoFromNameServer(eq(lmq), anyLong());
+        verify(mqClientAPIImpl, never()).getTopicRouteInfoFromNameServer(eq(secondLmq), anyLong());
+        verify(mqClientAPIImpl).getTopicRouteInfoFromNameServer(eq(defaultTopic), anyLong());
+        verify(mqClientAPIImpl).getTopicRouteInfoFromNameServer(eq(staticTopic), anyLong());
+    }
+
+    @Test
+    public void testExamineConsumeStatsNormalRouteErrorIsNotIgnored() throws Exception {
+        ConsumeStats stats = new ConsumeStats();
+        stats.getOffsetTable().put(createMessageQueue(), createOffsetWrapper(20L, 10L, 12L, 1000L));
+        when(mqClientAPIImpl.getConsumeStats(anyString(), eq(defaultGroup), (String) isNull(), anyLong())).thenReturn(stats);
+        MQClientException missingRoute = new MQClientException(ResponseCode.TOPIC_NOT_EXIST, "Missing normal topic");
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(eq(defaultTopic), anyLong())).thenThrow(missingRoute);
+
+        assertSame(missingRoute, assertThrows(MQClientException.class,
+            () -> defaultMQAdminExtImpl.examineConsumeStats(defaultGroup)));
+    }
+
+    @Test
+    public void testExamineConsumeStatsLmqWithClusterKeepsPhysicalOffsets() throws Exception {
+        String lmq = "%LMQ%test-lmq";
+        MessageQueue queue = new MessageQueue(lmq, defaultBroker, 0);
+        OffsetWrapper offset = createOffsetWrapper(80L, 50L, 60L, 2000L);
+        ConsumeStats stats = new ConsumeStats();
+        stats.getOffsetTable().put(queue, offset);
+        stats.setConsumeTps(12.5);
+        when(mqClientAPIImpl.getConsumeStats(anyString(), eq(defaultGroup), eq(lmq), anyLong())).thenReturn(stats);
+
+        ConsumeStats actual = defaultMQAdminExtImpl.examineConsumeStats(defaultCluster, defaultGroup, lmq);
+        assertEquals(Collections.singleton(queue), actual.getOffsetTable().keySet());
+        assertSame(offset, actual.getOffsetTable().get(queue));
+        assertEquals(12.5, actual.getConsumeTps(), 0.0);
+        verify(mqClientAPIImpl, never()).getTopicRouteInfoFromNameServer(eq(lmq), anyLong());
     }
 
     @Test
@@ -813,6 +921,15 @@ public class DefaultMQAdminExtImplTest {
         MessageQueue secondQueue = new MessageQueue(defaultTopic, "broker2", 0);
         assertEquals(15.75, actual.getTopicPutTps(), 0.0);
         assertEquals(new HashSet<>(Arrays.asList(createMessageQueue(), secondQueue)), actual.getOffsetTable().keySet());
+    }
+
+    private OffsetWrapper createOffsetWrapper(long brokerOffset, long consumerOffset, long pullOffset, long timestamp) {
+        OffsetWrapper offset = new OffsetWrapper();
+        offset.setBrokerOffset(brokerOffset);
+        offset.setConsumerOffset(consumerOffset);
+        offset.setPullOffset(pullOffset);
+        offset.setLastTimestamp(timestamp);
+        return offset;
     }
 
     private HashMap<Long, String> createBrokerAddrs() {

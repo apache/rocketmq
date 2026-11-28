@@ -130,7 +130,6 @@ public class CommitLogInputStream extends FileSegmentInputStream {
         int bufIndex = curReadBufferIndex;
         int posInCurBuffer = readPosInCurBuffer;
         long curCommitLogOffset = commitLogOffset;
-        ByteBuffer curBuf = curBuffer;
         while (needRead > 0 && bufIndex <= bufferList.size()) {
             int readLen, remaining, realReadLen = 0;
             if (bufIndex == bufferList.size()) {
@@ -147,7 +146,7 @@ public class CommitLogInputStream extends FileSegmentInputStream {
                 posInCurBuffer += readLen;
                 continue;
             }
-            curBuf = bufferList.get(bufIndex);
+            ByteBuffer curBuf = bufferList.get(bufIndex);
             remaining = curBuf.remaining() - posInCurBuffer;
             readLen = Math.min(remaining, needRead);
             if (posInCurBuffer < MessageFormatUtil.PHYSICAL_OFFSET_POSITION) {
@@ -183,11 +182,8 @@ public class CommitLogInputStream extends FileSegmentInputStream {
                 posInCurBuffer = 0;
             }
         }
-        readPosition = pos;
-        curReadBufferIndex = bufIndex;
-        readPosInCurBuffer = posInCurBuffer;
+        setReadPosition(pos, bufIndex, posInCurBuffer);
         commitLogOffset = curCommitLogOffset;
-        curBuffer = curBuf;
         return len;
     }
 }

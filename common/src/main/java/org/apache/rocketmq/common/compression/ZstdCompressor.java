@@ -33,21 +33,14 @@ public class ZstdCompressor implements Compressor {
     public byte[] compress(byte[] src, int level) throws IOException {
         byte[] result = src;
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream(src.length);
-        ZstdOutputStream outputStream = new ZstdOutputStream(byteArrayOutputStream, level);
-        try {
+        try (ZstdOutputStream outputStream = new ZstdOutputStream(byteArrayOutputStream, level)) {
             outputStream.write(src);
             outputStream.flush();
-            outputStream.close();
-            result = byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
             log.error("Failed to compress data by zstd", e);
             throw e;
-        } finally {
-            try {
-                byteArrayOutputStream.close();
-            } catch (IOException ignored) {
-            }
         }
+        result = byteArrayOutputStream.toByteArray();
         return result;
     }
 

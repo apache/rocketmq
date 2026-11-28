@@ -17,10 +17,13 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -278,7 +281,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
-        defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
+        defaultLitePullConsumerImpl.assign(wrapQueuesWithNamespace(messageQueues));
     }
 
     @Override
@@ -303,12 +306,19 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void pause(Collection<MessageQueue> messageQueues) {
-        this.defaultLitePullConsumerImpl.pause(queuesWithNamespace(messageQueues));
+        this.defaultLitePullConsumerImpl.pause(wrapQueuesWithNamespace(messageQueues));
     }
 
     @Override
     public void resume(Collection<MessageQueue> messageQueues) {
-        this.defaultLitePullConsumerImpl.resume(queuesWithNamespace(messageQueues));
+        this.defaultLitePullConsumerImpl.resume(wrapQueuesWithNamespace(messageQueues));
+    }
+
+    private Collection<MessageQueue> wrapQueuesWithNamespace(Collection<MessageQueue> messageQueues) {
+        if (StringUtils.isEmpty(getNamespace())) {
+            return messageQueues;
+        }
+        return messageQueues.stream().map(this::queueWithNamespace).collect(Collectors.toList());
     }
 
     @Override
@@ -336,7 +346,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Deprecated
     @Override
     public void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist) {
-        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
+        this.defaultLitePullConsumerImpl.commit(wrapCommitOffsetsWithNamespace(offsetMap), persist);
     }
 
     @Override
@@ -346,7 +356,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
-        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
+        this.defaultLitePullConsumerImpl.commit(wrapCommitOffsetsWithNamespace(offsetMap), persist);
     }
 
     /**
@@ -375,7 +385,28 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void commit(final Set<MessageQueue> messageQueues, boolean persist) {
-        this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
+        Set<MessageQueue> queues = messageQueues;
+        if (messageQueues != null && !messageQueues.isEmpty() && StringUtils.isNotEmpty(getNamespace())) {
+            queues = messageQueues.stream().map(this::queueWithNamespace).collect(Collectors.toSet());
+        }
+        this.defaultLitePullConsumerImpl.commit(queues, persist);
+    }
+
+    private Map<MessageQueue, Long> wrapCommitOffsetsWithNamespace(Map<MessageQueue, Long> offsetMap) {
+        if (offsetMap == null || offsetMap.isEmpty() || StringUtils.isEmpty(getNamespace())) {
+            return offsetMap;
+        }
+
+        Map<MessageQueue, Long> wrappedOffsets = new HashMap<>(offsetMap.size());
+        for (Map.Entry<MessageQueue, Long> entry : offsetMap.entrySet()) {
+            MessageQueue queue = entry.getKey();
+            MessageQueue wrappedQueue = queueWithNamespace(queue);
+            // Keep the already namespaced key's offset if both forms of a queue are supplied.
+            if (!wrappedOffsets.containsKey(wrappedQueue) || wrappedQueue.equals(queue)) {
+                wrappedOffsets.put(wrappedQueue, entry.getValue());
+            }
+        }
+        return wrappedOffsets;
     }
 
     @Override

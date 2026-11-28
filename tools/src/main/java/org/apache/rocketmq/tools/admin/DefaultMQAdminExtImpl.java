@@ -430,17 +430,21 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             }
         }
 
-        Set<String> topics = new HashSet<>();
-        for (MessageQueue messageQueue : result.getOffsetTable().keySet()) {
-            topics.add(messageQueue.getTopic());
-        }
-
         ConsumeStats staticResult = null;
 
         if (StringUtils.isEmpty(clusterName)) {
 
             staticResult = new ConsumeStats();
             staticResult.setConsumeTps(result.getConsumeTps());
+            Set<String> topics = new HashSet<>();
+            for (Map.Entry<MessageQueue, OffsetWrapper> entry : result.getOffsetTable().entrySet()) {
+                String currentTopic = entry.getKey().getTopic();
+                if (MixAll.isLmq(currentTopic)) {
+                    staticResult.getOffsetTable().put(entry.getKey(), entry.getValue());
+                } else {
+                    topics.add(currentTopic);
+                }
+            }
             // for topic, we put the physical stats, how about group?
             // staticResult.getOffsetTable().putAll(result.getOffsetTable());
 

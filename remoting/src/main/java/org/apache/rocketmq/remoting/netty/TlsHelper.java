@@ -126,10 +126,11 @@ public class TlsHelper {
                     }
                 }
 
-                sslContextBuilder = sslContextBuilder.keyManager(
-                    !isNullOrEmpty(tlsClientCertPath) ? new FileInputStream(tlsClientCertPath) : null,
-                    !isNullOrEmpty(tlsClientKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsClientKeyPath, true) : null,
-                    !isNullOrEmpty(tlsClientKeyPassword) ? tlsClientKeyPassword : null);
+                try (InputStream certStream = !isNullOrEmpty(tlsClientCertPath) ? new FileInputStream(tlsClientCertPath) : null;
+                    InputStream keyStream = !isNullOrEmpty(tlsClientKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsClientKeyPath, true) : null) {
+                    sslContextBuilder = sslContextBuilder.keyManager(certStream, keyStream,
+                        !isNullOrEmpty(tlsClientKeyPassword) ? tlsClientKeyPassword : null);
+                }
             }
         } else {
 
@@ -140,11 +141,12 @@ public class TlsHelper {
                     .sslProvider(provider)
                     .clientAuth(ClientAuth.OPTIONAL);
             } else {
-                sslContextBuilder = SslContextBuilder.forServer(
-                    !isNullOrEmpty(tlsServerCertPath) ? new FileInputStream(tlsServerCertPath) : null,
-                    !isNullOrEmpty(tlsServerKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsServerKeyPath, false) : null,
-                    !isNullOrEmpty(tlsServerKeyPassword) ? tlsServerKeyPassword : null)
-                    .sslProvider(provider);
+                try (InputStream certStream = !isNullOrEmpty(tlsServerCertPath) ? new FileInputStream(tlsServerCertPath) : null;
+                    InputStream keyStream = !isNullOrEmpty(tlsServerKeyPath) ? decryptionStrategy.decryptPrivateKey(tlsServerKeyPath, false) : null) {
+                    sslContextBuilder = SslContextBuilder.forServer(certStream, keyStream,
+                        !isNullOrEmpty(tlsServerKeyPassword) ? tlsServerKeyPassword : null)
+                        .sslProvider(provider);
+                }
 
                 if (!tlsServerAuthClient) {
                     sslContextBuilder.trustManager(InsecureTrustManagerFactory.INSTANCE);
