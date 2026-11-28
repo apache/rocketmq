@@ -112,7 +112,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-
+        // parse request
         final long beginTimeMills = brokerController.getMessageStore().now();
         Channel channel = ctx.channel();
         request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
@@ -125,6 +125,8 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         final PopLiteMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(PopLiteMessageRequestHeader.class, true);
         final PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) response.readCustomHeader();
+
+        // validation
         RemotingCommand preCheckResponse = preCheck(ctx, requestHeader, response);
         if (preCheckResponse != null) {
             return preCheckResponse;
@@ -192,10 +194,25 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         responseHeader.setOrderCountInfo(rst.getObject1().toString());
         // Since a single read operation potentially retrieving messages from multiple LMQs,
         // we no longer utilize startOffset and msgOffset
+        // write response to socket channel
         NettyRemotingAbstract.writeResponse(channel, request, response, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
         return null;
     }
 
+    /**
+     * Validate the Pop Lite request:
+     * Returns a ready-to-send error {@link RemotingCommand} when failed,
+     * or {@code null} when passes all checks and Pop may proceed.
+     *
+     * <p>The checks are layered as:
+     * - timeout
+     * - broker permission
+     * - batch-size cap
+     * - topic existence and readability
+     * - topic message type must be {@link TopicMessageType#LITE}
+     * - the subscription group exists, is enabled,
+     *   and its {@code liteBindTopic} matches the requested topic.
+     */
     @VisibleForTesting
     public RemotingCommand preCheck(ChannelHandlerContext ctx,
         PopLiteMessageRequestHeader requestHeader, RemotingCommand response) {

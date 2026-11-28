@@ -37,6 +37,16 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 
+/**
+ * Proxy-side remoting processor that relays broker-originated requests to the
+ * actual gRPC client channel.
+ *
+ * <p>In cluster mode, the broker sends CHECK_TRANSACTION_STATE and
+ * NOTIFY_UNSUBSCRIBE_LITE requests to the proxy (not directly to the client).
+ * This processor translates those Remoting protocol requests into writes on
+ * the correct client-facing gRPC/Netty channel, bridging the broker's Remoting
+ * world with the proxy's client-facing channel.
+ */
 public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final ProducerManager producerManager;
@@ -48,6 +58,16 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
         this.consumerManager = consumerManager;
     }
 
+    /**
+     * Dispatch broker requests to the appropriate handler.
+     *
+     * <p>Only two request types are handled:
+     * <ul>
+     *   <li>{@link RequestCode#CHECK_TRANSACTION_STATE} — transaction status check</li>
+     *   <li>{@link RequestCode#NOTIFY_UNSUBSCRIBE_LITE} — Lite Topic unsubscribe notification</li>
+     * </ul>
+     * All other request codes return {@code null} (no-op).
+     */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
@@ -59,6 +79,20 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
         return null;
     }
 
+    /**
+     * Relay a transaction status check request from the broker to the producer's
+     * client channel.
+     *
+     * <p>The broker sends a CHECK_TRANSACTION_STATE request when a half message
+     * has aged past its immunity window. This method:
+     * <ol>
+     *   <li>Decodes the message body and extracts the producer group;</li>
+     *   <li>Records the broker's address as an extension field for reply routing;</li>
+     *   <li>Finds the producer's gRPC/Netty channel via {@link ProducerManager};</li>
+     *   <li>Forwards the request to the producer's channel for local transaction
+     *       status resolution.</li>
+     * </ol>
+     */
     @Override
     public RemotingCommand checkTransactionState(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
@@ -70,6 +104,7 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
                 CheckTransactionStateRequestHeader requestHeader =
                     (CheckTransactionStateRequestHeader) request.decodeCommandCustomHeader(CheckTransactionStateRequestHeader.class);
                 request.writeCustomHeader(requestHeader);
+                // record broker addr for the proxy to route EndTransaction back
                 request.addExtField(ProxyUtils.BROKER_ADDR, NetworkUtil.socketAddress2String(ctx.channel().remoteAddress()));
                 Channel channel = this.producerManager.getAvailableChannel(group);
                 if (channel != null) {
@@ -83,7 +118,14 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     }
 
     /**
-     * one way, return null response
+     * Relay a Lite Topic unsubscribe notification from the broker to the consumer's
+     * client channel.
+     *
+     * <p>When a client is evicted from a Lite Topic subscription (e.g. due to
+     * exclusive mode or subscription change), the broker sends a
+     * NOTIFY_UNSUBSCRIBE_LITE request. This method looks up the consumer's
+     * channel by (groupId, clientId) via {@link ClusterConsumerManager} and
+     * forwards the request one-way (no response expected).
      */
     public RemotingCommand notifyUnsubscribeLite(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {

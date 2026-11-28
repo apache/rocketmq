@@ -537,6 +537,14 @@ public class RemotingCommand {
         return RemotingCommandType.REQUEST_COMMAND;
     }
 
+    /**
+     * Whether this command is a response.
+     *
+     * <p>Checks the {@code RPC_TYPE} bit (bit 0) of {@link #flag}:
+     * set means response, unset means request.
+     * This is the reciprocal of {@link #markResponseType()}, which raises that bit,
+     * and drives the dispatch in {@code NettyRemotingAbstract#processMessageReceived}.
+     */
     @JSONField(serialize = false)
     public boolean isResponseType() {
         int bits = 1 << RPC_TYPE;
